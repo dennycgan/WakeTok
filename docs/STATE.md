@@ -89,45 +89,63 @@
 ## Phase Roadmap (active capability only)
 Active capability: POC-04 Flutter Media Feed Architecture Gate
 
-- [ ] 2.1 Create lib/spikes/poc_04/ as an isolated module inside the
-      existing WakeTok Flutter project; do NOT run flutter create again
-      or form a second nested Flutter project.
-      iOS spike code goes in ios/Runner/Spikes/POC04/.
-      Notes go in docs/poc/POC-04-notes.md.
+Scope locks (from owner decisions D1–D10):
+- Live Photo Platform View: deferred (not in POC-04)
+- Fit / Fill / 9:16: Fit only; Fill and 9:16 deferred
+- Background audio independent of Flutter widget: deferred to POC-03
+- Spike Pigeon contracts live under pigeon/spikes/poc_04/ only
+  (never under pigeon/ production root)
+- Image bridge: temp file path → Flutter Image (not Texture required)
+- Player pool: 1 active + 1 warming max
+- Automation: contract/leak probes; hitch & first-frame are device measurements
+- iCloud-only sample assets: owner confirms after 2.5; Cursor does not procure them
 
-- [ ] 2.2 Add spike-only Pigeon contracts and minimum Photos authorization
-      required to read device-local Photos-library PHAssets
+- [ ] 2.1 Create isolated spike scaffold inside the existing app:
+      lib/spikes/poc_04/, ios/Runner/Spikes/POC04/,
+      pigeon/spikes/poc_04/ (.gitkeep only), docs/poc/POC-04-notes.md.
+      Debug-only entry (flag/route) showing a placeholder screen;
+      do NOT replace default release home permanently.
+      Do NOT run flutter create or nest a second Flutter project.
+
+- [ ] 2.2 Add spike-only Pigeon under pigeon/spikes/poc_04/ plus
+      minimum Photos authorization (placeholder usage string) to list
+      device-local Photos-library PHAssets
       (not bundle assets, not iCloud-only assets)
 
-- [ ] 2.3 Implement a minimal mixed vertical feed:
-      - images: PHAsset → PHCachingImageManager → Flutter render path
-      - videos: PHAsset → requestPlayerItem / AVAsset → AVPlayer → Flutter render path
-      - current video plays; video stops when scrolling away
-      - player and render resources are reused or released on scroll
+- [ ] 2.3 Implement a minimal mixed vertical feed (Fit only):
+      - images: PHAsset → PHCachingImageManager → temp file → Flutter Image
+      - videos: PHAsset → requestPlayerItem / AVAsset → AVPlayer → Flutter path
+      - current video plays; stop+release on scroll-away
+      - player pool hard cap: 1 active + 1 warming
 
 - [ ] 2.4 Run at least 100 mixed-item transitions on iPhone 13;
-      verify active players, textures, and memory remain bounded
+      verify active players/textures/memory remain bounded
       (no monotonic growth after sustained scrolling)
 
-- [ ] 2.5 Measure in Profile or Release mode (not Debug):
+- [ ] 2.5 Measure in Profile or Release (not Debug) on iPhone 13:
       - hitch target: < 5 ms/s
       - local-video first-frame p90: < 500 ms
-      - record: test duration, item count, measurement tool used
+      - record: duration, item count, tool used
+      Then smoke the same build on iPhone 17 (compat only; not the gate number source).
 
-- [ ] 2.6 Test iCloud-only assets under Network Link Conditioner (slow 3G):
-      - loading state remains responsive
+- [ ] 2.6 After owner confirms iCloud-only sample assets: test under
+      Network Link Conditioner (slow 3G):
+      - loading/waiting state remains responsive
       - scrolling is not blocked while waiting
       - user can scroll past a waiting item
 
 - [ ] 2.7 Record go / conditional-go / no-go in DECISIONS.md
-      (draft in chat, owner approves before appending per release-handoff.mdc):
-      - pass → continue Flutter + Swift stack
-      - conditional pass → adjust rendering boundary and retest
-      - fail → evaluate SwiftUI / Swift-native before production implementation
+      (draft in chat, owner approves before append):
+      - pass → continue Flutter + Swift
+      - conditional pass → only pre-authorized escapes, then retest
+      - fail → evaluate SwiftUI / Swift-native before production work
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
 > new capability's phases and move YOU ARE HERE above.
+> Phase Roadmap is set by the owner before work begins on each capability.
+> When YOU ARE HERE moves, do not generate Phase Roadmap content without
+> explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): validate Flutter feed performance on iPhone 13 before production domain/data/feature implementation
