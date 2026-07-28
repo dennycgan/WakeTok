@@ -30,6 +30,10 @@ import UIKit
       binaryMessenger: messenger,
       api: Poc03PlaybackHost()
     )
+    Poc09ExportApiSetup.setUp(
+      binaryMessenger: messenger,
+      api: Poc09ExportHost()
+    )
     let videoFactory = Poc04VideoViewFactory(messenger: messenger)
     engineBridge.applicationRegistrar.register(
       videoFactory,

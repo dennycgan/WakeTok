@@ -27,6 +27,9 @@
 		A2000000000000000000000A /* clip_a.wav in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* clip_a.wav */; };
 		A2000000000000000000000C /* clip_b.wav in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* clip_b.wav */; };
 		A2000000000000000000000E /* clip_c.wav in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* clip_c.wav */; };
+		A30000000000000000000004 /* Poc09Export.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000003 /* Poc09Export.g.swift */; };
+		A30000000000000000000006 /* Poc09ExportHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000005 /* Poc09ExportHost.swift */; };
+		A30000000000000000000008 /* Poc09ExportEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30000000000000000000007 /* Poc09ExportEngine.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +84,9 @@
 		A20000000000000000000009 /* clip_a.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clip_a.wav; sourceTree = "<group>"; };
 		A2000000000000000000000B /* clip_b.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clip_b.wav; sourceTree = "<group>"; };
 		A2000000000000000000000D /* clip_c.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clip_c.wav; sourceTree = "<group>"; };
+		A30000000000000000000003 /* Poc09Export.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc09Export.g.swift; sourceTree = "<group>"; };
+		A30000000000000000000005 /* Poc09ExportHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc09ExportHost.swift; sourceTree = "<group>"; };
+		A30000000000000000000007 /* Poc09ExportEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc09ExportEngine.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -154,8 +160,19 @@
 			children = (
 				A20000000000000000000001 /* POC03 */,
 				A10000000000000000000002 /* POC04 */,
+				A30000000000000000000001 /* POC09 */,
 			);
 			path = Spikes;
+			sourceTree = "<group>";
+		};
+		A30000000000000000000001 /* POC09 */ = {
+			isa = PBXGroup;
+			children = (
+				A30000000000000000000003 /* Poc09Export.g.swift */,
+				A30000000000000000000005 /* Poc09ExportHost.swift */,
+				A30000000000000000000007 /* Poc09ExportEngine.swift */,
+			);
+			path = POC09;
 			sourceTree = "<group>";
 		};
 		A20000000000000000000001 /* POC03 */ = {
@@ -352,6 +369,9 @@
 				A20000000000000000000004 /* Poc03Playback.g.swift in Sources */,
 				A20000000000000000000006 /* Poc03PlaybackHost.swift in Sources */,
 				A20000000000000000000008 /* Poc03PlaybackEngine.swift in Sources */,
+				A30000000000000000000004 /* Poc09Export.g.swift in Sources */,
+				A30000000000000000000006 /* Poc09ExportHost.swift in Sources */,
+				A30000000000000000000008 /* Poc09ExportEngine.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

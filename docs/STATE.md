@@ -89,7 +89,30 @@
 ## Phase Roadmap (active capability only)
 Active capability: POC-09 Current Photos Representation Export Gate
 
-(Phases pending owner approval)
+- [x] 9.1 Spike harness (lib/spikes/poc_09/ + ios/Runner/Spikes/POC09/)
+      + Pigeon; requestAVAsset with version=.current,
+      deliveryMode=.highQualityFormat; dual probe vs .original;
+      export to temp file; HUD durations; unedited smoke OK
+
+- [ ] 9.2 Trim: Photos-trimmed video — export duration ≈ trimmed;
+      original probe longer; no silent fallback to pre-trim
+
+- [ ] 9.3 Slow-motion: high-frame-rate asset — export duration matches
+      Photos-displayed duration (current representation); record subtype
+
+- [ ] 9.4 Default audio: exported file has audible default audio track
+      (track present + device listen); no silent success
+
+- [ ] 9.5 Subtitle/caption on current representation: preserved OR
+      cleanly absent; FAIL on garbled/partial caption data
+      (full soft-sub matrix → POC-07)
+
+- [ ] 9.6 Explicit failure: cannot obtain current representation
+      (e.g. iCloud-only + networkAccessAllowed=false) → clear error;
+      no empty/corrupt success
+
+- [ ] 9.7 Record go/no-go in DECISIONS.md
+      (draft in chat; owner approves before append)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -100,9 +123,9 @@ Active capability: POC-09 Current Photos Representation Export Gate
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): validate Current Photos Representation export gate (POC-09) before production physical-clip implementation
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002)
-- Next step: owner locks POC-09 Phase Roadmap (await approval)
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03 Conditional Pass; physical-clip queue verify after POC-09)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 9.1 harness PASS
+- Next step: phase 9.2 Trim current-vs-original export (await owner go / fixture)
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); POC-09 locks in docs/poc/POC-09-notes.md
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md

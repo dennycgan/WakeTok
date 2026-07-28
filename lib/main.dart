@@ -4,6 +4,8 @@ import 'package:waketok/spikes/poc_03/poc_03_entry.dart';
 import 'package:waketok/spikes/poc_03/poc_03_spike_page.dart';
 import 'package:waketok/spikes/poc_04/poc_04_entry.dart';
 import 'package:waketok/spikes/poc_04/poc_04_placeholder_page.dart';
+import 'package:waketok/spikes/poc_09/poc_09_entry.dart';
+import 'package:waketok/spikes/poc_09/poc_09_spike_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +17,9 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Widget home;
-    if (kPoc03SpikeAsHome) {
+    if (kPoc09SpikeAsHome) {
+      home = const Poc09SpikePage();
+    } else if (kPoc03SpikeAsHome) {
       home = const Poc03SpikePage();
     } else if (kPoc04SpikeAsHome) {
       home = const Poc04PlaceholderPage();
@@ -108,6 +112,17 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             if (kDebugMode) ...[
               const SizedBox(height: 24),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const Poc09SpikePage(),
+                    ),
+                  );
+                },
+                child: const Text('POC-09'),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () {
                   Navigator.of(context).push(
