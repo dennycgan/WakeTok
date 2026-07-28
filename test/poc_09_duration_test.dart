@@ -56,4 +56,25 @@ void main() {
     expect(s.contains('trimGate=CHECK'), isTrue);
     expect(s.contains('origLonger(>2s)=false'), isTrue);
   });
+
+  test('formatSloMoGateSummary N/A when not HFR', () {
+    final s = formatSloMoGateSummary(
+      isHighFrameRate: false,
+      phAssetDurationSec: 10,
+      currentAvDurationSec: 10,
+      exportDurationSec: 10,
+    );
+    expect(s.contains('sloMoGate=N/A'), isTrue);
+  });
+
+  test('formatSloMoGateSummary PASS when HFR and durations align', () {
+    final s = formatSloMoGateSummary(
+      isHighFrameRate: true,
+      phAssetDurationSec: 12.0,
+      currentAvDurationSec: 12.0,
+      exportDurationSec: 12.1,
+    );
+    expect(s.contains('sloMoGate=PASS'), isTrue);
+    expect(s.contains('HFR=true'), isTrue);
+  });
 }

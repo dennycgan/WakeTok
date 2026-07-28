@@ -97,7 +97,7 @@ Active capability: POC-09 Current Photos Representation Export Gate
 - [x] 9.2 Trim: Photos-trimmed video — export duration ≈ trimmed;
       original probe longer; no silent fallback to pre-trim
 
-- [ ] 9.3 Slow-motion: high-frame-rate asset — export duration matches
+- [x] 9.3 Slow-motion: high-frame-rate asset — export duration matches
       Photos-displayed duration (current representation); record subtype
 
 - [ ] 9.4 Default audio: exported file has audible default audio track
@@ -123,8 +123,8 @@ Active capability: POC-09 Current Photos Representation Export Gate
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): validate Current Photos Representation export gate (POC-09) before production physical-clip implementation
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 9.1–9.2 PASS
-- Next step: phase 9.3 slow-motion current representation (await owner go / fixture)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 9.1–9.3 PASS
+- Next step: phase 9.4 default audio track (await owner go)
 - Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); POC-09 locks in docs/poc/POC-09-notes.md
 
 ## Contract pointers (don't memorize, go read the source)

@@ -81,3 +81,34 @@ String formatTrimGateSummary({
       'delta(orig-cur)=${deltaStr}s '
       'origLonger(>2s)=$longer exp≈cur(±0.25s)=$match';
 }
+
+/// 9.3 Slow-mo advisory (Q4=A): export ≈ Photos-displayed / PHAsset duration.
+String formatSloMoGateSummary({
+  required bool isHighFrameRate,
+  required double phAssetDurationSec,
+  required double? currentAvDurationSec,
+  required double? exportDurationSec,
+  String? errorCode,
+}) {
+  if (errorCode != null && errorCode.isNotEmpty) {
+    return 'sloMoGate=FAIL error=$errorCode';
+  }
+  if (!isHighFrameRate) {
+    return 'sloMoGate=N/A (not HFR subtype)';
+  }
+  final matchCur = isExportMatchingCurrent(
+    exportSec: exportDurationSec,
+    currentSec: currentAvDurationSec,
+  );
+  final matchPh = isExportMatchingCurrent(
+    exportSec: exportDurationSec,
+    currentSec: phAssetDurationSec,
+  );
+  final curPh = isExportMatchingCurrent(
+    exportSec: currentAvDurationSec,
+    currentSec: phAssetDurationSec,
+  );
+  final pass = matchCur && matchPh && curPh;
+  return 'sloMoGate=${pass ? "PASS" : "CHECK"} HFR=true '
+      'exp≈cur=$matchCur exp≈ph=$matchPh cur≈ph=$curPh';
+}

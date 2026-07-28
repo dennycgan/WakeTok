@@ -76,6 +76,15 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
             exportDurationSec: _probe!.exportDurationSec,
             errorCode: _probe!.errorCode,
           );
+    final sloMoHud = _probe == null
+        ? ''
+        : formatSloMoGateSummary(
+            isHighFrameRate: _probe!.isHighFrameRate,
+            phAssetDurationSec: _probe!.phAssetDurationSec,
+            currentAvDurationSec: _probe!.currentAvDurationSec,
+            exportDurationSec: _probe!.exportDurationSec,
+            errorCode: _probe!.errorCode,
+          );
 
     return Scaffold(
       appBar: AppBar(title: const Text('POC-09 export representation')),
@@ -83,14 +92,17 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            '9.1 smoke done. 9.2 Trim gate:\n'
-            'Photos-trim a local video (save edit) → List → select → Probe+Export.\n'
-            'Expect trimGate=PASS: orig-cur>2s AND exp≈cur (±0.25s).',
+            '9.2 Trim PASS. 9.3 Slow-mo (Q4=A):\n'
+            'Select an HFR video (list shows · HFR) → Probe+Export.\n'
+            'Expect sloMoGate=PASS: exp≈ph≈cur (±0.25s).',
           ),
           const SizedBox(height: 12),
           Text('auth=${_auth?.name ?? "—"}'),
           Text(probeHud),
           if (trimHud.isNotEmpty) Text(trimHud),
+          if (sloMoHud.isNotEmpty) Text(sloMoHud),
+          if (_probe != null)
+            Text('HFR subtype=${_probe!.isHighFrameRate}'),
           if (_probe?.exportPath != null) Text('path=${_probe!.exportPath}'),
           if (_probe?.errorMessage != null)
             Text(
@@ -194,13 +206,13 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
           }),
           const SizedBox(height: 24),
           const Text(
-            'Manual 9.2 (Trim / F1):\n'
-            '1) Photos → open a longer local video → Edit → Trim → Done → Save Video\n'
-            '   (trim enough that original − trimmed > 2 seconds)\n'
-            '2) WakeTok POC-09 → List local videos → select the trimmed one\n'
-            '   (list duration should be the trimmed length ≈ Photos)\n'
-            '3) Probe+Export → expect trimGate=PASS\n'
-            '4) FAIL if exp≈orig (silent fallback) or origLonger false on a real trim',
+            'Manual 9.3 (Slow-mo / F2):\n'
+            '1) Camera → Slo-mo → record a short clip (or pick existing HFR)\n'
+            '2) Note Photos playback duration (displayed length)\n'
+            '3) POC-09 → List → select item marked · HFR\n'
+            '4) Probe+Export → expect sloMoGate=PASS (exp≈ph≈cur)\n'
+            '5) If you changed Slo-mo to "normal" speed in Photos, still\n'
+            '   expect export ≈ Photos-displayed duration (Q4=A)',
             style: TextStyle(color: Colors.black54),
           ),
         ],

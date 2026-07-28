@@ -101,3 +101,28 @@ Screenshot: same asset as 9.1 F0 after trim; `orig=37.48` `cur/ph=28.98`
 
 - 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
 - 9.2: **PASS** — Trim F1; no silent original fallback
+
+## Phase 9.3 checklist
+
+Locks: Q4=A — export duration ≈ `PHAsset.duration` / Photos-displayed.
+Record `videoHighFrameRate` subtype on HUD.
+
+- [x] HUD `sloMoGate=` + `HFR subtype=`
+- [x] Unit tests for N/A (non-HFR) and PASS formatting
+- [x] `flutter analyze` + unit tests
+- [ ] Manual F2 HFR (S1–S3)
+
+### Manual (9.3)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| S0 | Have/create local Slo-mo (HFR) clip; note Photos duration | Fixture ready |
+| S1 | List → select `· HFR` item | Subtype flagged |
+| S2 | Probe+Export | `sloMoGate=PASS`; exp≈ph≈cur (±0.25s) |
+| S3 | Optional: if user set normal speed in Photos | Still exp ≈ displayed duration |
+
+## Build / measure log
+
+- 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
+- 9.2: **PASS** — Trim F1; no silent original fallback
+- 9.3: (pending device S0–S3)
