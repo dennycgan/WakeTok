@@ -110,7 +110,7 @@ Record `videoHighFrameRate` subtype on HUD.
 - [x] HUD `sloMoGate=` + `HFR subtype=`
 - [x] Unit tests for N/A (non-HFR) and PASS formatting
 - [x] `flutter analyze` + unit tests
-- [ ] Manual F2 HFR (S1–S3)
+- [x] Manual F2 HFR (S0–S3)
 
 ### Manual (9.3)
 
@@ -121,8 +121,12 @@ Record `videoHighFrameRate` subtype on HUD.
 | S2 | Probe+Export | `sloMoGate=PASS`; exp≈ph≈cur (±0.25s) |
 | S3 | Optional: if user set normal speed in Photos | Still exp ≈ displayed duration |
 
+Manual 9.3: **PASS** — owner 2026-07-28.
+Screenshot: `213.0s · HFR`; `ph=cur=exp=213.00`; `orig=36.62`;
+`sloMoGate=PASS`; `HFR subtype=true`. (trimGate=CHECK expected for slo-mo.)
+
 ## Build / measure log
 
 - 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
 - 9.2: **PASS** — Trim F1; no silent original fallback
-- 9.3: (pending device S0–S3)
+- 9.3: **PASS** — HFR F2; export matches Photos-displayed duration (Q4=A)
