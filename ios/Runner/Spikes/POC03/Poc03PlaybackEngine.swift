@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import MediaPlayer
 import UIKit
 
 /// App-scoped AVQueuePlayer for POC-03. Lifetime is independent of Flutter widgets.
@@ -9,6 +10,7 @@ import UIKit
 ///      After VoIP (WeChat), setActive often fails until the other app releases;
 ///      keep the process awake briefly with beginBackgroundTask and poll resume
 ///      so lock-screen / home-screen can recover without opening the Flutter UI.
+/// 3.4: MPNowPlayingInfoCenter + MPRemoteCommandCenter (Control Center / AirPods).
 final class Poc03PlaybackEngine {
   static let shared = Poc03PlaybackEngine()
 
@@ -23,15 +25,19 @@ final class Poc03PlaybackEngine {
   private var interruptionObserver: NSObjectProtocol?
   private var foregroundObserver: NSObjectProtocol?
   private var itemObservation: NSKeyValueObservation?
+  private var rateObservation: NSKeyValueObservation?
+  private var nowPlayingTimer: Timer?
 
   private var isInterrupted = false
   private var wasPlayingBeforeInterruption = false
   private var pendingShouldResume = false
   private var interruptionCount = 0
   private var lastInterruptionSummary = ""
+  private var lastRemoteCommand = ""
   private var resumePollTimer: Timer?
   private var resumePollTicks = 0
   private var resumeBackgroundTask = UIBackgroundTaskIdentifier.invalid
+  private var remoteCommandsConfigured = false
 
   private init() {
     queuePlayer.actionAtItemEnd = .advance
@@ -45,6 +51,11 @@ final class Poc03PlaybackEngine {
     itemObservation = queuePlayer.observe(\.currentItem, options: [.new]) {
       [weak self] _, _ in
       self?.handleCurrentItemChanged()
+    }
+    rateObservation = queuePlayer.observe(\.rate, options: [.new]) {
+      [weak self] _, _ in
+      self?.syncNowPlayingInfo()
+      self?.syncNowPlayingTimer()
     }
     interruptionObserver = NotificationCenter.default.addObserver(
       forName: AVAudioSession.interruptionNotification,
@@ -60,6 +71,7 @@ final class Poc03PlaybackEngine {
     ) { [weak self] _ in
       self?.attemptResume(label: "foreground")
     }
+    configureRemoteCommandsIfNeeded()
   }
 
   deinit {
@@ -73,7 +85,9 @@ final class Poc03PlaybackEngine {
       NotificationCenter.default.removeObserver(foregroundObserver)
     }
     itemObservation?.invalidate()
+    rateObservation?.invalidate()
     stopResumePolling()
+    stopNowPlayingTimer()
   }
 
   func listBundleClipIds() -> [String] {
@@ -91,6 +105,7 @@ final class Poc03PlaybackEngine {
     try enqueueNextClip()
     try enqueueNextClip()
     configured = true
+    syncNowPlayingInfo()
   }
 
   func play() throws {
@@ -100,10 +115,12 @@ final class Poc03PlaybackEngine {
     try activateSession()
     ensurePrequeue()
     queuePlayer.play()
+    syncNowPlayingInfo()
   }
 
   func pause() {
     queuePlayer.pause()
+    syncNowPlayingInfo()
   }
 
   func stop() {
@@ -117,6 +134,7 @@ final class Poc03PlaybackEngine {
     wasPlayingBeforeInterruption = false
     pendingShouldResume = false
     stopResumePolling()
+    clearNowPlayingInfo()
   }
 
   func clearGapSamples() {
@@ -136,7 +154,8 @@ final class Poc03PlaybackEngine {
     currentClipId: String,
     isInterrupted: Bool,
     interruptionCount: Int,
-    lastInterruptionSummary: String
+    lastInterruptionSummary: String,
+    lastRemoteCommand: String
   ) {
     let current = queuePlayer.currentItem
     let clipId = current.flatMap { itemToClipId[ObjectIdentifier($0)] } ?? ""
@@ -151,9 +170,148 @@ final class Poc03PlaybackEngine {
       currentClipId: clipId,
       isInterrupted: isInterrupted,
       interruptionCount: interruptionCount,
-      lastInterruptionSummary: lastInterruptionSummary
+      lastInterruptionSummary: lastInterruptionSummary,
+      lastRemoteCommand: lastRemoteCommand
     )
   }
+
+  // MARK: - 3.4 Now Playing / remote commands
+
+  private func configureRemoteCommandsIfNeeded() {
+    guard !remoteCommandsConfigured else { return }
+    remoteCommandsConfigured = true
+    UIApplication.shared.beginReceivingRemoteControlEvents()
+
+    let center = MPRemoteCommandCenter.shared()
+    center.playCommand.isEnabled = true
+    center.pauseCommand.isEnabled = true
+    center.togglePlayPauseCommand.isEnabled = true
+    center.nextTrackCommand.isEnabled = true
+    center.previousTrackCommand.isEnabled = true
+
+    center.playCommand.addTarget { [weak self] _ in
+      self?.handleRemotePlay() ?? .commandFailed
+    }
+    center.pauseCommand.addTarget { [weak self] _ in
+      self?.handleRemotePause() ?? .commandFailed
+    }
+    center.togglePlayPauseCommand.addTarget { [weak self] _ in
+      self?.handleRemoteToggle() ?? .commandFailed
+    }
+    center.nextTrackCommand.addTarget { [weak self] _ in
+      self?.handleRemoteNext() ?? .commandFailed
+    }
+    center.previousTrackCommand.addTarget { [weak self] _ in
+      self?.handleRemotePrevious() ?? .commandFailed
+    }
+  }
+
+  private func handleRemotePlay() -> MPRemoteCommandHandlerStatus {
+    lastRemoteCommand = "play"
+    do {
+      try play()
+      return .success
+    } catch {
+      return .commandFailed
+    }
+  }
+
+  private func handleRemotePause() -> MPRemoteCommandHandlerStatus {
+    lastRemoteCommand = "pause"
+    pause()
+    return .success
+  }
+
+  private func handleRemoteToggle() -> MPRemoteCommandHandlerStatus {
+    if queuePlayer.rate > 0.01 {
+      lastRemoteCommand = "toggle→pause"
+      pause()
+      return .success
+    }
+    lastRemoteCommand = "toggle→play"
+    do {
+      try play()
+      return .success
+    } catch {
+      return .commandFailed
+    }
+  }
+
+  private func handleRemoteNext() -> MPRemoteCommandHandlerStatus {
+    lastRemoteCommand = "next"
+    guard configured else { return .noActionableNowPlayingItem }
+    ensurePrequeue()
+    if queuePlayer.items().count < 2 {
+      return .noSuchContent
+    }
+    queuePlayer.advanceToNextItem()
+    ensurePrequeue()
+    syncNowPlayingInfo()
+    return .success
+  }
+
+  private func handleRemotePrevious() -> MPRemoteCommandHandlerStatus {
+    lastRemoteCommand = "previous"
+    guard configured, let item = queuePlayer.currentItem else {
+      return .noActionableNowPlayingItem
+    }
+    // Spike: restart current clip (short fixtures). Production may skip back.
+    item.seek(to: .zero, completionHandler: nil)
+    syncNowPlayingInfo()
+    return .success
+  }
+
+  private func syncNowPlayingInfo() {
+    guard configured, let item = queuePlayer.currentItem else {
+      clearNowPlayingInfo()
+      return
+    }
+    let clipId = itemToClipId[ObjectIdentifier(item)] ?? "clip"
+    let elapsed = CMTimeGetSeconds(item.currentTime())
+    let duration = CMTimeGetSeconds(item.duration)
+    var info: [String: Any] = [
+      MPMediaItemPropertyTitle: clipId,
+      MPMediaItemPropertyArtist: "WakeTok POC-03",
+      MPMediaItemPropertyAlbumTitle: "Bundle fixtures",
+      MPNowPlayingInfoPropertyPlaybackRate: Double(queuePlayer.rate),
+    ]
+    if elapsed.isFinite, elapsed >= 0 {
+      info[MPNowPlayingInfoPropertyElapsedPlaybackTime] = elapsed
+    }
+    if duration.isFinite, duration > 0 {
+      info[MPMediaItemPropertyPlaybackDuration] = duration
+    }
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+  }
+
+  private func clearNowPlayingInfo() {
+    stopNowPlayingTimer()
+    MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+  }
+
+  private func syncNowPlayingTimer() {
+    if queuePlayer.rate > 0.01, configured {
+      startNowPlayingTimer()
+    } else {
+      stopNowPlayingTimer()
+    }
+  }
+
+  private func startNowPlayingTimer() {
+    guard nowPlayingTimer == nil else { return }
+    let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
+      self?.syncNowPlayingInfo()
+    }
+    RunLoop.main.add(timer, forMode: .common)
+    nowPlayingTimer = timer
+  }
+
+  private func stopNowPlayingTimer() {
+    nowPlayingTimer?.invalidate()
+    nowPlayingTimer = nil
+  }
+
+  // MARK: - 3.3 interruption
 
   private func handleInterruption(_ note: Notification) {
     guard let info = note.userInfo,
@@ -173,6 +331,7 @@ final class Poc03PlaybackEngine {
       lastInterruptionSummary =
         "began wasPlaying=\(wasPlayingBeforeInterruption)"
       queuePlayer.pause()
+      syncNowPlayingInfo()
 
     case .ended:
       isInterrupted = false
@@ -264,6 +423,7 @@ final class Poc03PlaybackEngine {
       lastInterruptionSummary =
         "ended shouldResume=true → auto play (\(label))"
       stopResumePolling()
+      syncNowPlayingInfo()
     } catch {
       lastInterruptionSummary =
         "ended shouldResume=true → resume failed (\(label)): "
@@ -280,14 +440,15 @@ final class Poc03PlaybackEngine {
   }
 
   private func handleCurrentItemChanged() {
-    guard let t0 = gapT0 else { return }
-    guard queuePlayer.currentItem != nil else { return }
-    let ms = (CACurrentMediaTime() - t0) * 1000.0
-    if ms >= 0, ms < 5000 {
-      gapSamplesMs.append(ms)
+    if let t0 = gapT0, queuePlayer.currentItem != nil {
+      let ms = (CACurrentMediaTime() - t0) * 1000.0
+      if ms >= 0, ms < 5000 {
+        gapSamplesMs.append(ms)
+      }
+      gapT0 = nil
     }
-    gapT0 = nil
     ensurePrequeue()
+    syncNowPlayingInfo()
   }
 
   private func ensurePrequeue() {

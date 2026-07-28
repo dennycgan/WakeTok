@@ -107,6 +107,7 @@ class Poc03PlaybackStateDto {
     required this.isInterrupted,
     required this.interruptionCount,
     required this.lastInterruptionSummary,
+    required this.lastRemoteCommand,
   });
 
   bool isPlaying;
@@ -128,6 +129,9 @@ class Poc03PlaybackStateDto {
   /// Last interruption note for HUD (e.g. ended shouldResume → auto play).
   String lastInterruptionSummary;
 
+  /// Last Control Center / headphone remote command (3.4), e.g. play / next.
+  String lastRemoteCommand;
+
   List<Object?> _toList() {
     return <Object?>[
       isPlaying,
@@ -138,6 +142,7 @@ class Poc03PlaybackStateDto {
       isInterrupted,
       interruptionCount,
       lastInterruptionSummary,
+      lastRemoteCommand,
     ];
   }
 
@@ -155,6 +160,7 @@ class Poc03PlaybackStateDto {
       isInterrupted: result[5]! as bool,
       interruptionCount: result[6]! as int,
       lastInterruptionSummary: result[7]! as String,
+      lastRemoteCommand: result[8]! as String,
     );
   }
 
@@ -167,7 +173,7 @@ class Poc03PlaybackStateDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(isPlaying, other.isPlaying) && _deepEquals(currentIndex, other.currentIndex) && _deepEquals(queueLength, other.queueLength) && _deepEquals(positionMs, other.positionMs) && _deepEquals(currentClipId, other.currentClipId) && _deepEquals(isInterrupted, other.isInterrupted) && _deepEquals(interruptionCount, other.interruptionCount) && _deepEquals(lastInterruptionSummary, other.lastInterruptionSummary);
+    return _deepEquals(isPlaying, other.isPlaying) && _deepEquals(currentIndex, other.currentIndex) && _deepEquals(queueLength, other.queueLength) && _deepEquals(positionMs, other.positionMs) && _deepEquals(currentClipId, other.currentClipId) && _deepEquals(isInterrupted, other.isInterrupted) && _deepEquals(interruptionCount, other.interruptionCount) && _deepEquals(lastInterruptionSummary, other.lastInterruptionSummary) && _deepEquals(lastRemoteCommand, other.lastRemoteCommand);
   }
 
   @override
@@ -176,7 +182,7 @@ class Poc03PlaybackStateDto {
 
   @override
   String toString() {
-    return 'Poc03PlaybackStateDto(isPlaying: $isPlaying, currentIndex: $currentIndex, queueLength: $queueLength, positionMs: $positionMs, currentClipId: $currentClipId, isInterrupted: $isInterrupted, interruptionCount: $interruptionCount, lastInterruptionSummary: $lastInterruptionSummary)';
+    return 'Poc03PlaybackStateDto(isPlaying: $isPlaying, currentIndex: $currentIndex, queueLength: $queueLength, positionMs: $positionMs, currentClipId: $currentClipId, isInterrupted: $isInterrupted, interruptionCount: $interruptionCount, lastInterruptionSummary: $lastInterruptionSummary, lastRemoteCommand: $lastRemoteCommand)';
   }
 }
 

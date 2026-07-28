@@ -24,6 +24,7 @@ class Poc03PlaybackStateDto {
     required this.isInterrupted,
     required this.interruptionCount,
     required this.lastInterruptionSummary,
+    required this.lastRemoteCommand,
   });
 
   bool isPlaying;
@@ -40,6 +41,9 @@ class Poc03PlaybackStateDto {
 
   /// Last interruption note for HUD (e.g. ended shouldResume → auto play).
   String lastInterruptionSummary;
+
+  /// Last Control Center / headphone remote command (3.4), e.g. play / next.
+  String lastRemoteCommand;
 }
 
 @HostApi()

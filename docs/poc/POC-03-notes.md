@@ -97,13 +97,33 @@ Manual 3.3: **PASS (Q1=B)** — owner 2026-07-28.
 Other scenarios OK; WeChat video while locked: no lock/home resume;
 open app → `auto play (poll 24)`; continues from pause point.
 
+## Phase 3.4 checklist
+
+- [x] `MPNowPlayingInfoCenter` title/artist/elapsed/duration/rate
+- [x] `MPRemoteCommandCenter`: play / pause / toggle / next / previous
+- [x] Next = `advanceToNextItem` + prequeue; previous = seek current to 0
+- [x] HUD: `remote=` last command
+- [x] `flutter analyze` + `flutter test` + simulator build
+- [x] Manual: Control Center + AirPods
+
+### Manual (3.4)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| N1 | Play → lock / Control Center | Title = clip id; artist WakeTok POC-03 |
+| N2 | Pause / Play from CC or AirPods | Transport works; HUD `remote=` |
+| N3 | Next from CC or AirPods | Advances clip; audio continues |
+
+Manual 3.4: **PASS** — owner 2026-07-28.
+Screenshot: `playing=true · #1/3 · clip_b · …` + `remote=next`; gap n=18 still PASS.
+N1/N2 owner-confirmed (CC metadata + pause/play); N3 evidenced by HUD `remote=next` on clip_b.
 ## Acceptance map (later phases)
 
 | Phase | Auto | Manual gate |
 |-------|------|-------------|
 | 3.2 | gap probe unit + HUD | L1–L3 (+ G1 sentry) |
 | 3.3 | interruption + bg poll | I1–I3 (Q1=B); lock/home debt |
-| 3.4 | — | Control Center + AirPods |
+| 3.4 | Now Playing + remote cmds | N1–N3 |
 | 3.5 | checkpoint DTO tests | kill → silent; cold Restore? (P5) |
 | 3.6 | — | ADR go/no-go |
 
@@ -112,3 +132,4 @@ open app → `auto play (poll 24)`; continues from pause point.
 - 3.1: M1–M3 PASS (2026-07-28)
 - 3.2: **PASS** — lock→unlock; gap n=24 p50=4ms p90=4ms; L1–L3 owner OK
 - 3.3: **PASS (Q1=B)** — auto resume via poll/foreground; WeChat lock/home = debt
+- 3.4: **PASS** — owner 2026-07-28; HUD `remote=next` + clip_b; N1/N2 owner OK

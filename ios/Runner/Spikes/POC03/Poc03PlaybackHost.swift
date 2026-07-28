@@ -44,7 +44,8 @@ final class Poc03PlaybackHost: Poc03PlaybackApi {
       currentClipId: s.currentClipId,
       isInterrupted: s.isInterrupted,
       interruptionCount: Int64(s.interruptionCount),
-      lastInterruptionSummary: s.lastInterruptionSummary
+      lastInterruptionSummary: s.lastInterruptionSummary,
+      lastRemoteCommand: s.lastRemoteCommand
     )
   }
 
