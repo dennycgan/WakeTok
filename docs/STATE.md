@@ -24,8 +24,8 @@
 
 ## Capability Roadmap (project-level; top-to-bottom = execution order; YOU ARE HERE)
 - [x] Project Bootstrap (flutter create scaffold, pigeon/ placeholder, docs skeleton, root commit)
-- [~] POC-04: Flutter Media Feed Architecture Gate (must pass before production domain/data/feature implementation)   <-- YOU ARE HERE
-- [ ] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)
+- [x] POC-04: Flutter Media Feed Architecture Gate (must pass before production domain/data/feature implementation)
+- [~] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)   <-- YOU ARE HERE
 - [ ] POC-09: Current Photos Representation Export Gate
       (must pass before production physical-clip implementation)
 - [ ] App Foundation
@@ -87,58 +87,27 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: POC-04 Flutter Media Feed Architecture Gate
+Active capability: POC-03 Lock-screen continuous playback gate
 
-Scope locks (from owner decisions D1–D10):
-- Live Photo Platform View: deferred (not in POC-04)
-- Fit / Fill / 9:16: Fit only; Fill and 9:16 deferred
-- Background audio independent of Flutter widget: deferred to POC-03
-- Spike Pigeon contracts live under pigeon/spikes/poc_04/ only
-  (never under pigeon/ production root)
-- Image bridge: temp file path → Flutter Image (not Texture required)
-- Player pool: 1 active + 1 warming max
-- Automation: contract/leak probes; hitch & first-frame are device measurements
-- iCloud-only sample assets: owner confirms after 2.5; Cursor does not procure them
+- [ ] 3.1 Create spike harness in lib/spikes/poc_03/ +
+      ios/Runner/Spikes/POC03/; minimal AVQueuePlayer + AVAudioSession(.playback)
+      setup; playback must not depend on Flutter Widget being alive
 
-- [ ] 2.1 Create isolated spike scaffold inside the existing app:
-      lib/spikes/poc_04/, ios/Runner/Spikes/POC04/,
-      pigeon/spikes/poc_04/ (.gitkeep only), docs/poc/POC-04-notes.md.
-      Debug-only entry (flag/route) showing a placeholder screen;
-      do NOT replace default release home permanently.
-      Do NOT run flutter create or nest a second Flutter project.
+- [ ] 3.2 Verify clip-to-clip auto-advance on lock screen:
+      pre-queue next AVPlayerItem; confirm audio gap is imperceptible
+      or acceptable between segments
 
-- [ ] 2.2 Add spike-only Pigeon under pigeon/spikes/poc_04/ plus
-      minimum Photos authorization (placeholder usage string) to list
-      device-local Photos-library PHAssets
-      (not bundle assets, not iCloud-only assets)
+- [ ] 3.3 Verify audio interruption and recovery
+      (phone call, Siri, other audio apps; session re-activates on return)
 
-- [ ] 2.3 Implement a minimal mixed vertical feed (Fit only):
-      - images: PHAsset → PHCachingImageManager → temp file → Flutter Image
-      - videos: PHAsset → requestPlayerItem / AVAsset → AVPlayer → Flutter path
-      - current video plays; stop+release on scroll-away
-      - player pool hard cap: 1 active + 1 warming
+- [ ] 3.4 Verify Control Center metadata (Now Playing info + transport controls)
+      and AirPods play/pause/next
 
-- [ ] 2.4 Run at least 100 mixed-item transitions on iPhone 13;
-      verify active players/textures/memory remain bounded
-      (no monotonic growth after sustained scrolling)
+- [ ] 3.5 Verify process termination stops playback;
+      next foreground launch can attempt SessionCheckpoint recovery
 
-- [ ] 2.5 Measure in Profile or Release (not Debug) on iPhone 13:
-      - hitch target: < 5 ms/s
-      - local-video first-frame p90: < 500 ms
-      - record: duration, item count, tool used
-      Then smoke the same build on iPhone 17 (compat only; not the gate number source).
-
-- [ ] 2.6 After owner confirms iCloud-only sample assets: test under
-      Network Link Conditioner (slow 3G):
-      - loading/waiting state remains responsive
-      - scrolling is not blocked while waiting
-      - user can scroll past a waiting item
-
-- [ ] 2.7 Record go / conditional-go / no-go in DECISIONS.md
-      (draft in chat, owner approves before append):
-      - pass → continue Flutter + Swift
-      - conditional pass → only pre-authorized escapes, then retest
-      - fail → evaluate SwiftUI / Swift-native before production work
+- [ ] 3.6 Record go / no-go in DECISIONS.md
+      (draft in chat, owner approves before append)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -148,15 +117,16 @@ Scope locks (from owner decisions D1–D10):
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): validate Flutter feed performance on iPhone 13 before production domain/data/feature implementation
-- Sub-steps done: Project Bootstrap complete (flutter scaffold, docs skeleton, root commit created)
-- Next step: create lib/spikes/poc_04/ and ios/Runner/Spikes/POC04/ harness
-- Related decisions: POC-04 result will determine stack go/no-go (see DECISIONS.md when result lands)
+- Goal (one line): validate lock-screen continuous playback / background audio gate (POC-03) before production domain/data/feature implementation
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001)
+- Next step: phase 3.1 spike harness (await owner go)
+- Related decisions: ADR-001 (POC-04 Flutter+PV Conditional Pass; Severe Hang = production debt)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
-- Pigeon contracts: pigeon/ (empty until POC-04)
+- Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
+- ADR-001: docs/DECISIONS.md
 - (grows as code lands)
 
 ## Do NOT touch (unless explicitly opening a new phase)
@@ -167,3 +137,4 @@ Scope locks (from owner decisions D1–D10):
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
 | Bootstrap | iOS deployment target left at Flutter default | Kickoff Open Question: platform target TBD; decide with real-device data | POC-04 | — |
+| POC-04 | Severe Hang under fast scrolling / animateToPage load | Conditional Pass accepted; must address in production feed | Production Main Browse Screen | ADR-001 |
