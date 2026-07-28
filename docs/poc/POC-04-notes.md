@@ -32,7 +32,24 @@ Owner 验收: 2026-07-28 (device; Listed 100 after full access).
 
 Local filter (host): `isNetworkAccessAllowed = false` + `PHImageResultIsInCloudKey` (image sync / video semaphore). Avoids `PHAssetResource.isLocallyAvailable` (SDK/OS gated). Prefer a real device with local media; simulator library may be empty.
 
-Regenerate Pigeon after schema edits:
+## Phase 2.3 checklist
+
+Locks: E1=A UiKitView+AVPlayerLayer; E2=A Open feed; E3=A maxLongEdge 1080; E4=A muted; E5=C HUD+mock tests+device leak probe.
+
+**Gate order (required):** A1–A4 automation must all be green **before** any device M1–M8. Do not reverse.
+
+Automation:
+- [x] A1 `flutter analyze` + `flutter test` (incl. widget smoke)
+- [x] A2 feed controller mock: mixed transitions respect pool 1+1 intents
+- [x] A3 image temp release when leaving keep window
+- [x] A4 `flutter build ios --simulator --debug --no-codesign`
+
+Manual (only after A1–A4 green):
+- [x] M1–M8 per design (feed Fit, video play/stop, pool HUD, leak probe, etc.)
+
+Owner 验收: 2026-07-28 (device; muted video OK).
+
+Pigeon: library + media bridge share one schema file (avoids duplicate Swift `PigeonError`):
 
 ```bash
 dart run pigeon --input pigeon/spikes/poc_04/poc_04_photo_library.dart

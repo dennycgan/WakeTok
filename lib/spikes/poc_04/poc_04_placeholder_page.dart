@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:waketok/spikes/poc_04/generated/poc_04_photo_library.g.dart';
 import 'package:waketok/spikes/poc_04/poc_04_entry.dart';
+import 'package:waketok/spikes/poc_04/poc_04_feed_page.dart';
 
-/// POC-04 Phase 2.2: Photos authorization + list local mixed assets.
+/// POC-04 Phase 2.2–2.3: Photos auth/list + entry to mixed feed.
 class Poc04PlaceholderPage extends StatefulWidget {
   const Poc04PlaceholderPage({super.key});
 
@@ -105,13 +106,13 @@ class _Poc04PlaceholderPageState extends State<Poc04PlaceholderPage> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'POC-04 · Phase 2.2',
+              'POC-04 · Phase 2.2 / 2.3',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             const Text(
-              'Photos authorization + list device-local image/video PHAssets '
-              '(iCloud-only skipped). No feed yet.',
+              'Photos authorization + list device-local image/video PHAssets. '
+              'Open feed for Fit-only mixed vertical playback (pool 1+1).',
             ),
             if (!canPop && kPoc04SpikeAsHome) ...[
               const SizedBox(height: 8),
@@ -146,6 +147,18 @@ class _Poc04PlaceholderPageState extends State<Poc04PlaceholderPage> {
                 FilledButton.tonal(
                   onPressed: _busy ? null : _listAssets,
                   child: const Text('List local assets (≤100)'),
+                ),
+                FilledButton(
+                  onPressed: _busy || _assets.isEmpty
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => Poc04FeedPage(assets: _assets),
+                            ),
+                          );
+                        },
+                  child: const Text('Open feed'),
                 ),
               ],
             ),

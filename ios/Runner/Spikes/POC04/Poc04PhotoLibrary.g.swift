@@ -252,6 +252,51 @@ struct Poc04AssetDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Generated class from Pigeon that represents data sent in messages.
+struct Poc04PoolDiagnostics: Hashable, CustomStringConvertible {
+  var activeCount: Int64
+  var warmingCount: Int64
+  var tempFileCount: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> Poc04PoolDiagnostics? {
+    let activeCount = pigeonVar_list[0] as! Int64
+    let warmingCount = pigeonVar_list[1] as! Int64
+    let tempFileCount = pigeonVar_list[2] as! Int64
+
+    return Poc04PoolDiagnostics(
+      activeCount: activeCount,
+      warmingCount: warmingCount,
+      tempFileCount: tempFileCount
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      activeCount,
+      warmingCount,
+      tempFileCount,
+    ]
+  }
+  static func == (lhs: Poc04PoolDiagnostics, rhs: Poc04PoolDiagnostics) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.activeCount, rhs.activeCount) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.warmingCount, rhs.warmingCount) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.tempFileCount, rhs.tempFileCount)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("Poc04PoolDiagnostics")
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: activeCount, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: warmingCount, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: tempFileCount, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "Poc04PoolDiagnostics(activeCount: \(String(describing: activeCount)), warmingCount: \(String(describing: warmingCount)), tempFileCount: \(String(describing: tempFileCount)))"
+  }
+}
+
 private class Poc04PhotoLibraryPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -269,6 +314,8 @@ private class Poc04PhotoLibraryPigeonCodecReader: FlutterStandardReader {
       return nil
     case 131:
       return Poc04AssetDto.fromList(self.readValue() as! [Any?])
+    case 132:
+      return Poc04PoolDiagnostics.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -285,6 +332,9 @@ private class Poc04PhotoLibraryPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.rawValue)
     } else if let value = value as? Poc04AssetDto {
       super.writeByte(131)
+      super.writeValue(value.toList())
+    } else if let value = value as? Poc04PoolDiagnostics {
+      super.writeByte(132)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -368,6 +418,199 @@ class Poc04PhotoLibraryApiSetup {
       }
     } else {
       listLocalMixedAssetsChannel.setMessageHandler(nil)
+    }
+  }
+}
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol Poc04MediaBridgeApi {
+  /// Export a display image to a temp file (longest edge capped). Returns path.
+  func resolveImageTempFile(assetId: String, maxLongEdge: Int64, completion: @escaping (Result<String, Error>) -> Void)
+  func releaseImageTempFile(path: String) throws
+  func releaseAllImageTempFiles() throws
+  /// Best-effort PHCachingImageManager prefetch for neighbor asset IDs.
+  func prefetchNeighbors(assetIds: [String]) throws
+  /// Occupy the active player slot (releases previous active if needed).
+  func attachActiveVideo(assetId: String, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+  func attachWarmingVideo(assetId: String, completion: @escaping (Result<Void, Error>) -> Void)
+  func playActive() throws
+  func pauseActive() throws
+  func releaseVideo(assetId: String) throws
+  func releaseAllVideos() throws
+  func getPoolDiagnostics() throws -> Poc04PoolDiagnostics
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class Poc04MediaBridgeApiSetup {
+  static var codec: FlutterStandardMessageCodec { Poc04PhotoLibraryPigeonCodec.shared }
+  /// Sets up an instance of `Poc04MediaBridgeApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: Poc04MediaBridgeApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Export a display image to a temp file (longest edge capped). Returns path.
+    let resolveImageTempFileChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.resolveImageTempFile\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      resolveImageTempFileChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdArg = args[0] as! String
+        let maxLongEdgeArg = args[1] as! Int64
+        api.resolveImageTempFile(assetId: assetIdArg, maxLongEdge: maxLongEdgeArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      resolveImageTempFileChannel.setMessageHandler(nil)
+    }
+    let releaseImageTempFileChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseImageTempFile\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      releaseImageTempFileChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          try api.releaseImageTempFile(path: pathArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      releaseImageTempFileChannel.setMessageHandler(nil)
+    }
+    let releaseAllImageTempFilesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseAllImageTempFiles\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      releaseAllImageTempFilesChannel.setMessageHandler { _, reply in
+        do {
+          try api.releaseAllImageTempFiles()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      releaseAllImageTempFilesChannel.setMessageHandler(nil)
+    }
+    /// Best-effort PHCachingImageManager prefetch for neighbor asset IDs.
+    let prefetchNeighborsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.prefetchNeighbors\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      prefetchNeighborsChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdsArg = args[0] as! [String]
+        do {
+          try api.prefetchNeighbors(assetIds: assetIdsArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      prefetchNeighborsChannel.setMessageHandler(nil)
+    }
+    /// Occupy the active player slot (releases previous active if needed).
+    let attachActiveVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachActiveVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      attachActiveVideoChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdArg = args[0] as! String
+        api.attachActiveVideo(assetId: assetIdArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      attachActiveVideoChannel.setMessageHandler(nil)
+    }
+    /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+    let attachWarmingVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachWarmingVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      attachWarmingVideoChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdArg = args[0] as! String
+        api.attachWarmingVideo(assetId: assetIdArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      attachWarmingVideoChannel.setMessageHandler(nil)
+    }
+    let playActiveChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.playActive\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      playActiveChannel.setMessageHandler { _, reply in
+        do {
+          try api.playActive()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      playActiveChannel.setMessageHandler(nil)
+    }
+    let pauseActiveChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.pauseActive\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      pauseActiveChannel.setMessageHandler { _, reply in
+        do {
+          try api.pauseActive()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      pauseActiveChannel.setMessageHandler(nil)
+    }
+    let releaseVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      releaseVideoChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdArg = args[0] as! String
+        do {
+          try api.releaseVideo(assetId: assetIdArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      releaseVideoChannel.setMessageHandler(nil)
+    }
+    let releaseAllVideosChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseAllVideos\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      releaseAllVideosChannel.setMessageHandler { _, reply in
+        do {
+          try api.releaseAllVideos()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      releaseAllVideosChannel.setMessageHandler(nil)
+    }
+    let getPoolDiagnosticsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.getPoolDiagnostics\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getPoolDiagnosticsChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getPoolDiagnostics()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getPoolDiagnosticsChannel.setMessageHandler(nil)
     }
   }
 }

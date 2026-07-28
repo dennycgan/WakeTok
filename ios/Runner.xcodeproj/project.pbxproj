@@ -17,6 +17,9 @@
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		A10000000000000000000004 /* Poc04PhotoLibraryHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* Poc04PhotoLibraryHost.swift */; };
 		A10000000000000000000006 /* Poc04PhotoLibrary.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* Poc04PhotoLibrary.g.swift */; };
+		A1000000000000000000000A /* Poc04MediaBridgeHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* Poc04MediaBridgeHost.swift */; };
+		A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* Poc04PlayerPool.swift */; };
+		A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* Poc04VideoPlatformView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +64,9 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A10000000000000000000003 /* Poc04PhotoLibraryHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PhotoLibraryHost.swift; sourceTree = "<group>"; };
 		A10000000000000000000005 /* Poc04PhotoLibrary.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PhotoLibrary.g.swift; sourceTree = "<group>"; };
+		A10000000000000000000009 /* Poc04MediaBridgeHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04MediaBridgeHost.swift; sourceTree = "<group>"; };
+		A1000000000000000000000B /* Poc04PlayerPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PlayerPool.swift; sourceTree = "<group>"; };
+		A1000000000000000000000D /* Poc04VideoPlatformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04VideoPlatformView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -142,6 +148,9 @@
 			children = (
 				A10000000000000000000005 /* Poc04PhotoLibrary.g.swift */,
 				A10000000000000000000003 /* Poc04PhotoLibraryHost.swift */,
+				A10000000000000000000009 /* Poc04MediaBridgeHost.swift */,
+				A1000000000000000000000B /* Poc04PlayerPool.swift */,
+				A1000000000000000000000D /* Poc04VideoPlatformView.swift */,
 			);
 			path = POC04;
 			sourceTree = "<group>";
@@ -296,6 +305,9 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				A10000000000000000000006 /* Poc04PhotoLibrary.g.swift in Sources */,
 				A10000000000000000000004 /* Poc04PhotoLibraryHost.swift in Sources */,
+				A1000000000000000000000A /* Poc04MediaBridgeHost.swift in Sources */,
+				A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */,
+				A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

@@ -175,6 +175,61 @@ class Poc04AssetDto {
   }
 }
 
+class Poc04PoolDiagnostics {
+  Poc04PoolDiagnostics({
+    required this.activeCount,
+    required this.warmingCount,
+    required this.tempFileCount,
+  });
+
+  int activeCount;
+
+  int warmingCount;
+
+  int tempFileCount;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      activeCount,
+      warmingCount,
+      tempFileCount,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static Poc04PoolDiagnostics decode(Object result) {
+    result as List<Object?>;
+    return Poc04PoolDiagnostics(
+      activeCount: result[0]! as int,
+      warmingCount: result[1]! as int,
+      tempFileCount: result[2]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! Poc04PoolDiagnostics || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(activeCount, other.activeCount) && _deepEquals(warmingCount, other.warmingCount) && _deepEquals(tempFileCount, other.tempFileCount);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'Poc04PoolDiagnostics(activeCount: $activeCount, warmingCount: $warmingCount, tempFileCount: $tempFileCount)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -192,6 +247,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is Poc04AssetDto) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
+    }    else if (value is Poc04PoolDiagnostics) {
+      buffer.putUint8(132);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -208,6 +266,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : Poc04AuthStatus.values[value];
       case 131:
         return Poc04AssetDto.decode(readValue(buffer)!);
+      case 132:
+        return Poc04PoolDiagnostics.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -285,5 +345,223 @@ class Poc04PhotoLibraryApi {
     )
     ;
     return (pigeonVar_replyValue! as List<Object?>).cast<Poc04AssetDto>();
+  }
+}
+
+class Poc04MediaBridgeApi {
+  /// Constructor for [Poc04MediaBridgeApi]. The [binaryMessenger] named argument is
+  /// available for dependency injection. If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  Poc04MediaBridgeApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Export a display image to a temp file (longest edge capped). Returns path.
+  Future<String> resolveImageTempFile(String assetId, int maxLongEdge) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.resolveImageTempFile$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId, maxLongEdge]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as String;
+  }
+
+  Future<void> releaseImageTempFile(String path) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseImageTempFile$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> releaseAllImageTempFiles() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseAllImageTempFiles$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Best-effort PHCachingImageManager prefetch for neighbor asset IDs.
+  Future<void> prefetchNeighbors(List<String> assetIds) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.prefetchNeighbors$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIds]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Occupy the active player slot (releases previous active if needed).
+  Future<void> attachActiveVideo(String assetId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachActiveVideo$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+  Future<void> attachWarmingVideo(String assetId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachWarmingVideo$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> playActive() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.playActive$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> pauseActive() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.pauseActive$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> releaseVideo(String assetId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseVideo$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> releaseAllVideos() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.releaseAllVideos$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<Poc04PoolDiagnostics> getPoolDiagnostics() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.getPoolDiagnostics$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as Poc04PoolDiagnostics;
   }
 }
