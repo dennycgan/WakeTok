@@ -112,3 +112,28 @@ String formatSloMoGateSummary({
   return 'sloMoGate=${pass ? "PASS" : "CHECK"} HFR=true '
       'exp≈cur=$matchCur exp≈ph=$matchPh cur≈ph=$curPh';
 }
+
+/// 9.4 Default audio advisory: ≥1 audio track + successful export (listen = manual).
+String formatAudioGateSummary({
+  required int audioTrackCount,
+  required String? exportPath,
+  required double? exportDurationSec,
+  String? errorCode,
+}) {
+  if (errorCode != null && errorCode.isNotEmpty) {
+    return 'audioGate=FAIL error=$errorCode';
+  }
+  final hasTrack = audioTrackCount >= 1;
+  final hasFile = exportPath != null &&
+      exportPath.isNotEmpty &&
+      exportDurationSec != null &&
+      exportDurationSec > 0.01;
+  if (!hasTrack) {
+    return 'audioGate=FAIL audioTracks=0 (silent or missing)';
+  }
+  if (!hasFile) {
+    return 'audioGate=CHECK audioTracks=$audioTrackCount (no export file)';
+  }
+  return 'audioGate=PASS audioTracks=$audioTrackCount '
+      '(listen export to confirm audible)';
+}

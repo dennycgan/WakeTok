@@ -202,8 +202,36 @@ final class Poc09ExportEngine {
   }
 
   func clearExportCache() {
+    stopExportPlayback()
     let dir = exportDirectory()
     try? FileManager.default.removeItem(at: dir)
+  }
+
+  // MARK: - 9.4 export preview playback
+
+  private var previewPlayer: AVPlayer?
+
+  func playExport(path: String) throws {
+    let url = URL(fileURLWithPath: path)
+    guard FileManager.default.fileExists(atPath: path) else {
+      throw NSError(
+        domain: "Poc09Export",
+        code: 404,
+        userInfo: [NSLocalizedDescriptionKey: "Export file not found at path"]
+      )
+    }
+    stopExportPlayback()
+    let session = AVAudioSession.sharedInstance()
+    try session.setCategory(.playback, mode: .default, options: [])
+    try session.setActive(true)
+    let player = AVPlayer(url: url)
+    player.play()
+    previewPlayer = player
+  }
+
+  func stopExportPlayback() {
+    previewPlayer?.pause()
+    previewPlayer = nil
   }
 
   // MARK: - Private

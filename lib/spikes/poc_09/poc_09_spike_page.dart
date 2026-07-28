@@ -26,6 +26,13 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
     _refreshAuth();
   }
 
+  @override
+  void dispose() {
+    // Best-effort; ignore channel errors if engine already torn down.
+    _api.stopExportPlayback().catchError((_) {});
+    super.dispose();
+  }
+
   Future<void> _refreshAuth() async {
     try {
       final status = await _api.getAuthorizationStatus();
@@ -86,21 +93,31 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
             errorCode: _probe!.errorCode,
           );
 
+    final audioHud = _probe == null
+        ? ''
+        : formatAudioGateSummary(
+            audioTrackCount: _probe!.audioTrackCount,
+            exportPath: _probe!.exportPath,
+            exportDurationSec: _probe!.exportDurationSec,
+            errorCode: _probe!.errorCode,
+          );
+
     return Scaffold(
       appBar: AppBar(title: const Text('POC-09 export representation')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            '9.2 Trim PASS. 9.3 Slow-mo (Q4=A):\n'
-            'Select an HFR video (list shows · HFR) → Probe+Export.\n'
-            'Expect sloMoGate=PASS: exp≈ph≈cur (±0.25s).',
+            '9.4 Default audio:\n'
+            'Probe+Export a video with sound → audioGate=PASS,\n'
+            'then Play export and listen to the exported file (not Photos).',
           ),
           const SizedBox(height: 12),
           Text('auth=${_auth?.name ?? "—"}'),
           Text(probeHud),
           if (trimHud.isNotEmpty) Text(trimHud),
           if (sloMoHud.isNotEmpty) Text(sloMoHud),
+          if (audioHud.isNotEmpty) Text(audioHud),
           if (_probe != null)
             Text('HFR subtype=${_probe!.isHighFrameRate}'),
           if (_probe?.exportPath != null) Text('path=${_probe!.exportPath}'),
@@ -157,6 +174,7 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
                 onPressed: _busy || _selected == null
                     ? null
                     : () => _run(() async {
+                          await _api.stopExportPlayback();
                           final r = await _api.probeAndExport(
                             _selected!.assetId,
                             _networkAccessAllowed,
@@ -164,6 +182,22 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
                           setState(() => _probe = r);
                         }),
                 child: const Text('Probe+Export'),
+              ),
+              FilledButton.tonal(
+                onPressed: _busy || _probe?.exportPath == null
+                    ? null
+                    : () => _run(() async {
+                          await _api.playExport(_probe!.exportPath!);
+                        }),
+                child: const Text('Play export'),
+              ),
+              OutlinedButton(
+                onPressed: _busy
+                    ? null
+                    : () => _run(() async {
+                          await _api.stopExportPlayback();
+                        }),
+                child: const Text('Stop playback'),
               ),
               OutlinedButton(
                 onPressed: _busy
@@ -198,21 +232,23 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
               ),
               onTap: _busy
                   ? null
-                  : () => setState(() {
+                  : () {
+                      _api.stopExportPlayback().catchError((_) {});
+                      setState(() {
                         _selected = v;
                         _probe = null;
-                      }),
+                      });
+                    },
             );
           }),
           const SizedBox(height: 24),
           const Text(
-            'Manual 9.3 (Slow-mo / F2):\n'
-            '1) Camera → Slo-mo → record a short clip (or pick existing HFR)\n'
-            '2) Note Photos playback duration (displayed length)\n'
-            '3) POC-09 → List → select item marked · HFR\n'
-            '4) Probe+Export → expect sloMoGate=PASS (exp≈ph≈cur)\n'
-            '5) If you changed Slo-mo to "normal" speed in Photos, still\n'
-            '   expect export ≈ Photos-displayed duration (Q4=A)',
+            'Manual 9.4 (Default audio / F3):\n'
+            '1) Pick a local video that has sound in Photos (not mute-only)\n'
+            '2) Probe+Export → expect audioGate=PASS (audioTracks≥1 + path)\n'
+            '3) Tap Play export — listen to THAT file (not Photos)\n'
+            '4) PASS only if export audio is audible; FAIL if silent\n'
+            '5) FAIL if audioTracks=0 but export reports success',
             style: TextStyle(color: Colors.black54),
           ),
         ],

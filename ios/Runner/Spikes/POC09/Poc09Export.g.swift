@@ -398,6 +398,10 @@ protocol Poc09ExportApi {
   func listLocalVideos(limit: Int64) throws -> [Poc09VideoAssetDto]
   /// Probe `.current` vs `.original`, then export **current** to a temp file.
   func probeAndExport(assetId: String, networkAccessAllowed: Bool, completion: @escaping (Result<Poc09ProbeResultDto, Error>) -> Void)
+  /// Play a previously exported temp file (9.4 A3 — listen to export, not Photos).
+  func playExport(path: String) throws
+  /// Stop export preview playback.
+  func stopExportPlayback() throws
   /// Delete spike export temp files under the app temp directory.
   func clearExportCache() throws
 }
@@ -470,6 +474,36 @@ class Poc09ExportApiSetup {
       }
     } else {
       probeAndExportChannel.setMessageHandler(nil)
+    }
+    /// Play a previously exported temp file (9.4 A3 — listen to export, not Photos).
+    let playExportChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc09ExportApi.playExport\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      playExportChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let pathArg = args[0] as! String
+        do {
+          try api.playExport(path: pathArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      playExportChannel.setMessageHandler(nil)
+    }
+    /// Stop export preview playback.
+    let stopExportPlaybackChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc09ExportApi.stopExportPlayback\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      stopExportPlaybackChannel.setMessageHandler { _, reply in
+        do {
+          try api.stopExportPlayback()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      stopExportPlaybackChannel.setMessageHandler(nil)
     }
     /// Delete spike export temp files under the app temp directory.
     let clearExportCacheChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc09ExportApi.clearExportCache\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

@@ -400,6 +400,44 @@ class Poc09ExportApi {
     return pigeonVar_replyValue! as Poc09ProbeResultDto;
   }
 
+  /// Play a previously exported temp file (9.4 A3 — listen to export, not Photos).
+  Future<void> playExport(String path) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc09ExportApi.playExport$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[path]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Stop export preview playback.
+  Future<void> stopExportPlayback() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc09ExportApi.stopExportPlayback$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
   /// Delete spike export temp files under the app temp directory.
   Future<void> clearExportCache() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc09ExportApi.clearExportCache$pigeonVar_messageChannelSuffix';

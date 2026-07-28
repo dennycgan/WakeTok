@@ -77,4 +77,22 @@ void main() {
     expect(s.contains('sloMoGate=PASS'), isTrue);
     expect(s.contains('HFR=true'), isTrue);
   });
+
+  test('formatAudioGateSummary PASS when tracks and export exist', () {
+    final s = formatAudioGateSummary(
+      audioTrackCount: 1,
+      exportPath: '/tmp/out.mp4',
+      exportDurationSec: 10,
+    );
+    expect(s.contains('audioGate=PASS'), isTrue);
+  });
+
+  test('formatAudioGateSummary FAIL when no audio tracks', () {
+    final s = formatAudioGateSummary(
+      audioTrackCount: 0,
+      exportPath: '/tmp/out.mp4',
+      exportDurationSec: 10,
+    );
+    expect(s.contains('audioGate=FAIL'), isTrue);
+  });
 }

@@ -66,6 +66,22 @@ final class Poc09ExportHost: Poc09ExportApi {
     }
   }
 
+  func playExport(path: String) throws {
+    do {
+      try Poc09ExportEngine.shared.playExport(path: path)
+    } catch {
+      throw Poc09PigeonError(
+        code: "playExportFailed",
+        message: error.localizedDescription,
+        details: nil
+      )
+    }
+  }
+
+  func stopExportPlayback() throws {
+    Poc09ExportEngine.shared.stopExportPlayback()
+  }
+
   func clearExportCache() throws {
     Poc09ExportEngine.shared.clearExportCache()
   }

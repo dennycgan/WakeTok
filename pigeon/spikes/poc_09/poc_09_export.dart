@@ -85,6 +85,12 @@ abstract class Poc09ExportApi {
   @async
   Poc09ProbeResultDto probeAndExport(String assetId, bool networkAccessAllowed);
 
+  /// Play a previously exported temp file (9.4 A3 — listen to export, not Photos).
+  void playExport(String path);
+
+  /// Stop export preview playback.
+  void stopExportPlayback();
+
   /// Delete spike export temp files under the app temp directory.
   void clearExportCache();
 }
