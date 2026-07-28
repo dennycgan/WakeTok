@@ -11,6 +11,16 @@ import 'package:waketok/spikes/poc_04/poc_04_feed_controller.dart';
 import 'package:waketok/spikes/poc_04/poc_04_first_frame.dart';
 import 'package:waketok/spikes/poc_04/poc_04_probe.dart';
 
+/// Hitch Probe Normal: fixed page cadence (Q1=A). Wall ~48s.
+const int kPoc04HitchNormalPages = 60;
+const int kPoc04HitchNormalIntervalMs = 800;
+const int kPoc04HitchNormalAnimMs = 350;
+
+/// Hitch Probe Fast: N=100 so wall ~30s (Q2=B).
+const int kPoc04HitchFastPages = 100;
+const int kPoc04HitchFastIntervalMs = 300;
+const int kPoc04HitchFastAnimMs = 220;
+
 /// POC-04 feed: PV / Texture toggle (T1=B), probes, first-frame timing.
 class Poc04FeedPage extends StatefulWidget {
   const Poc04FeedPage({super.key, required this.assets});
@@ -224,6 +234,79 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
     }
   }
 
+  /// Fixed-cadence page drive for Instruments Animation Hitches (Q1=A).
+  /// Does not compute hitch in-app; owner records Instruments while this runs.
+  Future<void> _runHitchProbe({
+    required int pages,
+    required int intervalMs,
+    required int animMs,
+  }) async {
+    if (widget.assets.length < 2) {
+      setState(() => _probeResult = 'Need ≥2 assets for hitch probe');
+      return;
+    }
+    setState(() {
+      _busyProbe = true;
+      _probeOwnsPaging = true;
+      _probeResult =
+          'Hitch probe… n=$pages interval=${intervalMs}ms '
+          '(${_useTexture ? 'Tex' : 'PV'})';
+    });
+    var overruns = 0;
+    try {
+      var index = _controller.index;
+      for (var step = 0; step < pages; step++) {
+        final tStart = DateTime.now();
+        final next = (index + 1) % widget.assets.length;
+        await _pageController.animateToPage(
+          next,
+          duration: Duration(milliseconds: animMs),
+          curve: Curves.easeInOut,
+        );
+        if (!mounted) return;
+        await _controller.onPageChanged(next);
+        index = next;
+        if (!mounted) return;
+        setState(() {
+          _probeResult =
+              'Hitch ${step + 1}/$pages · interval=${intervalMs}ms '
+              '(${_useTexture ? 'Tex' : 'PV'})';
+        });
+        if (step % 10 == 9 || step == pages - 1) {
+          final d = await _bridge.getPoolDiagnostics();
+          if (!mounted) return;
+          setState(() => _diagnostics = d);
+        }
+        final elapsedMs = DateTime.now().difference(tStart).inMilliseconds;
+        final remain = intervalMs - elapsedMs;
+        if (remain > 0) {
+          await Future<void>.delayed(Duration(milliseconds: remain));
+        } else {
+          overruns++;
+        }
+        if (!mounted) return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _probeResult =
+            'Hitch probe done: $pages pages, interval=${intervalMs}ms'
+            ' · overruns=$overruns · ${_useTexture ? 'Tex' : 'PV'}';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _probeResult = 'Hitch probe error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busyProbe = false;
+          _probeOwnsPaging = false;
+        });
+      } else {
+        _probeOwnsPaging = false;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = _diagnostics;
@@ -270,6 +353,26 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
             onPressed: _busyProbe ? null : _runFirstFrameProbe,
             child: const Text('FF20'),
           ),
+          TextButton(
+            onPressed: _busyProbe
+                ? null
+                : () => _runHitchProbe(
+                      pages: kPoc04HitchNormalPages,
+                      intervalMs: kPoc04HitchNormalIntervalMs,
+                      animMs: kPoc04HitchNormalAnimMs,
+                    ),
+            child: const Text('HN'),
+          ),
+          TextButton(
+            onPressed: _busyProbe
+                ? null
+                : () => _runHitchProbe(
+                      pages: kPoc04HitchFastPages,
+                      intervalMs: kPoc04HitchFastIntervalMs,
+                      animMs: kPoc04HitchFastAnimMs,
+                    ),
+            child: const Text('HF'),
+          ),
         ],
       ),
       body: widget.assets.isEmpty
@@ -281,28 +384,31 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
             )
           : Stack(
               children: [
-                PageView.builder(
-                  controller: _pageController,
-                  scrollDirection: Axis.vertical,
-                  itemCount: widget.assets.length,
-                  onPageChanged: _applyPage,
-                  itemBuilder: (context, index) {
-                    final asset = widget.assets[index];
-                    if (asset.mediaType == Poc04MediaType.image) {
-                      return _ImagePage(
+                IgnorePointer(
+                  ignoring: _busyProbe,
+                  child: PageView.builder(
+                    controller: _pageController,
+                    scrollDirection: Axis.vertical,
+                    itemCount: widget.assets.length,
+                    onPageChanged: _applyPage,
+                    itemBuilder: (context, index) {
+                      final asset = widget.assets[index];
+                      if (asset.mediaType == Poc04MediaType.image) {
+                        return _ImagePage(
+                          assetId: asset.assetId,
+                          path: _controller.imagePaths[asset.assetId],
+                        );
+                      }
+                      return _VideoPage(
                         assetId: asset.assetId,
-                        path: _controller.imagePaths[asset.assetId],
+                        useTexture: _useTexture,
+                        // Only the active page should bind the live textureId.
+                        textureId: index == _controller.index
+                            ? _controller.activeTextureId
+                            : -1,
                       );
-                    }
-                    return _VideoPage(
-                      assetId: asset.assetId,
-                      useTexture: _useTexture,
-                      // Only the active page should bind the live textureId.
-                      textureId: index == _controller.index
-                          ? _controller.activeTextureId
-                          : -1,
-                    );
-                  },
+                    },
+                  ),
                 ),
                 Positioned(
                   left: 12,
@@ -340,7 +446,8 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
                         color: _probeResult!.startsWith('PASS')
                             ? Colors.lightGreenAccent
                             : _probeResult!.startsWith('Running') ||
-                                    _probeResult!.startsWith('FF')
+                                    _probeResult!.startsWith('FF') ||
+                                    _probeResult!.startsWith('Hitch')
                                 ? Colors.white70
                                 : Colors.orangeAccent,
                         fontSize: 11,

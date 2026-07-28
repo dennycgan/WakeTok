@@ -149,10 +149,46 @@ Locks / contract (implemented):
   `AVPlayerLayer` compositing in the Platform View path.
 - Both pre-authorized escapes (PV and Texture) fail the &lt;5 ms/s hitch gate.
 
+### Hitch Probe (calibration drive; Q1=A Q2=B Q3=A Q4=A Q5=A)
+
+Reproducible page drive for Instruments; **does not** change the &lt;5 ms/s gate
+or the overall Fail verdict (Q5=A). Owner toggles surface manually (Q4=A).
+
+| Button | Pages N | interval | anim duration | curve | wall (nominal) |
+|--------|---------|----------|---------------|-------|----------------|
+| **HN** | 60 | 800 ms | 350 ms | easeInOut | ~48 s |
+| **HF** | 100 | 300 ms | 220 ms | easeInOut | ~30 s |
+
+Cadence: each page cycle starts a timer; `animateToPage` then
+`onPageChanged` (attach); delay until `interval` elapses; if work overruns
+interval, count `overruns` and start next immediately.
+
+Done line:
+`Hitch probe done: N pages, interval=Xms · overruns=k · PV|Tex`
+
+### Hitch Probe results (iPhone 13 Pro Kafka, Profile, surface **PV**)
+
+Screen confirmations:
+- HN: `Hitch probe done: 60 pages, interval=800ms · overruns=0 · PV`
+- HF: `Hitch probe done: 100 pages, interval=300ms · overruns=75 · PV`
+
+Instruments:
+- **HN (primary):** ≈38.0 ms/s (1.90 s / ~50 s); Max≈908 ms; **Severe Hang** —
+  reproducible-load **upper bound** under fixed Normal cadence (`overruns=0`).
+- **HF:** ≈36.9 ms/s (1.33 s / ~36 s); Max≈117 ms; Hang present —
+  **`overruns=75` → cadence invalid**; stress only, **not** a primary conclusion.
+
+Interpretation (Q5=A: gate &lt;5 and overall Fail **unchanged**):
+- HN is stricter than finger scrolling (`animateToPage` + fixed cadence).
+- Hand PV ≈13–19 ms/s remains the **everyday feel** reference; HN≈38 is the
+  automated reproducible upper bound, not a replacement for that feel number.
+- Texture path **not** reverted (Fail already stands on PV; Texture only proved worse).
+
 ### Automation (local)
 
 - [x] `flutter analyze` + `flutter test` (incl. after Texture)
 - [x] `flutter build ios --simulator --debug --no-codesign` (after Texture)
+- [x] analyze/build after Hitch Probe
 
 ### Manual on iPhone 13 Pro (Profile)
 
@@ -160,8 +196,10 @@ Locks / contract (implemented):
 - [x] Texture hitch ≥30s (Run4/Run5) → mean **not** &lt; 5 ms/s — FAIL
 - [ ] Texture FF20 (skipped; hitch FAIL closes escape)
 - [ ] P5 iPhone 17 smoke (optional; skipped)
+- [x] Hitch Probe **HN** + Instruments (PV, overruns=0) ≈38 ms/s
+- [x] Hitch Probe **HF** + Instruments (PV, overruns=75; cadence invalid)
 
-AppBar: **→PV/→Tex** · **P30** · **P100** · **FF20**
+AppBar: **→PV/→Tex** · **P30** · **P100** · **FF20** · **HN** · **HF**
 
 ## Build / measure log
 
@@ -169,16 +207,19 @@ AppBar: **→PV/→Tex** · **P30** · **P100** · **FF20**
 - Device: iPhone 13 Pro Kafka; iOS 26.5.2 (23F84)
 - Tool: Instruments Animation Hitches (Responsiveness; Deferred; Attach Runner)
 - Hitch mean (ms/s):
-  - PV: ≈13.2 / 19.2 / 32.7 — FAIL
-  - Texture: ≈33.3 / 64.3 — FAIL (worse)
-- Hitch Max (Texture): 233 ms (Run4), 425 ms (Run5)
+  - PV hand: ≈13.2 / 19.2 / 32.7 — FAIL vs &lt;5; **13–19 = everyday feel**
+  - PV Hitch Probe HN: ≈38.0 (overruns=0) — reproducible upper bound; Severe Hang
+  - PV Hitch Probe HF: ≈36.9 (overruns=75) — cadence invalid; not primary
+  - Texture hand: ≈33.3 / 64.3 — FAIL (worse); not reverted
+- Hitch Max (Texture hand): 233 ms (Run4), 425 ms (Run5)
+- Hitch Max (PV HN): ≈908 ms
 - Local-video first-frame p90 (ms): PV FF20 p90=93 (PASS); Texture FF20 not run
 - Active player / memory notes: 2.4 poolMax 1+1; tmp stable at 2 (17 + 13 Pro)
 - Conditional escapes used: Texture (T1–T5) — **did not close** hitch gate
 - Phase 2.4 Probe 100 (iPhone 17): `PASS poolMax=1+1 tmpMax=2 tmpFirst10=2 tmpLast10=2 (n=100)`
 - Phase 2.4 Probe 100 (iPhone 13 Pro): `PASS poolMax=1+1 tmpMax=2 tmpFirst10=2 tmpLast10=2 (n=100)`
 - Phase 2.4 Xcode Memory note: not recorded
-- Phase 2.5 overall hitch: **Fail** (both surfaces)
+- Phase 2.5 overall hitch: **Fail** (both surfaces; Q5=A unchanged after Hitch Probe)
 
 Pigeon: library + media bridge share one schema file (avoids duplicate Swift `PigeonError`):
 
