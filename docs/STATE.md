@@ -25,9 +25,9 @@
 ## Capability Roadmap (project-level; top-to-bottom = execution order; YOU ARE HERE)
 - [x] Project Bootstrap (flutter create scaffold, pigeon/ placeholder, docs skeleton, root commit)
 - [x] POC-04: Flutter Media Feed Architecture Gate (must pass before production domain/data/feature implementation)
-- [~] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)   <-- YOU ARE HERE
-- [ ] POC-09: Current Photos Representation Export Gate
-      (must pass before production physical-clip implementation)
+- [x] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)
+- [~] POC-09: Current Photos Representation Export Gate
+      (must pass before production physical-clip implementation)   <-- YOU ARE HERE
 - [ ] App Foundation
       (gen_l10n + ARB localisation infrastructure, shared error/result
       contracts, production Pigeon contract baseline)
@@ -87,27 +87,9 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: POC-03 Lock-screen continuous playback gate
+Active capability: POC-09 Current Photos Representation Export Gate
 
-- [ ] 3.1 Create spike harness in lib/spikes/poc_03/ +
-      ios/Runner/Spikes/POC03/; minimal AVQueuePlayer + AVAudioSession(.playback)
-      setup; playback must not depend on Flutter Widget being alive
-
-- [ ] 3.2 Verify clip-to-clip auto-advance on lock screen:
-      pre-queue next AVPlayerItem; confirm audio gap is imperceptible
-      or acceptable between segments
-
-- [ ] 3.3 Verify audio interruption and recovery
-      (phone call, Siri, other audio apps; session re-activates on return)
-
-- [ ] 3.4 Verify Control Center metadata (Now Playing info + transport controls)
-      and AirPods play/pause/next
-
-- [ ] 3.5 Verify process termination stops playback;
-      next foreground launch can attempt SessionCheckpoint recovery
-
-- [ ] 3.6 Record go / no-go in DECISIONS.md
-      (draft in chat, owner approves before append)
+(Phases pending owner approval)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -117,16 +99,16 @@ Active capability: POC-03 Lock-screen continuous playback gate
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): validate lock-screen continuous playback / background audio gate (POC-03) before production domain/data/feature implementation
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001)
-- Next step: phase 3.1 spike harness (await owner go)
-- Related decisions: ADR-001 (POC-04 Flutter+PV Conditional Pass; Severe Hang = production debt)
+- Goal (one line): validate Current Photos Representation export gate (POC-09) before production physical-clip implementation
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002)
+- Next step: owner locks POC-09 Phase Roadmap (await approval)
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03 Conditional Pass; physical-clip queue verify after POC-09)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
-- ADR-001: docs/DECISIONS.md
+- ADR-001 / ADR-002: docs/DECISIONS.md
 - (grows as code lands)
 
 ## Do NOT touch (unless explicitly opening a new phase)
@@ -138,3 +120,6 @@ Active capability: POC-03 Lock-screen continuous playback gate
 |---|---|---|---|---|
 | Bootstrap | iOS deployment target left at Flutter default | Kickoff Open Question: platform target TBD; decide with real-device data | POC-04 | — |
 | POC-04 | Severe Hang under fast scrolling / animateToPage load | Conditional Pass accepted; must address in production feed | Production Main Browse Screen | ADR-001 |
+| POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
+| POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio | ADR-002 |
+| POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |

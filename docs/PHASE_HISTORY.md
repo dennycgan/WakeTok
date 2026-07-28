@@ -39,3 +39,30 @@ Docs commit sha: 4a6a9fe
         on `main` cherry-picks: `3ff7f58`, `9ea6424`
 
 Docs close-out (STATE + PHASE_HISTORY): `33267c1`
+
+## POC-03: Lock-screen continuous playback gate — completed 2026-07-28
+
+- [x] 3.1 Create spike harness in lib/spikes/poc_03/ +
+      ios/Runner/Spikes/POC03/; minimal AVQueuePlayer + AVAudioSession(.playback)
+      setup; playback must not depend on Flutter Widget being alive
+      — work: `77d7af8`
+- [x] 3.2 Verify clip-to-clip auto-advance on lock screen:
+      pre-queue next AVPlayerItem; confirm audio gap is imperceptible
+      or acceptable between segments
+      — work: `d736dcc`
+- [x] 3.3 Verify audio interruption and recovery
+      (phone call, Siri, other audio apps; session re-activates on return)
+      — work: `4747fe1`
+- [x] 3.4 Verify Control Center metadata (Now Playing info + transport controls)
+      and AirPods play/pause/next
+      — work: `9b26233`
+- [x] 3.5 Verify process termination stops playback;
+      next foreground launch can attempt SessionCheckpoint recovery
+      — work: `9eeb912`
+- [x] 3.6 Record go / no-go in DECISIONS.md
+      (ADR-002 Conditional Pass Accepted; anchor `9eeb912`)
+      — docs: (this close-out commit)
+
+Notes: `docs/poc/POC-03-notes.md`. Known debt → Production Background Audio
+(WeChat/VoIP lock-home resume; iCloud interrupt; post-POC-09 physical-clip
+queue verify).

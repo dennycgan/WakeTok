@@ -110,3 +110,79 @@
     future Android version. Android media layer (ExoPlayer + Surface) will
     require its own POC gate; this gate's conclusion does not pre-judge Android
     feed performance.
+
+---
+
+## ADR-002: POC-03 lock-screen continuous playback gate — Conditional Pass
+
+- Status: Accepted (2026-07-28)
+- Commit/PR anchor: 9eeb912
+- Plain summary (owner reads this):
+  WakeTok can retain a Swift-owned AVQueuePlayer beyond the lifetime of a
+  Flutter route, continue queue playback while locked, and support Now Playing
+  and system remote commands. This conditionally validates the native background
+  playback substrate. The complete product flow using WakeTok-generated physical
+  clips read back from Photos remains to be confirmed after POC-09.
+- Context / what problem forced this:
+  POC-03 must decide, before production domain/data/feature work, whether an
+  app-scoped native playback service (AVQueuePlayer + AVAudioSession(.playback)
+  + UIBackgroundModes audio) can keep a continuous queue alive across lock
+  screen, system interruption, Control Center / headphone remotes, and process
+  kill — without tying playback lifetime to a Flutter Widget.
+- Decision (what was chosen):
+  1. **Conditional Pass (GO with debt):** Retain the spike’s native background
+     playback substrate as the shape reference for Production Background Audio
+     and SessionCheckpoint: app-scoped player, session category `.playback`,
+     pre-queued advance, Now Playing + remote commands, and cold-start
+     Restore? (P5=A, no auto-play until confirm).
+  2. **Phase evidence (3.1–3.5), see `docs/poc/POC-03-notes.md`:**
+     - 3.1 Widget-independent playback (M1–M3 PASS).
+     - 3.2 Lock-screen auto-advance was manually verified. Foreground gap probe
+       measured n=24, p50≈4ms, p90≈4ms (3.2 gate session). A later session also
+       showed n=18, p50≈2ms, p90≈4ms. Both apply to bundled WAV fixtures and are
+       not treated as the final gap result for WakeTok-exported physical clips.
+       (P3=B; L1–L3 PASS.)
+     - 3.3 Interruption recovery under owner gate Q1=B (I1–I3 PASS): auto-resume
+       via poll and/or returning to the app; lock/home resume without opening
+       WakeTok not required for this gate.
+     - 3.4 Control Center / AirPods play-pause-next (N1–N3 PASS).
+     - 3.5 Force-quit stops audio; cold start offers Restore? without auto-play
+       (K1–K3 PASS; P5=A).
+     - Work commits on `spike/poc` include `77d7af8` … `9eeb912` (anchor).
+  3. **Known debt (does not overturn Conditional Pass):**
+     - WeChat/VoIP: no auto-resume on lock screen or iOS home without opening
+       the app → Production Background Audio (Q1=B).
+     - kickoff「iCloud Asset 下载中断」out of POC-03 (P2=A) → Production
+       Background Audio.
+     - **Real physical-clip integration:** After POC-09, play at least three
+       consecutive WakeTok-exported clips from Photos through the native queue
+       while locked. Confirm acceptable transitions, correct segment order,
+       Now Playing updates, and no Dart dependency per transition
+       → Production Background Audio.
+  4. **Spike fixtures:** Bundle WAV (`clip_a/b/c`) are sufficient to prove the
+     service shape for this gate.
+  5. **Scope boundary:** The spike used bundled WAV assets. It proves the native
+     playback service shape, but not the complete production path through
+     physical video export, Photos import, PHAsset resolution, and generated
+     segment ordering.
+- Rejected alternatives (why not B):
+  - **No-go / abandon Flutter+native split for a pure-SwiftUI audio shell now:**
+    Rejected — gate evidence supports Conditional Pass on the native substrate.
+  - **Hard-fail unless VoIP interrupt resumes on lock/home without opening the
+    app:** Rejected — owner locked Q1=B for 3.3.
+  - **Cold-start auto-play from SessionCheckpoint:** Rejected — P5=A requires
+    explicit Restore?.
+  - **Treat bundled-WAV gap probe as the final production gap bar for exported
+    physical clips:** Rejected — fixtures ≠ Photos-backed generated segments;
+    final gap confirmation is deferred (see Known debt / after POC-09).
+- Consequences / constraints accepted:
+  - Production Background Audio / SessionCheckpoint should reuse this spike’s
+    ownership and control surface as the implementation reference.
+  - Gate retrospectively assessed as lower-risk than anticipated given iOS
+    background audio maturity; spike results serve as implementation reference
+    for Production Background Audio capability.
+  - Listed debts must be scheduled; they are not “already solved.”
+  - Completing the product path (export → Photos → native queue while locked)
+    remains a post-POC-09 confirmation, not a claim of this ADR.
+  - Next capability after this gate close-out: **POC-09** (phases owner-approved
+    separately).
