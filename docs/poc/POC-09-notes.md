@@ -130,3 +130,30 @@ Screenshot: `213.0s · HFR`; `ph=cur=exp=213.00`; `orig=36.62`;
 - 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
 - 9.2: **PASS** — Trim F1; no silent original fallback
 - 9.3: **PASS** — HFR F2; export matches Photos-displayed duration (Q4=A)
+
+## Phase 9.4 checklist
+
+Locks: default audio track present on current representation / export;
+no silent success. Device listen must be the **exported file** (Play export),
+not Photos playback of the source asset.
+
+- [x] HUD `audioGate=` (tracks≥1 + export file)
+- [x] `Play export` / `Stop playback` (AVPlayer on export path)
+- [x] Unit tests PASS/FAIL formatting
+- [x] `flutter analyze` + unit tests
+- [x] Manual F3 listen (A1–A3) — owner PASS (Play export audible)
+
+### Manual (9.4)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| A1 | Select local video that has sound in Photos | Fixture F3 |
+| A2 | Probe+Export | `audioGate=PASS`; `audio≥1`; path set |
+| A3 | Tap **Play export**; listen to the exported temp file | Audible on export; not silent |
+
+## Build / measure log
+
+- 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
+- 9.2: **PASS** — Trim F1; no silent original fallback
+- 9.3: **PASS** — HFR F2; export matches Photos-displayed duration (Q4=A)
+- 9.4: **PASS** — F3; `audioGate=PASS`; Play export audible (A3 on export file)
