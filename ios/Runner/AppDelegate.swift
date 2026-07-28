@@ -12,5 +12,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    Poc04PhotoLibraryApiSetup.setUp(
+      binaryMessenger: engineBridge.applicationRegistrar.messenger(),
+      api: Poc04PhotoLibraryHost()
+    )
   }
 }

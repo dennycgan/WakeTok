@@ -15,6 +15,8 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
+		A10000000000000000000004 /* Poc04PhotoLibraryHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000003 /* Poc04PhotoLibraryHost.swift */; };
+		A10000000000000000000006 /* Poc04PhotoLibrary.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000005 /* Poc04PhotoLibrary.g.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -57,6 +59,8 @@
 		97C146FD1CF9000F007C117D /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10000000000000000000003 /* Poc04PhotoLibraryHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PhotoLibraryHost.swift; sourceTree = "<group>"; };
+		A10000000000000000000005 /* Poc04PhotoLibrary.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PhotoLibrary.g.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -111,6 +115,7 @@
 		97C146F01CF9000F007C117D /* Runner */ = {
 			isa = PBXGroup;
 			children = (
+				A10000000000000000000001 /* Spikes */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
@@ -122,6 +127,23 @@
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000001 /* Spikes */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000002 /* POC04 */,
+			);
+			path = Spikes;
+			sourceTree = "<group>";
+		};
+		A10000000000000000000002 /* POC04 */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000005 /* Poc04PhotoLibrary.g.swift */,
+				A10000000000000000000003 /* Poc04PhotoLibraryHost.swift */,
+			);
+			path = POC04;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -272,6 +294,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
+				A10000000000000000000006 /* Poc04PhotoLibrary.g.swift in Sources */,
+				A10000000000000000000004 /* Poc04PhotoLibraryHost.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);
@@ -366,6 +390,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 4Q8L7G42S5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -545,6 +570,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 4Q8L7G42S5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -567,6 +593,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 4Q8L7G42S5;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

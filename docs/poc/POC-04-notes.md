@@ -20,11 +20,23 @@ flutter run --dart-define=POC04_SPIKE=true
 
 Or: debug session → default home → **POC-04** button (kDebugMode only).
 
-## Phase 2.1 checklist
+## Phase 2.2 checklist
 
-- [x] Isolated dirs: `lib/spikes/poc_04/`, `ios/Runner/Spikes/POC04/`, `pigeon/spikes/poc_04/`
-- [x] Debug-only entry (dart-define and/or kDebugMode button); release home not permanently replaced
-- [x] Placeholder screen compiles
+- [x] System Photos dialog appears on **Request Photos access** (first time)
+- [x] Auth status shows `authorized` or `limited` after allow
+- [x] **List local assets** returns only device-local image/video rows (count > 0 if library has local media)
+- [x] Denied/restricted → list shows `unauthorized` error
+- [x] Placeholder usage string visible in Settings (owner will replace before release)
+
+Owner 验收: 2026-07-28 (device; Listed 100 after full access).
+
+Local filter (host): `isNetworkAccessAllowed = false` + `PHImageResultIsInCloudKey` (image sync / video semaphore). Avoids `PHAssetResource.isLocallyAvailable` (SDK/OS gated). Prefer a real device with local media; simulator library may be empty.
+
+Regenerate Pigeon after schema edits:
+
+```bash
+dart run pigeon --input pigeon/spikes/poc_04/poc_04_photo_library.dart
+```
 
 ## Devices
 
