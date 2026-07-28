@@ -21,6 +21,12 @@
 		A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* Poc04PlayerPool.swift */; };
 		A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* Poc04VideoPlatformView.swift */; };
 		A10000000000000000000010 /* Poc04ActiveVideoTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */; };
+		A20000000000000000000004 /* Poc03Playback.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* Poc03Playback.g.swift */; };
+		A20000000000000000000006 /* Poc03PlaybackHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* Poc03PlaybackHost.swift */; };
+		A20000000000000000000008 /* Poc03PlaybackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* Poc03PlaybackEngine.swift */; };
+		A2000000000000000000000A /* clip_a.wav in Resources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000009 /* clip_a.wav */; };
+		A2000000000000000000000C /* clip_b.wav in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000B /* clip_b.wav */; };
+		A2000000000000000000000E /* clip_c.wav in Resources */ = {isa = PBXBuildFile; fileRef = A2000000000000000000000D /* clip_c.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +75,12 @@
 		A1000000000000000000000B /* Poc04PlayerPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PlayerPool.swift; sourceTree = "<group>"; };
 		A1000000000000000000000D /* Poc04VideoPlatformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04VideoPlatformView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04ActiveVideoTexture.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* Poc03Playback.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc03Playback.g.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* Poc03PlaybackHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc03PlaybackHost.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* Poc03PlaybackEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc03PlaybackEngine.swift; sourceTree = "<group>"; };
+		A20000000000000000000009 /* clip_a.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clip_a.wav; sourceTree = "<group>"; };
+		A2000000000000000000000B /* clip_b.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clip_b.wav; sourceTree = "<group>"; };
+		A2000000000000000000000D /* clip_c.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = clip_c.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -140,9 +152,31 @@
 		A10000000000000000000001 /* Spikes */ = {
 			isa = PBXGroup;
 			children = (
+				A20000000000000000000001 /* POC03 */,
 				A10000000000000000000002 /* POC04 */,
 			);
 			path = Spikes;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000001 /* POC03 */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000002 /* Fixtures */,
+				A20000000000000000000003 /* Poc03Playback.g.swift */,
+				A20000000000000000000005 /* Poc03PlaybackHost.swift */,
+				A20000000000000000000007 /* Poc03PlaybackEngine.swift */,
+			);
+			path = POC03;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000002 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000009 /* clip_a.wav */,
+				A2000000000000000000000B /* clip_b.wav */,
+				A2000000000000000000000D /* clip_c.wav */,
+			);
+			path = Fixtures;
 			sourceTree = "<group>";
 		};
 		A10000000000000000000002 /* POC04 */ = {
@@ -253,6 +287,9 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+				A2000000000000000000000A /* clip_a.wav in Resources */,
+				A2000000000000000000000C /* clip_b.wav in Resources */,
+				A2000000000000000000000E /* clip_c.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -312,6 +349,9 @@
 				A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */,
 				A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */,
 				A10000000000000000000010 /* Poc04ActiveVideoTexture.swift in Sources */,
+				A20000000000000000000004 /* Poc03Playback.g.swift in Sources */,
+				A20000000000000000000006 /* Poc03PlaybackHost.swift in Sources */,
+				A20000000000000000000008 /* Poc03PlaybackEngine.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

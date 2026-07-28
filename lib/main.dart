@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:waketok/spikes/poc_03/poc_03_entry.dart';
+import 'package:waketok/spikes/poc_03/poc_03_spike_page.dart';
 import 'package:waketok/spikes/poc_04/poc_04_entry.dart';
 import 'package:waketok/spikes/poc_04/poc_04_placeholder_page.dart';
 
@@ -12,15 +14,20 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final Widget home;
+    if (kPoc03SpikeAsHome) {
+      home = const Poc03SpikePage();
+    } else if (kPoc04SpikeAsHome) {
+      home = const Poc04PlaceholderPage();
+    } else {
+      home = const MyHomePage(title: 'Flutter Demo Home Page');
+    }
     return MaterialApp(
       title: 'WakeTok',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      // Default home stays the demo page. Spike home only via --dart-define=POC04_SPIKE=true.
-      home: kPoc04SpikeAsHome
-          ? const Poc04PlaceholderPage()
-          : const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: home,
     );
   }
 }
@@ -92,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
           // action in the IDE, or press "p" in the console), to see the
           // wireframe for each widget.
-          mainAxisAlignment: .center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('You have pushed the button this many times:'),
             Text(
@@ -101,6 +108,17 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             if (kDebugMode) ...[
               const SizedBox(height: 24),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const Poc03SpikePage(),
+                    ),
+                  );
+                },
+                child: const Text('POC-03'),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton(
                 onPressed: () {
                   Navigator.of(context).push(

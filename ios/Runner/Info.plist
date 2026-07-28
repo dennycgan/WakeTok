@@ -68,5 +68,9 @@
 	</array>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>WakeTok POC-04 placeholder: access Photos to list local media for the architecture spike. Final wording is owner-approved before release.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>
