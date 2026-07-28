@@ -76,6 +76,14 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
             : ' · #${s.currentIndex}/${s.queueLength} · ${s.currentClipId}'
                 ' · ${s.positionMs}ms',
       );
+    if (s != null) {
+      hud.write(
+        ' · int=${s.isInterrupted}/${s.interruptionCount}',
+      );
+      if (s.lastInterruptionSummary.isNotEmpty) {
+        hud.write('\n${s.lastInterruptionSummary}');
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -85,9 +93,9 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            '3.1: pop route while playing — audio must continue.\n'
-            '3.2: pre-queue ≥1 ahead; lock screen ≥5 advances (subjective gap).\n'
-            'Foreground gap probe target: p90 < 150 ms (P3=B).',
+            '3.1: pop route — audio continues.\n'
+            '3.2: lock ≥5 advances; gap p90 < 150 ms (P3=B).\n'
+            '3.3: interruption; P4=A shouldResume → auto play.',
           ),
           const SizedBox(height: 12),
           Text(hud.toString()),
@@ -145,11 +153,13 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Manual 3.2 (lock):\n'
-            '1) Configure → Play → unlock Control Center OK optional\n'
-            '2) Lock phone; listen ≥5 clip advances (A→B→C→A…)\n'
-            '3) Unlock; read gap summary (foreground samples may accumulate)\n'
-            '4) Subjective: transition gap imperceptible or acceptable',
+            'Manual 3.3 (interruption, P4=A, gate Q1=B):\n'
+            '1) Configure → Play\n'
+            '2) Interrupt (call / Siri / other audio / WeChat)\n'
+            '3) End interrupt — expect auto play without tapping Play\n'
+            '   (poll while process awake, and/or after returning to app OK)\n'
+            '4) Lock/home resume without opening WakeTok = Known debt\n'
+            '5) Resume continues from pause point (not clip start)',
             style: TextStyle(color: Colors.black54),
           ),
         ],

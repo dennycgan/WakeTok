@@ -21,6 +21,9 @@ class Poc03PlaybackStateDto {
     required this.queueLength,
     required this.positionMs,
     required this.currentClipId,
+    required this.isInterrupted,
+    required this.interruptionCount,
+    required this.lastInterruptionSummary,
   });
 
   bool isPlaying;
@@ -28,6 +31,15 @@ class Poc03PlaybackStateDto {
   int queueLength;
   int positionMs;
   String currentClipId;
+
+  /// True while an AVAudioSession interruption is active (3.3).
+  bool isInterrupted;
+
+  /// Count of interruption began/ended events observed this process.
+  int interruptionCount;
+
+  /// Last interruption note for HUD (e.g. ended shouldResume → auto play).
+  String lastInterruptionSummary;
 }
 
 @HostApi()

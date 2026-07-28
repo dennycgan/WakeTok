@@ -97,7 +97,7 @@ Active capability: POC-03 Lock-screen continuous playback gate
       pre-queue next AVPlayerItem; confirm audio gap is imperceptible
       or acceptable between segments
 
-- [ ] 3.3 Verify audio interruption and recovery
+- [x] 3.3 Verify audio interruption and recovery
       (phone call, Siri, other audio apps; session re-activates on return)
 
 - [ ] 3.4 Verify Control Center metadata (Now Playing info + transport controls)
@@ -118,8 +118,8 @@ Active capability: POC-03 Lock-screen continuous playback gate
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): validate lock-screen continuous playback / background audio gate (POC-03) before production domain/data/feature implementation
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 3.1–3.2 (M1–M3 + lock gap PASS)
-- Next step: phase 3.3 audio interruption and recovery (await owner go)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 3.1–3.3 (interrupt PASS per Q1=B)
+- Next step: phase 3.4 Control Center / AirPods (await owner go)
 - Related decisions: ADR-001 (POC-04 Flutter+PV Conditional Pass; Severe Hang = production debt)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -138,3 +138,4 @@ Active capability: POC-03 Lock-screen continuous playback gate
 |---|---|---|---|---|
 | Bootstrap | iOS deployment target left at Flutter default | Kickoff Open Question: platform target TBD; decide with real-device data | POC-04 | — |
 | POC-04 | Severe Hang under fast scrolling / animateToPage load | Conditional Pass accepted; must address in production feed | Production Main Browse Screen | ADR-001 |
+| POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | — |

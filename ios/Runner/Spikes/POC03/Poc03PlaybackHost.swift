@@ -41,7 +41,10 @@ final class Poc03PlaybackHost: Poc03PlaybackApi {
       currentIndex: Int64(s.currentIndex),
       queueLength: Int64(s.queueLength),
       positionMs: Int64(s.positionMs),
-      currentClipId: s.currentClipId
+      currentClipId: s.currentClipId,
+      isInterrupted: s.isInterrupted,
+      interruptionCount: Int64(s.interruptionCount),
+      lastInterruptionSummary: s.lastInterruptionSummary
     )
   }
 

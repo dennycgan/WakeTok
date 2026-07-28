@@ -69,12 +69,40 @@ Manual 3.2: **PASS** — owner 2026-07-28 after lock→unlock.
 Screen: `gap n=24 p50=4ms p90=4ms (PASS p90<150; foreground probe)`;
 `playing=true` still; advances ≫5. Owner confirms L1–L3 OK.
 
+## Phase 3.3 checklist
+
+Locks: P4=A (`shouldResume` → auto `play()`). Owner gate **Q1=B** (2026-07-28):
+PASS when interrupt ends and playback auto-resumes without tapping Play
+(process awake via poll and/or returning to app). Lock-screen / iOS-home
+resume **without** opening WakeTok is **Known debt** → Production Background Audio.
+
+- [x] Observe `AVAudioSession.interruptionNotification`
+- [x] On began: pause; remember wasPlaying
+- [x] On ended + shouldResume + wasPlaying: reactivate session + play
+      (background-task poll ~25s + foreground fallback)
+- [x] HUD: `int=` flag/count + last summary line
+- [x] `flutter analyze` + `flutter test` + simulator build
+- [x] Manual interrupt + auto-resume (Q1=B)
+
+### Manual (3.3)
+
+| ID | Steps | Pass (Q1=B) |
+|----|-------|-------------|
+| I1 | Play → interrupt (call / Siri / other audio / WeChat) | Audio stops; HUD began |
+| I2 | End interrupt | Auto play without tapping Play (poll and/or open app OK) |
+| I3 | HUD | `ended shouldResume=true → auto play (…)` |
+| — | Lock/home resume without opening app | **Not required** (debt) |
+
+Manual 3.3: **PASS (Q1=B)** — owner 2026-07-28.
+Other scenarios OK; WeChat video while locked: no lock/home resume;
+open app → `auto play (poll 24)`; continues from pause point.
+
 ## Acceptance map (later phases)
 
 | Phase | Auto | Manual gate |
 |-------|------|-------------|
 | 3.2 | gap probe unit + HUD | L1–L3 (+ G1 sentry) |
-| 3.3 | — | call/Siri/other app; auto-resume (P4) |
+| 3.3 | interruption + bg poll | I1–I3 (Q1=B); lock/home debt |
 | 3.4 | — | Control Center + AirPods |
 | 3.5 | checkpoint DTO tests | kill → silent; cold Restore? (P5) |
 | 3.6 | — | ADR go/no-go |
@@ -83,3 +111,4 @@ Screen: `gap n=24 p50=4ms p90=4ms (PASS p90<150; foreground probe)`;
 
 - 3.1: M1–M3 PASS (2026-07-28)
 - 3.2: **PASS** — lock→unlock; gap n=24 p50=4ms p90=4ms; L1–L3 owner OK
+- 3.3: **PASS (Q1=B)** — auto resume via poll/foreground; WeChat lock/home = debt

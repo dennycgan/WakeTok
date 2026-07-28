@@ -191,6 +191,12 @@ struct Poc03PlaybackStateDto: Hashable, CustomStringConvertible {
   var queueLength: Int64
   var positionMs: Int64
   var currentClipId: String
+  /// True while an AVAudioSession interruption is active (3.3).
+  var isInterrupted: Bool
+  /// Count of interruption began/ended events observed this process.
+  var interruptionCount: Int64
+  /// Last interruption note for HUD (e.g. ended shouldResume → auto play).
+  var lastInterruptionSummary: String
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -200,13 +206,19 @@ struct Poc03PlaybackStateDto: Hashable, CustomStringConvertible {
     let queueLength = pigeonVar_list[2] as! Int64
     let positionMs = pigeonVar_list[3] as! Int64
     let currentClipId = pigeonVar_list[4] as! String
+    let isInterrupted = pigeonVar_list[5] as! Bool
+    let interruptionCount = pigeonVar_list[6] as! Int64
+    let lastInterruptionSummary = pigeonVar_list[7] as! String
 
     return Poc03PlaybackStateDto(
       isPlaying: isPlaying,
       currentIndex: currentIndex,
       queueLength: queueLength,
       positionMs: positionMs,
-      currentClipId: currentClipId
+      currentClipId: currentClipId,
+      isInterrupted: isInterrupted,
+      interruptionCount: interruptionCount,
+      lastInterruptionSummary: lastInterruptionSummary
     )
   }
   func toList() -> [Any?] {
@@ -216,13 +228,16 @@ struct Poc03PlaybackStateDto: Hashable, CustomStringConvertible {
       queueLength,
       positionMs,
       currentClipId,
+      isInterrupted,
+      interruptionCount,
+      lastInterruptionSummary,
     ]
   }
   static func == (lhs: Poc03PlaybackStateDto, rhs: Poc03PlaybackStateDto) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return Poc03PlaybackPigeonInternal.deepEquals(lhs.isPlaying, rhs.isPlaying) && Poc03PlaybackPigeonInternal.deepEquals(lhs.currentIndex, rhs.currentIndex) && Poc03PlaybackPigeonInternal.deepEquals(lhs.queueLength, rhs.queueLength) && Poc03PlaybackPigeonInternal.deepEquals(lhs.positionMs, rhs.positionMs) && Poc03PlaybackPigeonInternal.deepEquals(lhs.currentClipId, rhs.currentClipId)
+    return Poc03PlaybackPigeonInternal.deepEquals(lhs.isPlaying, rhs.isPlaying) && Poc03PlaybackPigeonInternal.deepEquals(lhs.currentIndex, rhs.currentIndex) && Poc03PlaybackPigeonInternal.deepEquals(lhs.queueLength, rhs.queueLength) && Poc03PlaybackPigeonInternal.deepEquals(lhs.positionMs, rhs.positionMs) && Poc03PlaybackPigeonInternal.deepEquals(lhs.currentClipId, rhs.currentClipId) && Poc03PlaybackPigeonInternal.deepEquals(lhs.isInterrupted, rhs.isInterrupted) && Poc03PlaybackPigeonInternal.deepEquals(lhs.interruptionCount, rhs.interruptionCount) && Poc03PlaybackPigeonInternal.deepEquals(lhs.lastInterruptionSummary, rhs.lastInterruptionSummary)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -232,10 +247,13 @@ struct Poc03PlaybackStateDto: Hashable, CustomStringConvertible {
     Poc03PlaybackPigeonInternal.deepHash(value: queueLength, hasher: &hasher)
     Poc03PlaybackPigeonInternal.deepHash(value: positionMs, hasher: &hasher)
     Poc03PlaybackPigeonInternal.deepHash(value: currentClipId, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: isInterrupted, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: interruptionCount, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: lastInterruptionSummary, hasher: &hasher)
   }
 
   public var description: String {
-    return "Poc03PlaybackStateDto(isPlaying: \(String(describing: isPlaying)), currentIndex: \(String(describing: currentIndex)), queueLength: \(String(describing: queueLength)), positionMs: \(String(describing: positionMs)), currentClipId: \(String(describing: currentClipId)))"
+    return "Poc03PlaybackStateDto(isPlaying: \(String(describing: isPlaying)), currentIndex: \(String(describing: currentIndex)), queueLength: \(String(describing: queueLength)), positionMs: \(String(describing: positionMs)), currentClipId: \(String(describing: currentClipId)), isInterrupted: \(String(describing: isInterrupted)), interruptionCount: \(String(describing: interruptionCount)), lastInterruptionSummary: \(String(describing: lastInterruptionSummary)))"
   }
 }
 
