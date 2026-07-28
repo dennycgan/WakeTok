@@ -19,7 +19,10 @@ abstract class Poc04MediaBridge {
 
   Future<void> prefetchNeighbors(List<String> assetIds);
 
-  Future<void> attachActiveVideo(String assetId);
+  Future<void> setUseTextureSurface(bool enabled);
+
+  /// Texture mode: valid textureId after native register. PV mode: -1.
+  Future<int> attachActiveVideo(String assetId);
 
   Future<void> attachWarmingVideo(String assetId);
 
@@ -32,6 +35,12 @@ abstract class Poc04MediaBridge {
   Future<void> releaseAllVideos();
 
   Future<Poc04PoolDiagnostics> getPoolDiagnostics();
+
+  Future<void> clearFirstFrameSamples();
+
+  Future<List<double>> getFirstFrameSamples();
+
+  Future<double> waitActiveFirstFrameMs(int timeoutMs);
 }
 
 /// Production bridge wrapping generated Pigeon host API.
@@ -57,7 +66,11 @@ class Poc04PigeonMediaBridge implements Poc04MediaBridge {
       _api.prefetchNeighbors(assetIds);
 
   @override
-  Future<void> attachActiveVideo(String assetId) =>
+  Future<void> setUseTextureSurface(bool enabled) =>
+      _api.setUseTextureSurface(enabled);
+
+  @override
+  Future<int> attachActiveVideo(String assetId) =>
       _api.attachActiveVideo(assetId);
 
   @override
@@ -79,6 +92,16 @@ class Poc04PigeonMediaBridge implements Poc04MediaBridge {
   @override
   Future<Poc04PoolDiagnostics> getPoolDiagnostics() =>
       _api.getPoolDiagnostics();
+
+  @override
+  Future<void> clearFirstFrameSamples() => _api.clearFirstFrameSamples();
+
+  @override
+  Future<List<double>> getFirstFrameSamples() => _api.getFirstFrameSamples();
+
+  @override
+  Future<double> waitActiveFirstFrameMs(int timeoutMs) =>
+      _api.waitActiveFirstFrameMs(timeoutMs);
 }
 
 /// Pure feed orchestration: pool intents + image temp lifecycle (testable).
@@ -97,6 +120,8 @@ class Poc04FeedController {
   final int tempSoftCap;
 
   int index = 0;
+  /// Texture id for the active video after attach returns (>=0). -1 = PV / none.
+  int activeTextureId = -1;
   final Map<String, String> imagePaths = {};
   final List<String> _releaseLog = [];
   final List<String> _attachActiveLog = [];
@@ -169,9 +194,11 @@ class Poc04FeedController {
 
     if (activeVideo == null) {
       await _bridge.releaseAllVideos();
+      activeTextureId = -1;
     } else {
       _attachActiveLog.add(activeVideo);
-      await _bridge.attachActiveVideo(activeVideo);
+      // Ordering: await returns only after native register (Texture) or -1 (PV).
+      activeTextureId = await _bridge.attachActiveVideo(activeVideo);
       await _bridge.playActive();
       for (final item in items) {
         if (item.mediaType != Poc04MediaType.video) continue;

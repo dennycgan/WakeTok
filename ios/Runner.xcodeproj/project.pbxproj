@@ -20,6 +20,7 @@
 		A1000000000000000000000A /* Poc04MediaBridgeHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* Poc04MediaBridgeHost.swift */; };
 		A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* Poc04PlayerPool.swift */; };
 		A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* Poc04VideoPlatformView.swift */; };
+		A10000000000000000000010 /* Poc04ActiveVideoTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -67,6 +68,7 @@
 		A10000000000000000000009 /* Poc04MediaBridgeHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04MediaBridgeHost.swift; sourceTree = "<group>"; };
 		A1000000000000000000000B /* Poc04PlayerPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PlayerPool.swift; sourceTree = "<group>"; };
 		A1000000000000000000000D /* Poc04VideoPlatformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04VideoPlatformView.swift; sourceTree = "<group>"; };
+		A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04ActiveVideoTexture.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -151,6 +153,7 @@
 				A10000000000000000000009 /* Poc04MediaBridgeHost.swift */,
 				A1000000000000000000000B /* Poc04PlayerPool.swift */,
 				A1000000000000000000000D /* Poc04VideoPlatformView.swift */,
+				A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */,
 			);
 			path = POC04;
 			sourceTree = "<group>";
@@ -308,6 +311,7 @@
 				A1000000000000000000000A /* Poc04MediaBridgeHost.swift in Sources */,
 				A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */,
 				A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */,
+				A10000000000000000000010 /* Poc04ActiveVideoTexture.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 			);

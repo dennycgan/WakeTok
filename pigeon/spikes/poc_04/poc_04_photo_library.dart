@@ -77,11 +77,18 @@ abstract class Poc04MediaBridgeApi {
   /// Best-effort PHCachingImageManager prefetch for neighbor asset IDs.
   void prefetchNeighbors(List<String> assetIds);
 
-  /// Occupy the active player slot (releases previous active if needed).
+  /// Prefer Texture surface when true; Platform View when false (T1=B).
+  void setUseTextureSurface(bool enabled);
+
+  /// Occupy the active player slot.
+  ///
+  /// Texture mode: returns textureId only AFTER FlutterTextureRegistry.register.
+  /// Platform View mode: returns -1 (no texture).
   @async
-  void attachActiveVideo(String assetId);
+  int attachActiveVideo(String assetId);
 
   /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+  /// Warming does not register a Flutter texture (T2=A).
   @async
   void attachWarmingVideo(String assetId);
 
@@ -94,4 +101,15 @@ abstract class Poc04MediaBridgeApi {
   void releaseAllVideos();
 
   Poc04PoolDiagnostics getPoolDiagnostics();
+
+  /// Clears accumulated first-frame samples (ms).
+  void clearFirstFrameSamples();
+
+  /// Accumulated first-frame delays (ms) since last clear.
+  List<double> getFirstFrameSamples();
+
+  /// Waits until active AVPlayerLayer is ready for display since last attach,
+  /// or until timeoutMs (timeout value is still recorded — H4=A).
+  @async
+  double waitActiveFirstFrameMs(int timeoutMs);
 }

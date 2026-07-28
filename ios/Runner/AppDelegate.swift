@@ -13,6 +13,11 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     let messenger = engineBridge.applicationRegistrar.messenger()
+    let textures = engineBridge.applicationRegistrar.textures()
+    Poc04PlayerPool.shared.configure(textureRegistry: textures)
+    // Default to Texture surface (Conditional escape); Dart can toggle back to PV.
+    Poc04PlayerPool.shared.setUseTextureSurface(true)
+
     Poc04PhotoLibraryApiSetup.setUp(
       binaryMessenger: messenger,
       api: Poc04PhotoLibraryHost()

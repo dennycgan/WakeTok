@@ -15,10 +15,15 @@ class _MockBridge implements Poc04MediaBridge {
   int tempFiles = 0;
 
   @override
-  Future<void> attachActiveVideo(String assetId) async {
+  @override
+  Future<int> attachActiveVideo(String assetId) async {
     attachActive.add(assetId);
     active = 1;
+    return -1;
   }
+
+  @override
+  Future<void> setUseTextureSurface(bool enabled) async {}
 
   @override
   Future<void> attachWarmingVideo(String assetId) async {
@@ -34,6 +39,15 @@ class _MockBridge implements Poc04MediaBridge {
       tempFileCount: tempFiles,
     );
   }
+
+  @override
+  Future<void> clearFirstFrameSamples() async {}
+
+  @override
+  Future<List<double>> getFirstFrameSamples() async => const [];
+
+  @override
+  Future<double> waitActiveFirstFrameMs(int timeoutMs) async => 0;
 
   @override
   Future<void> pauseActive() async {}

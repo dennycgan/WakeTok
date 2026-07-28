@@ -181,9 +181,13 @@ final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
 
   func attachActiveVideo(
     assetId: String,
-    completion: @escaping (Result<Void, Error>) -> Void
+    completion: @escaping (Result<Int64, Error>) -> Void
   ) {
     Poc04PlayerPool.shared.attachActive(assetId: assetId, completion: completion)
+  }
+
+  func setUseTextureSurface(enabled: Bool) throws {
+    Poc04PlayerPool.shared.setUseTextureSurface(enabled)
   }
 
   func attachWarmingVideo(
@@ -217,6 +221,24 @@ final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
       activeCount: Int64(Poc04PlayerPool.shared.activeCount),
       warmingCount: Int64(Poc04PlayerPool.shared.warmingCount),
       tempFileCount: Int64(tempCount)
+    )
+  }
+
+  func clearFirstFrameSamples() throws {
+    Poc04PlayerPool.shared.clearFirstFrameSamples()
+  }
+
+  func getFirstFrameSamples() throws -> [Double] {
+    return Poc04PlayerPool.shared.getFirstFrameSamples()
+  }
+
+  func waitActiveFirstFrameMs(
+    timeoutMs: Int64,
+    completion: @escaping (Result<Double, Error>) -> Void
+  ) {
+    Poc04PlayerPool.shared.waitActiveFirstFrameMs(
+      timeoutMs: timeoutMs,
+      completion: completion
     )
   }
 

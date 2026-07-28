@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -7,9 +8,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:waketok/spikes/poc_04/generated/poc_04_photo_library.g.dart';
 import 'package:waketok/spikes/poc_04/poc_04_feed_controller.dart';
+import 'package:waketok/spikes/poc_04/poc_04_first_frame.dart';
 import 'package:waketok/spikes/poc_04/poc_04_probe.dart';
 
-/// POC-04 Phase 2.3–2.4: mixed vertical feed + bounded-resource probes.
+/// POC-04 feed: PV / Texture toggle (T1=B), probes, first-frame timing.
 class Poc04FeedPage extends StatefulWidget {
   const Poc04FeedPage({super.key, required this.assets});
 
@@ -26,27 +28,55 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
 
   Poc04PoolDiagnostics? _diagnostics;
   String? _probeResult;
+  String? _ffSummary;
   bool _busyProbe = false;
   String? _pageError;
-  /// When true, PageView must not also drive the controller (Probe owns it).
   bool _probeOwnsPaging = false;
+
+  /// T1=B: default Texture (Conditional escape). Toggle to compare hitch vs PV.
+  bool _useTexture = true;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
     _controller = Poc04FeedController(bridge: _bridge, items: widget.assets);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _applyPage(0);
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _bridge.setUseTextureSurface(_useTexture);
+      await _applyPage(0);
     });
   }
 
   @override
   void dispose() {
-    // Best-effort async cleanup; spike teardown.
     _controller.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _toggleSurface() async {
+    final next = !_useTexture;
+    setState(() {
+      _useTexture = next;
+      _controller.activeTextureId = -1;
+    });
+    await _bridge.setUseTextureSurface(next);
+    await _applyPage(_controller.index);
+  }
+
+  Future<void> _refreshFfSummary() async {
+    final samples = await _bridge.getFirstFrameSamples();
+    if (!mounted) return;
+    setState(() => _ffSummary = formatFirstFrameSummary(samples));
+  }
+
+  Future<void> _awaitFirstFrameIfVideo(int index) async {
+    if (index < 0 || index >= widget.assets.length) return;
+    if (widget.assets[index].mediaType != Poc04MediaType.video) return;
+    try {
+      await _bridge.waitActiveFirstFrameMs(kPoc04FirstFrameTimeoutMs);
+      await _refreshFfSummary();
+    } catch (_) {}
   }
 
   Future<void> _applyPage(int index) async {
@@ -55,10 +85,12 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
       await _controller.onPageChanged(index);
       final d = await _bridge.getPoolDiagnostics();
       if (!mounted) return;
+      // setState after attach returned textureId (or -1 for PV).
       setState(() {
         _diagnostics = d;
         _pageError = null;
       });
+      unawaited(_awaitFirstFrameIfVideo(index));
     } on PlatformException catch (e) {
       if (!mounted) return;
       setState(() => _pageError = '${e.code}: ${e.message}');
@@ -79,7 +111,6 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
       _probeResult = 'Running n=$transitions…';
     });
     try {
-      // Drop any leftover temps from prior manual scrolling before measuring.
       await _bridge.releaseAllImageTempFiles();
       _controller.imagePaths.clear();
 
@@ -90,16 +121,13 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
 
       for (var step = 0; step < transitions; step++) {
         final next = (step + 1) % widget.assets.length;
-        // jumpToPage avoids animation intermediate callbacks; probe owns paging.
         _pageController.jumpToPage(next);
         await _controller.onPageChanged(next);
         final d = await _bridge.getPoolDiagnostics();
         samples.add(Poc04ProbeSample.fromDiagnostics(step + 1, d));
         if (!mounted) return;
         if (step % 10 == 9 || step == transitions - 1) {
-          setState(() {
-            _diagnostics = d;
-          });
+          setState(() => _diagnostics = d);
         }
         await Future<void>.delayed(const Duration(milliseconds: 20));
       }
@@ -133,6 +161,69 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
     }
   }
 
+  Future<void> _runFirstFrameProbe() async {
+    final videoIndices = <int>[];
+    for (var i = 0; i < widget.assets.length; i++) {
+      if (widget.assets[i].mediaType == Poc04MediaType.video) {
+        videoIndices.add(i);
+      }
+    }
+    if (videoIndices.length < 2) {
+      setState(() => _probeResult = 'Need ≥2 local videos for FF probe');
+      return;
+    }
+
+    setState(() {
+      _busyProbe = true;
+      _probeOwnsPaging = true;
+      _probeResult = 'FF probe…';
+    });
+    try {
+      await _bridge.clearFirstFrameSamples();
+      const target = kPoc04FirstFrameSampleTarget;
+      for (var n = 0; n < target; n++) {
+        final index = videoIndices[n % videoIndices.length];
+        _pageController.jumpToPage(index);
+        await _controller.onPageChanged(index);
+        if (!mounted) return;
+        setState(() {}); // show textureId after attach returned
+        await _bridge.waitActiveFirstFrameMs(kPoc04FirstFrameTimeoutMs);
+        if (!mounted) return;
+        if (n % 5 == 4 || n == target - 1) {
+          final samples = await _bridge.getFirstFrameSamples();
+          setState(() {
+            _ffSummary = formatFirstFrameSummary(samples);
+            _probeResult = 'FF ${n + 1}/$target';
+          });
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+      final samples = await _bridge.getFirstFrameSamples();
+      final p90 = poc04Percentile(samples, 90);
+      final pass = samples.length >= target && p90 < 500;
+      if (!mounted) return;
+      setState(() {
+        _ffSummary = formatFirstFrameSummary(samples);
+        _probeResult =
+            '${pass ? 'PASS' : 'FAIL'} ${formatFirstFrameSummary(samples)} '
+            '(target p90<500; warming-assisted; '
+            '${_useTexture ? 'Texture' : 'PV'})';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _probeResult = 'FF probe error: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _busyProbe = false;
+          _probeOwnsPaging = false;
+        });
+      } else {
+        _probeOwnsPaging = false;
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = _diagnostics;
@@ -143,9 +234,16 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
             ? 'empty'
             : widget.assets[_controller.index].mediaType.name,
       );
+    hud.write(_useTexture ? ' · Tex' : ' · PV');
+    if (_useTexture && _controller.activeTextureId >= 0) {
+      hud.write(' id=${_controller.activeTextureId}');
+    }
     if (d != null) {
       hud.write(' · pool ${d.activeCount}+${d.warmingCount}');
       hud.write(' · tmp ${d.tempFileCount}');
+    }
+    if (_ffSummary != null) {
+      hud.write(' · $_ffSummary');
     }
 
     return Scaffold(
@@ -156,13 +254,21 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
         title: const Text('POC-04 feed'),
         actions: [
           TextButton(
+            onPressed: _busyProbe ? null : _toggleSurface,
+            child: Text(_useTexture ? '→PV' : '→Tex'),
+          ),
+          TextButton(
             onPressed: _busyProbe ? null : () => _runLeakProbe(transitions: 30),
-            child: const Text('Probe 30'),
+            child: const Text('P30'),
           ),
           TextButton(
             onPressed:
                 _busyProbe ? null : () => _runLeakProbe(transitions: 100),
-            child: const Text('Probe 100'),
+            child: const Text('P100'),
+          ),
+          TextButton(
+            onPressed: _busyProbe ? null : _runFirstFrameProbe,
+            child: const Text('FF20'),
           ),
         ],
       ),
@@ -188,7 +294,14 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
                         path: _controller.imagePaths[asset.assetId],
                       );
                     }
-                    return _VideoPage(assetId: asset.assetId);
+                    return _VideoPage(
+                      assetId: asset.assetId,
+                      useTexture: _useTexture,
+                      // Only the active page should bind the live textureId.
+                      textureId: index == _controller.index
+                          ? _controller.activeTextureId
+                          : -1,
+                    );
                   },
                 ),
                 Positioned(
@@ -200,7 +313,7 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
                       hud.toString(),
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: 11,
                         shadows: [Shadow(blurRadius: 4, color: Colors.black)],
                       ),
                     ),
@@ -226,7 +339,8 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
                       style: TextStyle(
                         color: _probeResult!.startsWith('PASS')
                             ? Colors.lightGreenAccent
-                            : _probeResult!.startsWith('Running')
+                            : _probeResult!.startsWith('Running') ||
+                                    _probeResult!.startsWith('FF')
                                 ? Colors.white70
                                 : Colors.orangeAccent,
                         fontSize: 11,
@@ -269,18 +383,45 @@ class _ImagePage extends StatelessWidget {
 }
 
 class _VideoPage extends StatelessWidget {
-  const _VideoPage({required this.assetId});
+  const _VideoPage({
+    required this.assetId,
+    required this.useTexture,
+    required this.textureId,
+  });
 
   final String assetId;
+  final bool useTexture;
+  final int textureId;
 
   @override
   Widget build(BuildContext context) {
-    // Platform View is iOS-only for this spike.
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) {
       return const Center(
         child: Text(
-          'Video Platform View is iOS-only in POC-04',
+          'Video is iOS-only in POC-04',
           style: TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+
+    if (useTexture) {
+      // Ordering contract: black placeholder until textureId arrives from
+      // attachActiveVideo (native register completed before the Future returns).
+      // Do not construct Texture(textureId) with a speculative/pending id.
+      if (textureId < 0) {
+        return const ColoredBox(color: Colors.black);
+      }
+      return ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: MediaQuery.sizeOf(context).width,
+              height: MediaQuery.sizeOf(context).height,
+              child: Texture(textureId: textureId),
+            ),
+          ),
         ),
       );
     }

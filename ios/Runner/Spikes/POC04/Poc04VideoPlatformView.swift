@@ -84,5 +84,6 @@ final class Poc04VideoPlatformView: NSObject, FlutterPlatformView {
     guard let assetId else { return }
     playerLayer.player = Poc04PlayerPool.shared.player(for: assetId)
     playerLayer.frame = container.bounds
+    Poc04PlayerPool.shared.noteActivePlayerLayer(assetId: assetId, layer: playerLayer)
   }
 }

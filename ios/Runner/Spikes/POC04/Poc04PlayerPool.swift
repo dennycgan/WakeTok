@@ -1,4 +1,5 @@
 import AVFoundation
+import Flutter
 import Foundation
 import Photos
 import UIKit
@@ -15,8 +16,22 @@ final class Poc04PlayerPool {
   private var activeItemRequestId: PHImageRequestID = PHInvalidImageRequestID
   private var warmingItemRequestId: PHImageRequestID = PHInvalidImageRequestID
 
-  /// Views observe this to bind AVPlayerLayer when their asset becomes active.
+  /// Views observe this to bind AVPlayerLayer when their asset becomes active (PV mode).
   private(set) var playersByAssetId: [String: AVPlayer] = [:]
+
+  private var textureRegistry: FlutterTextureRegistry?
+  /// T1=B default Texture (escape); toggle to false for Platform View A/B.
+  private var useTextureSurface = true
+  private var activeTexture: Poc04ActiveVideoTexture?
+
+  // MARK: - First-frame timing (phase 2.5 / Texture escape)
+  private var firstFrameT0: CFTimeInterval?
+  private var firstFrameAssetId: String?
+  private var firstFrameMsResult: Double?
+  private var firstFrameSamples: [Double] = []
+  private var firstFrameWaiters: [(Result<Double, Error>) -> Void] = []
+  private var readyObservation: NSKeyValueObservation?
+  private var firstFrameTimeoutWork: DispatchWorkItem?
 
   var activeCount: Int {
     lock.lock(); defer { lock.unlock() }
@@ -28,6 +43,19 @@ final class Poc04PlayerPool {
     return warmingPlayer != nil ? 1 : 0
   }
 
+  func configure(textureRegistry: FlutterTextureRegistry) {
+    self.textureRegistry = textureRegistry
+  }
+
+  func setUseTextureSurface(_ enabled: Bool) {
+    useTextureSurface = enabled
+    if !enabled {
+      DispatchQueue.main.async { self.detachActiveTexture() }
+    }
+  }
+
+  var isUsingTextureSurface: Bool { useTextureSurface }
+
   func player(for assetId: String) -> AVPlayer? {
     lock.lock(); defer { lock.unlock() }
     return playersByAssetId[assetId]
@@ -35,15 +63,17 @@ final class Poc04PlayerPool {
 
   func attachActive(
     assetId: String,
-    completion: @escaping (Result<Void, Error>) -> Void
+    completion: @escaping (Result<Int64, Error>) -> Void
   ) {
+    beginFirstFrameMeasurement(assetId: assetId)
+
     lock.lock()
-    if activeAssetId == assetId, activePlayer != nil {
+    if activeAssetId == assetId, let player = activePlayer {
       lock.unlock()
-      completion(.success(()))
+      finishActiveAttach(assetId: assetId, player: player, completion: completion)
       return
     }
-    // Warming promotion.
+    // Warming promotion (T2=A: warming had no texture).
     if warmingAssetId == assetId, let warm = warmingPlayer {
       let previousActiveId = activeAssetId
       let previousActive = activePlayer
@@ -57,8 +87,7 @@ final class Poc04PlayerPool {
       }
       playersByAssetId[assetId] = warm
       lock.unlock()
-      NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
-      completion(.success(()))
+      finishActiveAttach(assetId: assetId, player: warm, completion: completion)
       return
     }
     lock.unlock()
@@ -71,7 +100,6 @@ final class Poc04PlayerPool {
         completion(.failure(error))
       case .success(let player):
         self.lock.lock()
-        // Drop previous active if any raced in.
         if let oldId = self.activeAssetId, oldId != assetId, let old = self.activePlayer {
           old.pause()
           self.playersByAssetId.removeValue(forKey: oldId)
@@ -81,10 +109,58 @@ final class Poc04PlayerPool {
         player.isMuted = true
         self.playersByAssetId[assetId] = player
         self.lock.unlock()
-        NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
-        completion(.success(()))
+        self.finishActiveAttach(assetId: assetId, player: player, completion: completion)
       }
     }
+  }
+
+  /// Completes attach only after texture register (Texture mode) or with -1 (PV).
+  private func finishActiveAttach(
+    assetId: String,
+    player: AVPlayer,
+    completion: @escaping (Result<Int64, Error>) -> Void
+  ) {
+    let run = { [weak self] in
+      guard let self else { return }
+      if self.useTextureSurface {
+        guard let registry = self.textureRegistry else {
+          completion(
+            .failure(
+              PigeonError(
+                code: "exportFailed",
+                message: "FlutterTextureRegistry not configured",
+                details: nil
+              )
+            )
+          )
+          return
+        }
+        self.detachActiveTexture()
+        let tex = Poc04ActiveVideoTexture(registry: registry)
+        tex.onFirstFrame = { [weak self] in
+          self?.completeFirstFrameIfNeeded()
+        }
+        // Ordering: register finishes inside attach before id is returned.
+        let textureId = tex.attach(player: player)
+        self.activeTexture = tex
+        NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
+        completion(.success(textureId))
+      } else {
+        self.detachActiveTexture()
+        NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
+        completion(.success(-1))
+      }
+    }
+    if Thread.isMainThread {
+      run()
+    } else {
+      DispatchQueue.main.async(execute: run)
+    }
+  }
+
+  private func detachActiveTexture() {
+    activeTexture?.detach()
+    activeTexture = nil
   }
 
   func attachWarming(
@@ -115,13 +191,13 @@ final class Poc04PlayerPool {
         if let oldId = self.warmingAssetId, oldId != assetId {
           self.playersByAssetId.removeValue(forKey: oldId)
         }
-        // Never exceed 1+1: if somehow active missing still ok.
         self.warmingAssetId = assetId
         self.warmingPlayer = player
         player.isMuted = true
         player.pause()
         self.playersByAssetId[assetId] = player
         self.lock.unlock()
+        // T2=A: do not register Flutter texture for warming.
         NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
         completion(.success(()))
       }
@@ -145,7 +221,8 @@ final class Poc04PlayerPool {
 
   func releaseVideo(assetId: String) {
     lock.lock()
-    if activeAssetId == assetId {
+    let wasActive = activeAssetId == assetId
+    if wasActive {
       activePlayer?.pause()
       activePlayer = nil
       activeAssetId = nil
@@ -160,6 +237,9 @@ final class Poc04PlayerPool {
       cancelRequest(&warmingItemRequestId)
     }
     lock.unlock()
+    if wasActive {
+      DispatchQueue.main.async { self.detachActiveTexture() }
+    }
     NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
   }
 
@@ -175,6 +255,7 @@ final class Poc04PlayerPool {
     cancelRequest(&activeItemRequestId)
     cancelRequest(&warmingItemRequestId)
     lock.unlock()
+    DispatchQueue.main.async { self.detachActiveTexture() }
     NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: nil)
   }
 
@@ -191,7 +272,6 @@ final class Poc04PlayerPool {
     } else {
       if let id = warmingAssetId {
         warmingPlayer?.pause()
-        // Keep in map only if also active (shouldn't happen).
         if id != activeAssetId {
           playersByAssetId.removeValue(forKey: id)
         }
@@ -201,6 +281,9 @@ final class Poc04PlayerPool {
       cancelRequest(&warmingItemRequestId)
     }
     lock.unlock()
+    if isActive {
+      DispatchQueue.main.async { self.detachActiveTexture() }
+    }
   }
 
   private func cancelRequest(_ requestId: inout PHImageRequestID) {
@@ -283,6 +366,116 @@ final class Poc04PlayerPool {
       player.isMuted = true
       completion(.success(player))
     }
+  }
+
+  // MARK: First-frame measurement
+
+  func clearFirstFrameSamples() {
+    lock.lock()
+    firstFrameSamples.removeAll()
+    lock.unlock()
+  }
+
+  func getFirstFrameSamples() -> [Double] {
+    lock.lock(); defer { lock.unlock() }
+    return firstFrameSamples
+  }
+
+  func beginFirstFrameMeasurement(assetId: String) {
+    lock.lock()
+    firstFrameTimeoutWork?.cancel()
+    firstFrameTimeoutWork = nil
+    readyObservation?.invalidate()
+    readyObservation = nil
+    firstFrameT0 = CACurrentMediaTime()
+    firstFrameAssetId = assetId
+    firstFrameMsResult = nil
+    lock.unlock()
+  }
+
+  /// PV mode: Platform View reports layer readiness.
+  func noteActivePlayerLayer(assetId: String, layer: AVPlayerLayer) {
+    guard !useTextureSurface else { return }
+    lock.lock()
+    guard assetId == firstFrameAssetId, firstFrameMsResult == nil else {
+      lock.unlock()
+      return
+    }
+    lock.unlock()
+
+    if layer.isReadyForDisplay {
+      completeFirstFrameIfNeeded()
+      return
+    }
+
+    readyObservation?.invalidate()
+    readyObservation = layer.observe(\.isReadyForDisplay, options: [.new]) {
+      [weak self] layer, _ in
+      guard let self else { return }
+      if layer.isReadyForDisplay {
+        self.completeFirstFrameIfNeeded()
+      }
+    }
+  }
+
+  func waitActiveFirstFrameMs(
+    timeoutMs: Int64,
+    completion: @escaping (Result<Double, Error>) -> Void
+  ) {
+    lock.lock()
+    if let result = firstFrameMsResult {
+      lock.unlock()
+      completion(.success(result))
+      return
+    }
+    firstFrameWaiters.append(completion)
+    let timeout = max(1, Int(timeoutMs))
+    lock.unlock()
+
+    let work = DispatchWorkItem { [weak self] in
+      self?.completeFirstFrame(ms: Double(timeout), fromTimeout: true)
+    }
+    lock.lock()
+    firstFrameTimeoutWork?.cancel()
+    firstFrameTimeoutWork = work
+    lock.unlock()
+    DispatchQueue.main.asyncAfter(
+      deadline: .now() + .milliseconds(timeout),
+      execute: work
+    )
+  }
+
+  func completeFirstFrameIfNeeded() {
+    lock.lock()
+    guard firstFrameMsResult == nil, let t0 = firstFrameT0 else {
+      lock.unlock()
+      return
+    }
+    let ms = (CACurrentMediaTime() - t0) * 1000.0
+    lock.unlock()
+    completeFirstFrame(ms: ms, fromTimeout: false)
+  }
+
+  private func completeFirstFrame(ms: Double, fromTimeout: Bool) {
+    lock.lock()
+    if firstFrameMsResult != nil {
+      lock.unlock()
+      return
+    }
+    firstFrameTimeoutWork?.cancel()
+    firstFrameTimeoutWork = nil
+    readyObservation?.invalidate()
+    readyObservation = nil
+    firstFrameMsResult = ms
+    firstFrameSamples.append(ms)
+    let waiters = firstFrameWaiters
+    firstFrameWaiters.removeAll()
+    lock.unlock()
+
+    for waiter in waiters {
+      waiter(.success(ms))
+    }
+    _ = fromTimeout
   }
 }
 

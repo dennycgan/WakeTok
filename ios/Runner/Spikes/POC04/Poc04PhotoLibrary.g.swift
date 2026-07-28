@@ -429,15 +429,28 @@ protocol Poc04MediaBridgeApi {
   func releaseAllImageTempFiles() throws
   /// Best-effort PHCachingImageManager prefetch for neighbor asset IDs.
   func prefetchNeighbors(assetIds: [String]) throws
-  /// Occupy the active player slot (releases previous active if needed).
-  func attachActiveVideo(assetId: String, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Prefer Texture surface when true; Platform View when false (T1=B).
+  func setUseTextureSurface(enabled: Bool) throws
+  /// Occupy the active player slot.
+  ///
+  /// Texture mode: returns textureId only AFTER FlutterTextureRegistry.register.
+  /// Platform View mode: returns -1 (no texture).
+  func attachActiveVideo(assetId: String, completion: @escaping (Result<Int64, Error>) -> Void)
   /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+  /// Warming does not register a Flutter texture (T2=A).
   func attachWarmingVideo(assetId: String, completion: @escaping (Result<Void, Error>) -> Void)
   func playActive() throws
   func pauseActive() throws
   func releaseVideo(assetId: String) throws
   func releaseAllVideos() throws
   func getPoolDiagnostics() throws -> Poc04PoolDiagnostics
+  /// Clears accumulated first-frame samples (ms).
+  func clearFirstFrameSamples() throws
+  /// Accumulated first-frame delays (ms) since last clear.
+  func getFirstFrameSamples() throws -> [Double]
+  /// Waits until active AVPlayerLayer is ready for display since last attach,
+  /// or until timeoutMs (timeout value is still recorded — H4=A).
+  func waitActiveFirstFrameMs(timeoutMs: Int64, completion: @escaping (Result<Double, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -509,7 +522,26 @@ class Poc04MediaBridgeApiSetup {
     } else {
       prefetchNeighborsChannel.setMessageHandler(nil)
     }
-    /// Occupy the active player slot (releases previous active if needed).
+    /// Prefer Texture surface when true; Platform View when false (T1=B).
+    let setUseTextureSurfaceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.setUseTextureSurface\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setUseTextureSurfaceChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let enabledArg = args[0] as! Bool
+        do {
+          try api.setUseTextureSurface(enabled: enabledArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setUseTextureSurfaceChannel.setMessageHandler(nil)
+    }
+    /// Occupy the active player slot.
+    ///
+    /// Texture mode: returns textureId only AFTER FlutterTextureRegistry.register.
+    /// Platform View mode: returns -1 (no texture).
     let attachActiveVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachActiveVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       attachActiveVideoChannel.setMessageHandler { message, reply in
@@ -517,8 +549,8 @@ class Poc04MediaBridgeApiSetup {
         let assetIdArg = args[0] as! String
         api.attachActiveVideo(assetId: assetIdArg) { result in
           switch result {
-          case .success:
-            reply(wrapResult(nil))
+          case .success(let res):
+            reply(wrapResult(res))
           case .failure(let error):
             reply(wrapError(error))
           }
@@ -528,6 +560,7 @@ class Poc04MediaBridgeApiSetup {
       attachActiveVideoChannel.setMessageHandler(nil)
     }
     /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+    /// Warming does not register a Flutter texture (T2=A).
     let attachWarmingVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachWarmingVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       attachWarmingVideoChannel.setMessageHandler { message, reply in
@@ -611,6 +644,53 @@ class Poc04MediaBridgeApiSetup {
       }
     } else {
       getPoolDiagnosticsChannel.setMessageHandler(nil)
+    }
+    /// Clears accumulated first-frame samples (ms).
+    let clearFirstFrameSamplesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.clearFirstFrameSamples\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      clearFirstFrameSamplesChannel.setMessageHandler { _, reply in
+        do {
+          try api.clearFirstFrameSamples()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      clearFirstFrameSamplesChannel.setMessageHandler(nil)
+    }
+    /// Accumulated first-frame delays (ms) since last clear.
+    let getFirstFrameSamplesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.getFirstFrameSamples\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getFirstFrameSamplesChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getFirstFrameSamples()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getFirstFrameSamplesChannel.setMessageHandler(nil)
+    }
+    /// Waits until active AVPlayerLayer is ready for display since last attach,
+    /// or until timeoutMs (timeout value is still recorded — H4=A).
+    let waitActiveFirstFrameMsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.waitActiveFirstFrameMs\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      waitActiveFirstFrameMsChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let timeoutMsArg = args[0] as! Int64
+        api.waitActiveFirstFrameMs(timeoutMs: timeoutMsArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      waitActiveFirstFrameMsChannel.setMessageHandler(nil)
     }
   }
 }

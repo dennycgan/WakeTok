@@ -436,15 +436,15 @@ class Poc04MediaBridgeApi {
     ;
   }
 
-  /// Occupy the active player slot (releases previous active if needed).
-  Future<void> attachActiveVideo(String assetId) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachActiveVideo$pigeonVar_messageChannelSuffix';
+  /// Prefer Texture surface when true; Platform View when false (T1=B).
+  Future<void> setUseTextureSurface(bool enabled) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.setUseTextureSurface$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
       binaryMessenger: pigeonVar_binaryMessenger,
     );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId]);
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[enabled]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     _extractReplyValueOrThrow(
@@ -455,7 +455,31 @@ class Poc04MediaBridgeApi {
     ;
   }
 
+  /// Occupy the active player slot.
+  ///
+  /// Texture mode: returns textureId only AFTER FlutterTextureRegistry.register.
+  /// Platform View mode: returns -1 (no texture).
+  Future<int> attachActiveVideo(String assetId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachActiveVideo$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as int;
+  }
+
   /// Occupy the warming slot (does not play). Hard-capped with active at 2.
+  /// Warming does not register a Flutter texture (T2=A).
   Future<void> attachWarmingVideo(String assetId) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.attachWarmingVideo$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -563,5 +587,65 @@ class Poc04MediaBridgeApi {
     )
     ;
     return pigeonVar_replyValue! as Poc04PoolDiagnostics;
+  }
+
+  /// Clears accumulated first-frame samples (ms).
+  Future<void> clearFirstFrameSamples() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.clearFirstFrameSamples$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Accumulated first-frame delays (ms) since last clear.
+  Future<List<double>> getFirstFrameSamples() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.getFirstFrameSamples$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<double>();
+  }
+
+  /// Waits until active AVPlayerLayer is ready for display since last attach,
+  /// or until timeoutMs (timeout value is still recorded — H4=A).
+  Future<double> waitActiveFirstFrameMs(int timeoutMs) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.waitActiveFirstFrameMs$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[timeoutMs]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as double;
   }
 }
