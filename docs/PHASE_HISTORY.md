@@ -61,7 +61,7 @@ Docs close-out (STATE + PHASE_HISTORY): `33267c1`
       — work: `9eeb912`
 - [x] 3.6 Record go / no-go in DECISIONS.md
       (ADR-002 Conditional Pass Accepted; anchor `9eeb912`)
-      — docs: `763cb02`
+      — docs: `797e4b8`
 
 Notes: `docs/poc/POC-03-notes.md`. Known debt → Production Background Audio
 (WeChat/VoIP lock-home resume; iCloud interrupt; post-POC-09 physical-clip
