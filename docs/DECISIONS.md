@@ -40,10 +40,8 @@
 
 ## ADR-001: POC-04 Flutter media feed architecture gate — Conditional Pass
 
-- Status: Pre-implementation
-  <!-- Flip to Accepted (YYYY-MM-DD) only when Commit/PR anchor exists;
-       Accepted date = git log -1 --format=%cs <anchor-sha>. -->
-- Commit/PR anchor: (pending — fill with docs/decision commit sha when Accepted)
+- Status: Accepted (2026-07-28)
+- Commit/PR anchor: 2e249e0
 - Plain summary (owner reads this):
   We keep building WakeTok’s feed in Flutter with native iOS video (Platform View),
   after measuring that everyday scrolling feels OK; we tightened the written hitch
