@@ -38,4 +38,4 @@ Docs commit sha: 4a6a9fe
       — docs: `2e249e0` (content), `573614b` (Accepted + anchor);
         on `main` cherry-picks: `3ff7f58`, `9ea6424`
 
-Docs close-out (STATE + PHASE_HISTORY): pending this commit.
+Docs close-out (STATE + PHASE_HISTORY): `33267c1`
