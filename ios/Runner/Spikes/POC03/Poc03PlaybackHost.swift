@@ -60,4 +60,24 @@ final class Poc03PlaybackHost: Poc03PlaybackApi {
   func getGapSamplesMs() throws -> [Double] {
     Poc03PlaybackEngine.shared.getGapSamplesMs()
   }
+
+  func getPendingCheckpoint() throws -> Poc03SessionCheckpointDto? {
+    Poc03PlaybackEngine.shared.getPendingCheckpoint()
+  }
+
+  func restoreFromCheckpoint() throws {
+    do {
+      try Poc03PlaybackEngine.shared.restoreFromCheckpoint()
+    } catch {
+      throw Poc03PigeonError(
+        code: "restoreFailed",
+        message: error.localizedDescription,
+        details: nil
+      )
+    }
+  }
+
+  func dismissCheckpoint() throws {
+    Poc03PlaybackEngine.shared.dismissCheckpoint()
+  }
 }

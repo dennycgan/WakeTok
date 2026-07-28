@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:waketok/spikes/poc_03/generated/poc_03_playback.g.dart';
+import 'package:waketok/spikes/poc_03/poc_03_checkpoint.dart';
 import 'package:waketok/spikes/poc_03/poc_03_gap.dart';
 
 /// POC-03 debug UI. Popping this route must NOT stop native playback (3.1).
@@ -15,15 +16,17 @@ class Poc03SpikePage extends StatefulWidget {
 class _Poc03SpikePageState extends State<Poc03SpikePage> {
   final Poc03PlaybackApi _api = Poc03PlaybackApi();
   Poc03PlaybackStateDto? _state;
+  Poc03SessionCheckpointDto? _pendingCheckpoint;
   String? _error;
   String? _gapSummary;
   List<String> _clipIds = const [];
   Timer? _poll;
+  bool _restorePromptShown = false;
 
   @override
   void initState() {
     super.initState();
-    _refresh();
+    _bootstrap();
     _poll = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (!mounted) return;
       _refresh(silent: true);
@@ -37,16 +40,77 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
     super.dispose();
   }
 
+  Future<void> _bootstrap() async {
+    await _refresh();
+    await _maybeOfferRestore();
+  }
+
+  Future<void> _maybeOfferRestore() async {
+    if (_restorePromptShown || !mounted) return;
+    try {
+      final pending = await _api.getPendingCheckpoint();
+      if (pending == null) return;
+      if (!shouldOfferRestore(
+        engineConfigured: false,
+        pendingClipId: pending.clipId,
+      )) {
+        return;
+      }
+      _restorePromptShown = true;
+      if (!mounted) return;
+      setState(() => _pendingCheckpoint = pending);
+      final summary = formatCheckpointSummary(
+        clipId: pending.clipId,
+        positionMs: pending.positionMs,
+        wasPlaying: pending.wasPlaying,
+      );
+      final restore = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Restore?'),
+          content: Text(
+            'SessionCheckpoint found.\n$summary\n\n'
+            'P5=A: no auto-play until you confirm.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Dismiss'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Restore'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (restore == true) {
+        await _run(() => _api.restoreFromCheckpoint());
+      } else {
+        await _run(() => _api.dismissCheckpoint());
+      }
+      if (!mounted) return;
+      setState(() => _pendingCheckpoint = null);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = e.toString());
+    }
+  }
+
   Future<void> _refresh({bool silent = false}) async {
     try {
       final state = await _api.getPlaybackState();
       final ids = await _api.listBundleClipIds();
       final gaps = await _api.getGapSamplesMs();
+      final pending = await _api.getPendingCheckpoint();
       if (!mounted) return;
       setState(() {
         _state = state;
         _clipIds = ids;
         _gapSummary = formatGapSummary(gaps);
+        _pendingCheckpoint = pending;
         if (!silent) _error = null;
       });
     } catch (e) {
@@ -87,6 +151,14 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
         hud.write('\nremote=${s.lastRemoteCommand}');
       }
     }
+    final ckpt = _pendingCheckpoint;
+    hud.write(
+      '\n${formatCheckpointSummary(
+        clipId: ckpt?.clipId,
+        positionMs: ckpt?.positionMs,
+        wasPlaying: ckpt?.wasPlaying,
+      )}',
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -99,7 +171,8 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
             '3.1: pop route — audio continues.\n'
             '3.2: lock ≥5 advances; gap p90 < 150 ms (P3=B).\n'
             '3.3: interruption; P4=A shouldResume → auto play.\n'
-            '3.4: Control Center + AirPods play/pause/next.',
+            '3.4: Control Center + AirPods play/pause/next.\n'
+            '3.5: kill → silent; cold start Restore? (P5=A).',
           ),
           const SizedBox(height: 12),
           Text(hud.toString()),
@@ -157,12 +230,11 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Manual 3.4 (Now Playing / AirPods):\n'
-            '1) Configure → Play (audio audible)\n'
-            '2) Lock or open Control Center — title = clip_id, artist WakeTok POC-03\n'
-            '3) Pause / Play from Control Center or AirPods\n'
-            '4) Next from Control Center or AirPods — advances clip; HUD remote=\n'
-            '5) Previous restarts current clip (spike)',
+            'Manual 3.5 (SessionCheckpoint, P5=A):\n'
+            '1) Configure → Play (let it advance a few seconds)\n'
+            '2) Force-quit WakeTok (swipe up) — audio must stop\n'
+            '3) Relaunch → open POC-03 — expect Restore? dialog (no auto-play)\n'
+            '4) Restore → resumes near checkpoint; Dismiss → stays silent',
             style: TextStyle(color: Colors.black54),
           ),
         ],

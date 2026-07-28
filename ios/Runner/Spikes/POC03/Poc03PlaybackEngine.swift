@@ -11,8 +11,11 @@ import UIKit
 ///      keep the process awake briefly with beginBackgroundTask and poll resume
 ///      so lock-screen / home-screen can recover without opening the Flutter UI.
 /// 3.4: MPNowPlayingInfoCenter + MPRemoteCommandCenter (Control Center / AirPods).
+/// 3.5: UserDefaults SessionCheckpoint; cold start Restore? (P5=A, no auto-play).
 final class Poc03PlaybackEngine {
   static let shared = Poc03PlaybackEngine()
+
+  private static let checkpointDefaultsKey = "poc03.sessionCheckpoint.v1"
 
   private let queuePlayer = AVQueuePlayer()
   private var clipIds: [String] = []
@@ -24,6 +27,7 @@ final class Poc03PlaybackEngine {
   private var endObserver: NSObjectProtocol?
   private var interruptionObserver: NSObjectProtocol?
   private var foregroundObserver: NSObjectProtocol?
+  private var resignActiveObserver: NSObjectProtocol?
   private var itemObservation: NSKeyValueObservation?
   private var rateObservation: NSKeyValueObservation?
   private var nowPlayingTimer: Timer?
@@ -56,6 +60,7 @@ final class Poc03PlaybackEngine {
       [weak self] _, _ in
       self?.syncNowPlayingInfo()
       self?.syncNowPlayingTimer()
+      self?.persistCheckpointIfNeeded()
     }
     interruptionObserver = NotificationCenter.default.addObserver(
       forName: AVAudioSession.interruptionNotification,
@@ -71,6 +76,13 @@ final class Poc03PlaybackEngine {
     ) { [weak self] _ in
       self?.attemptResume(label: "foreground")
     }
+    resignActiveObserver = NotificationCenter.default.addObserver(
+      forName: UIApplication.willResignActiveNotification,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.persistCheckpointIfNeeded()
+    }
     configureRemoteCommandsIfNeeded()
   }
 
@@ -84,6 +96,9 @@ final class Poc03PlaybackEngine {
     if let foregroundObserver {
       NotificationCenter.default.removeObserver(foregroundObserver)
     }
+    if let resignActiveObserver {
+      NotificationCenter.default.removeObserver(resignActiveObserver)
+    }
     itemObservation?.invalidate()
     rateObservation?.invalidate()
     stopResumePolling()
@@ -94,13 +109,14 @@ final class Poc03PlaybackEngine {
     ["clip_a", "clip_b", "clip_c"]
   }
 
-  func configureBundleQueue() throws {
+  func configureBundleQueue(startingAt startIndex: Int = 0) throws {
     try activateSession()
     queuePlayer.pause()
     queuePlayer.removeAllItems()
     itemToClipId.removeAll()
     clipIds = listBundleClipIds()
-    nextInsertIndex = 0
+    let count = max(clipIds.count, 1)
+    nextInsertIndex = ((startIndex % count) + count) % count
     gapT0 = nil
     try enqueueNextClip()
     try enqueueNextClip()
@@ -116,11 +132,13 @@ final class Poc03PlaybackEngine {
     ensurePrequeue()
     queuePlayer.play()
     syncNowPlayingInfo()
+    persistCheckpointIfNeeded()
   }
 
   func pause() {
     queuePlayer.pause()
     syncNowPlayingInfo()
+    persistCheckpointIfNeeded()
   }
 
   func stop() {
@@ -135,6 +153,46 @@ final class Poc03PlaybackEngine {
     pendingShouldResume = false
     stopResumePolling()
     clearNowPlayingInfo()
+    clearPersistedCheckpoint()
+  }
+
+  /// Cold-start only: returns disk checkpoint when engine is not yet configured.
+  func getPendingCheckpoint() -> Poc03SessionCheckpointDto? {
+    guard !configured else { return nil }
+    return readPersistedCheckpoint()
+  }
+
+  func restoreFromCheckpoint() throws {
+    guard let cp = readPersistedCheckpoint() else {
+      throw NSError(
+        domain: "Poc03Playback",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: "No SessionCheckpoint to restore"]
+      )
+    }
+    let start = clipIds.isEmpty
+      ? listBundleClipIds().firstIndex(of: cp.clipId) ?? Int(cp.currentIndex)
+      : clipIds.firstIndex(of: cp.clipId) ?? Int(cp.currentIndex)
+    try configureBundleQueue(startingAt: start)
+    let seekSeconds = Double(cp.positionMs) / 1000.0
+    let seekTime = CMTime(seconds: max(0, seekSeconds), preferredTimescale: 600)
+    guard let item = queuePlayer.currentItem else {
+      try play()
+      return
+    }
+    item.seek(to: seekTime, toleranceBefore: .zero, toleranceAfter: .zero) {
+      [weak self] finished in
+      guard finished else { return }
+      do {
+        try self?.play()
+      } catch {
+        // Surface via next getPlaybackState / Flutter call if needed.
+      }
+    }
+  }
+
+  func dismissCheckpoint() {
+    clearPersistedCheckpoint()
   }
 
   func clearGapSamples() {
@@ -301,9 +359,55 @@ final class Poc03PlaybackEngine {
     guard nowPlayingTimer == nil else { return }
     let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
       self?.syncNowPlayingInfo()
+      self?.persistCheckpointIfNeeded()
     }
     RunLoop.main.add(timer, forMode: .common)
     nowPlayingTimer = timer
+  }
+
+  // MARK: - 3.5 SessionCheckpoint
+
+  private func persistCheckpointIfNeeded() {
+    guard configured else { return }
+    let state = playbackState()
+    guard !state.currentClipId.isEmpty else { return }
+    let payload: [String: Any] = [
+      "clipId": state.currentClipId,
+      "positionMs": state.positionMs,
+      "currentIndex": state.currentIndex,
+      "wasPlaying": state.isPlaying,
+      "savedAtEpochMs": Int(Date().timeIntervalSince1970 * 1000.0),
+    ]
+    UserDefaults.standard.set(payload, forKey: Self.checkpointDefaultsKey)
+  }
+
+  private func readPersistedCheckpoint() -> Poc03SessionCheckpointDto? {
+    guard let payload = UserDefaults.standard.dictionary(
+      forKey: Self.checkpointDefaultsKey
+    ),
+      let clipId = payload["clipId"] as? String,
+      !clipId.isEmpty
+    else {
+      return nil
+    }
+    let positionMs = (payload["positionMs"] as? Int)
+      ?? Int(payload["positionMs"] as? Int64 ?? 0)
+    let currentIndex = (payload["currentIndex"] as? Int)
+      ?? Int(payload["currentIndex"] as? Int64 ?? 0)
+    let wasPlaying = payload["wasPlaying"] as? Bool ?? false
+    let savedAt = (payload["savedAtEpochMs"] as? Int)
+      ?? Int(payload["savedAtEpochMs"] as? Int64 ?? 0)
+    return Poc03SessionCheckpointDto(
+      clipId: clipId,
+      positionMs: Int64(max(0, positionMs)),
+      currentIndex: Int64(max(0, currentIndex)),
+      wasPlaying: wasPlaying,
+      savedAtEpochMs: Int64(max(0, savedAt))
+    )
+  }
+
+  private func clearPersistedCheckpoint() {
+    UserDefaults.standard.removeObject(forKey: Self.checkpointDefaultsKey)
   }
 
   private func stopNowPlayingTimer() {

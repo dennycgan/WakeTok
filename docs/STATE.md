@@ -103,7 +103,7 @@ Active capability: POC-03 Lock-screen continuous playback gate
 - [x] 3.4 Verify Control Center metadata (Now Playing info + transport controls)
       and AirPods play/pause/next
 
-- [ ] 3.5 Verify process termination stops playback;
+- [x] 3.5 Verify process termination stops playback;
       next foreground launch can attempt SessionCheckpoint recovery
 
 - [ ] 3.6 Record go / no-go in DECISIONS.md
@@ -118,8 +118,8 @@ Active capability: POC-03 Lock-screen continuous playback gate
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): validate lock-screen continuous playback / background audio gate (POC-03) before production domain/data/feature implementation
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 3.1–3.4 (Now Playing / AirPods PASS)
-- Next step: phase 3.5 process kill + SessionCheckpoint restore prompt (await owner go)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 3.1–3.5 (SessionCheckpoint PASS)
+- Next step: phase 3.6 POC-03 go/no-go ADR (draft in chat; owner approves before append)
 - Related decisions: ADR-001 (POC-04 Flutter+PV Conditional Pass; Severe Hang = production debt)
 
 ## Contract pointers (don't memorize, go read the source)

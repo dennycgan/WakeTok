@@ -46,6 +46,23 @@ class Poc03PlaybackStateDto {
   String lastRemoteCommand;
 }
 
+/// Spike SessionCheckpoint for cold-start Restore? (P5=A / phase 3.5).
+class Poc03SessionCheckpointDto {
+  Poc03SessionCheckpointDto({
+    required this.clipId,
+    required this.positionMs,
+    required this.currentIndex,
+    required this.wasPlaying,
+    required this.savedAtEpochMs,
+  });
+
+  String clipId;
+  int positionMs;
+  int currentIndex;
+  bool wasPlaying;
+  int savedAtEpochMs;
+}
+
 @HostApi()
 abstract class Poc03PlaybackApi {
   /// Load bundled clip fixtures into AVQueuePlayer (P1=A). Does not start playback.
@@ -69,4 +86,13 @@ abstract class Poc03PlaybackApi {
 
   /// Gap ms from AVPlayerItem end → next currentItem (P3=B).
   List<double> getGapSamplesMs();
+
+  /// Pending disk checkpoint after process kill (null if none / already configured).
+  Poc03SessionCheckpointDto? getPendingCheckpoint();
+
+  /// P5=A: user confirmed Restore — seek + play (does not auto-run on launch).
+  void restoreFromCheckpoint();
+
+  /// User dismissed Restore? — clear disk checkpoint without playing.
+  void dismissCheckpoint();
 }

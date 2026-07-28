@@ -117,6 +117,29 @@ open app → `auto play (poll 24)`; continues from pause point.
 Manual 3.4: **PASS** — owner 2026-07-28.
 Screenshot: `playing=true · #1/3 · clip_b · …` + `remote=next`; gap n=18 still PASS.
 N1/N2 owner-confirmed (CC metadata + pause/play); N3 evidenced by HUD `remote=next` on clip_b.
+
+## Phase 3.5 checklist
+
+Locks: P5=A (cold start offers Restore?; no auto-play until confirm).
+
+- [x] Persist SessionCheckpoint (clipId / positionMs / index / wasPlaying) to UserDefaults
+- [x] Flush on play/pause/item/rate + willResignActive; clear on Stop / Dismiss
+- [x] `getPendingCheckpoint` only when engine not configured (post-kill cold)
+- [x] Spike Restore? dialog; Restore seeks + play; Dismiss clears
+- [x] Dart helpers + unit tests (`poc_03_checkpoint.dart`)
+- [x] `flutter analyze` + `flutter test` + simulator build
+- [x] Manual: kill → silent; cold Restore? (K1–K3)
+
+### Manual (3.5)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| K1 | Play → force-quit app | Audio stops (no zombie playback) |
+| K2 | Relaunch → open POC-03 | Restore? dialog; **no** auto-play |
+| K3 | Restore / Dismiss | Restore resumes near ckpt; Dismiss stays silent |
+
+Manual 3.5: **PASS** — owner 2026-07-28 (K1–K3).
+Force-quit silent; cold relaunch Restore? without auto-play; Restore/Dismiss OK.
 ## Acceptance map (later phases)
 
 | Phase | Auto | Manual gate |
@@ -124,7 +147,7 @@ N1/N2 owner-confirmed (CC metadata + pause/play); N3 evidenced by HUD `remote=ne
 | 3.2 | gap probe unit + HUD | L1–L3 (+ G1 sentry) |
 | 3.3 | interruption + bg poll | I1–I3 (Q1=B); lock/home debt |
 | 3.4 | Now Playing + remote cmds | N1–N3 |
-| 3.5 | checkpoint DTO tests | kill → silent; cold Restore? (P5) |
+| 3.5 | checkpoint helper tests | K1–K3 (P5=A) |
 | 3.6 | — | ADR go/no-go |
 
 ## Build / measure log
@@ -133,3 +156,4 @@ N1/N2 owner-confirmed (CC metadata + pause/play); N3 evidenced by HUD `remote=ne
 - 3.2: **PASS** — lock→unlock; gap n=24 p50=4ms p90=4ms; L1–L3 owner OK
 - 3.3: **PASS (Q1=B)** — auto resume via poll/foreground; WeChat lock/home = debt
 - 3.4: **PASS** — owner 2026-07-28; HUD `remote=next` + clip_b; N1/N2 owner OK
+- 3.5: **PASS** — owner 2026-07-28; K1–K3 (P5=A Restore?)

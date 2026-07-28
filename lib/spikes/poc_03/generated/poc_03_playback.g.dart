@@ -186,6 +186,72 @@ class Poc03PlaybackStateDto {
   }
 }
 
+/// Spike SessionCheckpoint for cold-start Restore? (P5=A / phase 3.5).
+class Poc03SessionCheckpointDto {
+  Poc03SessionCheckpointDto({
+    required this.clipId,
+    required this.positionMs,
+    required this.currentIndex,
+    required this.wasPlaying,
+    required this.savedAtEpochMs,
+  });
+
+  String clipId;
+
+  int positionMs;
+
+  int currentIndex;
+
+  bool wasPlaying;
+
+  int savedAtEpochMs;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      clipId,
+      positionMs,
+      currentIndex,
+      wasPlaying,
+      savedAtEpochMs,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static Poc03SessionCheckpointDto decode(Object result) {
+    result as List<Object?>;
+    return Poc03SessionCheckpointDto(
+      clipId: result[0]! as String,
+      positionMs: result[1]! as int,
+      currentIndex: result[2]! as int,
+      wasPlaying: result[3]! as bool,
+      savedAtEpochMs: result[4]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! Poc03SessionCheckpointDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(clipId, other.clipId) && _deepEquals(positionMs, other.positionMs) && _deepEquals(currentIndex, other.currentIndex) && _deepEquals(wasPlaying, other.wasPlaying) && _deepEquals(savedAtEpochMs, other.savedAtEpochMs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'Poc03SessionCheckpointDto(clipId: $clipId, positionMs: $positionMs, currentIndex: $currentIndex, wasPlaying: $wasPlaying, savedAtEpochMs: $savedAtEpochMs)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -197,6 +263,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is Poc03PlaybackStateDto) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
+    }    else if (value is Poc03SessionCheckpointDto) {
+      buffer.putUint8(130);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -207,6 +276,8 @@ class _PigeonCodec extends StandardMessageCodec {
     switch (type) {
       case 129:
         return Poc03PlaybackStateDto.decode(readValue(buffer)!);
+      case 130:
+        return Poc03SessionCheckpointDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -377,5 +448,63 @@ class Poc03PlaybackApi {
     )
     ;
     return (pigeonVar_replyValue! as List<Object?>).cast<double>();
+  }
+
+  /// Pending disk checkpoint after process kill (null if none / already configured).
+  Future<Poc03SessionCheckpointDto?> getPendingCheckpoint() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc03PlaybackApi.getPendingCheckpoint$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+    return pigeonVar_replyValue as Poc03SessionCheckpointDto?;
+  }
+
+  /// P5=A: user confirmed Restore — seek + play (does not auto-run on launch).
+  Future<void> restoreFromCheckpoint() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc03PlaybackApi.restoreFromCheckpoint$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// User dismissed Restore? — clear disk checkpoint without playing.
+  Future<void> dismissCheckpoint() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc03PlaybackApi.dismissCheckpoint$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 }

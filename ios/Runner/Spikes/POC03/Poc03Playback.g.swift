@@ -263,11 +263,70 @@ struct Poc03PlaybackStateDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Spike SessionCheckpoint for cold-start Restore? (P5=A / phase 3.5).
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct Poc03SessionCheckpointDto: Hashable, CustomStringConvertible {
+  var clipId: String
+  var positionMs: Int64
+  var currentIndex: Int64
+  var wasPlaying: Bool
+  var savedAtEpochMs: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> Poc03SessionCheckpointDto? {
+    let clipId = pigeonVar_list[0] as! String
+    let positionMs = pigeonVar_list[1] as! Int64
+    let currentIndex = pigeonVar_list[2] as! Int64
+    let wasPlaying = pigeonVar_list[3] as! Bool
+    let savedAtEpochMs = pigeonVar_list[4] as! Int64
+
+    return Poc03SessionCheckpointDto(
+      clipId: clipId,
+      positionMs: positionMs,
+      currentIndex: currentIndex,
+      wasPlaying: wasPlaying,
+      savedAtEpochMs: savedAtEpochMs
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      clipId,
+      positionMs,
+      currentIndex,
+      wasPlaying,
+      savedAtEpochMs,
+    ]
+  }
+  static func == (lhs: Poc03SessionCheckpointDto, rhs: Poc03SessionCheckpointDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return Poc03PlaybackPigeonInternal.deepEquals(lhs.clipId, rhs.clipId) && Poc03PlaybackPigeonInternal.deepEquals(lhs.positionMs, rhs.positionMs) && Poc03PlaybackPigeonInternal.deepEquals(lhs.currentIndex, rhs.currentIndex) && Poc03PlaybackPigeonInternal.deepEquals(lhs.wasPlaying, rhs.wasPlaying) && Poc03PlaybackPigeonInternal.deepEquals(lhs.savedAtEpochMs, rhs.savedAtEpochMs)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("Poc03SessionCheckpointDto")
+    Poc03PlaybackPigeonInternal.deepHash(value: clipId, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: positionMs, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: currentIndex, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: wasPlaying, hasher: &hasher)
+    Poc03PlaybackPigeonInternal.deepHash(value: savedAtEpochMs, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "Poc03SessionCheckpointDto(clipId: \(String(describing: clipId)), positionMs: \(String(describing: positionMs)), currentIndex: \(String(describing: currentIndex)), wasPlaying: \(String(describing: wasPlaying)), savedAtEpochMs: \(String(describing: savedAtEpochMs)))"
+  }
+}
+
 private class Poc03PlaybackPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
     case 129:
       return Poc03PlaybackStateDto.fromList(self.readValue() as! [Any?])
+    case 130:
+      return Poc03SessionCheckpointDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -278,6 +337,9 @@ private class Poc03PlaybackPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
     if let value = value as? Poc03PlaybackStateDto {
       super.writeByte(129)
+      super.writeValue(value.toList())
+    } else if let value = value as? Poc03SessionCheckpointDto {
+      super.writeByte(130)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -315,6 +377,12 @@ protocol Poc03PlaybackApi {
   func clearGapSamples() throws
   /// Gap ms from AVPlayerItem end → next currentItem (P3=B).
   func getGapSamplesMs() throws -> [Double]
+  /// Pending disk checkpoint after process kill (null if none / already configured).
+  func getPendingCheckpoint() throws -> Poc03SessionCheckpointDto?
+  /// P5=A: user confirmed Restore — seek + play (does not auto-run on launch).
+  func restoreFromCheckpoint() throws
+  /// User dismissed Restore? — clear disk checkpoint without playing.
+  func dismissCheckpoint() throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -432,6 +500,48 @@ class Poc03PlaybackApiSetup {
       }
     } else {
       getGapSamplesMsChannel.setMessageHandler(nil)
+    }
+    /// Pending disk checkpoint after process kill (null if none / already configured).
+    let getPendingCheckpointChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc03PlaybackApi.getPendingCheckpoint\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getPendingCheckpointChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getPendingCheckpoint()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getPendingCheckpointChannel.setMessageHandler(nil)
+    }
+    /// P5=A: user confirmed Restore — seek + play (does not auto-run on launch).
+    let restoreFromCheckpointChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc03PlaybackApi.restoreFromCheckpoint\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      restoreFromCheckpointChannel.setMessageHandler { _, reply in
+        do {
+          try api.restoreFromCheckpoint()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      restoreFromCheckpointChannel.setMessageHandler(nil)
+    }
+    /// User dismissed Restore? — clear disk checkpoint without playing.
+    let dismissCheckpointChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc03PlaybackApi.dismissCheckpoint\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      dismissCheckpointChannel.setMessageHandler { _, reply in
+        do {
+          try api.dismissCheckpoint()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      dismissCheckpointChannel.setMessageHandler(nil)
     }
   }
 }
