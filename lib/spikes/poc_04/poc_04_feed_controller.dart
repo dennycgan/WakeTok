@@ -102,6 +102,10 @@ class Poc04FeedController {
   final List<String> _attachActiveLog = [];
   final List<String> _attachWarmLog = [];
 
+  /// Serializes page changes so Probe + PageView cannot interleave resolves.
+  Future<void> _pageChain = Future<void>.value();
+  int _pageEpoch = 0;
+
   /// Test/observability: released temp paths in order.
   List<String> get releaseLog => List.unmodifiable(_releaseLog);
 
@@ -124,8 +128,15 @@ class Poc04FeedController {
     return null;
   }
 
-  Future<void> onPageChanged(int newIndex) async {
+  Future<void> onPageChanged(int newIndex) {
+    final run = _pageChain.then((_) => _onPageChangedImpl(newIndex));
+    _pageChain = run.catchError((_) {});
+    return run;
+  }
+
+  Future<void> _onPageChangedImpl(int newIndex) async {
     if (items.isEmpty) return;
+    final epoch = ++_pageEpoch;
     index = newIndex.clamp(0, items.length - 1);
 
     final keepImageIds = <String>{};
@@ -150,6 +161,7 @@ class Poc04FeedController {
         _releaseLog.add(path);
       }
     }
+    if (epoch != _pageEpoch) return;
 
     final current = items[index];
     final activeVideo = activeVideoId;
@@ -161,7 +173,6 @@ class Poc04FeedController {
       _attachActiveLog.add(activeVideo);
       await _bridge.attachActiveVideo(activeVideo);
       await _bridge.playActive();
-      // Release any video that is neither active nor warm.
       for (final item in items) {
         if (item.mediaType != Poc04MediaType.video) continue;
         final id = item.assetId;
@@ -170,11 +181,13 @@ class Poc04FeedController {
         }
       }
     }
+    if (epoch != _pageEpoch) return;
 
     if (warmVideo != null && warmVideo != activeVideo) {
       _attachWarmLog.add(warmVideo);
       await _bridge.attachWarmingVideo(warmVideo);
     }
+    if (epoch != _pageEpoch) return;
 
     if (current.mediaType == Poc04MediaType.image) {
       if (!imagePaths.containsKey(current.assetId)) {
@@ -182,11 +195,15 @@ class Poc04FeedController {
           current.assetId,
           maxLongEdge,
         );
+        if (epoch != _pageEpoch) {
+          await _bridge.releaseImageTempFile(path);
+          _releaseLog.add(path);
+          return;
+        }
         imagePaths[current.assetId] = path;
       }
     }
 
-    // Prefetch neighbor ids (images + videos) for CachingImageManager / readiness.
     final neighborIds = <String>[];
     for (final offset in [1, 2]) {
       final i = index + offset;
@@ -197,14 +214,18 @@ class Poc04FeedController {
     if (neighborIds.isNotEmpty) {
       await _bridge.prefetchNeighbors(neighborIds);
     }
+    if (epoch != _pageEpoch) return;
 
-    // Soft-trim oldest temps if over soft cap.
     while (imagePaths.length > tempSoftCap) {
-      final oldest = imagePaths.keys.first;
-      if (keepImageIds.contains(oldest) && imagePaths.length <= keepImageIds.length) {
+      final dropId = imagePaths.keys.firstWhere(
+        (id) => !keepImageIds.contains(id),
+        orElse: () => imagePaths.keys.first,
+      );
+      if (keepImageIds.contains(dropId) &&
+          imagePaths.length <= keepImageIds.length) {
         break;
       }
-      final path = imagePaths.remove(oldest);
+      final path = imagePaths.remove(dropId);
       if (path != null) {
         await _bridge.releaseImageTempFile(path);
         _releaseLog.add(path);

@@ -6,7 +6,9 @@ import UIKit
 /// POC-04 spike host: image temp export + AVPlayer pool bridge.
 final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
   private let imageManager = PHCachingImageManager()
+  /// path → tracked for diagnostics; also keyed by assetId to avoid orphans.
   private var tempPaths = Set<String>()
+  private var tempPathByAssetId: [String: String] = [:]
   private let tempLock = NSLock()
   private let tempDirectory: URL = {
     let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
@@ -113,6 +115,12 @@ final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
         try data.write(to: url, options: .atomic)
         let path = url.path
         self.tempLock.lock()
+        // Replace prior file for this assetId so re-resolve cannot orphan temps.
+        if let old = self.tempPathByAssetId[assetId] {
+          self.tempPaths.remove(old)
+          try? FileManager.default.removeItem(atPath: old)
+        }
+        self.tempPathByAssetId[assetId] = path
         self.tempPaths.insert(path)
         self.tempLock.unlock()
         completion(.success(path))
@@ -133,6 +141,10 @@ final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
   func releaseImageTempFile(path: String) throws {
     tempLock.lock()
     tempPaths.remove(path)
+    let keys = tempPathByAssetId.filter { $0.value == path }.map(\.key)
+    for key in keys {
+      tempPathByAssetId.removeValue(forKey: key)
+    }
     tempLock.unlock()
     try? FileManager.default.removeItem(atPath: path)
   }
@@ -141,6 +153,7 @@ final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
     tempLock.lock()
     let paths = tempPaths
     tempPaths.removeAll()
+    tempPathByAssetId.removeAll()
     tempLock.unlock()
     for path in paths {
       try? FileManager.default.removeItem(atPath: path)

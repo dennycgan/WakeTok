@@ -7,8 +7,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:waketok/spikes/poc_04/generated/poc_04_photo_library.g.dart';
 import 'package:waketok/spikes/poc_04/poc_04_feed_controller.dart';
+import 'package:waketok/spikes/poc_04/poc_04_probe.dart';
 
-/// POC-04 Phase 2.3: mixed vertical feed (Fit only, pool 1+1).
+/// POC-04 Phase 2.3–2.4: mixed vertical feed + bounded-resource probes.
 class Poc04FeedPage extends StatefulWidget {
   const Poc04FeedPage({super.key, required this.assets});
 
@@ -27,6 +28,8 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
   String? _probeResult;
   bool _busyProbe = false;
   String? _pageError;
+  /// When true, PageView must not also drive the controller (Probe owns it).
+  bool _probeOwnsPaging = false;
 
   @override
   void initState() {
@@ -47,6 +50,7 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
   }
 
   Future<void> _applyPage(int index) async {
+    if (_probeOwnsPaging) return;
     try {
       await _controller.onPageChanged(index);
       final d = await _bridge.getPoolDiagnostics();
@@ -64,43 +68,68 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
     }
   }
 
-  Future<void> _runLeakProbe({int transitions = 30}) async {
+  Future<void> _runLeakProbe({required int transitions}) async {
     if (widget.assets.length < 2) {
       setState(() => _probeResult = 'Need ≥2 assets for probe');
       return;
     }
     setState(() {
       _busyProbe = true;
-      _probeResult = null;
+      _probeOwnsPaging = true;
+      _probeResult = 'Running n=$transitions…';
     });
     try {
+      // Drop any leftover temps from prior manual scrolling before measuring.
+      await _bridge.releaseAllImageTempFiles();
+      _controller.imagePaths.clear();
+
+      final samples = <Poc04ProbeSample>[];
+      await _controller.onPageChanged(_controller.index);
       final before = await _bridge.getPoolDiagnostics();
+      samples.add(Poc04ProbeSample.fromDiagnostics(0, before));
+
       for (var step = 0; step < transitions; step++) {
         final next = (step + 1) % widget.assets.length;
-        await _pageController.animateToPage(
-          next,
-          duration: const Duration(milliseconds: 80),
-          curve: Curves.linear,
-        );
-        await _applyPage(next);
-        await Future<void>.delayed(const Duration(milliseconds: 40));
+        // jumpToPage avoids animation intermediate callbacks; probe owns paging.
+        _pageController.jumpToPage(next);
+        await _controller.onPageChanged(next);
+        final d = await _bridge.getPoolDiagnostics();
+        samples.add(Poc04ProbeSample.fromDiagnostics(step + 1, d));
+        if (!mounted) return;
+        if (step % 10 == 9 || step == transitions - 1) {
+          setState(() {
+            _diagnostics = d;
+          });
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 20));
       }
-      final after = await _bridge.getPoolDiagnostics();
-      final okPool = Poc04FeedController.poolWithinCap(after) &&
-          Poc04FeedController.poolWithinCap(before);
-      final okTemp = after.tempFileCount <= kPoc04TempFileSoftCap + 2;
+
+      final evaluation = evaluatePoc04Probe(
+        samples: samples,
+        transitions: transitions,
+      );
+      if (!mounted) return;
+      final last = samples.last;
       setState(() {
-        _diagnostics = after;
-        _probeResult = okPool && okTemp
-            ? 'PASS pool=${after.activeCount}+${after.warmingCount} '
-                'tmp=${after.tempFileCount} (n=$transitions)'
-            : 'FAIL pool=${after.activeCount}+${after.warmingCount} '
-                'tmp=${after.tempFileCount} (n=$transitions)';
+        _diagnostics = Poc04PoolDiagnostics(
+          activeCount: last.activeCount,
+          warmingCount: last.warmingCount,
+          tempFileCount: last.tempFileCount,
+        );
+        _probeResult = evaluation.summary;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _probeResult = 'Probe error: $e');
     } finally {
-      if (mounted) setState(() => _busyProbe = false);
+      if (mounted) {
+        setState(() {
+          _busyProbe = false;
+          _probeOwnsPaging = false;
+        });
+      } else {
+        _probeOwnsPaging = false;
+      }
     }
   }
 
@@ -127,8 +156,13 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
         title: const Text('POC-04 feed'),
         actions: [
           TextButton(
-            onPressed: _busyProbe ? null : () => _runLeakProbe(),
-            child: const Text('Leak probe'),
+            onPressed: _busyProbe ? null : () => _runLeakProbe(transitions: 30),
+            child: const Text('Probe 30'),
+          ),
+          TextButton(
+            onPressed:
+                _busyProbe ? null : () => _runLeakProbe(transitions: 100),
+            child: const Text('Probe 100'),
           ),
         ],
       ),
@@ -192,8 +226,10 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
                       style: TextStyle(
                         color: _probeResult!.startsWith('PASS')
                             ? Colors.lightGreenAccent
-                            : Colors.orangeAccent,
-                        fontSize: 12,
+                            : _probeResult!.startsWith('Running')
+                                ? Colors.white70
+                                : Colors.orangeAccent,
+                        fontSize: 11,
                       ),
                     ),
                   ),

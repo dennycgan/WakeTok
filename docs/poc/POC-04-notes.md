@@ -49,31 +49,76 @@ Manual (only after A1–A4 green):
 
 Owner 验收: 2026-07-28 (device; muted video OK).
 
-Pigeon: library + media bridge share one schema file (avoids duplicate Swift `PigeonError`):
+## Phase 2.4 checklist
 
-```bash
-dart run pigeon --input pigeon/spikes/poc_04/poc_04_photo_library.dart
-```
+Locks: G1=A (pool+tmp probe + Xcode Memory visual); G2=B (Probe 30 + Probe 100).
+Gate device: **iPhone 13** (other devices smoke only).
 
-## Devices
+### Boundedness semantics (for 2.7 ADR)
+
+Under **E1=A** (UiKitView + AVPlayerLayer):
+
+- There is **no** Flutter `TextureRegistry` texture id in this spike.
+- “Textures bounded” for POC-04 **means**: Platform Views do not accumulate
+  unboundedly across sustained scrolling **and** the AVPlayer pool stays ≤1 active
+  + ≤1 warming.
+- Automated probe asserts **pool ≤1+1** and **temp-file count bounded** only.
+  It does **not** count live `UiKitView` instances (PageView.builder may keep a
+  small neighbor cache). Non-accumulation of Platform Views is evidenced by
+  builder dispose behavior plus **Xcode Memory** not climbing monotonically
+  after Probe 100 (owner visual check).
+
+Known issue (fixed in working tree): Probe 100 first run FAIL with
+`poolMax=1+1 tmpMax=58` — duplicate `onPageChanged` (PageView + probe) orphaned
+native temp files. Fix: probe owns paging; controller serializes+epoch; host
+replaces temp per assetId.
+
+### Automation (local)
+
+- [x] `flutter analyze` + `flutter test` (incl. probe evaluator unit tests)
+- [x] `flutter build ios --simulator --debug --no-codesign`
+
+### Manual (after automation green)
+
+Roadmap gate device remains **iPhone 13**; owner accepted 2.4 on **iPhone 17 smoke** (below). Re-run Probe 100 on iPhone 13 before treating 2.4 numbers as the go/no-go floor if 2.5 hitch/first-frame require it.
+
+- [x] D1 Local mixed library; List → Open feed
+- [x] D2 **Probe 100** → on-screen `PASS … (n=100)`
+- [x] D3 Note `poolMax` / `tmpFirst10` / `tmpLast10` from summary (no monotonic tmp climb)
+- [ ] D4 Xcode Memory (Debug): before vs after Probe 100 — no sustained staircase growth
+- [x] D5 Manual scroll ~20 more — no crash, no dual audio (owner 验收)
+
+Owner 验收: 2026-07-28 — Denny’s i17 Green; iOS 26.2 (23C55); Model iPhone 17; 256 GB.
+Probe 100: `PASS poolMax=1+1 tmpMax=2 tmpFirst10=2 tmpLast10=2 (n=100)`.
+Prior FAIL `tmpMax=58` attributed to duplicate onPageChanged; fixed before PASS.
+
+### Devices
 
 | Role | Device | iOS | Notes |
 |------|--------|-----|-------|
-| Gate (required) | iPhone 13 | | hitch + first-frame source of truth |
-| Smoke | iPhone 17 | | compat only |
+| Gate (required) | iPhone 13 | | hitch + first-frame source of truth; **2.4 Probe 100 not yet re-run here** |
+| Smoke | iPhone 17 | 26.2 | 2.4 Probe 100 PASS (owner 验收) |
 
 ## Build / measure log
 
 (fill in phase 2.4–2.6)
 
-- Build mode:
-- Duration:
-- Item count:
-- Tool:
-- Hitch (ms/s):
-- Local-video first-frame p90 (ms):
-- Active player / memory notes:
-- Conditional escapes used (if any):
+- Build mode: Debug (`flutter run`)
+- Duration: (Probe 100 ~1–2 min)
+- Item count: listed ≤100 mixed local assets
+- Tool: in-app Probe 100 + pool/tmp diagnostics
+- Hitch (ms/s): (phase 2.5)
+- Local-video first-frame p90 (ms): (phase 2.5)
+- Active player / memory notes: poolMax 1+1; tmp stable at 2; D4 Xcode Memory not recorded
+- Conditional escapes used (if any): none
+- Phase 2.4 Probe 100 summary: `PASS poolMax=1+1 tmpMax=2 tmpFirst10=2 tmpLast10=2 (n=100)` on iPhone 17
+- Phase 2.4 Xcode Memory note: not recorded
+
+Pigeon: library + media bridge share one schema file (avoids duplicate Swift `PigeonError`):
+
+```bash
+dart run pigeon --input pigeon/spikes/poc_04/poc_04_photo_library.dart
+```
 
 ## Decision draft (phase 2.7)
 
