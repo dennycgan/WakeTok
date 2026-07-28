@@ -48,4 +48,12 @@ final class Poc03PlaybackHost: Poc03PlaybackApi {
   func listBundleClipIds() throws -> [String] {
     Poc03PlaybackEngine.shared.listBundleClipIds()
   }
+
+  func clearGapSamples() throws {
+    Poc03PlaybackEngine.shared.clearGapSamples()
+  }
+
+  func getGapSamplesMs() throws -> [Double] {
+    Poc03PlaybackEngine.shared.getGapSamplesMs()
+  }
 }

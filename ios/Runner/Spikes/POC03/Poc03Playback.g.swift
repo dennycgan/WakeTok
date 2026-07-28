@@ -287,6 +287,10 @@ protocol Poc03PlaybackApi {
   func getPlaybackState() throws -> Poc03PlaybackStateDto
   /// Ids of bundled clips in queue order (for HUD / tests).
   func listBundleClipIds() throws -> [String]
+  /// Clear clip-boundary gap samples (P3=B foreground probe).
+  func clearGapSamples() throws
+  /// Gap ms from AVPlayerItem end → next currentItem (P3=B).
+  func getGapSamplesMs() throws -> [Double]
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -376,6 +380,34 @@ class Poc03PlaybackApiSetup {
       }
     } else {
       listBundleClipIdsChannel.setMessageHandler(nil)
+    }
+    /// Clear clip-boundary gap samples (P3=B foreground probe).
+    let clearGapSamplesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc03PlaybackApi.clearGapSamples\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      clearGapSamplesChannel.setMessageHandler { _, reply in
+        do {
+          try api.clearGapSamples()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      clearGapSamplesChannel.setMessageHandler(nil)
+    }
+    /// Gap ms from AVPlayerItem end → next currentItem (P3=B).
+    let getGapSamplesMsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc03PlaybackApi.getGapSamplesMs\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getGapSamplesMsChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getGapSamplesMs()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getGapSamplesMsChannel.setMessageHandler(nil)
     }
   }
 }

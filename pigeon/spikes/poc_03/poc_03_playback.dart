@@ -47,4 +47,10 @@ abstract class Poc03PlaybackApi {
 
   /// Ids of bundled clips in queue order (for HUD / tests).
   List<String> listBundleClipIds();
+
+  /// Clear clip-boundary gap samples (P3=B foreground probe).
+  void clearGapSamples();
+
+  /// Gap ms from AVPlayerItem end → next currentItem (P3=B).
+  List<double> getGapSamplesMs();
 }

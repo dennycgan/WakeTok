@@ -45,11 +45,35 @@ Or: debug home → **POC-03** button (kDebugMode only).
 Manual M1–M3: **PASS** — owner device 验收 2026-07-28
 (Configure/Play audible; pop route audio continues; Pause/Play/Stop OK).
 
+## Phase 3.2 checklist
+
+Locks: P3=B (lock-screen subjective + foreground gap p90 &lt; 150 ms).
+
+- [x] Keep ≥1 pre-queued `AVPlayerItem` ahead (circular bundle clips)
+- [x] Record gap ms: item did-play-to-end → next `currentItem`
+- [x] Dart HUD: `formatGapSummary` + Clear gaps
+- [x] `flutter analyze` + `flutter test` + simulator build
+- [x] Manual lock-screen ≥5 advances (subjective gap OK)
+- [x] Foreground probe: n≥5 and p90 &lt; 150 ms (optional sentry; unlock after lock run)
+
+### Manual (3.2)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| L1 | Configure → Play → **lock** phone | Audio continues |
+| L2 | Listen ≥5 automatic clip advances | Auto-advance works |
+| L3 | Subjective gap between clips | Imperceptible or acceptable |
+| G1 | Unlock; gap HUD n≥5, p90&lt;150 (if samples collected) | Foreground sentry |
+
+Manual 3.2: **PASS** — owner 2026-07-28 after lock→unlock.
+Screen: `gap n=24 p50=4ms p90=4ms (PASS p90<150; foreground probe)`;
+`playing=true` still; advances ≫5. Owner confirms L1–L3 OK.
+
 ## Acceptance map (later phases)
 
 | Phase | Auto | Manual gate |
 |-------|------|-------------|
-| 3.2 | optional gap probe p90&lt;150ms | M-lock: ≥5 advances, gap OK |
+| 3.2 | gap probe unit + HUD | L1–L3 (+ G1 sentry) |
 | 3.3 | — | call/Siri/other app; auto-resume (P4) |
 | 3.4 | — | Control Center + AirPods |
 | 3.5 | checkpoint DTO tests | kill → silent; cold Restore? (P5) |
@@ -57,4 +81,5 @@ Manual M1–M3: **PASS** — owner device 验收 2026-07-28
 
 ## Build / measure log
 
-- (fill per phase)
+- 3.1: M1–M3 PASS (2026-07-28)
+- 3.2: **PASS** — lock→unlock; gap n=24 p50=4ms p90=4ms; L1–L3 owner OK

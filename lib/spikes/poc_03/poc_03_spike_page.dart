@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:waketok/spikes/poc_03/generated/poc_03_playback.g.dart';
+import 'package:waketok/spikes/poc_03/poc_03_gap.dart';
 
 /// POC-03 debug UI. Popping this route must NOT stop native playback (3.1).
 class Poc03SpikePage extends StatefulWidget {
@@ -15,6 +16,7 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
   final Poc03PlaybackApi _api = Poc03PlaybackApi();
   Poc03PlaybackStateDto? _state;
   String? _error;
+  String? _gapSummary;
   List<String> _clipIds = const [];
   Timer? _poll;
 
@@ -39,10 +41,12 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
     try {
       final state = await _api.getPlaybackState();
       final ids = await _api.listBundleClipIds();
+      final gaps = await _api.getGapSamplesMs();
       if (!mounted) return;
       setState(() {
         _state = state;
         _clipIds = ids;
+        _gapSummary = formatGapSummary(gaps);
         if (!silent) _error = null;
       });
     } catch (e) {
@@ -81,13 +85,18 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            '3.1 harness: AVQueuePlayer + .playback session.\n'
-            'Pop this page while playing — audio must continue (widget-independent).',
+            '3.1: pop route while playing — audio must continue.\n'
+            '3.2: pre-queue ≥1 ahead; lock screen ≥5 advances (subjective gap).\n'
+            'Foreground gap probe target: p90 < 150 ms (P3=B).',
           ),
           const SizedBox(height: 12),
           Text(hud.toString()),
           const SizedBox(height: 8),
           Text('Bundle clips: ${_clipIds.join(", ")}'),
+          if (_gapSummary != null) ...[
+            const SizedBox(height: 8),
+            Text(_gapSummary!),
+          ],
           if (_error != null) ...[
             const SizedBox(height: 8),
             Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -105,6 +114,7 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
               ),
               FilledButton(
                 onPressed: () => _run(() async {
+                  await _api.clearGapSamples();
                   await _api.play();
                 }),
                 child: const Text('Play'),
@@ -122,6 +132,12 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
                 child: const Text('Stop'),
               ),
               OutlinedButton(
+                onPressed: () => _run(() async {
+                  await _api.clearGapSamples();
+                }),
+                child: const Text('Clear gaps'),
+              ),
+              OutlinedButton(
                 onPressed: () => _refresh(),
                 child: const Text('Refresh'),
               ),
@@ -129,7 +145,11 @@ class _Poc03SpikePageState extends State<Poc03SpikePage> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Manual M2: Play → system Back / pop route → confirm tone continues.',
+            'Manual 3.2 (lock):\n'
+            '1) Configure → Play → unlock Control Center OK optional\n'
+            '2) Lock phone; listen ≥5 clip advances (A→B→C→A…)\n'
+            '3) Unlock; read gap summary (foreground samples may accumulate)\n'
+            '4) Subjective: transition gap imperceptible or acceptable',
             style: TextStyle(color: Colors.black54),
           ),
         ],
