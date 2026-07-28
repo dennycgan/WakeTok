@@ -73,6 +73,31 @@ Manual 9.1: **PASS** — owner 2026-07-28.
 Screenshot: `auth=limited`; `ph=cur=orig=exp=37.48s`; `audio=1`;
 `origLonger(>2s)=false`; export path set.
 
+## Phase 9.2 checklist
+
+Locks: Trim export uses current length; no silent original fallback.
+Notes threshold: `original − current > 2.0s`; `exp ≈ cur` within ±0.25s (HUD advisory).
+
+- [x] HUD `trimGate=` line (PASS/CHECK) + delta
+- [x] Manual steps for Photos Edit → Trim → Save
+- [x] Helper unit tests for match / trimGate formatting
+- [x] `flutter analyze` + unit tests
+- [x] Manual Trim fixture F1 (T0–T3)
+
+### Manual (9.2)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| T0 | Photos: Edit → Trim (>2s removed) → Save Video; asset local | Fixture ready |
+| T1 | List → select trimmed; list duration ≈ trimmed | PH shows current length |
+| T2 | Probe+Export | `origLonger(>2s)=true`; `delta>2`; `exp≈cur` |
+| T3 | Interpret | `trimGate=PASS`; not `exp≈orig` (no silent fallback) |
+
+Manual 9.2: **PASS** — owner 2026-07-28.
+Screenshot: same asset as 9.1 F0 after trim; `orig=37.48` `cur/ph=28.98`
+`exp=29.01`; `delta=8.49s`; `trimGate=PASS`; `origLonger=true`; `exp≈cur=true`.
+
 ## Build / measure log
 
 - 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
+- 9.2: **PASS** — Trim F1; no silent original fallback

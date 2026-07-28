@@ -13,6 +13,17 @@ void main() {
     );
   });
 
+  test('isExportMatchingCurrent within 0.25s', () {
+    expect(
+      isExportMatchingCurrent(exportSec: 8.0, currentSec: 8.2),
+      isTrue,
+    );
+    expect(
+      isExportMatchingCurrent(exportSec: 8.0, currentSec: 8.3),
+      isFalse,
+    );
+  });
+
   test('formatProbeSummary includes advisory flag', () {
     final s = formatProbeSummary(
       phAssetDurationSec: 8,
@@ -23,5 +34,26 @@ void main() {
       textTrackCount: 0,
     );
     expect(s.contains('origLonger(>2s)=true'), isTrue);
+  });
+
+  test('formatTrimGateSummary PASS when longer and export matches', () {
+    final s = formatTrimGateSummary(
+      currentAvDurationSec: 8,
+      originalAvDurationSec: 30,
+      exportDurationSec: 8.1,
+    );
+    expect(s.contains('trimGate=PASS'), isTrue);
+    expect(s.contains('origLonger(>2s)=true'), isTrue);
+    expect(s.contains('exp≈cur(±0.25s)=true'), isTrue);
+  });
+
+  test('formatTrimGateSummary CHECK when not longer', () {
+    final s = formatTrimGateSummary(
+      currentAvDurationSec: 37.48,
+      originalAvDurationSec: 37.48,
+      exportDurationSec: 37.48,
+    );
+    expect(s.contains('trimGate=CHECK'), isTrue);
+    expect(s.contains('origLonger(>2s)=false'), isTrue);
   });
 }

@@ -68,6 +68,14 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
             textTrackCount: _probe!.textTrackCount,
             errorCode: _probe!.errorCode,
           );
+    final trimHud = _probe == null
+        ? ''
+        : formatTrimGateSummary(
+            currentAvDurationSec: _probe!.currentAvDurationSec,
+            originalAvDurationSec: _probe!.originalAvDurationSec,
+            exportDurationSec: _probe!.exportDurationSec,
+            errorCode: _probe!.errorCode,
+          );
 
     return Scaffold(
       appBar: AppBar(title: const Text('POC-09 export representation')),
@@ -75,13 +83,14 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            '9.1: Auth → list local videos → Probe+Export.\n'
-            'Q1=A requestAVAsset+.current / highQuality; dual vs .original.\n'
-            'Unedited smoke OK; Trim gate is 9.2 (delta>2s in notes).',
+            '9.1 smoke done. 9.2 Trim gate:\n'
+            'Photos-trim a local video (save edit) → List → select → Probe+Export.\n'
+            'Expect trimGate=PASS: orig-cur>2s AND exp≈cur (±0.25s).',
           ),
           const SizedBox(height: 12),
           Text('auth=${_auth?.name ?? "—"}'),
           Text(probeHud),
+          if (trimHud.isNotEmpty) Text(trimHud),
           if (_probe?.exportPath != null) Text('path=${_probe!.exportPath}'),
           if (_probe?.errorMessage != null)
             Text(
@@ -185,11 +194,13 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
           }),
           const SizedBox(height: 24),
           const Text(
-            'Manual 9.1:\n'
-            '1) Authorize → List local videos\n'
-            '2) Select unedited F0 (local)\n'
-            '3) Probe+Export — expect cur/exp ≈ ph duration; path set\n'
-            '4) orig may equal cur when unedited (origLonger false OK)',
+            'Manual 9.2 (Trim / F1):\n'
+            '1) Photos → open a longer local video → Edit → Trim → Done → Save Video\n'
+            '   (trim enough that original − trimmed > 2 seconds)\n'
+            '2) WakeTok POC-09 → List local videos → select the trimmed one\n'
+            '   (list duration should be the trimmed length ≈ Photos)\n'
+            '3) Probe+Export → expect trimGate=PASS\n'
+            '4) FAIL if exp≈orig (silent fallback) or origLonger false on a real trim',
             style: TextStyle(color: Colors.black54),
           ),
         ],
