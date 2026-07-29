@@ -18,7 +18,7 @@
   - Explicit App ID registration in Certificates, Identifiers & Profiles: owner-only
   - App Store Connect app-record creation: owner-only
   - See `release-handoff.mdc`
-- iOS deployment target: Flutter default (placeholder; finalize after POC-04)
+- iOS deployment target: iOS 16.0 (decided post-POC; see ADR-005 pending)
 - Test devices: iPhone 13 (performance floor), iPhone 17 (current-device compat)
 - No backend, no custom auth, no remote database, no developer-owned media server (kickoff Tech Stack)
 
@@ -33,7 +33,12 @@
       contracts, production Pigeon contract baseline)   <-- YOU ARE HERE
 - [ ] iOS Photos permission, Library access, iCloud asset state handling
 - [ ] All / Photos / Videos built-in source resolution
+      (production resolution must enumerate the FULL library including
+      iCloud-only assets; device-local filtering is spike-only; acceptance
+      includes date-distribution sampling on owner's real 40k library)
 - [ ] Main Browse Screen and vertical Media Feed
+      (Severe Hang debt from ADR-001: measurable acceptance criteria to be
+      defined in this capability's phase design)
 - [ ] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
@@ -95,12 +100,18 @@ Active capability: App Foundation
 
 - [ ] 4.2 Define shared Result<T, AppError> type and AppError enum
       (covers media, permission, export, album error domains);
-      unit tests for Result combinators
+      unit tests for Result combinators;
+      AppError naming must align with kickoff error codes
+      (e.g. iCloudDownloadRequired / iCloudDownloadFailed), with a native
+      error mapping table (PHPhotosError 3164 → ...); spike-era names
+      (inCloudUnavailable) must not leak into production contracts
 
 - [ ] 4.3 Define production Pigeon contracts baseline:
       PhotoLibraryApi, PlaybackApi, ExportApi (empty implementations);
       generated code compiles on both Dart and Swift sides;
-      replace spike-only Pigeon files
+      production baseline built from scratch in pigeon/ (spike contracts
+      remain on spike/poc as reference only); contract signatures require
+      owner-approved design draft before coding
 
 - [ ] 4.4 Wire l10n into MaterialApp; smoke test English and
       Simplified Chinese strings render on device
@@ -117,13 +128,13 @@ Active capability: App Foundation
 - Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
 - Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004)
 - Next step: phase 4.1 gen_l10n + ARB smoke keys (await owner go to code)
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass)
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0 deployment target)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
-- ADR-001 … ADR-004: docs/DECISIONS.md
+- ADR-001 … ADR-005: docs/DECISIONS.md
 - (grows as code lands)
 
 ## Do NOT touch (unless explicitly opening a new phase)
@@ -133,10 +144,9 @@ Active capability: App Foundation
 ## Known debt / intentionally deferred
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
-| Bootstrap | iOS deployment target left at Flutter default | Kickoff Open Question: platform target TBD; decide with real-device data | POC-04 | — |
 | POC-04 | Severe Hang under fast scrolling / animateToPage load | Conditional Pass accepted; must address in production feed | Production Main Browse Screen | ADR-001 |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
-| POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio | ADR-002 |
+| POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
 | POC-09 | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |

@@ -298,3 +298,36 @@
     evidence, not the production job engine.
   - Capability Roadmap: POC-09 → [x]; YOU ARE HERE → App Foundation
     (phases 4.1–4.4 owner-approved; revisable before coding).
+
+---
+
+## ADR-005: iOS Deployment Target = iOS 16.0
+
+- Status: Accepted (pending)
+- Commit/PR anchor: pending
+- Plain summary (owner reads this):
+  WakeTok’s minimum supported iOS version is 16.0.
+- Context / what problem forced this:
+  Bootstrap left the iOS deployment target at the Flutter default as a
+  placeholder (kickoff Open Question: platform target TBD). All three
+  project gates (POC-04, POC-03, POC-09) were verified on real devices
+  running iOS 26.x. Production Pigeon contracts, Photos permission APIs,
+  and native error mapping must lock a minimum before App Foundation
+  coding starts.
+- Decision (what was chosen):
+  1. Minimum iOS deployment target = **iOS 16.0**.
+  2. `ios/Podfile` and the Xcode project deployment settings must be
+     updated to match. That configuration change is the **implementation
+     part** of this decision and lands in a subsequent **work** commit —
+     not in this docs commit.
+- Rejected alternatives (why not B):
+  - **Keep Flutter’s iOS 13-era default:** Rejected — little coverage
+    benefit for WakeTok’s audience; constrains modern PHPicker / Limited
+    Access and related Photos APIs.
+  - **Raise to iOS 17+:** Rejected — excludes still-used older devices
+    without a clear product gain for MVP.
+- Consequences / constraints accepted:
+  - All production code may assume iOS 16+ APIs are available.
+  - Devices below iOS 16 are out of support scope.
+  - STATE Project facts records iOS 16.0; Bootstrap “Flutter default”
+    deployment-target debt is closed by this ADR.
