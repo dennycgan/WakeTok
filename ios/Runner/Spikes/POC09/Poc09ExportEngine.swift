@@ -11,6 +11,14 @@ final class Poc09ExportEngine {
   private init() {}
 
   func listLocalVideos(limit: Int) throws -> [Poc09VideoAssetDto] {
+    try listVideos(limit: limit, cloudOnly: false)
+  }
+
+  func listCloudOnlyVideos(limit: Int) throws -> [Poc09VideoAssetDto] {
+    try listVideos(limit: limit, cloudOnly: true)
+  }
+
+  private func listVideos(limit: Int, cloudOnly: Bool) throws -> [Poc09VideoAssetDto] {
     try ensureAuthorized()
     let capped = max(0, limit)
     guard capped > 0 else { return [] }
@@ -32,7 +40,12 @@ final class Poc09ExportEngine {
         stop.pointee = true
         return
       }
-      guard Self.isDeviceLocalVideo(asset) else { return }
+      let local = Self.isDeviceLocalVideo(asset)
+      if cloudOnly {
+        guard !local else { return }
+      } else {
+        guard local else { return }
+      }
       results.append(
         Poc09VideoAssetDto(
           assetId: asset.localIdentifier,
@@ -80,6 +93,9 @@ final class Poc09ExportEngine {
       guard let self else { return }
 
       if let currentError {
+        let code = currentError == "inCloudUnavailable"
+          ? "inCloudUnavailable"
+          : "currentObtainFailed"
         completion(
           .success(
             self.failureDto(
@@ -87,7 +103,7 @@ final class Poc09ExportEngine {
               phDuration: phDuration,
               isHfr: isHfr,
               network: networkAccessAllowed,
-              code: "currentObtainFailed",
+              code: code,
               message: currentError
             )
           )
@@ -276,8 +292,16 @@ final class Poc09ExportEngine {
       options: options
     ) { avAsset, _, info in
       if let error = info?[PHImageErrorKey] as? NSError {
+        // iOS often returns PHPhotosError.networkAccessRequired (3164) when the
+        // asset is cloud-backed and isNetworkAccessAllowed == false, instead of
+        // (or before) relying only on PHImageResultIsInCloudKey.
+        // Use raw code 3164: PHPhotosError.Code.networkAccessRequired is iOS 14+.
+        let needsNetwork = error.domain == PHPhotosErrorDomain && error.code == 3164
+        let mapped = (!network && needsNetwork)
+          ? "inCloudUnavailable"
+          : error.localizedDescription
         DispatchQueue.main.async {
-          completion(nil, error.localizedDescription)
+          completion(nil, mapped)
         }
         return
       }

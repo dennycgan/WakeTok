@@ -14,6 +14,8 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
   final Poc09ExportApi _api = Poc09ExportApi();
   Poc09AuthStatus? _auth;
   List<Poc09VideoAssetDto> _videos = const [];
+  /// `local` or `cloudOnly` — last list mode for HUD label.
+  String _listMode = 'local';
   Poc09VideoAssetDto? _selected;
   Poc09ProbeResultDto? _probe;
   String? _error;
@@ -62,6 +64,18 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
     }
   }
 
+  void _applyVideoList(List<Poc09VideoAssetDto> list, String mode) {
+    _listMode = mode;
+    _videos = list;
+    _probe = null;
+    if (list.isEmpty) {
+      _selected = null;
+      return;
+    }
+    final prevId = _selected?.assetId;
+    _selected = list.where((v) => v.assetId == prevId).followedBy(list).first;
+  }
+
   @override
   Widget build(BuildContext context) {
     final probeHud = _probe == null
@@ -101,6 +115,21 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
             exportDurationSec: _probe!.exportDurationSec,
             errorCode: _probe!.errorCode,
           );
+    final failHud = _probe == null
+        ? ''
+        : formatFailGateSummary(
+            networkAccessAllowed: _probe!.networkAccessAllowed,
+            errorCode: _probe!.errorCode,
+            exportPath: _probe!.exportPath,
+          );
+    final controlHud = _probe == null
+        ? ''
+        : formatControlGateSummary(
+            networkAccessAllowed: _probe!.networkAccessAllowed,
+            errorCode: _probe!.errorCode,
+            exportPath: _probe!.exportPath,
+            exportDurationSec: _probe!.exportDurationSec,
+          );
 
     return Scaffold(
       appBar: AppBar(title: const Text('POC-09 export representation')),
@@ -108,9 +137,10 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            '9.4 Default audio:\n'
-            'Probe+Export a video with sound → audioGate=PASS,\n'
-            'then Play export and listen to the exported file (not Photos).',
+            '9.6 Explicit failure (F5 iCloud-only):\n'
+            'List iCloud-only → OFF Probe (failGate=PASS) → ON Probe '
+            '(controlGate=PASS).\n'
+            'N1 required: local + OFF must NOT be inCloudUnavailable.',
           ),
           const SizedBox(height: 12),
           Text('auth=${_auth?.name ?? "—"}'),
@@ -118,8 +148,12 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
           if (trimHud.isNotEmpty) Text(trimHud),
           if (sloMoHud.isNotEmpty) Text(sloMoHud),
           if (audioHud.isNotEmpty) Text(audioHud),
+          if (failHud.isNotEmpty) Text(failHud),
+          if (controlHud.isNotEmpty) Text(controlHud),
           if (_probe != null)
             Text('HFR subtype=${_probe!.isHighFrameRate}'),
+          if (_probe?.errorCode != null)
+            Text('errorCode=${_probe!.errorCode}'),
           if (_probe?.exportPath != null) Text('path=${_probe!.exportPath}'),
           if (_probe?.errorMessage != null)
             Text(
@@ -155,20 +189,19 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
                     ? null
                     : () => _run(() async {
                           final list = await _api.listLocalVideos(40);
-                          setState(() {
-                            _videos = list;
-                            if (list.isEmpty) {
-                              _selected = null;
-                              return;
-                            }
-                            final prevId = _selected?.assetId;
-                            _selected = list
-                                .where((v) => v.assetId == prevId)
-                                .followedBy(list)
-                                .first;
-                          });
+                          setState(() => _applyVideoList(list, 'local'));
                         }),
                 child: const Text('List local videos'),
+              ),
+              FilledButton(
+                onPressed: _busy
+                    ? null
+                    : () => _run(() async {
+                          // Smaller limit: each candidate probes locality (slow).
+                          final list = await _api.listCloudOnlyVideos(20);
+                          setState(() => _applyVideoList(list, 'cloudOnly'));
+                        }),
+                child: const Text('List iCloud-only'),
               ),
               FilledButton(
                 onPressed: _busy || _selected == null
@@ -215,7 +248,7 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Videos (${_videos.length}):'),
+          Text('Videos (${_videos.length}) [$_listMode]:'),
           ..._videos.map((v) {
             final selected = _selected?.assetId == v.assetId;
             return ListTile(
@@ -243,12 +276,16 @@ class _Poc09SpikePageState extends State<Poc09SpikePage> {
           }),
           const SizedBox(height: 24),
           const Text(
-            'Manual 9.4 (Default audio / F3):\n'
-            '1) Pick a local video that has sound in Photos (not mute-only)\n'
-            '2) Probe+Export → expect audioGate=PASS (audioTracks≥1 + path)\n'
-            '3) Tap Play export — listen to THAT file (not Photos)\n'
-            '4) PASS only if export audio is audible; FAIL if silent\n'
-            '5) FAIL if audioTracks=0 but export reports success',
+            'Manual 9.6 (Explicit failure / F5 + N1):\n'
+            'P0 Authorize (limited: include target videos)\n'
+            'P1 List iCloud-only — if empty, free space / pick unused clip (R1)\n'
+            'OFF: network OFF → Probe F5 → failGate=PASS '
+            '(error=inCloudUnavailable, no path)\n'
+            'ON: same F5, network ON → controlGate=PASS (path + duration)\n'
+            '    failGate=N/A (network on)\n'
+            'N1 REQUIRED: List local → pick local → network OFF → Probe\n'
+            '    MUST NOT be inCloudUnavailable; expect export success\n'
+            'Do OFF before ON on the same F5 (ON may make it local)',
             style: TextStyle(color: Colors.black54),
           ),
         ],

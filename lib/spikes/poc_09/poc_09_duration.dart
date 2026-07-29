@@ -137,3 +137,47 @@ String formatAudioGateSummary({
   return 'audioGate=PASS audioTracks=$audioTrackCount '
       '(listen export to confirm audible)';
 }
+
+/// 9.6 Explicit-failure advisory (Q5=A): cloud-only + network off.
+String formatFailGateSummary({
+  required bool networkAccessAllowed,
+  required String? errorCode,
+  required String? exportPath,
+}) {
+  if (networkAccessAllowed) {
+    return 'failGate=N/A (network on)';
+  }
+  final hasPath = exportPath != null && exportPath.isNotEmpty;
+  if (hasPath) {
+    return 'failGate=FAIL exportPath set (must not succeed silently)';
+  }
+  if (errorCode == 'inCloudUnavailable') {
+    return 'failGate=PASS error=inCloudUnavailable (no export path)';
+  }
+  if (errorCode != null && errorCode.isNotEmpty) {
+    return 'failGate=CHECK error=$errorCode (not inCloudUnavailable)';
+  }
+  return 'failGate=CHECK no error and no path';
+}
+
+/// 9.6 Control leg: same F5 with network on must export successfully.
+String formatControlGateSummary({
+  required bool networkAccessAllowed,
+  required String? errorCode,
+  required String? exportPath,
+  required double? exportDurationSec,
+}) {
+  if (!networkAccessAllowed) {
+    return 'controlGate=N/A (network off)';
+  }
+  final hasFile = exportPath != null &&
+      exportPath.isNotEmpty &&
+      exportDurationSec != null &&
+      exportDurationSec > 0.01;
+  final clean = errorCode == null || errorCode.isEmpty;
+  if (clean && hasFile) {
+    return 'controlGate=PASS export OK (path + duration)';
+  }
+  final err = (errorCode != null && errorCode.isNotEmpty) ? errorCode : 'none';
+  return 'controlGate=CHECK error=$err hasFile=$hasFile';
+}

@@ -396,6 +396,8 @@ protocol Poc09ExportApi {
   func getAuthorizationStatus() throws -> Poc09AuthStatus
   /// Device-local video PHAssets only (Q7=A for gate fixtures).
   func listLocalVideos(limit: Int64) throws -> [Poc09VideoAssetDto]
+  /// Videos that are not device-local (9.6 F5 / iCloud-only candidates).
+  func listCloudOnlyVideos(limit: Int64) throws -> [Poc09VideoAssetDto]
   /// Probe `.current` vs `.original`, then export **current** to a temp file.
   func probeAndExport(assetId: String, networkAccessAllowed: Bool, completion: @escaping (Result<Poc09ProbeResultDto, Error>) -> Void)
   /// Play a previously exported temp file (9.4 A3 — listen to export, not Photos).
@@ -455,6 +457,22 @@ class Poc09ExportApiSetup {
       }
     } else {
       listLocalVideosChannel.setMessageHandler(nil)
+    }
+    /// Videos that are not device-local (9.6 F5 / iCloud-only candidates).
+    let listCloudOnlyVideosChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc09ExportApi.listCloudOnlyVideos\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      listCloudOnlyVideosChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let limitArg = args[0] as! Int64
+        do {
+          let result = try api.listCloudOnlyVideos(limit: limitArg)
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      listCloudOnlyVideosChannel.setMessageHandler(nil)
     }
     /// Probe `.current` vs `.original`, then export **current** to a temp file.
     let probeAndExportChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc09ExportApi.probeAndExport\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

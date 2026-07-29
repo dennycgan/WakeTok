@@ -81,6 +81,9 @@ abstract class Poc09ExportApi {
   /// Device-local video PHAssets only (Q7=A for gate fixtures).
   List<Poc09VideoAssetDto> listLocalVideos(int limit);
 
+  /// Videos that are not device-local (9.6 F5 / iCloud-only candidates).
+  List<Poc09VideoAssetDto> listCloudOnlyVideos(int limit);
+
   /// Probe `.current` vs `.original`, then export **current** to a temp file.
   @async
   Poc09ProbeResultDto probeAndExport(String assetId, bool networkAccessAllowed);

@@ -40,6 +40,18 @@ final class Poc09ExportHost: Poc09ExportApi {
     }
   }
 
+  func listCloudOnlyVideos(limit: Int64) throws -> [Poc09VideoAssetDto] {
+    do {
+      return try Poc09ExportEngine.shared.listCloudOnlyVideos(limit: Int(limit))
+    } catch {
+      throw Poc09PigeonError(
+        code: "listFailed",
+        message: error.localizedDescription,
+        details: nil
+      )
+    }
+  }
+
   func probeAndExport(
     assetId: String,
     networkAccessAllowed: Bool,

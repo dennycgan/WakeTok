@@ -95,4 +95,70 @@ void main() {
     );
     expect(s.contains('audioGate=FAIL'), isTrue);
   });
+
+  test('formatFailGateSummary PASS for inCloudUnavailable without path', () {
+    final s = formatFailGateSummary(
+      networkAccessAllowed: false,
+      errorCode: 'inCloudUnavailable',
+      exportPath: null,
+    );
+    expect(s.contains('failGate=PASS'), isTrue);
+  });
+
+  test('formatFailGateSummary FAIL when export path set', () {
+    final s = formatFailGateSummary(
+      networkAccessAllowed: false,
+      errorCode: 'inCloudUnavailable',
+      exportPath: '/tmp/out.mp4',
+    );
+    expect(s.contains('failGate=FAIL'), isTrue);
+  });
+
+  test('formatFailGateSummary CHECK for other errors', () {
+    final s = formatFailGateSummary(
+      networkAccessAllowed: false,
+      errorCode: 'currentObtainFailed',
+      exportPath: null,
+    );
+    expect(s.contains('failGate=CHECK'), isTrue);
+  });
+
+  test('formatFailGateSummary N/A when network on', () {
+    final s = formatFailGateSummary(
+      networkAccessAllowed: true,
+      errorCode: 'inCloudUnavailable',
+      exportPath: null,
+    );
+    expect(s.contains('failGate=N/A'), isTrue);
+  });
+
+  test('formatControlGateSummary PASS when network on and export OK', () {
+    final s = formatControlGateSummary(
+      networkAccessAllowed: true,
+      errorCode: null,
+      exportPath: '/tmp/out.mp4',
+      exportDurationSec: 12,
+    );
+    expect(s.contains('controlGate=PASS'), isTrue);
+  });
+
+  test('formatControlGateSummary CHECK when network on but failed', () {
+    final s = formatControlGateSummary(
+      networkAccessAllowed: true,
+      errorCode: 'inCloudUnavailable',
+      exportPath: null,
+      exportDurationSec: null,
+    );
+    expect(s.contains('controlGate=CHECK'), isTrue);
+  });
+
+  test('formatControlGateSummary N/A when network off', () {
+    final s = formatControlGateSummary(
+      networkAccessAllowed: false,
+      errorCode: 'inCloudUnavailable',
+      exportPath: null,
+      exportDurationSec: null,
+    );
+    expect(s.contains('controlGate=N/A'), isTrue);
+  });
 }

@@ -380,6 +380,26 @@ class Poc09ExportApi {
     return (pigeonVar_replyValue! as List<Object?>).cast<Poc09VideoAssetDto>();
   }
 
+  /// Videos that are not device-local (9.6 F5 / iCloud-only candidates).
+  Future<List<Poc09VideoAssetDto>> listCloudOnlyVideos(int limit) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc09ExportApi.listCloudOnlyVideos$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[limit]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<Poc09VideoAssetDto>();
+  }
+
   /// Probe `.current` vs `.original`, then export **current** to a temp file.
   Future<Poc09ProbeResultDto> probeAndExport(String assetId, bool networkAccessAllowed) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc09ExportApi.probeAndExport$pigeonVar_messageChannelSuffix';
