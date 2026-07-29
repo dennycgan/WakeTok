@@ -26,11 +26,11 @@
 - [x] Project Bootstrap (flutter create scaffold, pigeon/ placeholder, docs skeleton, root commit)
 - [x] POC-04: Flutter Media Feed Architecture Gate (must pass before production domain/data/feature implementation)
 - [x] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)
-- [~] POC-09: Current Photos Representation Export Gate
-      (must pass before production physical-clip implementation)   <-- YOU ARE HERE
+- [x] POC-09: Current Photos Representation Export Gate
+      (must pass before production physical-clip implementation)
 - [ ] App Foundation
       (gen_l10n + ARB localisation infrastructure, shared error/result
-      contracts, production Pigeon contract baseline)
+      contracts, production Pigeon contract baseline)   <-- YOU ARE HERE
 - [ ] iOS Photos permission, Library access, iCloud asset state handling
 - [ ] All / Photos / Videos built-in source resolution
 - [ ] Main Browse Screen and vertical Media Feed
@@ -81,15 +81,29 @@
 > PoC placement:
 > - POC-01 is closed as Failed and is not scheduled again.
 > - POC-02 (Query Source) and POC-05 (CarPlay) are deferred outside MVP.
-> - POC-04, POC-03, and POC-09 are explicit project gates (listed above).
+> - POC-04, POC-03, and POC-09 are closed project gates (see DECISIONS).
 > - POC-06, POC-07, POC-08, and POC-10 run inside the capability
 >   that consumes their result.
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: POC-09 Current Photos Representation Export Gate
+Active capability: App Foundation
 
-(Phases pending owner approval)
+- [ ] 4.1 Add flutter_localizations + intl; configure gen_l10n;
+      create app_en.arb and app_zh_Hans.arb with one smoke key each;
+      verify generated l10n.dart compiles
+
+- [ ] 4.2 Define shared Result<T, AppError> type and AppError enum
+      (covers media, permission, export, album error domains);
+      unit tests for Result combinators
+
+- [ ] 4.3 Define production Pigeon contracts baseline:
+      PhotoLibraryApi, PlaybackApi, ExportApi (empty implementations);
+      generated code compiles on both Dart and Swift sides;
+      replace spike-only Pigeon files
+
+- [ ] 4.4 Wire l10n into MaterialApp; smoke test English and
+      Simplified Chinese strings render on device
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -97,18 +111,19 @@ Active capability: POC-09 Current Photos Representation Export Gate
 > Phase Roadmap is set by the owner before work begins on each capability.
 > When YOU ARE HERE moves, do not generate Phase Roadmap content without
 > explicit owner approval of the phases.
+> App Foundation 4.1–4.4 approved for entry; owner may revise before coding starts.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): validate Current Photos Representation export gate (POC-09) before production physical-clip implementation
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002)
-- Next step: owner locks POC-09 Phase Roadmap (await approval)
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03 Conditional Pass; physical-clip queue verify after POC-09)
+- Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004)
+- Next step: phase 4.1 gen_l10n + ARB smoke keys (await owner go to code)
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
-- ADR-001 / ADR-002: docs/DECISIONS.md
+- ADR-001 … ADR-004: docs/DECISIONS.md
 - (grows as code lands)
 
 ## Do NOT touch (unless explicitly opening a new phase)
@@ -123,3 +138,5 @@ Active capability: POC-09 Current Photos Representation Export Gate
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
+| POC-09 | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
+| POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |

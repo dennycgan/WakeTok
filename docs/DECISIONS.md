@@ -186,3 +186,115 @@
     remains a post-POC-09 confirmation, not a claim of this ADR.
   - Next capability after this gate close-out: **POC-09** (phases owner-approved
     separately).
+
+---
+
+## ADR-003: WakeTok subtitle scope — burned-in only; soft tracks out of scope
+
+- Status: Accepted (2026-07-29)
+- Commit/PR anchor: fcf7561
+- Plain summary (owner reads this):
+  WakeTok only cares about burned-in subtitles (text that is already pixels in
+  the video picture). Soft subtitle / caption tracks are out of product scope —
+  WakeTok does not process them and does not promise to keep them.
+- Context / what problem forced this:
+  During POC-09 we had to decide how far subtitle handling goes for export /
+  physical clips. On iOS Photos, user video captions are overwhelmingly
+  burned-in. Camera-app recordings typically do not create soft subtitle
+  tracks; Photos edits often drop soft tracks; soft-sub material that arrives
+  via external import is rare, and whether those tracks survive
+  `AVAssetExportSession` is unreliable. An earlier POC-09 Q3 lock allowed
+  “preserved or cleanly absent”; this ADR narrows product scope so WakeTok
+  does not commit to soft-track behavior at all.
+- Decision (what was chosen):
+  1. WakeTok subtitle scope = **burned-in** captions only (part of the video
+     image). They are preserved naturally whenever the current representation
+     exports successfully.
+  2. **Soft subtitle / closed-caption tracks** (e.g. tx3g, WebVTT,
+     CEA-608-style CC tracks) are **out of scope**.
+  3. WakeTok does **not** read, process, preserve, or commit to any export
+     behavior for those soft tracks.
+  4. If `AVAssetExportSession` happens to keep a soft track, that is a
+     **system side effect**, not a WakeTok feature.
+  5. This boundary applies to **MVP and all later versions** until a **new ADR**
+     overturns it.
+- Rejected alternatives (why not B):
+  - **Build soft-track probe + preserve logic:** Rejected — soft tracks are
+    rare in the Photos library WakeTok targets; cost exceeds covered scenarios.
+  - **Assert “100% of user content is burned-in”:** Rejected — that is an
+    empirical claim about user libraries, not always true. The precise product
+    statement is “WakeTok does not handle soft subtitle tracks.”
+- Consequences / constraints accepted:
+  - POC-09 phase **9.5** needs **no** subtitle-track probe implementation
+    (recorded in `docs/poc/POC-09-notes.md` §9.5).
+  - For the rare asset that has soft tracks, whether captions appear after
+    clip export depends on system export behavior — **not** a WakeTok
+    responsibility.
+  - Spike diagnostics may still surface incidental `textTrackCount` values;
+    production must **not** treat soft-track preservation as a product feature.
+  - Future soft-sub retention requests require a **new ADR**.
+  - Anchor note (O3=S1): Accepted against POC-09 work `fcf7561` (same close-out
+    packaging as ADR-004); §9.5 body lives in notes in this docs commit.
+
+---
+
+## ADR-004: POC-09 Current Photos Representation Export Gate — Pass
+
+- Status: Accepted (2026-07-29)
+- Commit/PR anchor: fcf7561
+- Plain summary (owner reads this):
+  WakeTok may build production physical-clip export on Photos’ *current*
+  representation: request AVAsset with version=.current and
+  deliveryMode=.highQualityFormat, then export. Trim, slow-mo duration,
+  default audio, and explicit iCloud failure behaved as required. Soft
+  subtitle tracks stay out of product scope (ADR-003). The full 120s clip
+  state machine is not part of this gate.
+- Context / what problem forced this:
+  Production Physical Clip Export must not silently use the unedited
+  original when the user trimmed or otherwise edited in Photos. POC-09
+  was the gate that current-representation obtain + temp export is the
+  correct input path before that capability is built.
+- Decision (what was chosen):
+  1. **Pass (GO):** Adopt `PHVideoRequestOptionsVersion.current` +
+     `deliveryMode = .highQualityFormat` + self-built `AVAssetExportSession`
+     (Q1=A, Q2=A) as the production obtain/export *input path* for clips.
+  2. **Phase evidence** (`docs/poc/POC-09-notes.md`; work on `spike/poc`):
+     - **9.1** Harness + dual current/original probe + temp export — PASS
+       (unedited smoke). Work: `c98a073`.
+     - **9.2** Trim: export ≈ current; original obviously longer (>2s notes
+       threshold); no silent original fallback — PASS. Work: `e8e900b`.
+     - **9.3** HFR/slo-mo: export duration matches Photos-displayed /
+       PHAsset duration (Q4=A) — PASS. Work: `ab86a2b`.
+     - **9.4** Default audio: track present + Play-export listen — PASS.
+       Work: `9794449`.
+     - **9.5** Soft subtitle tracks out of scope; burned-in incidental —
+       PASS (docs / ADR-003). No track-probe implementation.
+     - **9.6** Explicit failure: iCloud-only + networkAccessAllowed=false
+       → `inCloudUnavailable` (incl. PHPhotosError 3164 mapping), no export
+       path; same asset with network on → controlGate PASS; N1 local+OFF
+       must not false-positive — PASS. Work: `fcf7561`.
+  3. **Scope boundary:** This spike proved obtain + *temp* export metrics
+     and failure shape. The formal **120s** segment state machine, job
+     persistence, cancellation, and Photos re-import live in **Physical
+     Clip Export Core** (and follow-on capabilities)—not in POC-09.
+  4. **Deferred (do not overturn Pass):**
+     - Slow-motion **frame-rate / audio-pitch** playback behavior beyond
+       duration gate → Physical Clip Export Core (and/or product QA there).
+     - Multi-audio-track **selection UX** → POC-07.
+     - Soft subtitle / CC track round-trip → **out of scope** per **ADR-003**
+       (not a scheduled debt to “fix later” without a new ADR).
+- Rejected alternatives (why not B):
+  - **No-go / require original-only or always-download path:** Rejected —
+    Trim/slo-mo evidence needs `.current`; explicit fail covers undownloaded
+    cloud assets.
+  - **Treat soft-sub preservation as in-gate must-pass:** Rejected — ADR-003.
+  - **Ship 120s state machine inside POC-09:** Rejected — gate is obtain-path
+    compatibility only.
+- Consequences / constraints accepted:
+  - Physical Clip Export Core may proceed on the locked obtain path.
+  - ADR-002’s post-POC-09 debt (play ≥3 WakeTok-exported clips locked) remains
+    scheduled under Production Background Audio after real clips exist.
+  - Spike code under `lib/spikes/poc_09/` / `ios/Runner/Spikes/POC09/` is
+    evidence, not the production job engine.
+  - Capability Roadmap: POC-09 → [x]; YOU ARE HERE → App Foundation
+    (phases 4.1–4.4 owner-approved; revisable before coding).
