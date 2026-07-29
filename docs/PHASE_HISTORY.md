@@ -66,3 +66,27 @@ Docs close-out (STATE + PHASE_HISTORY): `33267c1`
 Notes: `docs/poc/POC-03-notes.md`. Known debt → Production Background Audio
 (WeChat/VoIP lock-home resume; iCloud interrupt; post-POC-09 physical-clip
 queue verify).
+
+## POC-09: Current Photos Representation Export Gate — completed 2026-07-29
+
+- [x] 9.1 Spike harness + dual current/original probe + temp export;
+      unedited smoke OK
+      — work: `c98a073`
+- [x] 9.2 Trim: export ≈ current; original longer; no silent original fallback
+      — work: `e8e900b`
+- [x] 9.3 Slow-motion HFR: export duration matches Photos-displayed / PHAsset
+      — work: `ab86a2b`
+- [x] 9.4 Default audio: track present + Play-export listen
+      — work: `9794449`
+- [x] 9.5 Subtitle scope: burned-in only; soft tracks out of scope (ADR-003)
+      — docs (this close-out); no probe implementation
+- [x] 9.6 Explicit failure: iCloud-only + network off → `inCloudUnavailable`
+      (incl. 3164); controlGate ON; N1 local+OFF
+      — work: `fcf7561`
+- [x] 9.7 Record Pass (GO) in DECISIONS.md (ADR-004 Accepted; anchor `fcf7561`;
+      ADR-003 Accepted same packaging)
+      — docs: (this close-out commit)
+
+Notes: `docs/poc/POC-09-notes.md`. Deferred (do not overturn Pass): slo-mo
+pitch/frame-rate → Physical Clip Export Core; multi-audio UX → POC-07;
+soft-sub → ADR-003 out of scope.

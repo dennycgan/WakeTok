@@ -8,7 +8,7 @@ Measurement and design notes. Append facts only; no rhetoric.
 |------|--------|---------|
 | **Q1** | A | Obtain via `requestAVAsset` + self-built `AVAssetExportSession` |
 | **Q2** | A | `deliveryMode = .highQualityFormat` |
-| **Q3** | A | Subtitles: preserved **or** cleanly absent PASS; garbled/partial FAIL |
+| **Q3** | A → narrowed | Soft subtitle tracks out of scope for WakeTok (see §9.5). Burned-in only. |
 | **Q4** | A | Slo-mo: export duration ≈ `PHAsset.duration` / Photos-displayed |
 | **Q5** | A | Explicit fail: iCloud-only + `networkAccessAllowed=false` |
 | **Q6** | A | Phases 9.1–9.7 as locked in STATE |
@@ -46,7 +46,7 @@ Suggested album name: `WakeTok-POC09`
 | F1 | Photos-trimmed (know pre/post lengths) | 9.2 |
 | F2 | Slow-motion (note if user set normal speed) | 9.3 |
 | F3 | Video with default audio | 9.4 |
-| F4 | Soft or burned-in captions (optional) | 9.5 |
+| F4 | Soft/burned captions | 9.5 — closed without dedicated fixture (see §9.5) |
 | F5 | iCloud-only, not downloaded | 9.6 |
 
 ## Phase 9.1 checklist
@@ -157,3 +157,56 @@ not Photos playback of the source asset.
 - 9.2: **PASS** — Trim F1; no silent original fallback
 - 9.3: **PASS** — HFR F2; export matches Photos-displayed duration (Q4=A)
 - 9.4: **PASS** — F3; `audioGate=PASS`; Play export audible (A3 on export file)
+
+## Phase 9.5 — Subtitle scope (closed by product decision)
+
+Subtitle scope: WakeTok does not process soft subtitle tracks.
+Burned-in subtitles are part of the video image and preserved
+naturally in export; verified incidentally during 9.2/9.4.
+Soft subtitle track handling is out of scope for WakeTok;
+preservation behavior depends on AVAssetExportSession system
+behavior and is not guaranteed or committed to.
+This decision is final; no subtitle track probe implementation required.
+
+- [x] Product boundary recorded (no code)
+- [x] STATE 9.5 marked done
+- [x] ADR-003 Accepted (anchor `fcf7561`, O3=S1)
+
+## Phase 9.6 checklist
+
+Locks (Q5=A): iCloud-only + `networkAccessAllowed=false` → explicit
+`inCloudUnavailable` (incl. PHPhotosError 3164); no export path.
+Same F5 + network on → controlGate PASS. N1 (local + OFF) required:
+must not false-positive `inCloudUnavailable`.
+
+- [x] `listCloudOnlyVideos` / List iCloud-only (L1)
+- [x] Map 3164 → `inCloudUnavailable` when network off
+- [x] HUD `failGate=` / `controlGate=`
+- [x] Unit tests for gate formatting
+- [x] Manual F5 OFF / ON + N1 — owner PASS (2026-07-29)
+
+### Manual (9.6)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| F5 OFF | List iCloud-only → network OFF → Probe | `failGate=PASS`; no path |
+| F5 ON | Same asset → network ON → Probe | `controlGate=PASS`; `failGate=N/A` |
+| N1 | List local → network OFF → Probe | Export OK; not `inCloudUnavailable` |
+
+Notes: Optimize Storage may yield cloud-only candidates (R1); do OFF before ON
+on the same F5 (R2). `failGate=FAIL` on N1 when path exists is HUD wording for
+the cloud false-success case — ignore for N1.
+
+## Phase 9.7 — Go/no-go
+
+- [x] ADR-004 Pass (GO) drafted and owner-approved; Accepted with ADR-003
+
+## Build / measure log
+
+- 9.1: **PASS** — analyze/test/simulator OK; device H1–H4 (unedited smoke)
+- 9.2: **PASS** — Trim F1; no silent original fallback
+- 9.3: **PASS** — HFR F2; export matches Photos-displayed duration (Q4=A)
+- 9.4: **PASS** — F3; `audioGate=PASS`; Play export audible (A3 on export file)
+- 9.5: **PASS (docs)** — soft-sub out of scope; burned-in incidental; no probe
+- 9.6: **PASS** — F5 OFF `failGate=PASS`; F5 ON `controlGate=PASS`; N1 PASS
+- 9.7: **PASS** — ADR-004 Pass (GO); POC-09 closed
