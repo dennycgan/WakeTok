@@ -303,8 +303,8 @@
 
 ## ADR-005: iOS Deployment Target = iOS 16.0
 
-- Status: Accepted (pending)
-- Commit/PR anchor: pending
+- Status: Accepted (2026-07-29)
+- Commit/PR anchor: 0738c88
 - Plain summary (owner reads this):
   WakeTok’s minimum supported iOS version is 16.0.
 - Context / what problem forced this:

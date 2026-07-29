@@ -18,7 +18,7 @@
   - Explicit App ID registration in Certificates, Identifiers & Profiles: owner-only
   - App Store Connect app-record creation: owner-only
   - See `release-handoff.mdc`
-- iOS deployment target: iOS 16.0 (decided post-POC; see ADR-005 pending)
+- iOS deployment target: iOS 16.0 (decided post-POC; see ADR-005)
 - Test devices: iPhone 13 (performance floor), iPhone 17 (current-device compat)
 - No backend, no custom auth, no remote database, no developer-owned media server (kickoff Tech Stack)
 
