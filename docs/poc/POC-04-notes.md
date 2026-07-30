@@ -234,3 +234,34 @@ dart run pigeon --input pigeon/spikes/poc_04/poc_04_photo_library.dart
 - Per Fail path: evaluate **SwiftUI / Swift-native** architecture alternatives
   (ADR draft in chat → owner approve → then `docs/DECISIONS.md`; not written yet).
 - `docs/STATE.md` / DECISIONS stay out of work commits until owner gates (F1=A).
+
+> Note: Overall Conditional Pass was later recorded as ADR-001 on main;
+> this draft block is historical spike wording.
+
+## Lock-screen feed audio probe (pre–App Foundation 4.3)
+
+Purpose: validate app-scoped player ownership with detachable Platform View
+surface (design input for ADR-006 / PlaybackApi).
+
+Locks:
+- Lifecycle: `didEnterBackground` detach; `willEnterForeground` starts restore
+- Restore order: event(currentIndex) → Dart `jumpToPage` → PV ready →
+  adopt existing player onto layer (no stop/recreate; restore guard)
+- Plan: Dart pushes video-only `{assetId, feedIndex}`; Swift advances;
+  plan end = stop, keep position, no loop
+- Image page at lock = out of scope (P1 requires video playing)
+- No Now Playing / remote commands
+
+### Manual (iPhone 13 Pro)
+
+| ID | Steps | Pass |
+|----|-------|------|
+| P1 | LockON → play video → lock | **PASS** — audio continues; `det=Y` |
+| P2 | Stay locked until item ends | **PASS** — `didEnterBackground … queueItems=2`; `itemEnd … playing=true`; next plan video (skips images). Root cause of earlier silence: warming promotion replaced `AVQueuePlayer` and cleared lookahead; probe mode disables warming promotion to preserve queue lookahead. |
+| P3 | Unlock | **PASS** — picture matches audio; PageView on current feed index (no crash) |
+
+Evidence session (2026-07-29, iPhone 13 Pro): Console filter `Poc04LockAudio` —
+`prime(enable) done queueItems=2`, background `planIndex=1 queueItems=2`,
+`itemEnd queueItems=2 playing=true`. Work anchor: `a0b99d2`.
+
+Do not run POC-03 Play while this probe is on.
