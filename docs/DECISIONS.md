@@ -457,3 +457,65 @@
   - If/when `ios/Podfile` is first introduced (first dependency that needs
     native CocoaPods), that same commit **must** set
     `platform :ios, '18.0'`.
+
+---
+
+## ADR-008: Production error contract (AppError + Result + native mapping spec)
+
+- Status: Accepted (2026-07-30)
+- Commit/PR anchor: 9a405df (Dart half: AppError, Result, mapping spec);
+  wire half (Pigeon ErrorCode + ErrorCode→AppError mapping) pending
+  App Foundation 4.3 — re-anchor this field when 4.3 work lands
+- Plain summary (owner reads this):
+  WakeTok uses one shared list of error names in Dart (plus “unknown”),
+  a small Ok/Err Result type, and a written native mapping table. Spike
+  names like inCloudUnavailable stay out of production. The Pigeon wire
+  enum and mapping code come in the next foundation step.
+- Context / what problem forced this:
+  App Foundation must lock stable cross-layer error codes before Photos,
+  playback, and export gateways ship. POC-09 used spike-era
+  `inCloudUnavailable` for PHPhotosError 3164; kickoff Data Contract
+  instead lists `iCloudDownloadRequired` and `iCloudDownloadFailed`.
+  Without a production contract, Pigeon and Swift implementations would
+  diverge or re-leak spike names.
+- Decision (what was chosen):
+  1. **AppError** enum = kickoff Data Contract codes 1:1 plus
+     **unknown** (`lib/core/errors/app_error.dart`). No optional
+     message on the enum; gateways may wrap later.
+  2. **`Result<T, E>`** sealed Ok/Err with map / mapError / flatMap /
+     fold / getOrElse (`lib/core/result/result.dart`).
+  3. **Native mapping spec** (contract table, not Swift execution yet)
+     in `lib/core/errors/native_error_mapping_spec.dart`:
+     - R1: PHPhotosError 3164 / network required with
+       networkAccessAllowed=false → iCloudDownloadRequired
+     - R2: network allowed + download **entered transfer phase** +
+       non-3164 failure → iCloudDownloadFailed (mere allow/request
+       without transfer does not map to Failed)
+     - R3: user cancel → operationCancelled (never Failed)
+     - R4: wire ErrorCode.unknown (4.3) → AppError.unknown
+     - R5: channel-layer anomalies → AppError.unknown
+     - R6: spike `inCloudUnavailable` forbidden in production contracts
+  4. **Wire half deferred to 4.3:** Pigeon ErrorCode 1:1 with AppError
+     (including unknown) + ErrorCode→AppError mapping + exhaustive
+     switch tests. After 4.3 work lands, append that sha to this ADR’s
+     Commit/PR anchor line (do not rewrite Decision/Rejected text).
+  5. Swift-side mapping execution remains in later capabilities’ first
+     real native implementations.
+- Rejected alternatives (why not B):
+  - **Keep spike `inCloudUnavailable` in production:** Rejected —
+    collapses Required vs Failed; conflicts with kickoff codes.
+  - **AppFailure(code, message?) as Result error type in 4.2:**
+    Rejected — STATE locks `Result<T, AppError>`; message wrapping
+    can layer later without changing the code enum.
+  - **String wire codes only:** Rejected — owner locked Pigeon enum
+    for compile-time alignment with AppError.
+  - **Wait to Accept until 4.3:** Rejected — Dart half is already
+    implemented; dual-anchor records the split without inventing a
+    second ADR for the same contract.
+- Consequences / constraints accepted:
+  - Production Dart must not introduce spike error member names.
+  - 4.3 must deliver ErrorCode + mapping + exhaustive tests and
+    re-anchor this ADR’s wire half.
+  - R2 “transfer phase” is stricter than a bare “download attempted”
+    reading; STATE 4.2 wording matches the spec.
+  - Spec table is auditable contract; it does not yet run on device.

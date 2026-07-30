@@ -104,7 +104,7 @@ Active capability: App Foundation
       (work: a1725c9; base app_zh.arb matches zh_Hans「本地化正常」
       for Flutter gen_l10n fallback only)
 
-- [ ] 4.2 Define shared Result<T, AppError> (lib/core/result/) and
+- [x] 4.2 Define shared Result<T, AppError> (lib/core/result/) and
       AppError enum (lib/core/errors/), 1:1 with kickoff Data Contract
       error codes plus an unknown fallback (covers media, permission,
       export, album error domains); unit tests for Result combinators
@@ -113,16 +113,16 @@ Active capability: App Foundation
       as contract spec in code/docs (Swift-side execution in later
       capabilities' first real native implementations):
       PHPhotosError 3164 / networkAccessAllowed=false →
-      iCloudDownloadRequired; network allowed + download attempted +
-      non-3164 underlying failure → iCloudDownloadFailed; user cancel →
-      operationCancelled (never Failed); wire ErrorCode includes an
-      unknown member, and channel-layer anomalies (decode failure,
-      missing code, unexpected PlatformException) fold into
-      AppError.unknown; spike-era names (inCloudUnavailable) must not
-      leak into production contracts; future production error-contract
-      ADR: Dart half (AppError + Result + this spec table) anchors to
-      the 4.2 work commit; wire half (ErrorCode + mapping) re-anchors
-      after 4.3 lands
+      iCloudDownloadRequired; network allowed + download entered
+      transfer phase + non-3164 underlying failure →
+      iCloudDownloadFailed; user cancel → operationCancelled (never
+      Failed); wire ErrorCode includes an unknown member, and
+      channel-layer anomalies (decode failure, missing code,
+      unexpected PlatformException) fold into AppError.unknown;
+      spike-era names (inCloudUnavailable) must not leak into
+      production contracts; production error-contract ADR-008: Dart
+      half anchors to 9a405df; wire half re-anchors after 4.3 lands
+      (work: 9a405df)
 
 - [ ] 4.3 Define production Pigeon contracts baseline:
       PhotoLibraryApi and PlaybackApi only (empty implementations);
@@ -167,16 +167,17 @@ Active capability: App Foundation
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004); 4.1 gen_l10n + ARB smoke (a1725c9)
-- Next step: phase 4.2 Result/AppError + native error mapping spec (await owner go to design/code)
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004); 4.1 gen_l10n + ARB smoke (a1725c9); 4.2 Result/AppError + mapping spec (9a405df, ADR-008)
+- Next step: phase 4.3 production Pigeon baseline — owner-approved design draft required before coding
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target); ADR-008 (production error contract, Dart half)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
 - l10n: lib/l10n/ (ARB + generated AppLocalizations; untranslated_messages.json)
-- ADR-001 … ADR-007: docs/DECISIONS.md
+- Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008)
+- ADR-001 … ADR-008: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
