@@ -1,4 +1,5 @@
-/// Maps wire [ErrorCode] / channel failures onto domain [AppError] (ADR-008 wire half).
+/// Maps wire [ErrorCode] / channel failures onto domain [AppError]
+/// (ADR-008 wire half; lives under platform as protocol adapter — ADR-009).
 library;
 
 import 'package:flutter/services.dart';

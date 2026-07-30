@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/core/errors/app_error.dart';
-import 'package:waketok/core/errors/error_code_mapping.dart';
+import 'package:waketok/platform/error_code_mapping.dart';
 import 'package:waketok/platform/generated/waketok_platform_apis.g.dart';
 
 /// T7: Dart HostApi / FlutterApi surface + codec path (not Swift — see T6).
