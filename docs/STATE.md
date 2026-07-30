@@ -108,28 +108,39 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 
 - [ ] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
       authorization status/request in Swift PhotoLibraryService
-      (converge stub ApiHost naming); Dart authorization state model
-      (notDetermined / denied / restricted / limited / full),
-      repository interface + platform gateway; state-management wiring
-      per design draft (expect ADR-010);
-      NSPhotoLibraryUsageDescription placeholder
-      (final wording owner-only, release-handoff)
+      (converge stub ApiHost naming); Pigeon adds non-prompting
+      authorizationStatus (pure PhotoKit read, never triggers the system
+      prompt) and presentLimitedLibraryPicker; Dart authorization state
+      model (notDetermined / denied / restricted / limited / full),
+      repository interface + platform gateway; Riverpod wiring per ADR-010
+      (ProviderScope at composition root; domain stays Riverpod-free —
+      guard test adds riverpod import ban for lib/domain; domain
+      signatures use Future/Stream only, no AsyncValue; features must not
+      construct gateways or hold platform concrete types);
+      Info.plist: NSPhotoLibraryUsageDescription PLACEHOLDER
+      (final wording owner-only, release-handoff) +
+      PHPhotoLibraryPreventAutomaticLimitedAccessAlert = YES
 
 - [ ] 5.3 Permission UI flows (en / zh-Hans, tokens only):
       first-launch request; denied / restricted screen with Open Settings;
-      Limited banner + manage-selection entry (kickoff ADR-K semantics)
+      Limited banner + manage-selection entry (kickoff ADR-K semantics);
+      success landing = debug shell showing per-type totals
+      (real Feed is next capability)
 
-- [ ] 5.4 Library access + iCloud asset state model: gateway fetch of
-      asset metadata (id / type / creation date) with NO device-local
-      filtering (full library incl. iCloud-only); domain asset
-      availability vocabulary (deviceLocal / iCloudNotDownloaded /
+- [ ] 5.4 Library access + iCloud asset state model: paged gateway fetch
+      of PHAsset-level metadata (id / type / creation date) — enumerates
+      individual PHAssets only, no PHAssetCollection/Album enumeration;
+      NO device-local filtering (full library incl. iCloud-only); domain
+      asset availability vocabulary (deviceLocal / iCloudNotDownloaded /
       downloading / unavailable); unit tests; debug smoke shows
-      per-type totals
+      per-type totals; non-goal: product All/Photos/Videos source
+      resolution and feed (next capability)
 
 - [ ] 5.5 Real-device acceptance on iPhone 13 Pro: permission flows
       (first ask / deny→Settings / limited banner + manage),
-      totals match Photos app counts on owner's ~42k library,
-      Light/Dark render, en + zh-Hans strings
+      totals on the 5.3 debug shell match Photos app counts on owner's
+      ~42k library (default PHFetchOptions semantics: excludes Hidden
+      and Recently Deleted), Light/Dark render, en + zh-Hans strings
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -140,9 +151,9 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): 5.1 Theme token baseline (lib/core/theme Light/Dark + MaterialApp wiring; ADR-009)
-- Sub-steps done: ADR-009 landed (mapping → platform; test/architecture/ guards); Cap 5 phases locked
-- Next step: design-then-implement 5.1 theme tokens (await owner design OK before code)
-- Related decisions: ADR-001 … ADR-009 (see DECISIONS.md)
+- Sub-steps done: Cap 5 design approved (Riverpod → ADR-010 with 5.2; phase texts clarified)
+- Next step: 5.1 work commit → owner acceptance (Light/Dark render on existing screens)
+- Related decisions: ADR-001 … ADR-009 (see DECISIONS.md); ADR-010 expected with 5.2
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -173,3 +184,5 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 | App Foundation | Localization Inventory generation/validation mechanism (kickoff ADR-U §7–8) | Only smoke keys exist during App Foundation; nothing to inventory yet. Interim inventory-of-record = ARB + Untranslated Messages Report (satisfies ADR-U §9 task checks until the formal Inventory lands) | Settings and localisation completion | — (kickoff ADR-U) |
 | App Foundation | Final accent color (depends on app icon design); provisional accent in theme tokens | Icon design is owner parallel track; accent must freeze before Main Browse Screen closes | Main Browse Screen | ADR-009 |
 | App Foundation | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
+| iOS Photos permission | Typography text-style tokens (5.1 ships color tokens only; M3 default TextTheme) | Color-first keeps 5.1 small; type scale locks when heavy content UI lands | Main Browse Screen | ADR-009 |
+| iOS Photos permission | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
