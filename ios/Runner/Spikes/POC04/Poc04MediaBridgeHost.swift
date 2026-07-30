@@ -242,6 +242,34 @@ final class Poc04MediaBridgeHost: Poc04MediaBridgeApi {
     )
   }
 
+  func setLockAudioProbeEnabled(
+    enabled: Bool,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    Poc04LockAudioProbe.shared.setEnabled(enabled) {
+      completion(.success(()))
+    }
+  }
+
+  func setPlaybackPlan(items: [Poc04PlaybackPlanItem]) throws {
+    Poc04LockAudioProbe.shared.setPlaybackPlan(items)
+  }
+
+  func syncPlanPosition(assetId: String, feedIndex: Int64) throws {
+    Poc04LockAudioProbe.shared.syncPlanPosition(
+      assetId: assetId,
+      feedIndex: Int(feedIndex)
+    )
+  }
+
+  func notifyPlatformViewReady(assetId: String) throws {
+    Poc04LockAudioProbe.shared.notifyPlatformViewReady(assetId: assetId)
+  }
+
+  func getLockProbeState() throws -> Poc04LockProbeState {
+    return Poc04LockAudioProbe.shared.snapshotState()
+  }
+
   private static func targetSize(for asset: PHAsset, maxLongEdge: Int) -> CGSize {
     let w = max(asset.pixelWidth, 1)
     let h = max(asset.pixelHeight, 1)

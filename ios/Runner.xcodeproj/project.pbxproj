@@ -21,6 +21,7 @@
 		A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000B /* Poc04PlayerPool.swift */; };
 		A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000D /* Poc04VideoPlatformView.swift */; };
 		A10000000000000000000010 /* Poc04ActiveVideoTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */; };
+		A10000000000000000000012 /* Poc04LockAudioProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* Poc04LockAudioProbe.swift */; };
 		A20000000000000000000004 /* Poc03Playback.g.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000003 /* Poc03Playback.g.swift */; };
 		A20000000000000000000006 /* Poc03PlaybackHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* Poc03PlaybackHost.swift */; };
 		A20000000000000000000008 /* Poc03PlaybackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* Poc03PlaybackEngine.swift */; };
@@ -78,6 +79,7 @@
 		A1000000000000000000000B /* Poc04PlayerPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04PlayerPool.swift; sourceTree = "<group>"; };
 		A1000000000000000000000D /* Poc04VideoPlatformView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04VideoPlatformView.swift; sourceTree = "<group>"; };
 		A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04ActiveVideoTexture.swift; sourceTree = "<group>"; };
+		A10000000000000000000011 /* Poc04LockAudioProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc04LockAudioProbe.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* Poc03Playback.g.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc03Playback.g.swift; sourceTree = "<group>"; };
 		A20000000000000000000005 /* Poc03PlaybackHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc03PlaybackHost.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* Poc03PlaybackEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Poc03PlaybackEngine.swift; sourceTree = "<group>"; };
@@ -205,6 +207,7 @@
 				A1000000000000000000000B /* Poc04PlayerPool.swift */,
 				A1000000000000000000000D /* Poc04VideoPlatformView.swift */,
 				A1000000000000000000000F /* Poc04ActiveVideoTexture.swift */,
+				A10000000000000000000011 /* Poc04LockAudioProbe.swift */,
 			);
 			path = POC04;
 			sourceTree = "<group>";
@@ -366,6 +369,7 @@
 				A1000000000000000000000C /* Poc04PlayerPool.swift in Sources */,
 				A1000000000000000000000E /* Poc04VideoPlatformView.swift in Sources */,
 				A10000000000000000000010 /* Poc04ActiveVideoTexture.swift in Sources */,
+				A10000000000000000000012 /* Poc04LockAudioProbe.swift in Sources */,
 				A20000000000000000000004 /* Poc03Playback.g.swift in Sources */,
 				A20000000000000000000006 /* Poc03PlaybackHost.swift in Sources */,
 				A20000000000000000000008 /* Poc03PlaybackEngine.swift in Sources */,

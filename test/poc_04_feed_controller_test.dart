@@ -50,6 +50,29 @@ class _MockBridge implements Poc04MediaBridge {
   Future<double> waitActiveFirstFrameMs(int timeoutMs) async => 0;
 
   @override
+  Future<void> setLockAudioProbeEnabled(bool enabled) async {}
+
+  @override
+  Future<void> setPlaybackPlan(List<Poc04PlaybackPlanItem> items) async {}
+
+  @override
+  Future<void> syncPlanPosition(String assetId, int feedIndex) async {}
+
+  @override
+  Future<void> notifyPlatformViewReady(String assetId) async {}
+
+  @override
+  Future<Poc04LockProbeState> getLockProbeState() async {
+    return Poc04LockProbeState(
+      enabled: false,
+      layerDetached: false,
+      playing: false,
+      planIndex: -1,
+      feedIndex: -1,
+    );
+  }
+
+  @override
   Future<void> pauseActive() async {}
 
   @override

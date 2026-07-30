@@ -117,16 +117,34 @@ final class Poc04PhotoLibraryHost: Poc04PhotoLibraryApi {
   /// (Avoids `PHAssetResource.isLocallyAvailable`, which is SDK/OS gated.)
   private static func isDeviceLocal(_ asset: PHAsset) -> Bool {
     if asset.mediaType == .image {
+      // Prefer image data probe — 1×1 requestImage often false-negatives on
+      // HEIC / optimized libraries even when a local representation exists.
+      let dataOptions = PHImageRequestOptions()
+      dataOptions.isSynchronous = true
+      dataOptions.isNetworkAccessAllowed = false
+      dataOptions.deliveryMode = .fastFormat
+
+      var isLocal = false
+      PHImageManager.default().requestImageDataAndOrientation(
+        for: asset,
+        options: dataOptions
+      ) { data, _, _, info in
+        let inCloud = (info?[PHImageResultIsInCloudKey] as? Bool) ?? false
+        let cancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+        let error = info?[PHImageErrorKey]
+        isLocal = data != nil && !inCloud && !cancelled && error == nil
+      }
+      if isLocal { return true }
+
       let options = PHImageRequestOptions()
       options.isSynchronous = true
       options.isNetworkAccessAllowed = false
       options.deliveryMode = .fastFormat
       options.resizeMode = .fast
 
-      var isLocal = false
       PHImageManager.default().requestImage(
         for: asset,
-        targetSize: CGSize(width: 1, height: 1),
+        targetSize: CGSize(width: 32, height: 32),
         contentMode: .aspectFit,
         options: options
       ) { image, info in

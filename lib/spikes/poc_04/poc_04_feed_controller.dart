@@ -41,6 +41,16 @@ abstract class Poc04MediaBridge {
   Future<List<double>> getFirstFrameSamples();
 
   Future<double> waitActiveFirstFrameMs(int timeoutMs);
+
+  Future<void> setLockAudioProbeEnabled(bool enabled);
+
+  Future<void> setPlaybackPlan(List<Poc04PlaybackPlanItem> items);
+
+  Future<void> syncPlanPosition(String assetId, int feedIndex);
+
+  Future<void> notifyPlatformViewReady(String assetId);
+
+  Future<Poc04LockProbeState> getLockProbeState();
 }
 
 /// Production bridge wrapping generated Pigeon host API.
@@ -102,6 +112,25 @@ class Poc04PigeonMediaBridge implements Poc04MediaBridge {
   @override
   Future<double> waitActiveFirstFrameMs(int timeoutMs) =>
       _api.waitActiveFirstFrameMs(timeoutMs);
+
+  @override
+  Future<void> setLockAudioProbeEnabled(bool enabled) =>
+      _api.setLockAudioProbeEnabled(enabled);
+
+  @override
+  Future<void> setPlaybackPlan(List<Poc04PlaybackPlanItem> items) =>
+      _api.setPlaybackPlan(items);
+
+  @override
+  Future<void> syncPlanPosition(String assetId, int feedIndex) =>
+      _api.syncPlanPosition(assetId, feedIndex);
+
+  @override
+  Future<void> notifyPlatformViewReady(String assetId) =>
+      _api.notifyPlatformViewReady(assetId);
+
+  @override
+  Future<Poc04LockProbeState> getLockProbeState() => _api.getLockProbeState();
 }
 
 /// Pure feed orchestration: pool intents + image temp lifecycle (testable).
@@ -215,6 +244,10 @@ class Poc04FeedController {
       await _bridge.attachWarmingVideo(warmVideo);
     }
     if (epoch != _pageEpoch) return;
+
+    if (activeVideo != null) {
+      await _bridge.syncPlanPosition(activeVideo, index);
+    }
 
     if (current.mediaType == Poc04MediaType.image) {
       if (!imagePaths.containsKey(current.assetId)) {

@@ -34,6 +34,16 @@ Object? _extractReplyValueOrThrow(
   return replyList.firstOrNull;
 }
 
+
+List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty = false}) {
+  if (empty) {
+    return <Object?>[];
+  }
+  if (error == null) {
+    return <Object?>[result];
+  }
+  return <Object?>[error.code, error.message, error.details];
+}
 bool _deepEquals(Object? a, Object? b) {
   if (identical(a, b)) {
     return true;
@@ -230,6 +240,134 @@ class Poc04PoolDiagnostics {
   }
 }
 
+/// Video-only playback plan entry for lock-audio probe (images filtered in Dart).
+class Poc04PlaybackPlanItem {
+  Poc04PlaybackPlanItem({
+    required this.assetId,
+    required this.feedIndex,
+  });
+
+  String assetId;
+
+  int feedIndex;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetId,
+      feedIndex,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static Poc04PlaybackPlanItem decode(Object result) {
+    result as List<Object?>;
+    return Poc04PlaybackPlanItem(
+      assetId: result[0]! as String,
+      feedIndex: result[1]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! Poc04PlaybackPlanItem || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetId, other.assetId) && _deepEquals(feedIndex, other.feedIndex);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'Poc04PlaybackPlanItem(assetId: $assetId, feedIndex: $feedIndex)';
+  }
+}
+
+/// HUD / diagnostics for the lock-screen feed audio probe.
+class Poc04LockProbeState {
+  Poc04LockProbeState({
+    required this.enabled,
+    required this.layerDetached,
+    required this.playing,
+    required this.planIndex,
+    required this.feedIndex,
+    this.activeAssetId,
+    this.lastEvent,
+  });
+
+  bool enabled;
+
+  bool layerDetached;
+
+  bool playing;
+
+  /// Index into the video-only plan; -1 if unset.
+  int planIndex;
+
+  int feedIndex;
+
+  String? activeAssetId;
+
+  String? lastEvent;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      enabled,
+      layerDetached,
+      playing,
+      planIndex,
+      feedIndex,
+      activeAssetId,
+      lastEvent,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static Poc04LockProbeState decode(Object result) {
+    result as List<Object?>;
+    return Poc04LockProbeState(
+      enabled: result[0]! as bool,
+      layerDetached: result[1]! as bool,
+      playing: result[2]! as bool,
+      planIndex: result[3]! as int,
+      feedIndex: result[4]! as int,
+      activeAssetId: result[5] as String?,
+      lastEvent: result[6] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! Poc04LockProbeState || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(enabled, other.enabled) && _deepEquals(layerDetached, other.layerDetached) && _deepEquals(playing, other.playing) && _deepEquals(planIndex, other.planIndex) && _deepEquals(feedIndex, other.feedIndex) && _deepEquals(activeAssetId, other.activeAssetId) && _deepEquals(lastEvent, other.lastEvent);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'Poc04LockProbeState(enabled: $enabled, layerDetached: $layerDetached, playing: $playing, planIndex: $planIndex, feedIndex: $feedIndex, activeAssetId: $activeAssetId, lastEvent: $lastEvent)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -250,6 +388,12 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is Poc04PoolDiagnostics) {
       buffer.putUint8(132);
       writeValue(buffer, value.encode());
+    }    else if (value is Poc04PlaybackPlanItem) {
+      buffer.putUint8(133);
+      writeValue(buffer, value.encode());
+    }    else if (value is Poc04LockProbeState) {
+      buffer.putUint8(134);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -268,6 +412,10 @@ class _PigeonCodec extends StandardMessageCodec {
         return Poc04AssetDto.decode(readValue(buffer)!);
       case 132:
         return Poc04PoolDiagnostics.decode(readValue(buffer)!);
+      case 133:
+        return Poc04PlaybackPlanItem.decode(readValue(buffer)!);
+      case 134:
+        return Poc04LockProbeState.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -647,5 +795,160 @@ class Poc04MediaBridgeApi {
     )
     ;
     return pigeonVar_replyValue! as double;
+  }
+
+  /// Enables lock-screen feed audio probe (unmute + session + lifecycle).
+  /// Completes only after active player is AVQueuePlayer and next item is enqueued.
+  Future<void> setLockAudioProbeEnabled(bool enabled) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.setLockAudioProbeEnabled$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[enabled]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Video-only plan (assetId + feed index). Images must be filtered in Dart.
+  Future<void> setPlaybackPlan(List<Poc04PlaybackPlanItem> items) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.setPlaybackPlan$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[items]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Sync plan cursor after foreground user scroll (asset must be in plan).
+  Future<void> syncPlanPosition(String assetId, int feedIndex) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.syncPlanPosition$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId, feedIndex]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// After jumpToPage + Platform View created: adopt existing player onto layer.
+  Future<void> notifyPlatformViewReady(String assetId) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.notifyPlatformViewReady$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetId]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<Poc04LockProbeState> getLockProbeState() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.getLockProbeState$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as Poc04LockProbeState;
+  }
+}
+
+/// Native → Dart events for lock-audio probe restore / plan end.
+abstract class Poc04LockProbeFlutterApi {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  /// willEnterForeground: Dart must jumpToPage(feedIndex) then notify ready.
+  void onLockProbeForeground(int feedIndex, String assetId);
+
+  /// Plan exhausted after background advance; playback stopped at last item.
+  void onLockProbePlanEnded(int feedIndex, String assetId);
+
+  static void setUp(Poc04LockProbeFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.Poc04LockProbeFlutterApi.onLockProbeForeground$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_feedIndex = args[0]! as int;
+          final String arg_assetId = args[1]! as String;
+          try {
+            api.onLockProbeForeground(arg_feedIndex, arg_assetId);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.Poc04LockProbeFlutterApi.onLockProbePlanEnded$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_feedIndex = args[0]! as int;
+          final String arg_assetId = args[1]! as String;
+          try {
+            api.onLockProbePlanEnded(arg_feedIndex, arg_assetId);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
   }
 }

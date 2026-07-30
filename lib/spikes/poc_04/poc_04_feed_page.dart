@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:waketok/spikes/poc_04/generated/poc_04_photo_library.g.dart';
 import 'package:waketok/spikes/poc_04/poc_04_feed_controller.dart';
 import 'package:waketok/spikes/poc_04/poc_04_first_frame.dart';
+import 'package:waketok/spikes/poc_04/poc_04_lock_probe.dart';
 import 'package:waketok/spikes/poc_04/poc_04_probe.dart';
 
 /// Hitch Probe Normal: fixed page cadence (Q1=A). Wall ~48s.
@@ -21,7 +22,7 @@ const int kPoc04HitchFastPages = 100;
 const int kPoc04HitchFastIntervalMs = 300;
 const int kPoc04HitchFastAnimMs = 220;
 
-/// POC-04 feed: PV / Texture toggle (T1=B), probes, first-frame timing.
+/// POC-04 feed: PV / Texture toggle (T1=B), probes, lock-audio probe, FF timing.
 class Poc04FeedPage extends StatefulWidget {
   const Poc04FeedPage({super.key, required this.assets});
 
@@ -31,7 +32,8 @@ class Poc04FeedPage extends StatefulWidget {
   State<Poc04FeedPage> createState() => _Poc04FeedPageState();
 }
 
-class _Poc04FeedPageState extends State<Poc04FeedPage> {
+class _Poc04FeedPageState extends State<Poc04FeedPage>
+    implements Poc04LockProbeFlutterApi {
   late final PageController _pageController;
   late final Poc04FeedController _controller;
   final Poc04MediaBridge _bridge = Poc04PigeonMediaBridge();
@@ -39,11 +41,14 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
   Poc04PoolDiagnostics? _diagnostics;
   String? _probeResult;
   String? _ffSummary;
+  String? _lockHud;
   bool _busyProbe = false;
   String? _pageError;
   bool _probeOwnsPaging = false;
+  bool _lockAudioProbe = false;
+  bool _restoringFromLock = false;
 
-  /// T1=B: default Texture (Conditional escape). Toggle to compare hitch vs PV.
+  /// T1=B: default Texture (Conditional escape). Lock probe forces PV.
   bool _useTexture = true;
 
   @override
@@ -51,20 +56,118 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
     super.initState();
     _pageController = PageController();
     _controller = Poc04FeedController(bridge: _bridge, items: widget.assets);
+    Poc04LockProbeFlutterApi.setUp(this);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _bridge.setUseTextureSurface(_useTexture);
+      await _pushPlaybackPlan();
       await _applyPage(0);
     });
   }
 
   @override
   void dispose() {
+    Poc04LockProbeFlutterApi.setUp(null);
+    unawaited(_bridge.setLockAudioProbeEnabled(false));
     _controller.dispose();
     _pageController.dispose();
     super.dispose();
   }
 
+  Future<void> _pushPlaybackPlan() async {
+    final plan = buildPlaybackPlan(widget.assets);
+    await _bridge.setPlaybackPlan(plan);
+  }
+
+  Future<void> _refreshLockHud() async {
+    try {
+      final s = await _bridge.getLockProbeState();
+      if (!mounted) return;
+      setState(() => _lockHud = formatLockProbeHud(s));
+    } catch (_) {}
+  }
+
+  Future<void> _toggleLockAudioProbe() async {
+    final next = !_lockAudioProbe;
+    setState(() {
+      _lockAudioProbe = next;
+      if (next) {
+        _useTexture = false;
+      }
+    });
+    if (next) {
+      await _bridge.setUseTextureSurface(false);
+    }
+    await _bridge.setLockAudioProbeEnabled(next);
+    await _pushPlaybackPlan();
+    await _applyPage(_controller.index);
+    await _refreshLockHud();
+    if (!mounted) return;
+    setState(() {
+      _probeResult = next
+          ? 'Lock probe ON (PV). P1: play video → lock. Do not run POC-03.'
+          : 'Lock probe OFF';
+    });
+  }
+
+  @override
+  void onLockProbeForeground(int feedIndex, String assetId) {
+    unawaited(_handleLockProbeForeground(feedIndex, assetId));
+  }
+
+  @override
+  void onLockProbePlanEnded(int feedIndex, String assetId) {
+    if (!mounted) return;
+    setState(() {
+      _probeResult =
+          'Lock plan ended at feed=$feedIndex (stopped; no loop)';
+    });
+    unawaited(_refreshLockHud());
+  }
+
+  Future<void> _handleLockProbeForeground(
+    int feedIndex,
+    String assetId,
+  ) async {
+    if (!mounted) return;
+    setState(() {
+      _restoringFromLock = true;
+      _probeOwnsPaging = true; // block onPageChanged from jumpToPage (crash race)
+      _probeResult = 'Restoring feed=$feedIndex…';
+    });
+    try {
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(feedIndex);
+      }
+      // Ensure controller sync even when jumpToPage does not fire onPageChanged.
+      await _applyPage(feedIndex);
+      await WidgetsBinding.instance.endOfFrame;
+      await _bridge.notifyPlatformViewReady(assetId);
+      await _refreshLockHud();
+      if (!mounted) return;
+      setState(() {
+        _probeResult = 'Restored feed=$feedIndex · $assetId';
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _pageError = 'Restore failed: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _restoringFromLock = false;
+          _probeOwnsPaging = false;
+        });
+      } else {
+        _restoringFromLock = false;
+        _probeOwnsPaging = false;
+      }
+    }
+  }
+
   Future<void> _toggleSurface() async {
+    if (_lockAudioProbe) {
+      setState(() => _probeResult = 'Lock probe forces PV; disable lock first');
+      return;
+    }
     final next = !_useTexture;
     setState(() {
       _useTexture = next;
@@ -328,6 +431,9 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
     if (_ffSummary != null) {
       hud.write(' · $_ffSummary');
     }
+    if (_lockHud != null) {
+      hud.write('\n$_lockHud');
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -337,7 +443,13 @@ class _Poc04FeedPageState extends State<Poc04FeedPage> {
         title: const Text('POC-04 feed'),
         actions: [
           TextButton(
-            onPressed: _busyProbe ? null : _toggleSurface,
+            onPressed: (_busyProbe || _restoringFromLock)
+                ? null
+                : _toggleLockAudioProbe,
+            child: Text(_lockAudioProbe ? 'LockON' : 'Lock'),
+          ),
+          TextButton(
+            onPressed: _busyProbe || _lockAudioProbe ? null : _toggleSurface,
             child: Text(_useTexture ? '→PV' : '→Tex'),
           ),
           TextButton(

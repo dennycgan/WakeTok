@@ -55,6 +55,10 @@ private func wrapError(_ error: Any) -> [Any?] {
   ]
 }
 
+private func createConnectionError(withChannelName channelName: String) -> PigeonError {
+  return PigeonError(code: "channel-error", message: "Unable to establish connection on channel: '\(channelName)'.", details: "")
+}
+
 enum Poc04PhotoLibraryPigeonInternal {
   static func isNullish(_ value: Any?) -> Bool {
     guard let innerValue = value else {
@@ -297,6 +301,116 @@ struct Poc04PoolDiagnostics: Hashable, CustomStringConvertible {
   }
 }
 
+/// Video-only playback plan entry for lock-audio probe (images filtered in Dart).
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct Poc04PlaybackPlanItem: Hashable, CustomStringConvertible {
+  var assetId: String
+  var feedIndex: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> Poc04PlaybackPlanItem? {
+    let assetId = pigeonVar_list[0] as! String
+    let feedIndex = pigeonVar_list[1] as! Int64
+
+    return Poc04PlaybackPlanItem(
+      assetId: assetId,
+      feedIndex: feedIndex
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetId,
+      feedIndex,
+    ]
+  }
+  static func == (lhs: Poc04PlaybackPlanItem, rhs: Poc04PlaybackPlanItem) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.assetId, rhs.assetId) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.feedIndex, rhs.feedIndex)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("Poc04PlaybackPlanItem")
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: assetId, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: feedIndex, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "Poc04PlaybackPlanItem(assetId: \(String(describing: assetId)), feedIndex: \(String(describing: feedIndex)))"
+  }
+}
+
+/// HUD / diagnostics for the lock-screen feed audio probe.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct Poc04LockProbeState: Hashable, CustomStringConvertible {
+  var enabled: Bool
+  var layerDetached: Bool
+  var playing: Bool
+  /// Index into the video-only plan; -1 if unset.
+  var planIndex: Int64
+  var feedIndex: Int64
+  var activeAssetId: String? = nil
+  var lastEvent: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> Poc04LockProbeState? {
+    let enabled = pigeonVar_list[0] as! Bool
+    let layerDetached = pigeonVar_list[1] as! Bool
+    let playing = pigeonVar_list[2] as! Bool
+    let planIndex = pigeonVar_list[3] as! Int64
+    let feedIndex = pigeonVar_list[4] as! Int64
+    let activeAssetId: String? = nilOrValue(pigeonVar_list[5])
+    let lastEvent: String? = nilOrValue(pigeonVar_list[6])
+
+    return Poc04LockProbeState(
+      enabled: enabled,
+      layerDetached: layerDetached,
+      playing: playing,
+      planIndex: planIndex,
+      feedIndex: feedIndex,
+      activeAssetId: activeAssetId,
+      lastEvent: lastEvent
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      enabled,
+      layerDetached,
+      playing,
+      planIndex,
+      feedIndex,
+      activeAssetId,
+      lastEvent,
+    ]
+  }
+  static func == (lhs: Poc04LockProbeState, rhs: Poc04LockProbeState) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.enabled, rhs.enabled) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.layerDetached, rhs.layerDetached) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.playing, rhs.playing) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.planIndex, rhs.planIndex) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.feedIndex, rhs.feedIndex) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.activeAssetId, rhs.activeAssetId) && Poc04PhotoLibraryPigeonInternal.deepEquals(lhs.lastEvent, rhs.lastEvent)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("Poc04LockProbeState")
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: enabled, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: layerDetached, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: playing, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: planIndex, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: feedIndex, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: activeAssetId, hasher: &hasher)
+    Poc04PhotoLibraryPigeonInternal.deepHash(value: lastEvent, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "Poc04LockProbeState(enabled: \(String(describing: enabled)), layerDetached: \(String(describing: layerDetached)), playing: \(String(describing: playing)), planIndex: \(String(describing: planIndex)), feedIndex: \(String(describing: feedIndex)), activeAssetId: \(String(describing: activeAssetId)), lastEvent: \(String(describing: lastEvent)))"
+  }
+}
+
 private class Poc04PhotoLibraryPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -316,6 +430,10 @@ private class Poc04PhotoLibraryPigeonCodecReader: FlutterStandardReader {
       return Poc04AssetDto.fromList(self.readValue() as! [Any?])
     case 132:
       return Poc04PoolDiagnostics.fromList(self.readValue() as! [Any?])
+    case 133:
+      return Poc04PlaybackPlanItem.fromList(self.readValue() as! [Any?])
+    case 134:
+      return Poc04LockProbeState.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -335,6 +453,12 @@ private class Poc04PhotoLibraryPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? Poc04PoolDiagnostics {
       super.writeByte(132)
+      super.writeValue(value.toList())
+    } else if let value = value as? Poc04PlaybackPlanItem {
+      super.writeByte(133)
+      super.writeValue(value.toList())
+    } else if let value = value as? Poc04LockProbeState {
+      super.writeByte(134)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -451,6 +575,16 @@ protocol Poc04MediaBridgeApi {
   /// Waits until active AVPlayerLayer is ready for display since last attach,
   /// or until timeoutMs (timeout value is still recorded — H4=A).
   func waitActiveFirstFrameMs(timeoutMs: Int64, completion: @escaping (Result<Double, Error>) -> Void)
+  /// Enables lock-screen feed audio probe (unmute + session + lifecycle).
+  /// Completes only after active player is AVQueuePlayer and next item is enqueued.
+  func setLockAudioProbeEnabled(enabled: Bool, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Video-only plan (assetId + feed index). Images must be filtered in Dart.
+  func setPlaybackPlan(items: [Poc04PlaybackPlanItem]) throws
+  /// Sync plan cursor after foreground user scroll (asset must be in plan).
+  func syncPlanPosition(assetId: String, feedIndex: Int64) throws
+  /// After jumpToPage + Platform View created: adopt existing player onto layer.
+  func notifyPlatformViewReady(assetId: String) throws
+  func getLockProbeState() throws -> Poc04LockProbeState
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -691,6 +825,146 @@ class Poc04MediaBridgeApiSetup {
       }
     } else {
       waitActiveFirstFrameMsChannel.setMessageHandler(nil)
+    }
+    /// Enables lock-screen feed audio probe (unmute + session + lifecycle).
+    /// Completes only after active player is AVQueuePlayer and next item is enqueued.
+    let setLockAudioProbeEnabledChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.setLockAudioProbeEnabled\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setLockAudioProbeEnabledChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let enabledArg = args[0] as! Bool
+        api.setLockAudioProbeEnabled(enabled: enabledArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      setLockAudioProbeEnabledChannel.setMessageHandler(nil)
+    }
+    /// Video-only plan (assetId + feed index). Images must be filtered in Dart.
+    let setPlaybackPlanChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.setPlaybackPlan\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setPlaybackPlanChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let itemsArg = args[0] as! [Poc04PlaybackPlanItem]
+        do {
+          try api.setPlaybackPlan(items: itemsArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setPlaybackPlanChannel.setMessageHandler(nil)
+    }
+    /// Sync plan cursor after foreground user scroll (asset must be in plan).
+    let syncPlanPositionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.syncPlanPosition\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      syncPlanPositionChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdArg = args[0] as! String
+        let feedIndexArg = args[1] as! Int64
+        do {
+          try api.syncPlanPosition(assetId: assetIdArg, feedIndex: feedIndexArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      syncPlanPositionChannel.setMessageHandler(nil)
+    }
+    /// After jumpToPage + Platform View created: adopt existing player onto layer.
+    let notifyPlatformViewReadyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.notifyPlatformViewReady\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      notifyPlatformViewReadyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdArg = args[0] as! String
+        do {
+          try api.notifyPlatformViewReady(assetId: assetIdArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      notifyPlatformViewReadyChannel.setMessageHandler(nil)
+    }
+    let getLockProbeStateChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.Poc04MediaBridgeApi.getLockProbeState\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getLockProbeStateChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getLockProbeState()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getLockProbeStateChannel.setMessageHandler(nil)
+    }
+  }
+}
+
+/// Native → Dart events for lock-audio probe restore / plan end.
+///
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol Poc04LockProbeFlutterApiProtocol {
+  /// willEnterForeground: Dart must jumpToPage(feedIndex) then notify ready.
+  func onLockProbeForeground(feedIndex feedIndexArg: Int64, assetId assetIdArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Plan exhausted after background advance; playback stopped at last item.
+  func onLockProbePlanEnded(feedIndex feedIndexArg: Int64, assetId assetIdArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+}
+class Poc04LockProbeFlutterApi: Poc04LockProbeFlutterApiProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: Poc04PhotoLibraryPigeonCodec {
+    return Poc04PhotoLibraryPigeonCodec.shared
+  }
+  /// willEnterForeground: Dart must jumpToPage(feedIndex) then notify ready.
+  func onLockProbeForeground(feedIndex feedIndexArg: Int64, assetId assetIdArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.Poc04LockProbeFlutterApi.onLockProbeForeground\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([feedIndexArg, assetIdArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  /// Plan exhausted after background advance; playback stopped at last item.
+  func onLockProbePlanEnded(feedIndex feedIndexArg: Int64, assetId assetIdArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.Poc04LockProbeFlutterApi.onLockProbePlanEnded\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([feedIndexArg, assetIdArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
     }
   }
 }

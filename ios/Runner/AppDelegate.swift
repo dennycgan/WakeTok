@@ -26,6 +26,9 @@ import UIKit
       binaryMessenger: messenger,
       api: Poc04MediaBridgeHost()
     )
+    Poc04LockAudioProbe.shared.configure(
+      flutterApi: Poc04LockProbeFlutterApi(binaryMessenger: messenger)
+    )
     Poc03PlaybackApiSetup.setUp(
       binaryMessenger: messenger,
       api: Poc03PlaybackHost()

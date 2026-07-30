@@ -43,6 +43,7 @@ final class Poc04VideoPlatformView: NSObject, FlutterPlatformView {
   private let playerLayer = AVPlayerLayer()
   private var assetId: String?
   private var observer: NSObjectProtocol?
+  private var detachObserver: NSObjectProtocol?
 
   init(
     frame: CGRect,
@@ -68,11 +69,21 @@ final class Poc04VideoPlatformView: NSObject, FlutterPlatformView {
     ) { [weak self] _ in
       self?.bindPlayer()
     }
+    detachObserver = NotificationCenter.default.addObserver(
+      forName: .poc04DetachLayers,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.detachLayerOnly()
+    }
   }
 
   deinit {
     if let observer {
       NotificationCenter.default.removeObserver(observer)
+    }
+    if let detachObserver {
+      NotificationCenter.default.removeObserver(detachObserver)
     }
   }
 
@@ -82,8 +93,16 @@ final class Poc04VideoPlatformView: NSObject, FlutterPlatformView {
 
   private func bindPlayer() {
     guard let assetId else { return }
+    if Poc04LockAudioProbe.shared.isLayerDetached {
+      playerLayer.player = nil
+      return
+    }
     playerLayer.player = Poc04PlayerPool.shared.player(for: assetId)
     playerLayer.frame = container.bounds
     Poc04PlayerPool.shared.noteActivePlayerLayer(assetId: assetId, layer: playerLayer)
+  }
+
+  private func detachLayerOnly() {
+    playerLayer.player = nil
   }
 }

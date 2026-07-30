@@ -24,6 +24,11 @@ final class Poc04PlayerPool {
   private var useTextureSurface = true
   private var activeTexture: Poc04ActiveVideoTexture?
 
+  /// Lock-probe only: unbound AVPlayerItems ready for replaceCurrentItem.
+  /// Never attach these to the warming AVPlayer — moving items between players aborts.
+  private var prefetchedItems: [String: AVPlayerItem] = [:]
+  private var prefetchRequestId: PHImageRequestID = PHInvalidImageRequestID
+
   // MARK: - First-frame timing (phase 2.5 / Texture escape)
   private var firstFrameT0: CFTimeInterval?
   private var firstFrameAssetId: String?
@@ -43,8 +48,220 @@ final class Poc04PlayerPool {
     return warmingPlayer != nil ? 1 : 0
   }
 
+  /// Active asset id for lock-probe plan sync (nil if no active slot).
+  var activeAssetIdValue: String? {
+    lock.lock(); defer { lock.unlock() }
+    return activeAssetId
+  }
+
+  var isActivePlaying: Bool {
+    lock.lock()
+    let rate = activePlayer?.rate ?? 0
+    lock.unlock()
+    return rate > 0.01
+  }
+
+  var activePlayerItem: AVPlayerItem? {
+    lock.lock(); defer { lock.unlock() }
+    return activePlayer?.currentItem
+  }
+
   func configure(textureRegistry: FlutterTextureRegistry) {
     self.textureRegistry = textureRegistry
+  }
+
+  /// Lock-audio probe: unmute active for audible background play.
+  func applyLockProbeAudioPolicy(unmuted: Bool) {
+    lock.lock()
+    activePlayer?.isMuted = !unmuted
+    if let q = activePlayer as? AVQueuePlayer {
+      q.actionAtItemEnd = .advance
+    }
+    if !unmuted {
+      warmingPlayer?.isMuted = true
+    }
+    lock.unlock()
+  }
+
+  /// Prefetch an unbound AVPlayerItem, then insert it into the active AVQueuePlayer
+  /// (before current item ends) so lock-screen advance needs no background play().
+  func prefetchLockProbeItem(
+    assetId: String,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    let finishInsert: () -> Void = { [weak self] in
+      guard let self else {
+        completion(.failure(
+          PigeonError(code: "exportFailed", message: "Pool deallocated", details: nil)
+        ))
+        return
+      }
+      let ok = self.insertPrefetchedIntoActiveQueueIfNeeded(assetId: assetId)
+      if ok {
+        completion(.success(()))
+        return
+      }
+      // Active may have been downgraded to plain AVPlayer — upgrade and retry once.
+      self.ensureActiveIsQueuePlayerForLockProbe {
+        let retried = self.insertPrefetchedIntoActiveQueueIfNeeded(assetId: assetId)
+        if retried {
+          completion(.success(()))
+        } else {
+          completion(.failure(
+            PigeonError(
+              code: "exportFailed",
+              message: "Queue insert failed for \(assetId)",
+              details: nil
+            )
+          ))
+        }
+      }
+    }
+
+    lock.lock()
+    if prefetchedItems[assetId] != nil {
+      lock.unlock()
+      finishInsert()
+      return
+    }
+    // Already sitting in the active queue?
+    if let q = activePlayer as? AVQueuePlayer,
+       q.items().count >= 2 {
+      lock.unlock()
+      completion(.success(()))
+      return
+    }
+    lock.unlock()
+
+    requestPlayerItem(for: assetId) { [weak self] result in
+      guard let self else { return }
+      switch result {
+      case .failure(let error):
+        completion(.failure(error))
+      case .success(let item):
+        self.lock.lock()
+        self.prefetchedItems[assetId] = item
+        self.lock.unlock()
+        finishInsert()
+      }
+    }
+  }
+
+  /// Ensure active player is AVQueuePlayer while lock probe is on (foreground upgrade OK).
+  func ensureActiveIsQueuePlayerForLockProbe(completion: @escaping () -> Void) {
+    lock.lock()
+    if activePlayer is AVQueuePlayer || activePlayer == nil {
+      lock.unlock()
+      completion()
+      return
+    }
+    guard let assetId = activeAssetId else {
+      lock.unlock()
+      completion()
+      return
+    }
+    let old = activePlayer
+    let t = old?.currentTime() ?? .zero
+    let wasPlaying = (old?.rate ?? 0) > 0.01
+    old?.pause()
+    lock.unlock()
+
+    requestPlayerItem(for: assetId) { [weak self] result in
+      guard let self else {
+        completion()
+        return
+      }
+      switch result {
+      case .failure:
+        completion()
+      case .success(let item):
+        let q = AVQueuePlayer(playerItem: item)
+        q.actionAtItemEnd = .advance
+        q.isMuted = false
+        self.lock.lock()
+        if let oldId = self.activeAssetId {
+          self.playersByAssetId.removeValue(forKey: oldId)
+        }
+        self.activePlayer = q
+        self.activeAssetId = assetId
+        self.playersByAssetId[assetId] = q
+        self.lock.unlock()
+        q.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+          if wasPlaying {
+            q.play()
+          }
+          NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
+          NSLog("[Poc04LockAudio] upgraded active to AVQueuePlayer")
+          completion()
+        }
+      }
+    }
+  }
+
+  /// Insert prefetched next item after current (queue must already be AVQueuePlayer).
+  @discardableResult
+  func insertPrefetchedIntoActiveQueueIfNeeded(assetId: String) -> Bool {
+    lock.lock()
+    guard let q = activePlayer as? AVQueuePlayer else {
+      lock.unlock()
+      return false
+    }
+    guard let item = prefetchedItems[assetId] else {
+      lock.unlock()
+      return false
+    }
+    // Already queued?
+    if q.items().contains(where: { $0 === item }) {
+      lock.unlock()
+      return true
+    }
+    // Keep at most current + one lookahead.
+    while q.items().count > 1 {
+      if let last = q.items().last, last !== q.currentItem {
+        q.remove(last)
+      } else {
+        break
+      }
+    }
+    prefetchedItems.removeValue(forKey: assetId)
+    if let current = q.currentItem {
+      q.insert(item, after: current)
+    } else {
+      q.insert(item, after: nil)
+    }
+    let count = q.items().count
+    lock.unlock()
+    NSLog(
+      "[Poc04LockAudio] queue insert %@ items=%d",
+      assetId,
+      count
+    )
+    return true
+  }
+
+  /// After AVQueuePlayer auto-advance: retarget activeAssetId without play()/replace.
+  func adoptQueueCurrentItem(assetId: String) {
+    lock.lock()
+    let previousId = activeAssetId
+    if let previousId, previousId != assetId {
+      playersByAssetId.removeValue(forKey: previousId)
+    }
+    activeAssetId = assetId
+    if let active = activePlayer {
+      playersByAssetId[assetId] = active
+    }
+    lock.unlock()
+    NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
+  }
+
+  var activeQueueItemCount: Int {
+    lock.lock(); defer { lock.unlock() }
+    return (activePlayer as? AVQueuePlayer)?.items().count ?? 0
+  }
+
+  var activePlayerIsQueue: Bool {
+    lock.lock(); defer { lock.unlock() }
+    return activePlayer is AVQueuePlayer
   }
 
   func setUseTextureSurface(_ enabled: Bool) {
@@ -68,13 +285,41 @@ final class Poc04PlayerPool {
     beginFirstFrameMeasurement(assetId: assetId)
 
     lock.lock()
+    // Foreground restore guard: adopt existing player — no stop/recreate.
+    if Poc04LockAudioProbe.shared.isRestoreGuardActive, let player = activePlayer {
+      let id = activeAssetId ?? assetId
+      lock.unlock()
+      finishActiveAttach(assetId: id, player: player, completion: completion)
+      return
+    }
     if activeAssetId == assetId, let player = activePlayer {
       lock.unlock()
+      if Poc04LockAudioProbe.shared.isEnabled, !(player is AVQueuePlayer) {
+        ensureActiveIsQueuePlayerForLockProbe { [weak self] in
+          guard let self, let q = self.activePlayer else {
+            completion(
+              .failure(
+                PigeonError(
+                  code: "assetUnavailable",
+                  message: "Queue upgrade failed",
+                  details: nil
+                )
+              )
+            )
+            return
+          }
+          self.finishActiveAttach(assetId: assetId, player: q, completion: completion)
+        }
+        return
+      }
       finishActiveAttach(assetId: assetId, player: player, completion: completion)
       return
     }
-    // Warming promotion (T2=A: warming had no texture).
-    if warmingAssetId == assetId, let warm = warmingPlayer {
+    // Warming promotion — disabled during lock probe (would replace AVQueuePlayer
+    // with a single-item / plain player and wipe the lookahead queue).
+    if !Poc04LockAudioProbe.shared.isEnabled,
+       warmingAssetId == assetId,
+       let warm = warmingPlayer {
       let previousActiveId = activeAssetId
       let previousActive = activePlayer
       activeAssetId = assetId
@@ -150,6 +395,9 @@ final class Poc04PlayerPool {
         NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: assetId)
         completion(.success(-1))
       }
+      if Poc04LockAudioProbe.shared.isEnabled {
+        Poc04LockAudioProbe.shared.onActiveAttached(assetId: assetId)
+      }
     }
     if Thread.isMainThread {
       run()
@@ -167,6 +415,12 @@ final class Poc04PlayerPool {
     assetId: String,
     completion: @escaping (Result<Void, Error>) -> Void
   ) {
+    // Lock probe owns lookahead via AVQueuePlayer.insert — a separate warming
+    // AVPlayer would later be promoted and wipe the queue (queueItems→0).
+    if Poc04LockAudioProbe.shared.isEnabled {
+      completion(.success(()))
+      return
+    }
     lock.lock()
     if activeAssetId == assetId {
       lock.unlock()
@@ -207,8 +461,14 @@ final class Poc04PlayerPool {
   func playActive() {
     lock.lock()
     let player = activePlayer
+    let rate = player?.rate ?? 0
     lock.unlock()
-    player?.isMuted = true
+    let probeOn = Poc04LockAudioProbe.shared.isEnabled
+    player?.isMuted = !probeOn
+    // Restore window: do not restart an already-playing adopted player.
+    if Poc04LockAudioProbe.shared.isRestoreGuardActive, rate > 0.01 {
+      return
+    }
     player?.play()
   }
 
@@ -220,6 +480,19 @@ final class Poc04PlayerPool {
   }
 
   func releaseVideo(assetId: String) {
+    // Foreground restore guard: never tear down the active adopted player.
+    if Poc04LockAudioProbe.shared.isRestoreGuardActive {
+      if activeAssetIdValue == assetId { return }
+      // Also skip releasing non-active ids during restore — concurrent page
+      // apply can race with jumpToPage and deallocate the queue mid-reattach.
+      return
+    }
+    // While lock probe is on, never deallocate the active AVQueuePlayer via
+    // release of a "stale" id — Dart page apply releases every other video.
+    if Poc04LockAudioProbe.shared.isEnabled,
+       activeAssetIdValue == assetId {
+      return
+    }
     lock.lock()
     let wasActive = activeAssetId == assetId
     if wasActive {
@@ -252,8 +525,10 @@ final class Poc04PlayerPool {
     activeAssetId = nil
     warmingAssetId = nil
     playersByAssetId.removeAll()
+    prefetchedItems.removeAll()
     cancelRequest(&activeItemRequestId)
     cancelRequest(&warmingItemRequestId)
+    cancelRequest(&prefetchRequestId)
     lock.unlock()
     DispatchQueue.main.async { self.detachActiveTexture() }
     NotificationCenter.default.post(name: .poc04PlayerPoolDidChange, object: nil)
@@ -296,6 +571,29 @@ final class Poc04PlayerPool {
   private func requestPlayer(
     for assetId: String,
     completion: @escaping (Result<AVPlayer, Error>) -> Void
+  ) {
+    requestPlayerItem(for: assetId) { result in
+      switch result {
+      case .failure(let error):
+        completion(.failure(error))
+      case .success(let item):
+        let player: AVPlayer
+        if Poc04LockAudioProbe.shared.isEnabled {
+          let q = AVQueuePlayer(playerItem: item)
+          q.actionAtItemEnd = .advance
+          player = q
+        } else {
+          player = AVPlayer(playerItem: item)
+        }
+        player.isMuted = true
+        completion(.success(player))
+      }
+    }
+  }
+
+  private func requestPlayerItem(
+    for assetId: String,
+    completion: @escaping (Result<AVPlayerItem, Error>) -> Void
   ) {
     let assets = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
     guard let asset = assets.firstObject, asset.mediaType == .video else {
@@ -362,9 +660,7 @@ final class Poc04PlayerPool {
         )
         return
       }
-      let player = AVPlayer(playerItem: item)
-      player.isMuted = true
-      completion(.success(player))
+      completion(.success(item))
     }
   }
 

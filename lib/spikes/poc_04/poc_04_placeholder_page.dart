@@ -92,6 +92,20 @@ class _Poc04PlaceholderPageState extends State<Poc04PlaceholderPage> {
     }
   }
 
+  String _listedSummary() {
+    if (_assets.isEmpty) return 'Listed: 0';
+    var images = 0;
+    var videos = 0;
+    for (final a in _assets) {
+      if (a.mediaType == Poc04MediaType.image) {
+        images++;
+      } else if (a.mediaType == Poc04MediaType.video) {
+        videos++;
+      }
+    }
+    return 'Listed: ${_assets.length} (image=$images · video=$videos)';
+  }
+
   @override
   Widget build(BuildContext context) {
     final canPop = ModalRoute.of(context)?.canPop ?? false;
@@ -163,7 +177,7 @@ class _Poc04PlaceholderPageState extends State<Poc04PlaceholderPage> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Listed: ${_assets.length}'),
+            Text(_listedSummary()),
             if (_busy) const LinearProgressIndicator(),
             const SizedBox(height: 8),
             Expanded(
