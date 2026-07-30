@@ -28,10 +28,11 @@
 - [x] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)
 - [x] POC-09: Current Photos Representation Export Gate
       (must pass before production physical-clip implementation)
-- [ ] App Foundation
+- [x] App Foundation
       (gen_l10n + ARB localisation infrastructure, shared error/result
-      contracts, production Pigeon contract baseline)   <-- YOU ARE HERE
+      contracts, production Pigeon contract baseline)
 - [ ] iOS Photos permission, Library access, iCloud asset state handling
+      <-- YOU ARE HERE
 - [ ] All / Photos / Videos built-in source resolution
       (production resolution must enumerate the FULL library including
       iCloud-only assets; device-local filtering is spike-only; acceptance
@@ -89,68 +90,15 @@
 > - POC-01 is closed as Failed and is not scheduled again.
 > - POC-02 (Query Source) and POC-05 (CarPlay) are deferred outside MVP.
 > - POC-04, POC-03, and POC-09 are closed project gates (see DECISIONS).
+> - App Foundation is closed (see PHASE_HISTORY).
 > - POC-06, POC-07, POC-08, and POC-10 run inside the capability
 >   that consumes their result.
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: App Foundation
+Active capability: iOS Photos permission, Library access, iCloud asset state handling
 
-- [x] 4.1 Add flutter_localizations + intl; configure gen_l10n;
-      create app_en.arb (template) and app_zh_Hans.arb with one smoke
-      key each; l10n.yaml sets untranslated-messages-file as the zh
-      translation backlog mechanism (kickoff ADR-U §5);
-      verify generated l10n.dart compiles
-      (work: a1725c9; base app_zh.arb matches zh_Hans「本地化正常」
-      for Flutter gen_l10n fallback only)
-
-- [x] 4.2 Define shared Result<T, AppError> (lib/core/result/) and
-      AppError enum (lib/core/errors/), 1:1 with kickoff Data Contract
-      error codes plus an unknown fallback (covers media, permission,
-      export, album error domains); unit tests for Result combinators
-      only — no ErrorCode → AppError mapping here (Pigeon ErrorCode
-      enum does not exist until 4.3); native error mapping table ships
-      as contract spec in code/docs (Swift-side execution in later
-      capabilities' first real native implementations):
-      PHPhotosError 3164 / networkAccessAllowed=false →
-      iCloudDownloadRequired; network allowed + download entered
-      transfer phase + non-3164 underlying failure →
-      iCloudDownloadFailed; user cancel → operationCancelled (never
-      Failed); wire ErrorCode includes an unknown member, and
-      channel-layer anomalies (decode failure, missing code,
-      unexpected PlatformException) fold into AppError.unknown;
-      spike-era names (inCloudUnavailable) must not leak into
-      production contracts; production error-contract ADR-008: Dart
-      half anchors to 9a405df; wire half re-anchors after 4.3 lands
-      (work: 9a405df)
-
-- [x] 4.3 Define production Pigeon contracts baseline:
-      PhotoLibraryApi and PlaybackApi only (empty implementations);
-      wire errors use a Pigeon ErrorCode enum aligned 1:1 with AppError
-      (including unknown); deliver ErrorCode → AppError mapping function
-      plus exhaustive switch tests (every ErrorCode has an AppError
-      landing); PlaybackApi must encode the ADR-006 ownership model —
-      the owner-approved design draft must explicitly merge kickoff
-      PlaybackGateway's nine methods with ADR-006 attach/detach surface
-      and restore-guard vocabulary (kickoff list alone is not
-      "encoding the ownership model"); ClipExportApi deferred to
-      Physical Clip Export Core contract design (owner decision
-      2026-07-30, not part of this baseline); generated code compiles
-      on both Dart and Swift sides; production baseline built from
-      scratch in pigeon/ (spike contracts remain on spike/poc as
-      reference only); contract signatures require owner-approved
-      design draft before coding; error-contract ADR wire half
-      re-anchors to the 4.3 work commit when it lands
-      (work: 8fed245; ADR-008 wire re-anchor)
-
-- [ ] 4.4 Wire l10n into MaterialApp with explicit
-      localeListResolutionCallback: inspect the system preferred
-      language (first entry in the locale list) only — if its
-      languageCode is zh, use zh-Hans; otherwise English (kickoff
-      ADR-U §10; do not scan the list for any zh entry); manual
-      language preference stays in the Settings capability; smoke
-      test on device: English, Simplified Chinese, and preferred
-      language zh-Hant falling back to Simplified Chinese
+(awaiting owner phase approval — no phases listed yet)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -158,25 +106,18 @@ Active capability: App Foundation
 > Phase Roadmap is set by the owner before work begins on each capability.
 > When YOU ARE HERE moves, do not generate Phase Roadmap content without
 > explicit owner approval of the phases.
-> App Foundation 4.1–4.4 approved for entry; revised 2026-07-30 (owner locked:
-> ClipExportApi deferred; wire errors = Pigeon enum incl. unknown;
-> ErrorCode→AppError mapping + exhaustive tests in 4.3 not 4.2;
-> 3164 → Required, non-3164 post-attempt → Failed, cancel →
-> operationCancelled; Localization Inventory deferred with ARB+report
-> interim; preferred-locale-first resolution in 4.4; error ADR dual
-> anchor 4.2 then 4.3).
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004); 4.1 gen_l10n + ARB smoke (a1725c9); 4.2 Result/AppError + mapping spec (9a405df, ADR-008 Dart); 4.3 Pigeon PhotoLibraryApi/PlaybackApi + ErrorCode mapping (8fed245, ADR-008 wire)
-- Next step: phase 4.4 MaterialApp l10n + preferred-locale-first resolution (await owner go to code)
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target); ADR-008 (production error contract, Dart + wire)
+- Goal (one line): awaiting owner phase approval for next capability (iOS Photos permission, Library access, iCloud asset state handling)
+- Sub-steps done: App Foundation closed (4.1–4.4; see PHASE_HISTORY)
+- Next step: owner approves Phase Roadmap for iOS Photos permission capability
+- Related decisions: ADR-001 … ADR-008 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
-- l10n: lib/l10n/ (ARB + generated AppLocalizations; untranslated_messages.json)
+- l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in error_code_mapping.dart
 - ADR-001 … ADR-008: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;

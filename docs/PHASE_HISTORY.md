@@ -90,3 +90,34 @@ queue verify).
 Notes: `docs/poc/POC-09-notes.md`. Deferred (do not overturn Pass): slo-mo
 pitch/frame-rate → Physical Clip Export Core; multi-audio UX → POC-07;
 soft-sub → ADR-003 out of scope.
+
+## App Foundation — completed 2026-07-30
+
+- [x] 4.1 Add flutter_localizations + intl; configure gen_l10n;
+      create app_en.arb (template) and app_zh_Hans.arb with one smoke
+      key each; l10n.yaml sets untranslated-messages-file as the zh
+      translation backlog mechanism (kickoff ADR-U §5);
+      verify generated l10n.dart compiles
+      (work: a1725c9; base app_zh.arb matches zh_Hans「本地化正常」
+      for Flutter gen_l10n fallback only)
+      — work: `a1725c9`
+- [x] 4.2 Define shared Result<T, AppError> and AppError enum 1:1 with
+      kickoff Data Contract codes plus unknown; Result combinator tests;
+      native error mapping spec (R1–R6); ADR-008 Dart half
+      — work: `9a405df`
+- [x] 4.3 Production Pigeon baseline: PhotoLibraryApi + PlaybackApi
+      (empty stubs); ErrorCode 1:1 AppError + mapping + exhaustive tests;
+      PlaybackApi encodes ADR-006 ownership / plan / surface / restore
+      vocabulary; ClipExportApi deferred; ADR-008 wire re-anchor
+      — work: `8fed245`
+- [x] 4.4 Wire l10n into MaterialApp with localeListResolutionCallback:
+      first preferred locale only; languageCode zh → zh-Hans (incl.
+      zh-Hant); otherwise English (ADR-U §10); manual preference deferred
+      to Settings; device smoke en / zh-Hans / zh-Hant→简中 PASS
+      — work: `2712d50`
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Known debt carried forward: iOS 18 simulator smoke → Final hardening
+(ADR-007); Localization Inventory → Settings and localisation completion
+(kickoff ADR-U).
