@@ -96,11 +96,13 @@
 ## Phase Roadmap (active capability only)
 Active capability: App Foundation
 
-- [ ] 4.1 Add flutter_localizations + intl; configure gen_l10n;
+- [x] 4.1 Add flutter_localizations + intl; configure gen_l10n;
       create app_en.arb (template) and app_zh_Hans.arb with one smoke
       key each; l10n.yaml sets untranslated-messages-file as the zh
       translation backlog mechanism (kickoff ADR-U §5);
       verify generated l10n.dart compiles
+      (work: a1725c9; base app_zh.arb matches zh_Hans「本地化正常」
+      for Flutter gen_l10n fallback only)
 
 - [ ] 4.2 Define shared Result<T, AppError> (lib/core/result/) and
       AppError enum (lib/core/errors/), 1:1 with kickoff Data Contract
@@ -165,14 +167,15 @@ Active capability: App Foundation
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004)
-- Next step: phase 4.1 gen_l10n + ARB smoke keys (await owner go to code)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004); 4.1 gen_l10n + ARB smoke (a1725c9)
+- Next step: phase 4.2 Result/AppError + native error mapping spec (await owner go to design/code)
 - Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
+- l10n: lib/l10n/ (ARB + generated AppLocalizations; untranslated_messages.json)
 - ADR-001 … ADR-007: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
