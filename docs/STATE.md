@@ -18,7 +18,7 @@
   - Explicit App ID registration in Certificates, Identifiers & Profiles: owner-only
   - App Store Connect app-record creation: owner-only
   - See `release-handoff.mdc`
-- iOS deployment target: iOS 16.0 (decided post-POC; see ADR-005)
+- iOS deployment target: iOS 18.0 (see ADR-007; ADR-005 superseded)
 - Test devices: iPhone 13 (performance floor), iPhone 17 (current-device compat)
 - No backend, no custom auth, no remote database, no developer-owned media server (kickoff Tech Stack)
 
@@ -128,13 +128,15 @@ Active capability: App Foundation
 - Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
 - Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004)
 - Next step: phase 4.1 gen_l10n + ARB smoke keys (await owner go to code)
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0 deployment target)
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
-- ADR-001 … ADR-005: docs/DECISIONS.md
+- ADR-001 … ADR-007: docs/DECISIONS.md
+- POC spike code & evidence: branch `spike/poc` — read-only archive;
+  never merge; never delete
 - (grows as code lands)
 
 ## Do NOT touch (unless explicitly opening a new phase)
@@ -150,3 +152,4 @@ Active capability: App Foundation
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
 | POC-09 | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
+| App Foundation | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |

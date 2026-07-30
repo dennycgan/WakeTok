@@ -303,7 +303,7 @@
 
 ## ADR-005: iOS Deployment Target = iOS 16.0
 
-- Status: Accepted (2026-07-29)
+- Status: Superseded by ADR-007 (2026-07-30)
 - Commit/PR anchor: 0738c88
 - Plain summary (owner reads this):
   WakeTok’s minimum supported iOS version is 16.0.
@@ -398,3 +398,62 @@
     `jumpToPage` + adopt cannot race a second `attach`/`release` path — that
     race SIGABRT'd the probe. Separately, probe mode disables warming promotion
     so a display-pool promote cannot replace AVQueuePlayer and clear lookahead.
+
+---
+
+## ADR-007: iOS Deployment Target = iOS 18.0
+
+- Status: Accepted (2026-07-30)
+- Commit/PR anchor: c2f5924
+- Plain summary (owner reads this):
+  WakeTok’s minimum supported iOS version is 18.0. This replaces the earlier
+  iOS 16.0 floor (ADR-005).
+- Context / what problem forced this:
+  ADR-005 locked iOS 16.0 before App Foundation coding, but underweighted
+  device reality: the owner’s gate devices (iPhone 13 Pro, iPhone 17) both
+  run iOS 26.x, and there is no device available that can run iOS 16 or 17.
+  The frozen iPhone 7 (iOS 14.4) is below every candidate minimum and is a
+  Photos-library content donor only, not a test target. Claiming support for
+  iOS 16 therefore commits WakeTok to untestable QA debt across two major
+  OS releases. ADR-005’s docs-only Accept also never landed the matching
+  Xcode/Podfile bump (tree still showed Flutter-default 13.0), so this ADR
+  both supersedes the floor and is the first implementation of a real
+  deployment target. Separately, ADR-005 rejected “raise to iOS 17+” under a
+  broader-coverage assumption; that assumption no longer holds.
+- Decision (what was chosen):
+  1. Minimum iOS deployment target = **iOS 18.0**.
+  2. Engineering floor is enforced only by `IPHONEOS_DEPLOYMENT_TARGET = 18.0`
+     in Xcode project build settings (all configurations; RunnerTests inherit).
+     Do **not** add `MinimumOSVersion` to `ios/Flutter/AppFrameworkInfo.plist`
+     — the current Flutter template omits that key, and hand-added keys the
+     toolchain does not own are silently dropped on template regeneration.
+     Do **not** implement ADR-005’s deferred 16.0 bump as an intermediate step.
+  3. Flip ADR-005 Status only to **Superseded by ADR-007 (date)**; do not
+     edit ADR-005’s original reasoning.
+  4. Rationale for **18** (not 17): raise the floor to the highest major
+     still broadly aligned with last-supported OS for XS/XR-class hardware,
+     while refusing an iOS 26 minimum that would drop that generation without
+     a clear MVP gain. (Owner may tighten this bullet if a specific 18+ API
+     dependency is named later.)
+- Rejected alternatives (why not B):
+  - **Keep iOS 16.0 (ADR-005):** Rejected — two major versions of untestable
+    QA debt; coverage benefit is speculative given owner hardware.
+  - **Jump minimum to iOS 26:** Rejected — drops still-used XS/XR-generation
+    devices that can run current non-26 majors; benefit for MVP is unclear.
+  - **Rewrite ADR-005 in place:** Rejected — decision log is append-only;
+    supersession requires a new ADR.
+- Consequences / constraints accepted:
+  - Production code may assume **iOS 18+** APIs. APIs newer than the minimum
+    (including current 26-only APIs) still need compile-time availability
+    guards where used.
+  - No iOS 18 physical device or simulator runtime is available in the
+    current toolchain set: an **iOS 18 simulator smoke** is deferred to the
+    Final real-device performance / hardening capability and recorded as a
+    Known debt row in `docs/STATE.md`. Day-to-day verify on existing **26.x**
+    simulators / devices.
+  - Devices below iOS 18 are out of support scope.
+  - `docs/STATE.md` Project facts deployment target becomes iOS 18.0
+    (ADR-007); Related decisions reference ADR-007 (ADR-005 superseded).
+  - If/when `ios/Podfile` is first introduced (first dependency that needs
+    native CocoaPods), that same commit **must** set
+    `platform :ios, '18.0'`.
