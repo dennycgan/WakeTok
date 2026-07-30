@@ -60,7 +60,9 @@
 - [ ] Physical Clip Export Core
       (fixed 120-second segments, POC-06 and POC-07,
       persistent Export Job / Segment state machine,
-      cancellation and recoverable partial success)
+      cancellation and recoverable partial success;
+      includes ClipExportApi Pigeon contract design,
+      deferred from App Foundation)
 - [ ] Photos import, backing Album, Clip Descriptor,
       and Generated Clip Source
 - [ ] Clip export progress/result UI,
@@ -95,26 +97,57 @@
 Active capability: App Foundation
 
 - [ ] 4.1 Add flutter_localizations + intl; configure gen_l10n;
-      create app_en.arb and app_zh_Hans.arb with one smoke key each;
+      create app_en.arb (template) and app_zh_Hans.arb with one smoke
+      key each; l10n.yaml sets untranslated-messages-file as the zh
+      translation backlog mechanism (kickoff ADR-U §5);
       verify generated l10n.dart compiles
 
-- [ ] 4.2 Define shared Result<T, AppError> type and AppError enum
-      (covers media, permission, export, album error domains);
-      unit tests for Result combinators;
-      AppError naming must align with kickoff error codes
-      (e.g. iCloudDownloadRequired / iCloudDownloadFailed), with a native
-      error mapping table (PHPhotosError 3164 → ...); spike-era names
-      (inCloudUnavailable) must not leak into production contracts
+- [ ] 4.2 Define shared Result<T, AppError> (lib/core/result/) and
+      AppError enum (lib/core/errors/), 1:1 with kickoff Data Contract
+      error codes plus an unknown fallback (covers media, permission,
+      export, album error domains); unit tests for Result combinators
+      only — no ErrorCode → AppError mapping here (Pigeon ErrorCode
+      enum does not exist until 4.3); native error mapping table ships
+      as contract spec in code/docs (Swift-side execution in later
+      capabilities' first real native implementations):
+      PHPhotosError 3164 / networkAccessAllowed=false →
+      iCloudDownloadRequired; network allowed + download attempted +
+      non-3164 underlying failure → iCloudDownloadFailed; user cancel →
+      operationCancelled (never Failed); wire ErrorCode includes an
+      unknown member, and channel-layer anomalies (decode failure,
+      missing code, unexpected PlatformException) fold into
+      AppError.unknown; spike-era names (inCloudUnavailable) must not
+      leak into production contracts; future production error-contract
+      ADR: Dart half (AppError + Result + this spec table) anchors to
+      the 4.2 work commit; wire half (ErrorCode + mapping) re-anchors
+      after 4.3 lands
 
 - [ ] 4.3 Define production Pigeon contracts baseline:
-      PhotoLibraryApi, PlaybackApi, ExportApi (empty implementations);
-      generated code compiles on both Dart and Swift sides;
-      production baseline built from scratch in pigeon/ (spike contracts
-      remain on spike/poc as reference only); contract signatures require
-      owner-approved design draft before coding
+      PhotoLibraryApi and PlaybackApi only (empty implementations);
+      wire errors use a Pigeon ErrorCode enum aligned 1:1 with AppError
+      (including unknown); deliver ErrorCode → AppError mapping function
+      plus exhaustive switch tests (every ErrorCode has an AppError
+      landing); PlaybackApi must encode the ADR-006 ownership model —
+      the owner-approved design draft must explicitly merge kickoff
+      PlaybackGateway's nine methods with ADR-006 attach/detach surface
+      and restore-guard vocabulary (kickoff list alone is not
+      "encoding the ownership model"); ClipExportApi deferred to
+      Physical Clip Export Core contract design (owner decision
+      2026-07-30, not part of this baseline); generated code compiles
+      on both Dart and Swift sides; production baseline built from
+      scratch in pigeon/ (spike contracts remain on spike/poc as
+      reference only); contract signatures require owner-approved
+      design draft before coding; error-contract ADR wire half
+      re-anchors to the 4.3 work commit when it lands
 
-- [ ] 4.4 Wire l10n into MaterialApp; smoke test English and
-      Simplified Chinese strings render on device
+- [ ] 4.4 Wire l10n into MaterialApp with explicit
+      localeListResolutionCallback: inspect the system preferred
+      language (first entry in the locale list) only — if its
+      languageCode is zh, use zh-Hans; otherwise English (kickoff
+      ADR-U §10; do not scan the list for any zh entry); manual
+      language preference stays in the Settings capability; smoke
+      test on device: English, Simplified Chinese, and preferred
+      language zh-Hant falling back to Simplified Chinese
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -122,7 +155,13 @@ Active capability: App Foundation
 > Phase Roadmap is set by the owner before work begins on each capability.
 > When YOU ARE HERE moves, do not generate Phase Roadmap content without
 > explicit owner approval of the phases.
-> App Foundation 4.1–4.4 approved for entry; owner may revise before coding starts.
+> App Foundation 4.1–4.4 approved for entry; revised 2026-07-30 (owner locked:
+> ClipExportApi deferred; wire errors = Pigeon enum incl. unknown;
+> ErrorCode→AppError mapping + exhaustive tests in 4.3 not 4.2;
+> 3164 → Required, non-3164 post-attempt → Failed, cancel →
+> operationCancelled; Localization Inventory deferred with ARB+report
+> interim; preferred-locale-first resolution in 4.4; error ADR dual
+> anchor 4.2 then 4.3).
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
@@ -153,3 +192,4 @@ Active capability: App Foundation
 | POC-09 | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
 | App Foundation | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |
+| App Foundation | Localization Inventory generation/validation mechanism (kickoff ADR-U §7–8) | Only smoke keys exist during App Foundation; nothing to inventory yet. Interim inventory-of-record = ARB + Untranslated Messages Report (satisfies ADR-U §9 task checks until the formal Inventory lands) | Settings and localisation completion | — (kickoff ADR-U) |
