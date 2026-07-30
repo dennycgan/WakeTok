@@ -12,5 +12,14 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    let messenger = engineBridge.applicationRegistrar.messenger()
+    PhotoLibraryApiSetup.setUp(
+      binaryMessenger: messenger,
+      api: PhotoLibraryApiHost()
+    )
+    PlaybackApiSetup.setUp(
+      binaryMessenger: messenger,
+      api: PlaybackApiHost()
+    )
   }
 }

@@ -1,0 +1,250 @@
+/// Production Pigeon baseline (App Foundation 4.3).
+///
+/// PhotoLibraryApi + PlaybackApi only. ClipExportApi is deferred.
+/// Spike contracts under pigeon/spikes/ are reference-only — never copy here.
+library;
+
+import 'package:pigeon/pigeon.dart';
+
+@ConfigurePigeon(
+  PigeonOptions(
+    dartOut: 'lib/platform/generated/waketok_platform_apis.g.dart',
+    swiftOut: 'ios/Runner/Platform/Generated/WaketokPlatformApis.g.swift',
+    dartPackageName: 'waketok',
+  ),
+)
+
+/// Wire error codes — 1:1 with Dart [AppError] (including unknown).
+/// PlatformException.code / PigeonError.code MUST equal the enum member name.
+enum ErrorCode {
+  unauthorized,
+  assetUnavailable,
+  iCloudDownloadRequired,
+  iCloudDownloadFailed,
+  unsupportedMedia,
+  noPlayableAudioTrack,
+  insufficientStorage,
+  exportFailed,
+  photosImportFailed,
+  albumUnavailable,
+  albumNotWritable,
+  operationCancelled,
+  unknown,
+}
+
+enum AuthStatus {
+  notDetermined,
+  authorized,
+  limited,
+  denied,
+  restricted,
+}
+
+enum AssetSourceKind {
+  album,
+  smartAlbum,
+  userLibrary,
+  other,
+}
+
+enum MediaKind {
+  image,
+  video,
+  livePhoto,
+  unknown,
+}
+
+enum PlaybackState {
+  idle,
+  loading,
+  playing,
+  paused,
+  waitingForMedia,
+  failed,
+  completed,
+}
+
+class AssetSourceDto {
+  AssetSourceDto({
+    required this.sourceIdentifier,
+    required this.displayName,
+    required this.kind,
+  });
+
+  String sourceIdentifier;
+  String displayName;
+  AssetSourceKind kind;
+}
+
+class SourceReferenceDto {
+  SourceReferenceDto({
+    required this.sourceType,
+    required this.sourceIdentifier,
+  });
+
+  String sourceType;
+  String sourceIdentifier;
+}
+
+class ResolvedSourceDto {
+  ResolvedSourceDto({
+    required this.sourceIdentifier,
+    required this.assetIdentifiers,
+  });
+
+  String sourceIdentifier;
+  List<String> assetIdentifiers;
+}
+
+class DisplayAssetDto {
+  DisplayAssetDto({
+    required this.assetIdentifier,
+    required this.mediaKind,
+    this.pixelWidth,
+    this.pixelHeight,
+  });
+
+  String assetIdentifier;
+  MediaKind mediaKind;
+  int? pixelWidth;
+  int? pixelHeight;
+}
+
+class PlayableVideoDto {
+  PlayableVideoDto({
+    required this.assetIdentifier,
+    this.durationSeconds,
+  });
+
+  String assetIdentifier;
+  double? durationSeconds;
+}
+
+/// One plan item: Photos asset + feed index for PageView sync (ADR-006).
+class PlaybackItemDto {
+  PlaybackItemDto({
+    required this.assetIdentifier,
+    required this.feedIndex,
+    required this.mediaKind,
+  });
+
+  String assetIdentifier;
+  int feedIndex;
+  MediaKind mediaKind;
+}
+
+/// Production playback plan (kickoff PlaybackPlanDTO subset + ADR-006).
+///
+/// Replaces kickoff `configureQueue(items)` — callers use [PlaybackApi.setPlaybackPlan].
+class PlaybackPlanDto {
+  PlaybackPlanDto({
+    required this.planId,
+    required this.orderedItems,
+    required this.currentIndex,
+  });
+
+  String planId;
+  List<PlaybackItemDto> orderedItems;
+  int currentIndex;
+}
+
+class PlaybackRuntimeEventDto {
+  PlaybackRuntimeEventDto({
+    required this.planId,
+    required this.currentItemIdentifier,
+    required this.currentIndex,
+    required this.playbackPositionSeconds,
+    required this.playbackState,
+    this.errorCode,
+  });
+
+  String planId;
+  String currentItemIdentifier;
+  int currentIndex;
+  double playbackPositionSeconds;
+  PlaybackState playbackState;
+  ErrorCode? errorCode;
+}
+
+/// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
+@HostApi()
+abstract class PhotoLibraryApi {
+  @async
+  AuthStatus requestAuthorization();
+
+  List<AssetSourceDto> listAssetSources();
+
+  @async
+  ResolvedSourceDto resolveSource(SourceReferenceDto sourceReference);
+
+  @async
+  DisplayAssetDto requestDisplayAsset(String assetIdentifier);
+
+  @async
+  PlayableVideoDto requestPlayableVideo(String assetIdentifier);
+
+  /// 4.3 empty stub MUST fail with [ErrorCode.albumUnavailable].
+  @async
+  String createAlbum(String name);
+
+  /// 4.3 empty stub MUST fail with [ErrorCode.photosImportFailed].
+  @async
+  String importVideo(String tempFilePath);
+
+  /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
+  @async
+  void addAssetToAlbum(String assetIdentifier, String albumIdentifier);
+}
+
+/// App-scoped playback service contract (ADR-006).
+///
+/// Ownership: Swift owns AVPlayer lifetime; Dart sends intent only.
+/// Platform View is a detachable display surface — not the player owner.
+///
+/// Restore guard (D4):
+/// Guard raised by native on willEnterForeground; cleared by native on
+/// notifyDisplaySurfaceReady.
+///
+/// Detach: native lifecycle (`didEnterBackground`); not a HostApi method.
+///
+/// Kickoff PlaybackGateway mapping:
+/// load/play/pause/seek/setRate/setMute → same names;
+/// configureQueue → [setPlaybackPlan];
+/// updateNowPlayingMetadata → same (stub until Background Audio);
+/// observePlaybackState → [PlaybackFlutterApi.onPlaybackRuntimeEvent].
+@HostApi()
+abstract class PlaybackApi {
+  void load(PlaybackItemDto item);
+
+  void play();
+
+  void pause();
+
+  void seek(double positionSeconds);
+
+  void setRate(double rate);
+
+  void setMute(bool muted);
+
+  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff configureQueue.
+  void setPlaybackPlan(PlaybackPlanDto plan);
+
+  /// Dart-to-native only; Swift does not ack.
+  void syncPlanPosition(String assetIdentifier, int feedIndex);
+
+  /// PV ready: native adopts existing player (no stop/recreate) and clears restore guard.
+  void notifyDisplaySurfaceReady(String assetIdentifier);
+
+  /// Stub until Production Background Audio (ADR-002).
+  void updateNowPlayingMetadata();
+}
+
+/// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).
+@FlutterApi()
+abstract class PlaybackFlutterApi {
+  void onPlaybackRuntimeEvent(PlaybackRuntimeEventDto event);
+
+  void onPlaybackRestoreRequired(int feedIndex, String assetIdentifier);
+
+  void onPlaybackPlanEnded(int feedIndex, String assetIdentifier);
+}
