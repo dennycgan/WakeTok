@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 import 'package:waketok/l10n/locale_resolution.dart';
 
@@ -19,9 +20,9 @@ class WakeTokApp extends StatelessWidget {
       localeListResolutionCallback: (locales, supportedLocales) {
         return resolveAppLocale(locales);
       },
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: waketokTheme(Brightness.light),
+      darkTheme: waketokTheme(Brightness.dark),
+      themeMode: ThemeMode.system,
       home: const L10nSmokePage(),
     );
   }
@@ -36,7 +37,6 @@ class L10nSmokePage extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(l10n.l10nSmoke),
       ),
       body: Center(
