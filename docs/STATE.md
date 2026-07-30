@@ -32,6 +32,8 @@
       (gen_l10n + ARB localisation infrastructure, shared error/result
       contracts, production Pigeon contract baseline)
 - [ ] iOS Photos permission, Library access, iCloud asset state handling
+      (phase 5.1 establishes theme token baseline; token-only styling
+      from this capability onward — ADR-009)
       <-- YOU ARE HERE
 - [ ] All / Photos / Videos built-in source resolution
       (production resolution must enumerate the FULL library including
@@ -96,9 +98,38 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: iOS Photos permission, Library access, iCloud asset state handling
+Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 
-(awaiting owner phase approval — no phases listed yet)
+- [~] 5.1 Theme token baseline: lib/core/theme semantic Light/Dark tokens
+      (surface / background / onSurface / accent-provisional /
+      feed-background minimal set), ThemeData wired in MaterialApp,
+      provisional accent; existing screens render in both modes;
+      token-only styling starts here (ADR-009)
+
+- [ ] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
+      authorization status/request in Swift PhotoLibraryService
+      (converge stub ApiHost naming); Dart authorization state model
+      (notDetermined / denied / restricted / limited / full),
+      repository interface + platform gateway; state-management wiring
+      per design draft (expect ADR-010);
+      NSPhotoLibraryUsageDescription placeholder
+      (final wording owner-only, release-handoff)
+
+- [ ] 5.3 Permission UI flows (en / zh-Hans, tokens only):
+      first-launch request; denied / restricted screen with Open Settings;
+      Limited banner + manage-selection entry (kickoff ADR-K semantics)
+
+- [ ] 5.4 Library access + iCloud asset state model: gateway fetch of
+      asset metadata (id / type / creation date) with NO device-local
+      filtering (full library incl. iCloud-only); domain asset
+      availability vocabulary (deviceLocal / iCloudNotDownloaded /
+      downloading / unavailable); unit tests; debug smoke shows
+      per-type totals
+
+- [ ] 5.5 Real-device acceptance on iPhone 13 Pro: permission flows
+      (first ask / deny→Settings / limited banner + manage),
+      totals match Photos app counts on owner's ~42k library,
+      Light/Dark render, en + zh-Hans strings
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -108,18 +139,19 @@ Active capability: iOS Photos permission, Library access, iCloud asset state han
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): awaiting owner phase approval for next capability (iOS Photos permission, Library access, iCloud asset state handling)
-- Sub-steps done: App Foundation closed (4.1–4.4; see PHASE_HISTORY)
-- Next step: owner approves Phase Roadmap for iOS Photos permission capability
-- Related decisions: ADR-001 … ADR-008 (see DECISIONS.md)
+- Goal (one line): 5.1 Theme token baseline (lib/core/theme Light/Dark + MaterialApp wiring; ADR-009)
+- Sub-steps done: ADR-009 landed (mapping → platform; test/architecture/ guards); Cap 5 phases locked
+- Next step: design-then-implement 5.1 theme tokens (await owner design OK before code)
+- Related decisions: ADR-001 … ADR-009 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
-- Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in error_code_mapping.dart
-- ADR-001 … ADR-008: docs/DECISIONS.md
+- Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
+- Architecture boundaries: ADR-009 + test/architecture/ guard tests
+- ADR-001 … ADR-009: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
@@ -139,3 +171,5 @@ Active capability: iOS Photos permission, Library access, iCloud asset state han
 | POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
 | App Foundation | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |
 | App Foundation | Localization Inventory generation/validation mechanism (kickoff ADR-U §7–8) | Only smoke keys exist during App Foundation; nothing to inventory yet. Interim inventory-of-record = ARB + Untranslated Messages Report (satisfies ADR-U §9 task checks until the formal Inventory lands) | Settings and localisation completion | — (kickoff ADR-U) |
+| App Foundation | Final accent color (depends on app icon design); provisional accent in theme tokens | Icon design is owner parallel track; accent must freeze before Main Browse Screen closes | Main Browse Screen | ADR-009 |
+| App Foundation | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |

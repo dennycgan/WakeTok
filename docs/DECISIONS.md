@@ -518,3 +518,83 @@
   - R2 “transfer phase” is stricter than a bare “download attempted”
     reading; STATE 4.2 wording matches the spec.
   - Spec table is auditable contract; it does not yet run on device.
+
+Note (ADR-009): mapping file relocated from lib/core/errors/ to
+lib/platform/ to satisfy the generated-import boundary; mapping
+semantics (1:1, exhaustive, unknown fallback) unchanged.
+
+---
+
+## ADR-009: Production layered architecture lock
+
+- Status: Accepted (2026-07-31)
+- Commit/PR anchor: 95f11f6
+- Plain summary (owner reads this):
+  Kickoff’s layered architecture is now a repo constraint. The App Foundation
+  tree is the canonical layout. Dart import boundaries are enforced by
+  `test/architecture/` guard tests (zero allowlist for generated imports).
+- Context / what problem forced this:
+  The kickoff architecture section lived only in a gitignored private spec, so
+  the repo could not see or enforce it. App Foundation landed `core` + platform
+  contracts with three benign path choices (`lib/l10n/`,
+  `lib/platform/generated/`, no `bootstrap`/`router` yet). Before `features/`
+  appears, boundary rules must be visible in-repo and machine-checked.
+  ErrorCode→AppError mapping is a protocol adapter (input type is generated);
+  it was moved from `lib/core/errors/` to `lib/platform/` so the generated-import
+  rule needs no allowlist (see ADR-008 note).
+- Decision (what was chosen):
+  1. **Dependency direction** (runtime / design) is binding downward only:
+     Widget/Screen → Controller/ViewModel → UseCase → Repository interface →
+     (DB repository | Pigeon platform gateway). Compile-time imports follow
+     Decision 2; the composition root (`lib/main.dart` / future `lib/app/`)
+     wires implementations.
+  2. **Import bans (zero allowlist for generated):**
+     - `lib/features/**` must not import DB packages (`sqflite`, `drift`,
+       `sqlite3`, `floor`, `isar`), `lib/platform/**` (including generated),
+       or `lib/data/**`.
+     - Only `lib/platform/**` (excluding generated sources) may import
+       `lib/platform/generated/**`.
+     - `lib/platform/` is the sole Pigeon gateway home; `lib/data/` is
+       persistence only and must not import generated.
+     - `lib/domain/**` must not import `features` / `data` / `platform`.
+     - `lib/core/**` must not import `features`.
+     - Dart business code must not depend on Swift types; Swift must not
+       decide product rules (Pool / Ordering / Repeat / Eligibility) —
+       playback ownership remains ADR-006.
+     - Scan exemptions (not import allowlists): `lib/l10n/**`,
+       `lib/platform/generated/**`, `lib/main.dart`, `lib/app/**`.
+  3. Cross-platform I/O uses approved Pigeon Data Contracts only; any new
+     cross-layer dependency requires a new owner-approved ADR.
+  4. **Canonical paths** = App Foundation’s actual tree (`lib/l10n/` for
+     gen_l10n; `lib/platform/generated/` named to discourage hand-edits).
+     Kickoff directory diagrams stay advisory. No behavior-free “align the
+     tree” refactors. New folders appear when a capability needs them.
+  5. **Theme discipline** (binding starts when Capability **5.1** lands):
+     colors and type sizes come from `lib/core/theme` semantic tokens
+     (Light/Dark); feature code must not hard-code Color/TextStyle values;
+     numeric token values live only in code. Until 5.1, only forward-armed
+     guards apply; composition-root seed theme is not a defect.
+  6. **Enforcement:** `test/architecture/` must stay green and is part of
+     each Coding Task’s test step (`00-workflow-gates.mdc`). Machine Slice-1
+     bans `Color(0x` / `Color(0X` in `lib/features/**`; fuller theme scanning
+     may tighten later without renumbering this ADR unless Decision 5 is
+     overturned.
+- Rejected alternatives (why not B):
+  - **Paste the full kickoff architecture into rules:** Rejected — too long,
+    fights the advisory directory diagram, invites cosmetic refactors.
+  - **Owner-only post-capability audits as the sole defense:** Rejected —
+    new chats miss the check; not a durable gate.
+  - **Cosmetic moves to match the kickoff directory diagram:** Rejected —
+    churn without behavior.
+  - **Allowlist `lib/core/errors/**` for generated imports:** Rejected —
+    would bake a permanent exception; mapping relocated to `lib/platform/`
+    instead (E2).
+- Consequences / constraints accepted:
+  - Architecture is repo-visible; conflict priority
+    (owner > DECISIONS > STATE > kickoff) closes for layering.
+  - Local Cursor rules cite ADR-009 / ADR-006 and the ban list; they do not
+    duplicate kickoff prose (`.cursor/` is gitignored).
+  - The three App Foundation path choices are canonical, not debt.
+  - Dart boundaries = guard tests; Swift product-rule discipline = review +
+    ADR-006 (not claimed by Dart scanners).
+  - Guard tests are a release gate for tasks that touch `lib/`.
