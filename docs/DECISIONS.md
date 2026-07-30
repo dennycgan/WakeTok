@@ -331,3 +331,70 @@
   - Devices below iOS 16 are out of support scope.
   - STATE Project facts records iOS 16.0; Bootstrap “Flutter default”
     deployment-target debt is closed by this ADR.
+
+---
+
+## ADR-006: App-scoped PlaybackApi ownership (Platform View is detachable surface)
+
+- Status: Accepted (2026-07-30)
+- Commit/PR anchor: a0b99d2
+- Plain summary (owner reads this):
+  WakeTok’s player lives in a Swift app-scoped service, not inside a Flutter
+  widget. The feed’s Platform View only attaches/detaches the picture; lock-screen
+  audio and advancing to the next video keep working when the UI is gone.
+- Context / what problem forced this:
+  ADR-001 keeps Flutter UI + native video (PV). ADR-002 proves native
+  background audio / Now Playing with a queue. App Foundation 4.3 needs a
+  production PlaybackApi shape: who owns the player across lock, page changes,
+  and unlock restore — without tying lifetime to a Flutter route. A POC-04
+  lock-screen feed probe (spike/poc) validated detach + background advance +
+  foreground adopt on real Photos video (P1–P3 PASS).
+- Decision (what was chosen):
+  1. **Ownership:** Production **PlaybackApi** is implemented by an **app-scoped
+     Swift playback service** (player pool / queue). Flutter drives intent
+     (plan, page sync, play/pause); it does **not** own `AVPlayer` lifetime.
+  2. **Surface:** Platform View + `AVPlayerLayer` is a **detachable display
+     surface**. On `didEnterBackground`, detach layer; keep audio. On
+     `willEnterForeground`, Dart `jumpToPage` → PV ready → **adopt existing
+     player** (no stop/recreate; restore guard).
+  3. **Background advance:** Dart supplies a **video-only playback plan**
+     `{assetId, feedIndex}`. Native advances while locked; **images are not
+     in the plan**. Prefer **AVQueuePlayer lookahead** (insert next before
+     end). Do **not** rely on background `replaceCurrentItem` + `play()` —
+     that path can report playing while silent. This refines ADR-001's pool
+     semantics for the background path: the foreground 1+1 display-pool
+     contract is unchanged; while the lock probe / background mode is active,
+     lookahead is queue-based and warming promotion is disabled (promotion
+     would replace AVQueuePlayer and clear lookahead).
+  4. **Plan end:** Stop at last item; keep position; **no loop** (product may
+     revisit under Session Continuity later).
+  5. **Scope of this ADR:** Ownership + restore + background advance contract
+     for PlaybackApi. Now Playing / remote commands remain as in **ADR-002**
+     (not re-proven by this feed probe).
+- Rejected alternatives (why not B):
+  - **Flutter/`video_player`-owned lifetime:** Rejected — lock/widget teardown
+    breaks continuous audio (ADR-002 boundary).
+  - **Unlock stop + recreate player:** Rejected — probe requires adopt-in-place
+    for A/V sync and to avoid SIGABRT from item stealing.
+  - **Warming-player promotion while lock probe / background queue active:**
+    Rejected — replaces AVQueuePlayer and clears lookahead (`queueItems→0`).
+  - **Background `replaceCurrentItem`/`play()` as primary advance:** Rejected —
+    silent “fake play” on device.
+- Consequences / constraints accepted:
+  - App Foundation **4.3 PlaybackApi** must encode this ownership model
+    (empty impl OK; contract matches).
+  - Production Background Audio capability implements Now Playing / remotes
+    on top of this service (ADR-002 debts unchanged).
+  - Spike code under POC-04 remains evidence, not the production service class
+    names.
+  - Image-at-lock and Control Center black-screen edge cases stay product /
+    later phase concerns; probe used `didEnterBackground` (not
+    `willResignActive`) for detach.
+  - Foreground page-driven attach/release and native background queue advance
+    are mutually exclusive *control modes* for the same player: while locked /
+    detached, the service advances via AVQueuePlayer lookahead; Dart must not
+    treat unlock restore as a normal page apply that tears down the queue.
+  - The unlock restore window uses a restore guard (and `_probeOwnsPaging`) so
+    `jumpToPage` + adopt cannot race a second `attach`/`release` path — that
+    race SIGABRT'd the probe. Separately, probe mode disables warming promotion
+    so a display-pool promote cannot replace AVQueuePlayer and clear lookahead.
