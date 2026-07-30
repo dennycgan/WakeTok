@@ -1,0 +1,7 @@
+{
+  "@@locale": "zh_Hans",
+  "l10nSmoke": "本地化正常",
+  "@l10nSmoke": {
+    "description": "App Foundation 4.1 infrastructure smoke; not product UI copy"
+  }
+}

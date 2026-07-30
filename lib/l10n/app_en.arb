@@ -1,0 +1,7 @@
+{
+  "@@locale": "en",
+  "l10nSmoke": "Localization OK",
+  "@l10nSmoke": {
+    "description": "App Foundation 4.1 infrastructure smoke; not product UI copy"
+  }
+}

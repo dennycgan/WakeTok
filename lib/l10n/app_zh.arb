@@ -1,0 +1,7 @@
+{
+  "@@locale": "zh",
+  "l10nSmoke": "本地化正常",
+  "@l10nSmoke": {
+    "description": "Base zh fallback required by Flutter gen_l10n when zh_Hans exists; MVP copy matches Simplified Chinese (ADR-U §10)"
+  }
+}
