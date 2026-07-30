@@ -100,13 +100,13 @@
 ## Phase Roadmap (active capability only)
 Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 
-- [~] 5.1 Theme token baseline: lib/core/theme semantic Light/Dark tokens
+- [x] 5.1 Theme token baseline: lib/core/theme semantic Light/Dark tokens
       (surface / background / onSurface / accent-provisional /
       feed-background minimal set), ThemeData wired in MaterialApp,
       provisional accent; existing screens render in both modes;
-      token-only styling starts here (ADR-009)
+      token-only styling starts here (ADR-009) — work `2e95eca`
 
-- [ ] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
+- [~] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
       authorization status/request in Swift PhotoLibraryService
       (converge stub ApiHost naming); Pigeon adds non-prompting
       authorizationStatus (pure PhotoKit read, never triggers the system
@@ -150,16 +150,17 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 5.1 Theme token baseline (lib/core/theme Light/Dark + MaterialApp wiring; ADR-009)
-- Sub-steps done: Cap 5 design approved (Riverpod → ADR-010 with 5.2; phase texts clarified)
-- Next step: 5.1 work commit → owner acceptance (Light/Dark render on existing screens)
-- Related decisions: ADR-001 … ADR-009 (see DECISIONS.md); ADR-010 expected with 5.2
+- Goal (one line): 5.2 Photos authorization domain + gateway (PhotoLibraryService, ADR-010 Riverpod)
+- Sub-steps done: 5.1 closed (work `2e95eca`; real-device Light/Dark PASS)
+- Next step: design-then-implement 5.2 (Pigeon status/picker, domain model, Riverpod + ADR-010)
+- Related decisions: ADR-001 … ADR-009; ADR-010 to Accept with 5.2 work
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
+- Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + test/architecture/ guard tests
 - ADR-001 … ADR-009: docs/DECISIONS.md
