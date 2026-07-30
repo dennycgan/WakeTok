@@ -124,7 +124,7 @@ Active capability: App Foundation
       half anchors to 9a405df; wire half re-anchors after 4.3 lands
       (work: 9a405df)
 
-- [ ] 4.3 Define production Pigeon contracts baseline:
+- [x] 4.3 Define production Pigeon contracts baseline:
       PhotoLibraryApi and PlaybackApi only (empty implementations);
       wire errors use a Pigeon ErrorCode enum aligned 1:1 with AppError
       (including unknown); deliver ErrorCode → AppError mapping function
@@ -141,6 +141,7 @@ Active capability: App Foundation
       reference only); contract signatures require owner-approved
       design draft before coding; error-contract ADR wire half
       re-anchors to the 4.3 work commit when it lands
+      (work: 8fed245; ADR-008 wire re-anchor)
 
 - [ ] 4.4 Wire l10n into MaterialApp with explicit
       localeListResolutionCallback: inspect the system preferred
@@ -167,16 +168,16 @@ Active capability: App Foundation
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): stand up App Foundation (l10n, shared Result/AppError, production Pigeon baseline)
-- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004); 4.1 gen_l10n + ARB smoke (a1725c9); 4.2 Result/AppError + mapping spec (9a405df, ADR-008)
-- Next step: phase 4.3 production Pigeon baseline — owner-approved design draft required before coding
-- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target); ADR-008 (production error contract, Dart half)
+- Sub-steps done: Bootstrap; POC-04 Conditional Pass (ADR-001); POC-03 Conditional Pass (ADR-002); POC-09 Pass (ADR-003, ADR-004); 4.1 gen_l10n + ARB smoke (a1725c9); 4.2 Result/AppError + mapping spec (9a405df, ADR-008 Dart); 4.3 Pigeon PhotoLibraryApi/PlaybackApi + ErrorCode mapping (8fed245, ADR-008 wire)
+- Next step: phase 4.4 MaterialApp l10n + preferred-locale-first resolution (await owner go to code)
+- Related decisions: ADR-001 (POC-04); ADR-002 (POC-03); ADR-003 (subtitle scope); ADR-004 (POC-09 Pass); ADR-005 (iOS 16.0, superseded by ADR-007); ADR-006 (PlaybackApi ownership); ADR-007 (iOS 18.0 deployment target); ADR-008 (production error contract, Dart + wire)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
-- Pigeon contracts: pigeon/ (empty until production baseline; spike under pigeon/spikes/)
+- Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + generated AppLocalizations; untranslated_messages.json)
-- Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008)
+- Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in error_code_mapping.dart
 - ADR-001 … ADR-008: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete

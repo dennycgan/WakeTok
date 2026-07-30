@@ -464,8 +464,7 @@
 
 - Status: Accepted (2026-07-30)
 - Commit/PR anchor: 9a405df (Dart half: AppError, Result, mapping spec);
-  wire half (Pigeon ErrorCode + ErrorCode→AppError mapping) pending
-  App Foundation 4.3 — re-anchor this field when 4.3 work lands
+  8fed245 (wire half: Pigeon ErrorCode + ErrorCode→AppError mapping)
 - Plain summary (owner reads this):
   WakeTok uses one shared list of error names in Dart (plus “unknown”),
   a small Ok/Err Result type, and a written native mapping table. Spike
