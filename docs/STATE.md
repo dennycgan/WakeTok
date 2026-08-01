@@ -128,16 +128,17 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
       success landing = debug shell showing per-type totals
       (real Feed is next capability) — work `8ef8566`
 
-- [~] 5.4 Library access + iCloud asset state model: paged gateway fetch
+- [x] 5.4 Library access + iCloud asset state model: paged gateway fetch
       of PHAsset-level metadata (id / type / creation date) — enumerates
       individual PHAssets only, no PHAssetCollection/Album enumeration;
       NO device-local filtering (full library incl. iCloud-only); domain
       asset availability vocabulary (deviceLocal / iCloudNotDownloaded /
       downloading / unavailable); unit tests; debug smoke shows
       per-type totals; non-goal: product All/Photos/Videos source
-      resolution and feed (next capability)
+      resolution and feed (next capability) — work `690aa0d`
+      (availability KVC fix `7d8f022`)
 
-- [ ] 5.5 Real-device acceptance on iPhone 13 Pro: permission flows
+- [~] 5.5 Real-device acceptance on iPhone 13 Pro: permission flows
       (first ask / deny→Settings / limited banner + manage),
       totals on the 5.3 debug shell match Photos app counts on owner's
       ~42k library (default PHFetchOptions semantics: excludes Hidden
@@ -151,9 +152,9 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 5.4 Library access + iCloud asset state model (paged PHAsset metadata; totals on 5.3 shell)
-- Sub-steps done: 5.3 closed (work `8ef8566`; W1–W9 green; AuthDebugStrip / l10n smoke home removed)
-- Next step: design-then-implement 5.4 paged library fetch + asset availability vocabulary
+- Goal (one line): 5.5 Real-device acceptance on iPhone 13 Pro (permission flows + totals vs Photos ~42k)
+- Sub-steps done: 5.4 closed (work `690aa0d`; device light smoke PASS; availability via resource KVC `7d8f022`)
+- Next step: owner runs 5.5 acceptance checklist on iPhone 13 Pro
 - Related decisions: ADR-001 … ADR-010 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -162,7 +163,8 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
-- Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010); totals shell: lib/features/library_smoke/
+- Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
+- Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage; totals shell: lib/features/library_smoke/
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + test/architecture/ guard tests
 - ADR-001 … ADR-010: docs/DECISIONS.md
@@ -189,3 +191,4 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 | App Foundation | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
 | iOS Photos permission | Typography text-style tokens (5.1 ships color tokens only; M3 default TextTheme) | Color-first keeps 5.1 small; type scale locks when heavy content UI lands | Main Browse Screen | ADR-009 |
 | iOS Photos permission | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
+| iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
