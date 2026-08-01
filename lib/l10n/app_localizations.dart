@@ -104,6 +104,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Localization OK'**
   String get l10nSmoke;
+
+  /// Application title
+  ///
+  /// In en, this message translates to:
+  /// **'WakeTok'**
+  String get appTitle;
+
+  /// First-launch Photos permission screen title
+  ///
+  /// In en, this message translates to:
+  /// **'Access your photo library'**
+  String get permissionRequestTitle;
+
+  /// First-launch Photos permission screen body
+  ///
+  /// In en, this message translates to:
+  /// **'WakeTok shows your photos and videos in a private, on-device feed. Your media never leaves this device.'**
+  String get permissionRequestBody;
+
+  /// CTA that triggers the system Photos permission prompt
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get permissionRequestContinue;
+
+  /// Blocked screen title when Photos access is denied
+  ///
+  /// In en, this message translates to:
+  /// **'Photo access is turned off'**
+  String get permissionBlockedTitleDenied;
+
+  /// Blocked screen title when Photos access is restricted
+  ///
+  /// In en, this message translates to:
+  /// **'Photo access is restricted'**
+  String get permissionBlockedTitleRestricted;
+
+  /// Blocked screen body for denied or restricted access
+  ///
+  /// In en, this message translates to:
+  /// **'WakeTok needs photo library access to show your media. You can enable access in Settings.'**
+  String get permissionBlockedBody;
+
+  /// Button that opens the iOS Settings app
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get permissionOpenSettings;
+
+  /// Limited Photos Access banner message (ADR-K)
+  ///
+  /// In en, this message translates to:
+  /// **'Showing only selected photos and videos. Album features and clips need full access.'**
+  String get limitedAccessBannerMessage;
+
+  /// Opens the system limited-library picker
+  ///
+  /// In en, this message translates to:
+  /// **'Manage selection'**
+  String get limitedAccessManageSelection;
+
+  /// Library totals shell app bar title
+  ///
+  /// In en, this message translates to:
+  /// **'Library'**
+  String get libraryShellTitle;
+
+  /// Totals row label for all accessible media
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get libraryRowAll;
+
+  /// Totals row label for photos
+  ///
+  /// In en, this message translates to:
+  /// **'Photos'**
+  String get libraryRowPhotos;
+
+  /// Totals row label for videos
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get libraryRowVideos;
+
+  /// Placeholder for per-type totals until 5.4 library enumeration (not a fake zero)
+  ///
+  /// In en, this message translates to:
+  /// **'—'**
+  String get countsPending;
 }
 
 class _AppLocalizationsDelegate

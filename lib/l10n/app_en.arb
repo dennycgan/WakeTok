@@ -3,5 +3,65 @@
   "l10nSmoke": "Localization OK",
   "@l10nSmoke": {
     "description": "App Foundation 4.1 infrastructure smoke; not product UI copy"
+  },
+  "appTitle": "WakeTok",
+  "@appTitle": {
+    "description": "Application title"
+  },
+  "permissionRequestTitle": "Access your photo library",
+  "@permissionRequestTitle": {
+    "description": "First-launch Photos permission screen title"
+  },
+  "permissionRequestBody": "WakeTok shows your photos and videos in a private, on-device feed. Your media never leaves this device.",
+  "@permissionRequestBody": {
+    "description": "First-launch Photos permission screen body"
+  },
+  "permissionRequestContinue": "Continue",
+  "@permissionRequestContinue": {
+    "description": "CTA that triggers the system Photos permission prompt"
+  },
+  "permissionBlockedTitleDenied": "Photo access is turned off",
+  "@permissionBlockedTitleDenied": {
+    "description": "Blocked screen title when Photos access is denied"
+  },
+  "permissionBlockedTitleRestricted": "Photo access is restricted",
+  "@permissionBlockedTitleRestricted": {
+    "description": "Blocked screen title when Photos access is restricted"
+  },
+  "permissionBlockedBody": "WakeTok needs photo library access to show your media. You can enable access in Settings.",
+  "@permissionBlockedBody": {
+    "description": "Blocked screen body for denied or restricted access"
+  },
+  "permissionOpenSettings": "Open Settings",
+  "@permissionOpenSettings": {
+    "description": "Button that opens the iOS Settings app"
+  },
+  "limitedAccessBannerMessage": "Showing only selected photos and videos. Album features and clips need full access.",
+  "@limitedAccessBannerMessage": {
+    "description": "Limited Photos Access banner message (ADR-K)"
+  },
+  "limitedAccessManageSelection": "Manage selection",
+  "@limitedAccessManageSelection": {
+    "description": "Opens the system limited-library picker"
+  },
+  "libraryShellTitle": "Library",
+  "@libraryShellTitle": {
+    "description": "Library totals shell app bar title"
+  },
+  "libraryRowAll": "All",
+  "@libraryRowAll": {
+    "description": "Totals row label for all accessible media"
+  },
+  "libraryRowPhotos": "Photos",
+  "@libraryRowPhotos": {
+    "description": "Totals row label for photos"
+  },
+  "libraryRowVideos": "Videos",
+  "@libraryRowVideos": {
+    "description": "Totals row label for videos"
+  },
+  "countsPending": "—",
+  "@countsPending": {
+    "description": "Placeholder for per-type totals until 5.4 library enumeration (not a fake zero)"
   }
 }

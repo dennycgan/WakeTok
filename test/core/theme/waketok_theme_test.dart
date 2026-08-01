@@ -3,32 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
-import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/main.dart';
 
-class _FakePhotosAuthorizationRepository
-    implements PhotosAuthorizationRepository {
-  @override
-  Future<PhotosAccess> currentStatus() async => PhotosAccess.full;
-
-  @override
-  Future<PhotosAccess> requestAccess() async => PhotosAccess.full;
-
-  @override
-  Future<void> presentLimitedLibraryPicker() async {}
-}
-
-Widget _harness(Widget child) {
-  return ProviderScope(
-    overrides: [
-      photosAuthorizationRepositoryProvider.overrideWithValue(
-        _FakePhotosAuthorizationRepository(),
-      ),
-    ],
-    child: child,
-  );
-}
+import '../../features/authorization/permission_ui_test_harness.dart';
 
 void main() {
   test('T1 light and dark ThemeData carry WakeTokTokens', () {
@@ -74,7 +52,15 @@ void main() {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-    await tester.pumpWidget(_harness(const WakeTokApp()));
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          photosAuthorizationRepositoryProvider.overrideWithValue(repo),
+        ],
+        child: const WakeTokApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(Scaffold));
@@ -89,7 +75,15 @@ void main() {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
 
-    await tester.pumpWidget(_harness(const WakeTokApp()));
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          photosAuthorizationRepositoryProvider.overrideWithValue(repo),
+        ],
+        child: const WakeTokApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(Scaffold));

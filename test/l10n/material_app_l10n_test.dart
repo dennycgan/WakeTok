@@ -1,73 +1,49 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
-import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
-import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/authorization/permission_request_page.dart';
 import 'package:waketok/l10n/app_localizations.dart';
-import 'package:waketok/main.dart';
 
-class _FakePhotosAuthorizationRepository
-    implements PhotosAuthorizationRepository {
-  @override
-  Future<PhotosAccess> currentStatus() async => PhotosAccess.notDetermined;
-
-  @override
-  Future<PhotosAccess> requestAccess() async => PhotosAccess.notDetermined;
-
-  @override
-  Future<void> presentLimitedLibraryPicker() async {}
-}
-
-Widget _harness(Widget child) {
-  return ProviderScope(
-    overrides: [
-      photosAuthorizationRepositoryProvider.overrideWithValue(
-        _FakePhotosAuthorizationRepository(),
-      ),
-    ],
-    child: child,
-  );
-}
+import '../features/authorization/permission_ui_test_harness.dart';
 
 void main() {
-  testWidgets('T7 forced zh_Hans shows 本地化正常', (tester) async {
+  testWidgets('T7 forced zh_Hans shows permission request copy', (tester) async {
+    final repo =
+        ControllablePhotosAuthorizationRepository(PhotosAccess.notDetermined);
     await tester.pumpWidget(
-      _harness(
-        MaterialApp(
-          locale:
-              const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: waketokTheme(Brightness.light),
-          home: const L10nSmokePage(),
-        ),
+      permissionUiHarness(
+        repo: repo,
+        locale: const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('本地化正常'), findsWidgets);
+
+    final l10n = await AppLocalizations.delegate.load(
+      const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+    );
+    expect(find.byType(PermissionRequestPage), findsOneWidget);
+    expect(find.text(l10n.permissionRequestTitle), findsOneWidget);
+    expect(find.text(l10n.permissionRequestContinue), findsOneWidget);
   });
 
-  testWidgets('T8 forced en shows Localization OK', (tester) async {
+  testWidgets('T8 forced en shows permission request copy', (tester) async {
+    final repo =
+        ControllablePhotosAuthorizationRepository(PhotosAccess.notDetermined);
     await tester.pumpWidget(
-      _harness(
-        MaterialApp(
-          locale: const Locale('en'),
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: waketokTheme(Brightness.light),
-          home: const L10nSmokePage(),
-        ),
-      ),
+      permissionUiHarness(repo: repo, locale: const Locale('en')),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Localization OK'), findsWidgets);
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.permissionRequestTitle), findsOneWidget);
+    expect(find.text(l10n.permissionRequestContinue), findsOneWidget);
   });
 
-  testWidgets('WakeTokApp builds with l10n delegates', (tester) async {
-    await tester.pumpWidget(_harness(const WakeTokApp()));
+  testWidgets('WakeTokApp builds through ProviderScope harness', (tester) async {
+    final repo =
+        ControllablePhotosAuthorizationRepository(PhotosAccess.notDetermined);
+    await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
-    expect(find.byType(L10nSmokePage), findsOneWidget);
+    expect(find.byType(PermissionRequestPage), findsOneWidget);
   });
 }
