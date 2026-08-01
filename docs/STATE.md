@@ -122,13 +122,13 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
       PHPhotoLibraryPreventAutomaticLimitedAccessAlert = YES
       — work `5ad1357`
 
-- [~] 5.3 Permission UI flows (en / zh-Hans, tokens only):
+- [x] 5.3 Permission UI flows (en / zh-Hans, tokens only):
       first-launch request; denied / restricted screen with Open Settings;
       Limited banner + manage-selection entry (kickoff ADR-K semantics);
       success landing = debug shell showing per-type totals
-      (real Feed is next capability)
+      (real Feed is next capability) — work `8ef8566`
 
-- [ ] 5.4 Library access + iCloud asset state model: paged gateway fetch
+- [~] 5.4 Library access + iCloud asset state model: paged gateway fetch
       of PHAsset-level metadata (id / type / creation date) — enumerates
       individual PHAssets only, no PHAssetCollection/Album enumeration;
       NO device-local filtering (full library incl. iCloud-only); domain
@@ -151,9 +151,9 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 5.3 Permission UI flows (en / zh-Hans, tokens only; replace DEBUG harness)
-- Sub-steps done: 5.2 closed (work `5ad1357`; real-device auth PASS; ADR-010 Accepted)
-- Next step: design-then-implement 5.3 product permission screens (not based on AuthDebugStrip)
+- Goal (one line): 5.4 Library access + iCloud asset state model (paged PHAsset metadata; totals on 5.3 shell)
+- Sub-steps done: 5.3 closed (work `8ef8566`; W1–W9 green; AuthDebugStrip / l10n smoke home removed)
+- Next step: design-then-implement 5.4 paged library fetch + asset availability vocabulary
 - Related decisions: ADR-001 … ADR-010 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -162,7 +162,7 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
-- Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
+- Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010); totals shell: lib/features/library_smoke/
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + test/architecture/ guard tests
 - ADR-001 … ADR-010: docs/DECISIONS.md
