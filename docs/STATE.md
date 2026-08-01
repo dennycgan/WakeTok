@@ -128,10 +128,12 @@ Active capability: All / Photos / Videos built-in source resolution
       the three legal (kind, id) pairs. Accept ~40k id bridge cost.
       — work `6e3714d`
 
-- [ ] 6.3 Dart domain + gateway + Riverpod (ADR-009/010): minimal
-      built-in AssetSource types + repository; composition-root wiring;
+- [x] 6.3 Dart domain + gateway + Riverpod (ADR-009/010): minimal
+      built-in AssetSource types + repository under `lib/domain/source/`
+      (separate from `domain/library`); composition-root wiring;
       features do not construct gateways. Architecture + localization
       guards green.
+      — work `80d4806`
 
 - [ ] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
       resolved count vs `libraryTotals`; All-only date-quantile + id
@@ -153,9 +155,9 @@ Active capability: All / Photos / Videos built-in source resolution
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 6.1–6.2 closed (ADR-013 Accepted; work `6e3714d`); awaiting owner order for 6.3
-- Sub-steps done: 6.1 design freeze (`1a4e131`); 6.2 work `6e3714d` (Pigeon + Swift list/resolve)
-- Next step: owner orders 6.3 design or push
+- Goal (one line): Cap 6.3 closed (work `80d4806`); awaiting owner order for 6.4
+- Sub-steps done: 6.1 (`1a4e131`); 6.2 (`6e3714d`); 6.3 domain/gateway/Riverpod (`80d4806`)
+- Next step: owner orders 6.4 design or push
 - Related decisions: ADR-001 … ADR-013 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -167,6 +169,7 @@ Active capability: All / Photos / Videos built-in source resolution
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); totals shell: lib/features/library_smoke/
+- Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
 - ADR-001 … ADR-013: docs/DECISIONS.md
