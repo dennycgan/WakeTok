@@ -228,6 +228,17 @@ enum MediaKind: Int, CaseIterable {
   case unknown = 3
 }
 
+/// List-time / catalog availability wire enum (Cap 5.4).
+///
+/// `downloading` is reserved for in-flight resource requests; catalog
+/// enumeration must not fabricate it. Domain twin: `AssetAvailability`.
+enum AssetAvailabilityDto: Int, CaseIterable {
+  case deviceLocal = 0
+  case iCloudNotDownloaded = 1
+  case downloading = 2
+  case unavailable = 3
+}
+
 enum PlaybackState: Int, CaseIterable {
   case idle = 0
   case loading = 1
@@ -453,6 +464,145 @@ struct PlayableVideoDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// One PHAsset row for catalog paging (Cap 5.4).
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct LibraryAssetDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var mediaKind: MediaKind
+  var availability: AssetAvailabilityDto
+  /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
+  var creationDateMs: Int64? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> LibraryAssetDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let mediaKind = pigeonVar_list[1] as! MediaKind
+    let availability = pigeonVar_list[2] as! AssetAvailabilityDto
+    let creationDateMs: Int64? = nilOrValue(pigeonVar_list[3])
+
+    return LibraryAssetDto(
+      assetIdentifier: assetIdentifier,
+      mediaKind: mediaKind,
+      availability: availability,
+      creationDateMs: creationDateMs
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      mediaKind,
+      availability,
+      creationDateMs,
+    ]
+  }
+  static func == (lhs: LibraryAssetDto, rhs: LibraryAssetDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.mediaKind, rhs.mediaKind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.availability, rhs.availability) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.creationDateMs, rhs.creationDateMs)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("LibraryAssetDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: mediaKind, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: availability, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: creationDateMs, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "LibraryAssetDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), availability: \(String(describing: availability)), creationDateMs: \(String(describing: creationDateMs)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct LibraryPageDto: Hashable, CustomStringConvertible {
+  var assets: [LibraryAssetDto]
+  /// Opaque resume token; null when no further pages.
+  var nextCursor: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> LibraryPageDto? {
+    let assets = pigeonVar_list[0] as! [LibraryAssetDto]
+    let nextCursor: String? = nilOrValue(pigeonVar_list[1])
+
+    return LibraryPageDto(
+      assets: assets,
+      nextCursor: nextCursor
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assets,
+      nextCursor,
+    ]
+  }
+  static func == (lhs: LibraryPageDto, rhs: LibraryPageDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assets, rhs.assets) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.nextCursor, rhs.nextCursor)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("LibraryPageDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assets, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: nextCursor, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "LibraryPageDto(assets: \(String(describing: assets)), nextCursor: \(String(describing: nextCursor)))"
+  }
+}
+
+/// Generated class from Pigeon that represents data sent in messages.
+struct LibraryTotalsDto: Hashable, CustomStringConvertible {
+  var all: Int64
+  var photos: Int64
+  var videos: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> LibraryTotalsDto? {
+    let all = pigeonVar_list[0] as! Int64
+    let photos = pigeonVar_list[1] as! Int64
+    let videos = pigeonVar_list[2] as! Int64
+
+    return LibraryTotalsDto(
+      all: all,
+      photos: photos,
+      videos: videos
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      all,
+      photos,
+      videos,
+    ]
+  }
+  static func == (lhs: LibraryTotalsDto, rhs: LibraryTotalsDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.all, rhs.all) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.photos, rhs.photos) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.videos, rhs.videos)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("LibraryTotalsDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: all, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: photos, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: videos, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "LibraryTotalsDto(all: \(String(describing: all)), photos: \(String(describing: photos)), videos: \(String(describing: videos)))"
+  }
+}
+
 /// One plan item: Photos asset + feed index for PageView sync (ADR-006).
 ///
 /// Generated class from Pigeon that represents data sent in messages.
@@ -639,24 +789,36 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
     case 133:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return PlaybackState(rawValue: enumResultAsInt)
+        return AssetAvailabilityDto(rawValue: enumResultAsInt)
       }
       return nil
     case 134:
-      return AssetSourceDto.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return PlaybackState(rawValue: enumResultAsInt)
+      }
+      return nil
     case 135:
-      return SourceReferenceDto.fromList(self.readValue() as! [Any?])
+      return AssetSourceDto.fromList(self.readValue() as! [Any?])
     case 136:
-      return ResolvedSourceDto.fromList(self.readValue() as! [Any?])
+      return SourceReferenceDto.fromList(self.readValue() as! [Any?])
     case 137:
-      return DisplayAssetDto.fromList(self.readValue() as! [Any?])
+      return ResolvedSourceDto.fromList(self.readValue() as! [Any?])
     case 138:
-      return PlayableVideoDto.fromList(self.readValue() as! [Any?])
+      return DisplayAssetDto.fromList(self.readValue() as! [Any?])
     case 139:
-      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
+      return PlayableVideoDto.fromList(self.readValue() as! [Any?])
     case 140:
-      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+      return LibraryAssetDto.fromList(self.readValue() as! [Any?])
     case 141:
+      return LibraryPageDto.fromList(self.readValue() as! [Any?])
+    case 142:
+      return LibraryTotalsDto.fromList(self.readValue() as! [Any?])
+    case 143:
+      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
+    case 144:
+      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+    case 145:
       return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -678,32 +840,44 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? MediaKind {
       super.writeByte(132)
       super.writeValue(value.rawValue)
-    } else if let value = value as? PlaybackState {
+    } else if let value = value as? AssetAvailabilityDto {
       super.writeByte(133)
       super.writeValue(value.rawValue)
-    } else if let value = value as? AssetSourceDto {
+    } else if let value = value as? PlaybackState {
       super.writeByte(134)
-      super.writeValue(value.toList())
-    } else if let value = value as? SourceReferenceDto {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? AssetSourceDto {
       super.writeByte(135)
       super.writeValue(value.toList())
-    } else if let value = value as? ResolvedSourceDto {
+    } else if let value = value as? SourceReferenceDto {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? DisplayAssetDto {
+    } else if let value = value as? ResolvedSourceDto {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayableVideoDto {
+    } else if let value = value as? DisplayAssetDto {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackItemDto {
+    } else if let value = value as? PlayableVideoDto {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackPlanDto {
+    } else if let value = value as? LibraryAssetDto {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackRuntimeEventDto {
+    } else if let value = value as? LibraryPageDto {
       super.writeByte(141)
+      super.writeValue(value.toList())
+    } else if let value = value as? LibraryTotalsDto {
+      super.writeByte(142)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackItemDto {
+      super.writeByte(143)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackPlanDto {
+      super.writeByte(144)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackRuntimeEventDto {
+      super.writeByte(145)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -737,6 +911,17 @@ protocol PhotoLibraryApi {
   /// Presents the system limited-library picker when status is `.limited`.
   /// When status is not limited, completes successfully as a no-op.
   func presentLimitedLibraryPicker(completion: @escaping (Result<Void, Error>) -> Void)
+  /// Per-type counts for the authorized library (Cap 5.4).
+  ///
+  /// Uses the same shared [PHFetchOptions] construction as
+  /// [fetchLibraryPage]. Photos = image + Live Photo; does not download.
+  func libraryTotals(completion: @escaping (Result<LibraryTotalsDto, Error>) -> Void)
+  /// Paged PHAsset metadata (id / kind / creationDate / availability).
+  ///
+  /// [cursor] null starts at the first page. [pageSize] is clamped on host.
+  /// Sort: creationDate descending; nil creationDate at end. No album
+  /// enumeration; no device-local filter.
+  func fetchLibraryPage(cursor: String?, pageSize: Int64, completion: @escaping (Result<LibraryPageDto, Error>) -> Void)
   func listAssetSources() throws -> [AssetSourceDto]
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
   func requestDisplayAsset(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
@@ -801,6 +986,48 @@ class PhotoLibraryApiSetup {
       }
     } else {
       presentLimitedLibraryPickerChannel.setMessageHandler(nil)
+    }
+    /// Per-type counts for the authorized library (Cap 5.4).
+    ///
+    /// Uses the same shared [PHFetchOptions] construction as
+    /// [fetchLibraryPage]. Photos = image + Live Photo; does not download.
+    let libraryTotalsChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.libraryTotals\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      libraryTotalsChannel.setMessageHandler { _, reply in
+        api.libraryTotals { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      libraryTotalsChannel.setMessageHandler(nil)
+    }
+    /// Paged PHAsset metadata (id / kind / creationDate / availability).
+    ///
+    /// [cursor] null starts at the first page. [pageSize] is clamped on host.
+    /// Sort: creationDate descending; nil creationDate at end. No album
+    /// enumeration; no device-local filter.
+    let fetchLibraryPageChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.fetchLibraryPage\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      fetchLibraryPageChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let cursorArg: String? = nilOrValue(args[0])
+        let pageSizeArg = args[1] as! Int64
+        api.fetchLibraryPage(cursor: cursorArg, pageSize: pageSizeArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      fetchLibraryPageChannel.setMessageHandler(nil)
     }
     let listAssetSourcesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.listAssetSources\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {

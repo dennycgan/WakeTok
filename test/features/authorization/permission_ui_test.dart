@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/authorization/permission_blocked_page.dart';
 import 'package:waketok/features/authorization/permission_request_page.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+import '../../library_smoke/fake_library_catalog_repository.dart';
 import 'permission_ui_test_harness.dart';
 
 void main() {
@@ -125,14 +127,34 @@ void main() {
     expect(find.text(l10n.permissionRequestContinue), findsOneWidget);
   });
 
-  testWidgets('W8 shell uses countsPending not fake zeros', (tester) async {
+  testWidgets('W8 shell shows library totals from catalog', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-    await tester.pumpWidget(permissionUiHarness(repo: repo));
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 12, photos: 10, videos: 2),
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, catalog: catalog),
+    );
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.countsPending), findsNWidgets(3));
-    expect(find.text('0'), findsNothing);
+    expect(find.text(l10n.countsPending), findsNothing);
+    expect(find.text('12'), findsOneWidget);
+    expect(find.text('10'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+  });
+
+  testWidgets('W8b empty library may show real zeros', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 0, photos: 0, videos: 0),
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, catalog: catalog),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('0'), findsNWidgets(3));
   });
 
   testWidgets('W9 resume refresh can move shell to blocked', (tester) async {

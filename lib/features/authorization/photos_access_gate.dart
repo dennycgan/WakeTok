@@ -5,6 +5,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/authorization/permission_blocked_page.dart';
 import 'package:waketok/features/authorization/permission_request_page.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 
 /// Root switcher for Photos authorization → permission UI or library shell.
@@ -37,6 +38,7 @@ class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ref.invalidate(photosAuthorizationProvider);
+      ref.invalidate(libraryTotalsProvider);
     }
   }
 

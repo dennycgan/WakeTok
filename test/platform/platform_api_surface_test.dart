@@ -34,6 +34,8 @@ void main() {
     'authorizationStatus',
     'requestAuthorization',
     'presentLimitedLibraryPicker',
+    'libraryTotals',
+    'fetchLibraryPage',
     'listAssetSources',
     'resolveSource',
     'requestDisplayAsset',
@@ -122,6 +124,14 @@ void main() {
     mockSuccess(photoChannel('authorizationStatus'), AuthStatus.authorized);
     mockSuccess(photoChannel('requestAuthorization'), AuthStatus.notDetermined);
     mockSuccess(photoChannel('presentLimitedLibraryPicker'), null);
+    mockSuccess(
+      photoChannel('libraryTotals'),
+      LibraryTotalsDto(all: 3, photos: 2, videos: 1),
+    );
+    mockSuccess(
+      photoChannel('fetchLibraryPage'),
+      LibraryPageDto(assets: <LibraryAssetDto>[], nextCursor: null),
+    );
     mockSuccess(photoChannel('listAssetSources'), <Object?>[]);
     mockSuccess(
       photoChannel('resolveSource'),
@@ -142,6 +152,8 @@ void main() {
     expect(await api.authorizationStatus(), AuthStatus.authorized);
     expect(await api.requestAuthorization(), AuthStatus.notDetermined);
     await api.presentLimitedLibraryPicker();
+    expect((await api.libraryTotals()).all, 3);
+    expect((await api.fetchLibraryPage(null, 50)).assets, isEmpty);
     expect(await api.listAssetSources(), isEmpty);
     expect(
       (await api.resolveSource(
@@ -159,12 +171,14 @@ void main() {
     );
   });
 
-  test('T7 PhotoLibrary host vocabulary includes 5.2 auth methods', () {
+  test('T7 PhotoLibrary host vocabulary includes 5.2 auth + 5.4 catalog', () {
     expect(
       expectedPhotoLibraryHostMethods,
       containsAll(<String>[
         'authorizationStatus',
         'presentLimitedLibraryPicker',
+        'libraryTotals',
+        'fetchLibraryPage',
       ]),
     );
   });

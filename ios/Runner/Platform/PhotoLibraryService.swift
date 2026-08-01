@@ -3,12 +3,15 @@ import Photos
 import PhotosUI
 import UIKit
 
-/// Production PhotoLibraryApi host (Capability 5.2).
+/// Production PhotoLibraryApi host (Capability 5.2+).
 ///
 /// Authorization and limited-picker use live PhotoKit reads at call time
-/// (no Dart-cached status) to avoid TOCTOU. Library read helpers require
+/// (no Dart-cached status) to avoid TOCTOU. Library catalog helpers require
 /// `.authorized` or `.limited` before returning data.
 final class PhotoLibraryService: PhotoLibraryApi {
+  /// Upper bound for [fetchLibraryPage] pageSize (host clamp).
+  private static let maxPageSize: Int = 500
+
   private func fail(_ code: ErrorCode, message: String) -> PigeonError {
     PigeonError(code: codeName(code), message: message, details: nil)
   }
@@ -54,6 +57,91 @@ final class PhotoLibraryService: PhotoLibraryApi {
         message: "Photo library access is not granted"
       )
     }
+  }
+
+  // MARK: - Shared catalog fetch options (Cap 5.4)
+
+  /// Single construction site for library enumeration options.
+  ///
+  /// Used by both [libraryTotals] and [fetchLibraryPage] so inclusion / sort
+  /// cannot drift. Default PhotoKit semantics (Hidden + Recently Deleted
+  /// excluded). Sort: creationDate descending; nil dates sort last under
+  /// Cocoa descending NSSortDescriptor. No device-local filter.
+  private func makeLibraryFetchOptions() -> PHFetchOptions {
+    let options = PHFetchOptions()
+    options.sortDescriptors = [
+      NSSortDescriptor(key: "creationDate", ascending: false),
+    ]
+    return options
+  }
+
+  /// Catalog universe matching totals: images (incl. Live) + videos only.
+  private func fetchCatalogAssets() -> PHFetchResult<PHAsset> {
+    let options = makeLibraryFetchOptions()
+    options.predicate = NSPredicate(
+      format: "mediaType == %d OR mediaType == %d",
+      PHAssetMediaType.image.rawValue,
+      PHAssetMediaType.video.rawValue
+    )
+    return PHAsset.fetchAssets(with: options)
+  }
+
+  private func mapMediaKind(_ asset: PHAsset) -> MediaKind {
+    switch asset.mediaType {
+    case .image:
+      if asset.mediaSubtypes.contains(.photoLive) {
+        return .livePhoto
+      }
+      return .image
+    case .video:
+      return .video
+    default:
+      return .unknown
+    }
+  }
+
+  /// List-time availability only — never fabricates `.downloading` (2A).
+  private func mapAvailability(_ asset: PHAsset) -> AssetAvailabilityDto {
+    if asset.isLocallyAvailable {
+      return .deviceLocal
+    }
+    return .iCloudNotDownloaded
+  }
+
+  private func mapAsset(_ asset: PHAsset) -> LibraryAssetDto {
+    let ms: Int64?
+    if let date = asset.creationDate {
+      ms = Int64((date.timeIntervalSince1970 * 1000.0).rounded())
+    } else {
+      ms = nil
+    }
+    return LibraryAssetDto(
+      assetIdentifier: asset.localIdentifier,
+      mediaKind: mapMediaKind(asset),
+      availability: mapAvailability(asset),
+      creationDateMs: ms
+    )
+  }
+
+  private func parseCursor(_ cursor: String?) throws -> Int {
+    guard let cursor, !cursor.isEmpty else {
+      return 0
+    }
+    guard let index = Int(cursor), index >= 0 else {
+      throw fail(.unknown, message: "Invalid library page cursor")
+    }
+    return index
+  }
+
+  private func clampPageSize(_ pageSize: Int64) -> Int {
+    let raw = Int(pageSize)
+    if raw < 1 {
+      return 1
+    }
+    if raw > Self.maxPageSize {
+      return Self.maxPageSize
+    }
+    return raw
   }
 
   private func topViewController(
@@ -121,9 +209,63 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  func libraryTotals(
+    completion: @escaping (Result<LibraryTotalsDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      let options = makeLibraryFetchOptions()
+      let photos = PHAsset.fetchAssets(with: .image, options: options).count
+      let videos = PHAsset.fetchAssets(with: .video, options: options).count
+      completion(
+        .success(
+          LibraryTotalsDto(
+            all: Int64(photos + videos),
+            photos: Int64(photos),
+            videos: Int64(videos)
+          )
+        )
+      )
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
+  func fetchLibraryPage(
+    cursor: String?,
+    pageSize: Int64,
+    completion: @escaping (Result<LibraryPageDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      let start = try parseCursor(cursor)
+      let limit = clampPageSize(pageSize)
+      let result = fetchCatalogAssets()
+      let count = result.count
+      if start >= count {
+        completion(
+          .success(LibraryPageDto(assets: [], nextCursor: nil))
+        )
+        return
+      }
+      let end = min(start + limit, count)
+      var assets: [LibraryAssetDto] = []
+      assets.reserveCapacity(end - start)
+      for index in start..<end {
+        assets.append(mapAsset(result.object(at: index)))
+      }
+      let next: String? = end < count ? String(end) : nil
+      completion(
+        .success(LibraryPageDto(assets: assets, nextCursor: next))
+      )
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
   func listAssetSources() throws -> [AssetSourceDto] {
     try requireLibraryAccess()
-    // Full enumeration lands in 5.4.
+    // Album / source enumeration is the next capability — not Cap 5.4.
     return []
   }
 
@@ -192,7 +334,7 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     completion(
       .failure(
-        fail(.albumUnavailable, message: "5.2 stub: createAlbum not implemented")
+        fail(.albumUnavailable, message: "stub: createAlbum not implemented")
       )
     )
   }
@@ -205,7 +347,7 @@ final class PhotoLibraryService: PhotoLibraryApi {
       .failure(
         fail(
           .photosImportFailed,
-          message: "5.2 stub: importVideo not implemented"
+          message: "stub: importVideo not implemented"
         )
       )
     )
@@ -220,7 +362,7 @@ final class PhotoLibraryService: PhotoLibraryApi {
       .failure(
         fail(
           .albumNotWritable,
-          message: "5.2 stub: addAssetToAlbum not implemented"
+          message: "stub: addAssetToAlbum not implemented"
         )
       )
     )

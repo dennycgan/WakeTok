@@ -54,6 +54,17 @@ enum MediaKind {
   unknown,
 }
 
+/// List-time / catalog availability wire enum (Cap 5.4).
+///
+/// `downloading` is reserved for in-flight resource requests; catalog
+/// enumeration must not fabricate it. Domain twin: `AssetAvailability`.
+enum AssetAvailabilityDto {
+  deviceLocal,
+  iCloudNotDownloaded,
+  downloading,
+  unavailable,
+}
+
 enum PlaybackState {
   idle,
   loading,
@@ -120,6 +131,47 @@ class PlayableVideoDto {
   double? durationSeconds;
 }
 
+/// One PHAsset row for catalog paging (Cap 5.4).
+class LibraryAssetDto {
+  LibraryAssetDto({
+    required this.assetIdentifier,
+    required this.mediaKind,
+    required this.availability,
+    this.creationDateMs,
+  });
+
+  String assetIdentifier;
+  MediaKind mediaKind;
+  AssetAvailabilityDto availability;
+
+  /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
+  int? creationDateMs;
+}
+
+class LibraryPageDto {
+  LibraryPageDto({
+    required this.assets,
+    this.nextCursor,
+  });
+
+  List<LibraryAssetDto> assets;
+
+  /// Opaque resume token; null when no further pages.
+  String? nextCursor;
+}
+
+class LibraryTotalsDto {
+  LibraryTotalsDto({
+    required this.all,
+    required this.photos,
+    required this.videos,
+  });
+
+  int all;
+  int photos;
+  int videos;
+}
+
 /// One plan item: Photos asset + feed index for PageView sync (ADR-006).
 class PlaybackItemDto {
   PlaybackItemDto({
@@ -180,6 +232,21 @@ abstract class PhotoLibraryApi {
   /// When status is not limited, completes successfully as a no-op.
   @async
   void presentLimitedLibraryPicker();
+
+  /// Per-type counts for the authorized library (Cap 5.4).
+  ///
+  /// Uses the same shared [PHFetchOptions] construction as
+  /// [fetchLibraryPage]. Photos = image + Live Photo; does not download.
+  @async
+  LibraryTotalsDto libraryTotals();
+
+  /// Paged PHAsset metadata (id / kind / creationDate / availability).
+  ///
+  /// [cursor] null starts at the first page. [pageSize] is clamped on host.
+  /// Sort: creationDate descending; nil creationDate at end. No album
+  /// enumeration; no device-local filter.
+  @async
+  LibraryPageDto fetchLibraryPage(String? cursor, int pageSize);
 
   List<AssetSourceDto> listAssetSources();
 

@@ -147,6 +147,17 @@ enum MediaKind {
   unknown,
 }
 
+/// List-time / catalog availability wire enum (Cap 5.4).
+///
+/// `downloading` is reserved for in-flight resource requests; catalog
+/// enumeration must not fabricate it. Domain twin: `AssetAvailability`.
+enum AssetAvailabilityDto {
+  deviceLocal,
+  iCloudNotDownloaded,
+  downloading,
+  unavailable,
+}
+
 enum PlaybackState {
   idle,
   loading,
@@ -422,6 +433,174 @@ class PlayableVideoDto {
   }
 }
 
+/// One PHAsset row for catalog paging (Cap 5.4).
+class LibraryAssetDto {
+  LibraryAssetDto({
+    required this.assetIdentifier,
+    required this.mediaKind,
+    required this.availability,
+    this.creationDateMs,
+  });
+
+  String assetIdentifier;
+
+  MediaKind mediaKind;
+
+  AssetAvailabilityDto availability;
+
+  /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
+  int? creationDateMs;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetIdentifier,
+      mediaKind,
+      availability,
+      creationDateMs,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static LibraryAssetDto decode(Object result) {
+    result as List<Object?>;
+    return LibraryAssetDto(
+      assetIdentifier: result[0]! as String,
+      mediaKind: result[1]! as MediaKind,
+      availability: result[2]! as AssetAvailabilityDto,
+      creationDateMs: result[3] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! LibraryAssetDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(mediaKind, other.mediaKind) && _deepEquals(availability, other.availability) && _deepEquals(creationDateMs, other.creationDateMs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'LibraryAssetDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, availability: $availability, creationDateMs: $creationDateMs)';
+  }
+}
+
+class LibraryPageDto {
+  LibraryPageDto({
+    required this.assets,
+    this.nextCursor,
+  });
+
+  List<LibraryAssetDto> assets;
+
+  /// Opaque resume token; null when no further pages.
+  String? nextCursor;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assets,
+      nextCursor,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static LibraryPageDto decode(Object result) {
+    result as List<Object?>;
+    return LibraryPageDto(
+      assets: (result[0]! as List<Object?>).cast<LibraryAssetDto>(),
+      nextCursor: result[1] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! LibraryPageDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assets, other.assets) && _deepEquals(nextCursor, other.nextCursor);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'LibraryPageDto(assets: $assets, nextCursor: $nextCursor)';
+  }
+}
+
+class LibraryTotalsDto {
+  LibraryTotalsDto({
+    required this.all,
+    required this.photos,
+    required this.videos,
+  });
+
+  int all;
+
+  int photos;
+
+  int videos;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      all,
+      photos,
+      videos,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static LibraryTotalsDto decode(Object result) {
+    result as List<Object?>;
+    return LibraryTotalsDto(
+      all: result[0]! as int,
+      photos: result[1]! as int,
+      videos: result[2]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! LibraryTotalsDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(all, other.all) && _deepEquals(photos, other.photos) && _deepEquals(videos, other.videos);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'LibraryTotalsDto(all: $all, photos: $photos, videos: $videos)';
+  }
+}
+
 /// One plan item: Photos asset + feed index for PageView sync (ADR-006).
 class PlaybackItemDto {
   PlaybackItemDto({
@@ -626,32 +805,44 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is MediaKind) {
       buffer.putUint8(132);
       writeValue(buffer, value.index);
-    }    else if (value is PlaybackState) {
+    }    else if (value is AssetAvailabilityDto) {
       buffer.putUint8(133);
       writeValue(buffer, value.index);
-    }    else if (value is AssetSourceDto) {
+    }    else if (value is PlaybackState) {
       buffer.putUint8(134);
-      writeValue(buffer, value.encode());
-    }    else if (value is SourceReferenceDto) {
+      writeValue(buffer, value.index);
+    }    else if (value is AssetSourceDto) {
       buffer.putUint8(135);
       writeValue(buffer, value.encode());
-    }    else if (value is ResolvedSourceDto) {
+    }    else if (value is SourceReferenceDto) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is DisplayAssetDto) {
+    }    else if (value is ResolvedSourceDto) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is PlayableVideoDto) {
+    }    else if (value is DisplayAssetDto) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackItemDto) {
+    }    else if (value is PlayableVideoDto) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackPlanDto) {
+    }    else if (value is LibraryAssetDto) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackRuntimeEventDto) {
+    }    else if (value is LibraryPageDto) {
       buffer.putUint8(141);
+      writeValue(buffer, value.encode());
+    }    else if (value is LibraryTotalsDto) {
+      buffer.putUint8(142);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackItemDto) {
+      buffer.putUint8(143);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackPlanDto) {
+      buffer.putUint8(144);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackRuntimeEventDto) {
+      buffer.putUint8(145);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -675,22 +866,31 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : MediaKind.values[value];
       case 133:
         final value = readValue(buffer) as int?;
-        return value == null ? null : PlaybackState.values[value];
+        return value == null ? null : AssetAvailabilityDto.values[value];
       case 134:
-        return AssetSourceDto.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : PlaybackState.values[value];
       case 135:
-        return SourceReferenceDto.decode(readValue(buffer)!);
+        return AssetSourceDto.decode(readValue(buffer)!);
       case 136:
-        return ResolvedSourceDto.decode(readValue(buffer)!);
+        return SourceReferenceDto.decode(readValue(buffer)!);
       case 137:
-        return DisplayAssetDto.decode(readValue(buffer)!);
+        return ResolvedSourceDto.decode(readValue(buffer)!);
       case 138:
-        return PlayableVideoDto.decode(readValue(buffer)!);
+        return DisplayAssetDto.decode(readValue(buffer)!);
       case 139:
-        return PlaybackItemDto.decode(readValue(buffer)!);
+        return PlayableVideoDto.decode(readValue(buffer)!);
       case 140:
-        return PlaybackPlanDto.decode(readValue(buffer)!);
+        return LibraryAssetDto.decode(readValue(buffer)!);
       case 141:
+        return LibraryPageDto.decode(readValue(buffer)!);
+      case 142:
+        return LibraryTotalsDto.decode(readValue(buffer)!);
+      case 143:
+        return PlaybackItemDto.decode(readValue(buffer)!);
+      case 144:
+        return PlaybackPlanDto.decode(readValue(buffer)!);
+      case 145:
         return PlaybackRuntimeEventDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -770,6 +970,53 @@ class PhotoLibraryApi {
         isNullValid: true,
     )
     ;
+  }
+
+  /// Per-type counts for the authorized library (Cap 5.4).
+  ///
+  /// Uses the same shared [PHFetchOptions] construction as
+  /// [fetchLibraryPage]. Photos = image + Live Photo; does not download.
+  Future<LibraryTotalsDto> libraryTotals() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.libraryTotals$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as LibraryTotalsDto;
+  }
+
+  /// Paged PHAsset metadata (id / kind / creationDate / availability).
+  ///
+  /// [cursor] null starts at the first page. [pageSize] is clamped on host.
+  /// Sort: creationDate descending; nil creationDate at end. No album
+  /// enumeration; no device-local filter.
+  Future<LibraryPageDto> fetchLibraryPage(String? cursor, int pageSize) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.fetchLibraryPage$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[cursor, pageSize]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as LibraryPageDto;
   }
 
   Future<List<AssetSourceDto>> listAssetSources() async {
