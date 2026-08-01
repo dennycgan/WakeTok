@@ -101,7 +101,7 @@
 ## Phase Roadmap (active capability only)
 Active capability: All / Photos / Videos built-in source resolution
 
-- [ ] 6.1 Contract lock (ADR-013): freeze built-in wire shape before Swift —
+- [x] 6.1 Contract lock (ADR-013): freeze built-in wire shape before Swift —
       `AssetSourceKind` rename/add (`userLibrary`→`entireLibrary`,
       `mediaTypePhotos`, `mediaTypeVideos`); `AssetSourceDto` fields
       (`estimatedCount` exact for built-ins, `AssetSourceAvailabilityDto`,
@@ -116,17 +116,17 @@ Active capability: All / Photos / Videos built-in source resolution
       pageSize:1)` + id alignment; iCloud sample reuses ADR-011 KVC only;
       year-span N owner-supplied before 6.5 (placeholder N=3); debug/smoke
       UI only (D3); list returns only three built-ins (D4); minimal domain
-      AssetSource built-in kinds (D6). Design-freeze phase only — no
-      production resolve/Pigeon implementation in 6.1 (that starts in 6.2);
-      ADR-013 chat text is approved; append to DECISIONS after Cap 6
-      work commit exists (two-commit discipline).
+      AssetSource built-in kinds (D6). Design-freeze only (no Pigeon/Swift
+      in 6.1).
+      — work `1a4e131`
 
-- [ ] 6.2 Pigeon regen + Swift host: expand kind/DTO/availability enum;
+- [x] 6.2 Pigeon regen + Swift host: expand kind/DTO/availability enum;
       implement `listAssetSources` (three built-ins, sync counts) and
-      `resolveSource` (full id list, off-main enumeration, shared fetch
-      options + mediaType predicates matching `libraryTotals`); no
-      device-local filter; host pair validation on the three legal
-      (kind, id) pairs. Accept ~40k id bridge cost.
+      `resolveSource` (full id list, off-main enumeration, main-thread
+      BinaryMessenger reply; shared PHFetchResult helpers matching
+      `libraryTotals`); no device-local filter; host pair validation on
+      the three legal (kind, id) pairs. Accept ~40k id bridge cost.
+      — work `6e3714d`
 
 - [ ] 6.3 Dart domain + gateway + Riverpod (ADR-009/010): minimal
       built-in AssetSource types + repository; composition-root wiring;
@@ -136,13 +136,14 @@ Active capability: All / Photos / Videos built-in source resolution
 - [ ] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
       resolved count vs `libraryTotals`; All-only date-quantile + id
       alignment tooling; built-in labels via ARB only (wire `displayName`
-      not l10n). No product top-bar.
+      not l10n); explicit negative path — pair mismatch →
+      `assetUnavailable`. No product top-bar.
 
 - [ ] 6.5 Real-device acceptance (iPhone 13 Pro + owner ~40k library):
       counts exact; full library incl. iCloud-only; All date-distribution
       sampling (N per owner); ≥1 `iCloudNotDownloaded` or N/A + evidence;
-      notes under `docs/acceptance/`. Then Cap 6 docs close-out
-      (STATE + PHASE_HISTORY + ADR-013 Accepted/anchor).
+      notes under `docs/acceptance/`. Then Cap 6 capability close-out
+      (STATE + PHASE_HISTORY; ADR-013 already Accepted at 6.2 docs).
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -152,10 +153,10 @@ Active capability: All / Photos / Videos built-in source resolution
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 6.1 contract lock — ADR-013 approved in chat; freeze wire/round-trip before coding
-- Sub-steps done: Cap 6 design rounds closed (D1–D7, Option A pairs, All-only D5); Phase Roadmap 6.1–6.5 drafted
-- Next step: owner OK docs commit for STATE phases; then 6.2 implementation (ADR-013 appends on docs commit after work)
-- Related decisions: ADR-001 … ADR-012; ADR-013 drafted (append after Cap 6 work commit)
+- Goal (one line): Cap 6.1–6.2 closed (ADR-013 Accepted; work `6e3714d`); awaiting owner order for 6.3
+- Sub-steps done: 6.1 design freeze (`1a4e131`); 6.2 work `6e3714d` (Pigeon + Swift list/resolve)
+- Next step: owner orders 6.3 design or push
+- Related decisions: ADR-001 … ADR-013 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -168,7 +169,7 @@ Active capability: All / Photos / Videos built-in source resolution
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); totals shell: lib/features/library_smoke/
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-012: docs/DECISIONS.md
+- ADR-001 … ADR-013: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete

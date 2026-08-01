@@ -764,3 +764,115 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     longer owns “does this key exist?” — that duty belongs to
     `localization_test.dart` key-parity (Decision 2).
   - Local Cursor rules cite ADR-012; published truth is DECISIONS + tests.
+
+---
+
+## ADR-013: Built-in All / Photos / Videos source resolution
+
+- Status: Accepted (2026-08-02)
+- Commit/PR anchor: 6e3714d
+- Plain summary (owner reads this):
+  WakeTok resolves the three built-in library sources (All, Photos, Videos)
+  as real Asset Sources over `listAssetSources` / `resolveSource`. Resolve
+  returns the full ordered id list in one call, including iCloud-only
+  assets. Sort is creation-date newest-first, same as the Cap 5 catalog.
+  Debug/smoke UI only — product All/Photos/Videos tabs stay with Main Browse.
+- Context / what problem forced this:
+  Cap 5 delivered a catalog API (`libraryTotals` / `fetchLibraryPage`) and
+  left `listAssetSources` / `resolveSource` as stubs (ADR-011). Cap 6 must
+  implement product built-in source resolution without album enumeration,
+  Main Browse chrome, or device-local-only filtering. `ResolvedSourceDto`
+  already carries a full `List<String> assetIdentifiers` (no cursor) — Cap 6
+  fills that shape rather than adding a paging HostApi. Wire gaps vs kickoff
+  `AssetSourceDTO`: `AssetSourceKind` lacked Entire Library / Media Type
+  cases; `AssetSourceDto` lacked `estimatedCount` / `availability` /
+  `canAddContent`. Kickoff Item Ordering for these source kinds was still
+  an Open Question; Cap 5.4 already proved `creationDate` descending via
+  shared `makeLibraryFetchOptions`.
+- Decision (what was chosen):
+  1. **Keep `resolveSource` DTO shape (D1=A).** One call returns the full
+     `assetIdentifiers` list. Cap 6 accepts holding ~40k ids on the Dart
+     heap as an explicit cost. If a real device later proves this
+     unacceptable → new ADR + new HostApi, not a silent Cap 6 semantic
+     change. Allowed host internals: off-main-thread enumeration and
+     shared fetch helpers — not “lazy indexing” that pretends the full
+     list never crossed the bridge. After background enumeration,
+     **BinaryMessenger reply must hop to the main/platform thread**
+     (`DispatchQueue.main.async`); pair-mismatch / auth failures that
+     never leave the calling thread complete in place.
+  2. **Ordering = Creation Date Descending (D2=A)** for Entire Library and
+     Media Type Sources. Reuses ADR-011’s verified `makeLibraryFetchOptions`
+     sort. Closes kickoff ADR-M §5 for these two kinds without a new PoC.
+     Album / Smart Album ordering remains deferred. No device-local filter.
+  3. **`listAssetSources` returns only the three built-ins (D4=A).** Album /
+     Smart Album stay unlisted. Sync HostApi (not `@async`); counts use
+     `PHFetchResult.count` only.
+  4. **Cap 6 UI = debug/smoke only (D3=A).** Product top-bar stays with
+     Main Browse.
+  5. **Wire + domain (D6=A) with frozen pairs (Option A):**
+     - `AssetSourceKind`: rename `userLibrary` → `entireLibrary`; add
+       `mediaTypePhotos`, `mediaTypeVideos`; keep `album` / `smartAlbum` /
+       `other` for later.
+     - Legal pairs (`sourceType` == kind name; same short id on list and
+       resolve):
+
+       | Product | kind / sourceType   | sourceIdentifier |
+       |---------|---------------------|------------------|
+       | All     | entireLibrary       | all              |
+       | Photos  | mediaTypePhotos     | photos           |
+       | Videos  | mediaTypeVideos     | videos           |
+
+     - `AssetSourceDto.sourceIdentifier` from `listAssetSources` and
+       `SourceReferenceDto.sourceIdentifier` into `resolveSource` are the
+       **same string** for a given built-in — the three frozen short ids
+       are the only legal round-trip values; host pair validation accepts
+       exactly these **three legal (kind, id) pairs**.
+     - Pair mismatch → existing `ErrorCode.assetUnavailable`; no new
+       ErrorCode.
+     - `AssetSourceDto` fields: `estimatedCount` (built-ins: always present
+       and **exact** vs matching `libraryTotals` component; approximate
+       semantics reserved for future albums), `AssetSourceAvailabilityDto`
+       (`available` / `empty` / `unavailable` / `unauthorized`),
+       `canAddContent` always `false` for built-ins. Wire `displayName`
+       is `""` for built-ins — not an l10n source (ARB in smoke UI).
+  6. **Shared `PHFetchResult` helpers** (`photosFetchResult` /
+     `videosFetchResult` / `allFetchResult`) must be the single
+     construction path for `libraryTotals`, `listAssetSources`, and
+     `resolveSource` (same discipline as ADR-011’s single
+     `makeLibraryFetchOptions`).
+  7. **Limited Access (kickoff ADR-K §2):** Limited still resolves All /
+     Photos / Videos as the currently accessible subset. Cap 6 does not
+     list Album; Limited-mode Album `unauthorized` is forward-looking.
+  8. **Acceptance sampling (D5):** resolved counts == `libraryTotals`;
+     date-distribution quantiles **All-only** via
+     `fetchLibraryPage(cursor:q, pageSize:1)` + id alignment; year-span N
+     owner-supplied before 6.5 (placeholder N=3); iCloud sample reuses
+     ADR-011 KVC `locallyAvailable` only. Cap 6.4 smoke must also exercise
+     a **negative** mismatched-pair → `assetUnavailable` path.
+- Rejected alternatives (why not B):
+  - Source-scoped paging HostApi (`resolveSourcePage`) in Cap 6 —
+    rejected (would be a new contract, not a stub fill-in).
+  - Repository “lazy indexing” without reopening Pigeon — rejected
+    (contradicts D1=A once the full list has crossed the bridge).
+  - `sourceType: "builtin"` + short ids — rejected (cannot be 1:1 with
+    three kinds; conflicts with `sourceType: 'album'` precedent).
+  - Compound ids `builtin:all|…` — rejected (duplicates namespace already
+    provided by `sourceType` + `sourceIdentifier`).
+  - New ErrorCode for pair mismatch — rejected; use `assetUnavailable`.
+  - Creation Date Ascending / Photos Collection Order PoC for built-ins —
+    rejected; Descending already proven in Cap 5.4.
+  - Product All/Photos/Videos chrome in Cap 6 — rejected (STATE orders
+    Main Browse next).
+  - Listing Albums in Cap 6 `listAssetSources` — rejected (later
+    capability; ADR-011 stub intent).
+  - Device-local-only production resolve — rejected (STATE / spike-only).
+  - Alternate iCloud list-time detection in Cap 6 — rejected (reuse
+    ADR-011 KVC debt as-is).
+- Consequences / constraints accepted:
+  - Cap 6.2 work commit (`6e3714d`) owns the Pigeon regen and Swift host
+    implementation; this ADR’s Accepted date is that commit’s author date.
+  - Domain gateway / smoke UI / ~40k device acceptance remain 6.3–6.5.
+  - ~40k full-list resolve cost is accepted until a future ADR says
+    otherwise.
+  - Kickoff Item Ordering Open Question is closed for Entire Library +
+    Media Type only.
