@@ -31,7 +31,9 @@ void main() {
   };
 
   const expectedPhotoLibraryHostMethods = <String>{
+    'authorizationStatus',
     'requestAuthorization',
+    'presentLimitedLibraryPicker',
     'listAssetSources',
     'resolveSource',
     'requestDisplayAsset',
@@ -117,7 +119,9 @@ void main() {
   test('T7 PhotoLibrary read/command paths succeed under mock', () async {
     final api = PhotoLibraryApi();
 
+    mockSuccess(photoChannel('authorizationStatus'), AuthStatus.authorized);
     mockSuccess(photoChannel('requestAuthorization'), AuthStatus.notDetermined);
+    mockSuccess(photoChannel('presentLimitedLibraryPicker'), null);
     mockSuccess(photoChannel('listAssetSources'), <Object?>[]);
     mockSuccess(
       photoChannel('resolveSource'),
@@ -135,7 +139,9 @@ void main() {
       PlayableVideoDto(assetIdentifier: 'a'),
     );
 
+    expect(await api.authorizationStatus(), AuthStatus.authorized);
     expect(await api.requestAuthorization(), AuthStatus.notDetermined);
+    await api.presentLimitedLibraryPicker();
     expect(await api.listAssetSources(), isEmpty);
     expect(
       (await api.resolveSource(
@@ -150,6 +156,16 @@ void main() {
     expect(
       (await api.requestPlayableVideo('a')).assetIdentifier,
       'a',
+    );
+  });
+
+  test('T7 PhotoLibrary host vocabulary includes 5.2 auth methods', () {
+    expect(
+      expectedPhotoLibraryHostMethods,
+      containsAll(<String>[
+        'authorizationStatus',
+        'presentLimitedLibraryPicker',
+      ]),
     );
   });
 

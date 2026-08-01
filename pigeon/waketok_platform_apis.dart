@@ -169,8 +169,17 @@ class PlaybackRuntimeEventDto {
 /// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
 @HostApi()
 abstract class PhotoLibraryApi {
+  /// Pure read of PhotoKit authorization status for `.readWrite`.
+  /// MUST NOT present any system prompt or UI.
+  AuthStatus authorizationStatus();
+
   @async
   AuthStatus requestAuthorization();
+
+  /// Presents the system limited-library picker when status is `.limited`.
+  /// When status is not limited, completes successfully as a no-op.
+  @async
+  void presentLimitedLibraryPicker();
 
   List<AssetSourceDto> listAssetSources();
 

@@ -730,7 +730,13 @@ class WaketokPlatformApisPigeonCodec: FlutterStandardMessageCodec, @unchecked Se
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol PhotoLibraryApi {
+  /// Pure read of PhotoKit authorization status for `.readWrite`.
+  /// MUST NOT present any system prompt or UI.
+  func authorizationStatus() throws -> AuthStatus
   func requestAuthorization(completion: @escaping (Result<AuthStatus, Error>) -> Void)
+  /// Presents the system limited-library picker when status is `.limited`.
+  /// When status is not limited, completes successfully as a no-op.
+  func presentLimitedLibraryPicker(completion: @escaping (Result<Void, Error>) -> Void)
   func listAssetSources() throws -> [AssetSourceDto]
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
   func requestDisplayAsset(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
@@ -749,6 +755,21 @@ class PhotoLibraryApiSetup {
   /// Sets up an instance of `PhotoLibraryApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: PhotoLibraryApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Pure read of PhotoKit authorization status for `.readWrite`.
+    /// MUST NOT present any system prompt or UI.
+    let authorizationStatusChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.authorizationStatus\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      authorizationStatusChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.authorizationStatus()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      authorizationStatusChannel.setMessageHandler(nil)
+    }
     let requestAuthorizationChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestAuthorization\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestAuthorizationChannel.setMessageHandler { _, reply in
@@ -763,6 +784,23 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestAuthorizationChannel.setMessageHandler(nil)
+    }
+    /// Presents the system limited-library picker when status is `.limited`.
+    /// When status is not limited, completes successfully as a no-op.
+    let presentLimitedLibraryPickerChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.presentLimitedLibraryPicker\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      presentLimitedLibraryPickerChannel.setMessageHandler { _, reply in
+        api.presentLimitedLibraryPicker { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      presentLimitedLibraryPickerChannel.setMessageHandler(nil)
     }
     let listAssetSourcesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.listAssetSources\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {

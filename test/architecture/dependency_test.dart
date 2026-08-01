@@ -41,6 +41,12 @@ void main() {
           );
         }
 
+        if (layer == 'domain' && _isRiverpodPackage(uri)) {
+          violations.add(
+            '$rel:$line: domain must not import Riverpod (`$uri`) — ADR-010',
+          );
+        }
+
         final target = _resolveWakatokTarget(
           packageRoot: packageRoot,
           fromFile: file,
@@ -183,6 +189,15 @@ bool _isDbPackage(String uri) {
   final rest = uri.substring('package:'.length);
   final name = rest.split('/').first;
   return _dbPackages.contains(name);
+}
+
+bool _isRiverpodPackage(String uri) {
+  if (!uri.startsWith('package:')) return false;
+  final rest = uri.substring('package:'.length);
+  final name = rest.split('/').first;
+  return name == 'riverpod' ||
+      name == 'flutter_riverpod' ||
+      name.startsWith('riverpod_');
 }
 
 class _Directive {

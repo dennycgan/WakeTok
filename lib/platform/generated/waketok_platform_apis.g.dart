@@ -712,6 +712,27 @@ class PhotoLibraryApi {
 
   final String pigeonVar_messageChannelSuffix;
 
+  /// Pure read of PhotoKit authorization status for `.readWrite`.
+  /// MUST NOT present any system prompt or UI.
+  Future<AuthStatus> authorizationStatus() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.authorizationStatus$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as AuthStatus;
+  }
+
   Future<AuthStatus> requestAuthorization() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestAuthorization$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -729,6 +750,26 @@ class PhotoLibraryApi {
     )
     ;
     return pigeonVar_replyValue! as AuthStatus;
+  }
+
+  /// Presents the system limited-library picker when status is `.limited`.
+  /// When status is not limited, completes successfully as a no-op.
+  Future<void> presentLimitedLibraryPicker() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.presentLimitedLibraryPicker$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   Future<List<AssetSourceDto>> listAssetSources() async {

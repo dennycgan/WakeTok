@@ -15,7 +15,7 @@ import UIKit
     let messenger = engineBridge.applicationRegistrar.messenger()
     PhotoLibraryApiSetup.setUp(
       binaryMessenger: messenger,
-      api: PhotoLibraryApiHost()
+      api: PhotoLibraryService()
     )
     PlaybackApiSetup.setUp(
       binaryMessenger: messenger,
