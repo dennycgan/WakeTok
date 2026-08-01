@@ -101,8 +101,48 @@
 ## Phase Roadmap (active capability only)
 Active capability: All / Photos / Videos built-in source resolution
 
-- [ ] Phases TBD — placeholder only. Owner will derive the Phase Roadmap
-      from local kickoff before coding starts; do not invent phase content.
+- [ ] 6.1 Contract lock (ADR-013): freeze built-in wire shape before Swift —
+      `AssetSourceKind` rename/add (`userLibrary`→`entireLibrary`,
+      `mediaTypePhotos`, `mediaTypeVideos`); `AssetSourceDto` fields
+      (`estimatedCount` exact for built-ins, `AssetSourceAvailabilityDto`,
+      `canAddContent=false`); `listAssetSources` stays synchronous;
+      `resolveSource` keeps full-list DTO (D1=A); Ordering = creationDate
+      descending via shared `makeLibraryFetchOptions` (D2=A, no new PoC);
+      Option A reference pairs + round-trip
+      (`AssetSourceDto.sourceIdentifier` from list ==
+      `SourceReferenceDto.sourceIdentifier` into resolve; only
+      `all`/`photos`/`videos`); pair mismatch → `assetUnavailable`;
+      D5 All-only quantile sampling via `fetchLibraryPage(cursor:q,
+      pageSize:1)` + id alignment; iCloud sample reuses ADR-011 KVC only;
+      year-span N owner-supplied before 6.5 (placeholder N=3); debug/smoke
+      UI only (D3); list returns only three built-ins (D4); minimal domain
+      AssetSource built-in kinds (D6). Design-freeze phase only — no
+      production resolve/Pigeon implementation in 6.1 (that starts in 6.2);
+      ADR-013 chat text is approved; append to DECISIONS after Cap 6
+      work commit exists (two-commit discipline).
+
+- [ ] 6.2 Pigeon regen + Swift host: expand kind/DTO/availability enum;
+      implement `listAssetSources` (three built-ins, sync counts) and
+      `resolveSource` (full id list, off-main enumeration, shared fetch
+      options + mediaType predicates matching `libraryTotals`); no
+      device-local filter; host pair validation on the three legal
+      (kind, id) pairs. Accept ~40k id bridge cost.
+
+- [ ] 6.3 Dart domain + gateway + Riverpod (ADR-009/010): minimal
+      built-in AssetSource types + repository; composition-root wiring;
+      features do not construct gateways. Architecture + localization
+      guards green.
+
+- [ ] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
+      resolved count vs `libraryTotals`; All-only date-quantile + id
+      alignment tooling; built-in labels via ARB only (wire `displayName`
+      not l10n). No product top-bar.
+
+- [ ] 6.5 Real-device acceptance (iPhone 13 Pro + owner ~40k library):
+      counts exact; full library incl. iCloud-only; All date-distribution
+      sampling (N per owner); ≥1 `iCloudNotDownloaded` or N/A + evidence;
+      notes under `docs/acceptance/`. Then Cap 6 docs close-out
+      (STATE + PHASE_HISTORY + ADR-013 Accepted/anchor).
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -112,10 +152,10 @@ Active capability: All / Photos / Videos built-in source resolution
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Define Cap 6 Phase Roadmap from kickoff (All / Photos / Videos source resolution)
-- Sub-steps done: Cap 5 closed (5.5 PASS on iPhone 13 Pro; notes `docs/acceptance/cap5-5.5-notes.md`; fix `8d8c873`)
-- Next step: owner + agent draft Cap 6 phases from local kickoff, then design-then-implement
-- Related decisions: ADR-001 … ADR-012 (see DECISIONS.md)
+- Goal (one line): Cap 6.1 contract lock — ADR-013 approved in chat; freeze wire/round-trip before coding
+- Sub-steps done: Cap 6 design rounds closed (D1–D7, Option A pairs, All-only D5); Phase Roadmap 6.1–6.5 drafted
+- Next step: owner OK docs commit for STATE phases; then 6.2 implementation (ADR-013 appends on docs commit after work)
+- Related decisions: ADR-001 … ADR-012; ADR-013 drafted (append after Cap 6 work commit)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
