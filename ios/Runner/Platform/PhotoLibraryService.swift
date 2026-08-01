@@ -101,11 +101,20 @@ final class PhotoLibraryService: PhotoLibraryApi {
   }
 
   /// List-time availability only — never fabricates `.downloading` (2A).
+  ///
+  /// PhotoKit does not expose a public `isLocallyAvailable` on `PHAsset` /
+  /// `PHAssetResource` in the iOS SDK. The boolean is available via KVC key
+  /// `locallyAvailable` (undocumented but stable for list-time probes). Do not
+  /// use synchronous `PHImageManager` requests here — too heavy for page map.
   private func mapAvailability(_ asset: PHAsset) -> AssetAvailabilityDto {
-    if asset.isLocallyAvailable {
-      return .deviceLocal
+    let resources = PHAssetResource.assetResources(for: asset)
+    if resources.isEmpty {
+      return .unavailable
     }
-    return .iCloudNotDownloaded
+    let allLocal = resources.allSatisfy { resource in
+      (resource.value(forKey: "locallyAvailable") as? Bool) ?? false
+    }
+    return allLocal ? .deviceLocal : .iCloudNotDownloaded
   }
 
   private func mapAsset(_ asset: PHAsset) -> LibraryAssetDto {
