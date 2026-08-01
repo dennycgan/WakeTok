@@ -21,7 +21,7 @@
 - iOS deployment target: iOS 18.0 (see ADR-007; ADR-005 superseded)
 - Test devices: iPhone 13 (performance floor), iPhone 17 (current-device compat)
 - No backend, no custom auth, no remote database, no developer-owned media server (kickoff Tech Stack)
-- Repository visibility: Private (see Known debt for public trigger)
+- Repository visibility: Private (see Known debt for public eligibility + pre-flight scan)
 
 ## Capability Roadmap (project-level; top-to-bottom = execution order; YOU ARE HERE)
 - [x] Project Bootstrap (flutter create scaffold, pigeon/ placeholder, docs skeleton, root commit)
@@ -151,7 +151,7 @@ Active capability: All / Photos / Videos built-in source resolution
 | App Foundation | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | App Foundation | Final accent color (depends on app icon design); provisional accent in theme tokens | Icon design is owner parallel track; accent must freeze before Main Browse Screen closes | Main Browse Screen | ADR-009 |
 | App Foundation | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
-| Portfolio | Repository visibility: Private → Public (trigger: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Portfolio value requires something screenshot-able, not just decision records; premature public exposure shows unfinished POC/scaffold with no product surface | Main Browse Screen (or first capability after it that ships a real feed) | — |
+| Portfolio | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Portfolio value requires something screenshot-able, not just decision records; premature public exposure shows unfinished POC/scaffold with no product surface. Eligibility alone is not enough: before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); Cursor reminds only and must not run the scan. | Main Browse Screen (or first capability after it that ships a real feed) | — |
 | iOS Photos permission | Typography text-style tokens (5.1 ships color tokens only; M3 default TextTheme) | Color-first keeps 5.1 small; type scale locks when heavy content UI lands | Main Browse Screen | ADR-009 |
 | iOS Photos permission | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
