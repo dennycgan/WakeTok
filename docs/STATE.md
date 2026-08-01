@@ -106,7 +106,7 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
       provisional accent; existing screens render in both modes;
       token-only styling starts here (ADR-009) — work `2e95eca`
 
-- [~] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
+- [x] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
       authorization status/request in Swift PhotoLibraryService
       (converge stub ApiHost naming); Pigeon adds non-prompting
       authorizationStatus (pure PhotoKit read, never triggers the system
@@ -120,8 +120,9 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
       Info.plist: NSPhotoLibraryUsageDescription PLACEHOLDER
       (final wording owner-only, release-handoff) +
       PHPhotoLibraryPreventAutomaticLimitedAccessAlert = YES
+      — work `5ad1357`
 
-- [ ] 5.3 Permission UI flows (en / zh-Hans, tokens only):
+- [~] 5.3 Permission UI flows (en / zh-Hans, tokens only):
       first-launch request; denied / restricted screen with Open Settings;
       Limited banner + manage-selection entry (kickoff ADR-K semantics);
       success landing = debug shell showing per-type totals
@@ -150,10 +151,10 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 5.2 Photos authorization domain + gateway (PhotoLibraryService, ADR-010 Riverpod)
-- Sub-steps done: 5.1 closed (work `2e95eca`; real-device Light/Dark PASS)
-- Next step: design-then-implement 5.2 (Pigeon status/picker, domain model, Riverpod + ADR-010)
-- Related decisions: ADR-001 … ADR-009; ADR-010 to Accept with 5.2 work
+- Goal (one line): 5.3 Permission UI flows (en / zh-Hans, tokens only; replace DEBUG harness)
+- Sub-steps done: 5.2 closed (work `5ad1357`; real-device auth PASS; ADR-010 Accepted)
+- Next step: design-then-implement 5.3 product permission screens (not based on AuthDebugStrip)
+- Related decisions: ADR-001 … ADR-010 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -161,9 +162,10 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
+- Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
-- Architecture boundaries: ADR-009 + test/architecture/ guard tests
-- ADR-001 … ADR-009: docs/DECISIONS.md
+- Architecture boundaries: ADR-009 + ADR-010 + test/architecture/ guard tests
+- ADR-001 … ADR-010: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)

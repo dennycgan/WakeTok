@@ -598,3 +598,49 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Dart boundaries = guard tests; Swift product-rule discipline = review +
     ADR-006 (not claimed by Dart scanners).
   - Guard tests are a release gate for tasks that touch `lib/`.
+
+---
+
+## ADR-010: Riverpod as production state management
+
+- Status: Accepted (2026-08-01)
+- Commit/PR anchor: 5ad1357
+- Plain summary (owner reads this):
+  WakeTok uses Riverpod for UI/feature state. Domain code stays free of
+  Riverpod types so business rules are not tied to one UI framework.
+- Context / what problem forced this:
+  Capability 5.2 is the first production feature layer that needs shared
+  authorization state across screens. Kickoff Tech Stack names Riverpod;
+  without an Accepted ADR, composition-root wiring and domain purity would
+  rely on chat memory only. ADR-009 already bans features from importing
+  platform gateways, so state adapters must sit above domain interfaces.
+- Decision (what was chosen):
+  1. Adopt **`flutter_riverpod`** (no codegen / `riverpod_annotation` in 5.2).
+  2. Mount **`ProviderScope`** at the composition root (`lib/main.dart` /
+     future `lib/app/**`).
+  3. **`lib/domain/**` is Riverpod-free:** no `package:riverpod`,
+     `package:flutter_riverpod`, or `package:riverpod_*` imports; repository
+     / use-case signatures use only `Future` / `Stream` (no `AsyncValue`).
+  4. Gateway construction and domain-interface binding happen only at the
+     composition root. `lib/features/**` must not construct platform
+     gateways or hold Pigeon / gateway concrete types. Tests may
+     `ProviderScope(overrides: …)`.
+  5. Feature notifiers (`AsyncNotifier` / `Notifier`) wrap domain
+     repositories; `go_router` remains deferred.
+  6. **Enforcement:** `test/architecture/` bans Riverpod package imports
+     under `lib/domain/**` (substring / package-name match).
+- Rejected alternatives (why not B):
+  - **Bloc / Cubit as default:** Rejected — conflicts with kickoff stack and
+    splits the first feature onto a second state library.
+  - **Service Locator / get_it for repositories:** Rejected — harder to
+    override in widget tests; fights Riverpod’s override model.
+  - **Riverpod types in domain:** Rejected — couples domain to UI framework;
+    blocks plain unit tests of ports.
+  - **Codegen-first (`riverpod_annotation`):** Rejected for 5.2 — extra
+    build_runner surface before the first notifier shape stabilizes.
+- Consequences / constraints accepted:
+  - ADR-010 applies from Cap 5.2 onward for new feature state.
+  - Temporary DEBUG auth harness in `lib/main.dart` is not product UI and
+    must not become the 5.3 permission-screen foundation.
+  - Local Cursor rules should cite ADR-010 alongside ADR-009 for domain /
+    composition-root constraints.
