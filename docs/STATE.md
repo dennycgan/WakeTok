@@ -114,19 +114,20 @@ Active capability: All / Photos / Videos built-in source resolution
 - Goal (one line): Define Cap 6 Phase Roadmap from kickoff (All / Photos / Videos source resolution)
 - Sub-steps done: Cap 5 closed (5.5 PASS on iPhone 13 Pro; notes `docs/acceptance/cap5-5.5-notes.md`; fix `8d8c873`)
 - Next step: owner + agent draft Cap 6 phases from local kickoff, then design-then-implement
-- Related decisions: ADR-001 … ADR-011 (see DECISIONS.md)
+- Related decisions: ADR-001 … ADR-012 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
+- Localization guard: ADR-012 + test/architecture/localization_test.dart
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); totals shell: lib/features/library_smoke/
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
-- Architecture boundaries: ADR-009 + ADR-010 + test/architecture/ guard tests
-- ADR-001 … ADR-011: docs/DECISIONS.md
+- Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
+- ADR-001 … ADR-012: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
@@ -146,7 +147,7 @@ Active capability: All / Photos / Videos built-in source resolution
 | POC-09 | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
 | App Foundation | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |
-| App Foundation | Localization Inventory generation/validation mechanism (kickoff ADR-U §7–8) | Only smoke keys exist during App Foundation; nothing to inventory yet. Interim inventory-of-record = ARB + Untranslated Messages Report (satisfies ADR-U §9 task checks until the formal Inventory lands) | Settings and localisation completion | — (kickoff ADR-U) |
+| App Foundation | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | App Foundation | Final accent color (depends on app icon design); provisional accent in theme tokens | Icon design is owner parallel track; accent must freeze before Main Browse Screen closes | Main Browse Screen | ADR-009 |
 | App Foundation | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
 | iOS Photos permission | Typography text-style tokens (5.1 ships color tokens only; M3 default TextTheme) | Color-first keeps 5.1 small; type scale locks when heavy content UI lands | Main Browse Screen | ADR-009 |

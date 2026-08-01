@@ -709,3 +709,58 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     Apple ships one.
   - Opaque page cursors are index-based; library mutations mid-pagination
     can stale a cursor (acceptable for Cap 5.4 debug catalog).
+
+---
+
+## ADR-012: Localization guard lock (ADR-U enforcement)
+
+- Status: Accepted (2026-08-01)
+- Commit/PR anchor: 64456b4
+- Plain summary (owner reads this):
+  Product UI copy must go through ARB/AppLocalizations. A machine test
+  blocks hardcoded user-facing strings and missing zh-Hans keys, so Cap 6
+  cannot quietly ship English-only or hardcoded copy.
+- Context / what problem forced this:
+  Cap 5 shipped the first product permission UI strings. The only automated
+  check today is an empty Untranslated Messages Report, which catches missing
+  translations for existing keys but not hardcoded widget copy. Cap 6 will
+  add much more UI. ADR-009 showed that kickoff rules plus
+  `test/architecture/` guards work; apply the same pattern to the
+  machine-checkable core of kickoff ADR-U (§2, key parity, placeholder
+  `description`).
+- Decision (what was chosen):
+  1. In `lib/features/**` and `lib/app/**`, user-visible copy must come from
+     `AppLocalizations` / gen_l10n (kickoff ADR-U §2). Hardcoded user-facing
+     string literals in common text widgets are forbidden (scanner subset
+     defined in the guard test).
+  2. **Tightens ADR-U §5:** `app_en.arb` and `app_zh_Hans.arb` **message key
+     sets must be identical** on every guard run. Missing zh-Hans keys fail
+     the test (no silent lag). (`app_zh.arb` Flutter fallback is out of
+     scope for this parity check.)
+  3. Messages whose value contains a `{placeholder}` must have a matching
+     `@key` object with a non-empty `description` (machine-checkable subset
+     of ADR-U §4). Other §4 description cases remain review.
+  4. Guard tests stay green and are part of Coding Tasks that touch `lib/`
+     (same workflow as ADR-009 / `00-workflow-gates` + local rules).
+  5. ADR-U §7–8 Localization Inventory **auto-generation / report tooling**
+     is **out of scope**; remains Known debt until Settings and localisation
+     completion.
+- Rejected alternatives (why not B):
+  - **Fold into Cap 6 phase 1:** Rejected — mixes product acceptance with
+    infra gating.
+  - **Wait for Settings capability:** Rejected — Cap 6 would multiply
+    violations; cheaper to lock now.
+  - **Automate all of ADR-U in one ADR:** Rejected — Inventory (§7–8) is a
+    report pipeline, not the same as an intercept gate.
+- Consequences / constraints accepted:
+  - Cap 6+ UI work has ARB/key-parity enforcement from the first commit;
+    phase text need not restate “use ARB.”
+  - This ADR does **not** machine-check Chinese quality, terminology, or
+    duplicate meanings (review + future Inventory).
+  - Dynamic non-copy displays (e.g. raw exception text / pure numeric
+    interpolations) are outside the hardcoded-letter scan by design.
+  - **Untranslated Messages Report** is narrowed to tracking keys that
+    **already exist** but whose zh-Hans copy may still need polish. It no
+    longer owns “does this key exist?” — that duty belongs to
+    `localization_test.dart` key-parity (Decision 2).
+  - Local Cursor rules cite ADR-012; published truth is DECISIONS + tests.
