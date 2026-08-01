@@ -31,14 +31,14 @@
 - [x] App Foundation
       (gen_l10n + ARB localisation infrastructure, shared error/result
       contracts, production Pigeon contract baseline)
-- [ ] iOS Photos permission, Library access, iCloud asset state handling
+- [x] iOS Photos permission, Library access, iCloud asset state handling
       (phase 5.1 establishes theme token baseline; token-only styling
       from this capability onward — ADR-009)
-      <-- YOU ARE HERE
 - [ ] All / Photos / Videos built-in source resolution
       (production resolution must enumerate the FULL library including
       iCloud-only assets; device-local filtering is spike-only; acceptance
       includes date-distribution sampling on owner's real 40k library)
+      <-- YOU ARE HERE
 - [ ] Main Browse Screen and vertical Media Feed
       (Severe Hang debt from ADR-001: measurable acceptance criteria to be
       defined in this capability's phase design)
@@ -98,51 +98,10 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: iOS Photos Permission, Library Access, iCloud Asset State
+Active capability: All / Photos / Videos built-in source resolution
 
-- [x] 5.1 Theme token baseline: lib/core/theme semantic Light/Dark tokens
-      (surface / background / onSurface / accent-provisional /
-      feed-background minimal set), ThemeData wired in MaterialApp,
-      provisional accent; existing screens render in both modes;
-      token-only styling starts here (ADR-009) — work `2e95eca`
-
-- [x] 5.2 Photos authorization domain + gateway: implement PhotoLibraryApi
-      authorization status/request in Swift PhotoLibraryService
-      (converge stub ApiHost naming); Pigeon adds non-prompting
-      authorizationStatus (pure PhotoKit read, never triggers the system
-      prompt) and presentLimitedLibraryPicker; Dart authorization state
-      model (notDetermined / denied / restricted / limited / full),
-      repository interface + platform gateway; Riverpod wiring per ADR-010
-      (ProviderScope at composition root; domain stays Riverpod-free —
-      guard test adds riverpod import ban for lib/domain; domain
-      signatures use Future/Stream only, no AsyncValue; features must not
-      construct gateways or hold platform concrete types);
-      Info.plist: NSPhotoLibraryUsageDescription PLACEHOLDER
-      (final wording owner-only, release-handoff) +
-      PHPhotoLibraryPreventAutomaticLimitedAccessAlert = YES
-      — work `5ad1357`
-
-- [x] 5.3 Permission UI flows (en / zh-Hans, tokens only):
-      first-launch request; denied / restricted screen with Open Settings;
-      Limited banner + manage-selection entry (kickoff ADR-K semantics);
-      success landing = debug shell showing per-type totals
-      (real Feed is next capability) — work `8ef8566`
-
-- [x] 5.4 Library access + iCloud asset state model: paged gateway fetch
-      of PHAsset-level metadata (id / type / creation date) — enumerates
-      individual PHAssets only, no PHAssetCollection/Album enumeration;
-      NO device-local filtering (full library incl. iCloud-only); domain
-      asset availability vocabulary (deviceLocal / iCloudNotDownloaded /
-      downloading / unavailable); unit tests; debug smoke shows
-      per-type totals; non-goal: product All/Photos/Videos source
-      resolution and feed (next capability) — work `690aa0d`
-      (availability KVC fix `7d8f022`)
-
-- [~] 5.5 Real-device acceptance on iPhone 13 Pro: permission flows
-      (first ask / deny→Settings / limited banner + manage),
-      totals on the 5.3 debug shell match Photos app counts on owner's
-      ~42k library (default PHFetchOptions semantics: excludes Hidden
-      and Recently Deleted), Light/Dark render, en + zh-Hans strings
+- [ ] Phases TBD — placeholder only. Owner will derive the Phase Roadmap
+      from local kickoff before coding starts; do not invent phase content.
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -152,9 +111,9 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 5.5 Real-device acceptance on iPhone 13 Pro (permission flows + totals vs Photos ~42k)
-- Sub-steps done: 5.4 closed (work `690aa0d`; device light smoke PASS; availability via resource KVC `7d8f022`)
-- Next step: owner runs 5.5 acceptance checklist on iPhone 13 Pro
+- Goal (one line): Define Cap 6 Phase Roadmap from kickoff (All / Photos / Videos source resolution)
+- Sub-steps done: Cap 5 closed (5.5 PASS on iPhone 13 Pro; notes `docs/acceptance/cap5-5.5-notes.md`; fix `8d8c873`)
+- Next step: owner + agent draft Cap 6 phases from local kickoff, then design-then-implement
 - Related decisions: ADR-001 … ADR-011 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -168,6 +127,7 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + test/architecture/ guard tests
 - ADR-001 … ADR-011: docs/DECISIONS.md
+- Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)

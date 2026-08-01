@@ -121,3 +121,34 @@ Docs close-out (STATE + PHASE_HISTORY): (this commit)
 Known debt carried forward: iOS 18 simulator smoke → Final hardening
 (ADR-007); Localization Inventory → Settings and localisation completion
 (kickoff ADR-U).
+
+## iOS Photos permission, Library access, iCloud asset state — completed 2026-08-01
+
+- [x] 5.1 Theme token baseline: lib/core/theme semantic Light/Dark tokens
+      (surface / background / onSurface / accent-provisional /
+      feed-background minimal set), ThemeData wired in MaterialApp,
+      provisional accent; existing screens render in both modes;
+      token-only styling starts here (ADR-009)
+      — work `2e95eca`
+- [x] 5.2 Photos authorization domain + gateway: PhotoLibraryApi auth +
+      presentLimitedLibraryPicker; Dart PhotosAccess + repository +
+      gateway; Riverpod (ADR-010); Info.plist Usage PLACEHOLDER +
+      PHPhotoLibraryPreventAutomaticLimitedAccessAlert = YES
+      — work `5ad1357`
+- [x] 5.3 Permission UI flows (en / zh-Hans, tokens only): Request /
+      Blocked / Limited banner; Library Totals Shell landing
+      — work `8ef8566`
+- [x] 5.4 Library access + iCloud asset state model: libraryTotals +
+      fetchLibraryPage; domain catalog + availability; shared
+      PHFetchOptions (ADR-011); shell real counts
+      — work `690aa0d` (availability KVC fix `7d8f022`)
+- [x] 5.5 Real-device acceptance on iPhone 13 Pro: M1–M8 PASS (permission
+      flows; totals exact match vs Photos Media Types; Light/Dark;
+      en + zh-Hans); notes `docs/acceptance/cap5-5.5-notes.md`
+      — acceptance fix `8d8c873` (limited-picker dismiss + resume refresh)
+
+Docs close-out (STATE + PHASE_HISTORY + acceptance notes): (this commit)
+
+Related ADRs: ADR-009, ADR-010, ADR-011. Known debt carried: typography
+tokens → Main Browse; Usage Description PLACEHOLDER → TestFlight;
+PHAssetResource KVC `locallyAvailable` → Final hardening.
