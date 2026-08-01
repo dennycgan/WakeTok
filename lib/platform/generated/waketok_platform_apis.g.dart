@@ -136,7 +136,12 @@ enum AuthStatus {
 enum AssetSourceKind {
   album,
   smartAlbum,
-  userLibrary,
+  /// Built-in All / Entire Library Source (Cap 6).
+  entireLibrary,
+  /// Built-in Photos Media Type Source (image + Live Photo).
+  mediaTypePhotos,
+  /// Built-in Videos Media Type Source.
+  mediaTypeVideos,
   other,
 }
 
@@ -158,6 +163,16 @@ enum AssetAvailabilityDto {
   unavailable,
 }
 
+/// Asset Source availability at list/resolve time (Glossary §16).
+///
+/// Distinct from asset-level [AssetAvailabilityDto]. Name avoids clash.
+enum AssetSourceAvailabilityDto {
+  available,
+  empty,
+  unavailable,
+  unauthorized,
+}
+
 enum PlaybackState {
   idle,
   loading,
@@ -173,19 +188,36 @@ class AssetSourceDto {
     required this.sourceIdentifier,
     required this.displayName,
     required this.kind,
+    this.estimatedCount,
+    required this.availability,
+    required this.canAddContent,
   });
 
   String sourceIdentifier;
 
+  /// Not an l10n source for built-ins — Cap 6 uses empty string; UI uses ARB.
   String displayName;
 
   AssetSourceKind kind;
+
+  /// For built-ins: always present and exactly equals the matching
+  /// [LibraryTotalsDto] component. Approximate semantics reserved for
+  /// future Album / Smart Album sources.
+  int? estimatedCount;
+
+  AssetSourceAvailabilityDto availability;
+
+  /// Built-ins and non-writable sources: false. User albums may be true later.
+  bool canAddContent;
 
   List<Object?> _toList() {
     return <Object?>[
       sourceIdentifier,
       displayName,
       kind,
+      estimatedCount,
+      availability,
+      canAddContent,
     ];
   }
 
@@ -198,6 +230,9 @@ class AssetSourceDto {
       sourceIdentifier: result[0]! as String,
       displayName: result[1]! as String,
       kind: result[2]! as AssetSourceKind,
+      estimatedCount: result[3] as int?,
+      availability: result[4]! as AssetSourceAvailabilityDto,
+      canAddContent: result[5]! as bool,
     );
   }
 
@@ -210,7 +245,7 @@ class AssetSourceDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(sourceIdentifier, other.sourceIdentifier) && _deepEquals(displayName, other.displayName) && _deepEquals(kind, other.kind);
+    return _deepEquals(sourceIdentifier, other.sourceIdentifier) && _deepEquals(displayName, other.displayName) && _deepEquals(kind, other.kind) && _deepEquals(estimatedCount, other.estimatedCount) && _deepEquals(availability, other.availability) && _deepEquals(canAddContent, other.canAddContent);
   }
 
   @override
@@ -219,7 +254,7 @@ class AssetSourceDto {
 
   @override
   String toString() {
-    return 'AssetSourceDto(sourceIdentifier: $sourceIdentifier, displayName: $displayName, kind: $kind)';
+    return 'AssetSourceDto(sourceIdentifier: $sourceIdentifier, displayName: $displayName, kind: $kind, estimatedCount: $estimatedCount, availability: $availability, canAddContent: $canAddContent)';
   }
 }
 
@@ -808,41 +843,44 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is AssetAvailabilityDto) {
       buffer.putUint8(133);
       writeValue(buffer, value.index);
-    }    else if (value is PlaybackState) {
+    }    else if (value is AssetSourceAvailabilityDto) {
       buffer.putUint8(134);
       writeValue(buffer, value.index);
-    }    else if (value is AssetSourceDto) {
+    }    else if (value is PlaybackState) {
       buffer.putUint8(135);
-      writeValue(buffer, value.encode());
-    }    else if (value is SourceReferenceDto) {
+      writeValue(buffer, value.index);
+    }    else if (value is AssetSourceDto) {
       buffer.putUint8(136);
       writeValue(buffer, value.encode());
-    }    else if (value is ResolvedSourceDto) {
+    }    else if (value is SourceReferenceDto) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is DisplayAssetDto) {
+    }    else if (value is ResolvedSourceDto) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is PlayableVideoDto) {
+    }    else if (value is DisplayAssetDto) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is LibraryAssetDto) {
+    }    else if (value is PlayableVideoDto) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is LibraryPageDto) {
+    }    else if (value is LibraryAssetDto) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    }    else if (value is LibraryTotalsDto) {
+    }    else if (value is LibraryPageDto) {
       buffer.putUint8(142);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackItemDto) {
+    }    else if (value is LibraryTotalsDto) {
       buffer.putUint8(143);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackPlanDto) {
+    }    else if (value is PlaybackItemDto) {
       buffer.putUint8(144);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackRuntimeEventDto) {
+    }    else if (value is PlaybackPlanDto) {
       buffer.putUint8(145);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackRuntimeEventDto) {
+      buffer.putUint8(146);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -869,28 +907,31 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : AssetAvailabilityDto.values[value];
       case 134:
         final value = readValue(buffer) as int?;
-        return value == null ? null : PlaybackState.values[value];
+        return value == null ? null : AssetSourceAvailabilityDto.values[value];
       case 135:
-        return AssetSourceDto.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : PlaybackState.values[value];
       case 136:
-        return SourceReferenceDto.decode(readValue(buffer)!);
+        return AssetSourceDto.decode(readValue(buffer)!);
       case 137:
-        return ResolvedSourceDto.decode(readValue(buffer)!);
+        return SourceReferenceDto.decode(readValue(buffer)!);
       case 138:
-        return DisplayAssetDto.decode(readValue(buffer)!);
+        return ResolvedSourceDto.decode(readValue(buffer)!);
       case 139:
-        return PlayableVideoDto.decode(readValue(buffer)!);
+        return DisplayAssetDto.decode(readValue(buffer)!);
       case 140:
-        return LibraryAssetDto.decode(readValue(buffer)!);
+        return PlayableVideoDto.decode(readValue(buffer)!);
       case 141:
-        return LibraryPageDto.decode(readValue(buffer)!);
+        return LibraryAssetDto.decode(readValue(buffer)!);
       case 142:
-        return LibraryTotalsDto.decode(readValue(buffer)!);
+        return LibraryPageDto.decode(readValue(buffer)!);
       case 143:
-        return PlaybackItemDto.decode(readValue(buffer)!);
+        return LibraryTotalsDto.decode(readValue(buffer)!);
       case 144:
-        return PlaybackPlanDto.decode(readValue(buffer)!);
+        return PlaybackItemDto.decode(readValue(buffer)!);
       case 145:
+        return PlaybackPlanDto.decode(readValue(buffer)!);
+      case 146:
         return PlaybackRuntimeEventDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1019,6 +1060,9 @@ class PhotoLibraryApi {
     return pigeonVar_replyValue! as LibraryPageDto;
   }
 
+  /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
+  /// Synchronous — counts use PHFetchResult.count only (no network).
+  /// Album / Smart Album listing is deferred.
   Future<List<AssetSourceDto>> listAssetSources() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.listAssetSources$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1038,6 +1082,10 @@ class PhotoLibraryApi {
     return (pigeonVar_replyValue! as List<Object?>).cast<AssetSourceDto>();
   }
 
+  /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
+  /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;
+  /// pair must match frozen built-in ids (all / photos / videos).
+  /// Mismatch → [ErrorCode.assetUnavailable].
   Future<ResolvedSourceDto> resolveSource(SourceReferenceDto sourceReference) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.resolveSource$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(

@@ -217,8 +217,13 @@ enum AuthStatus: Int, CaseIterable {
 enum AssetSourceKind: Int, CaseIterable {
   case album = 0
   case smartAlbum = 1
-  case userLibrary = 2
-  case other = 3
+  /// Built-in All / Entire Library Source (Cap 6).
+  case entireLibrary = 2
+  /// Built-in Photos Media Type Source (image + Live Photo).
+  case mediaTypePhotos = 3
+  /// Built-in Videos Media Type Source.
+  case mediaTypeVideos = 4
+  case other = 5
 }
 
 enum MediaKind: Int, CaseIterable {
@@ -239,6 +244,16 @@ enum AssetAvailabilityDto: Int, CaseIterable {
   case unavailable = 3
 }
 
+/// Asset Source availability at list/resolve time (Glossary §16).
+///
+/// Distinct from asset-level [AssetAvailabilityDto]. Name avoids clash.
+enum AssetSourceAvailabilityDto: Int, CaseIterable {
+  case available = 0
+  case empty = 1
+  case unavailable = 2
+  case unauthorized = 3
+}
+
 enum PlaybackState: Int, CaseIterable {
   case idle = 0
   case loading = 1
@@ -252,8 +267,16 @@ enum PlaybackState: Int, CaseIterable {
 /// Generated class from Pigeon that represents data sent in messages.
 struct AssetSourceDto: Hashable, CustomStringConvertible {
   var sourceIdentifier: String
+  /// Not an l10n source for built-ins — Cap 6 uses empty string; UI uses ARB.
   var displayName: String
   var kind: AssetSourceKind
+  /// For built-ins: always present and exactly equals the matching
+  /// [LibraryTotalsDto] component. Approximate semantics reserved for
+  /// future Album / Smart Album sources.
+  var estimatedCount: Int64? = nil
+  var availability: AssetSourceAvailabilityDto
+  /// Built-ins and non-writable sources: false. User albums may be true later.
+  var canAddContent: Bool
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -261,11 +284,17 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
     let sourceIdentifier = pigeonVar_list[0] as! String
     let displayName = pigeonVar_list[1] as! String
     let kind = pigeonVar_list[2] as! AssetSourceKind
+    let estimatedCount: Int64? = nilOrValue(pigeonVar_list[3])
+    let availability = pigeonVar_list[4] as! AssetSourceAvailabilityDto
+    let canAddContent = pigeonVar_list[5] as! Bool
 
     return AssetSourceDto(
       sourceIdentifier: sourceIdentifier,
       displayName: displayName,
-      kind: kind
+      kind: kind,
+      estimatedCount: estimatedCount,
+      availability: availability,
+      canAddContent: canAddContent
     )
   }
   func toList() -> [Any?] {
@@ -273,13 +302,16 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
       sourceIdentifier,
       displayName,
       kind,
+      estimatedCount,
+      availability,
+      canAddContent,
     ]
   }
   static func == (lhs: AssetSourceDto, rhs: AssetSourceDto) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.sourceIdentifier, rhs.sourceIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.displayName, rhs.displayName) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.kind, rhs.kind)
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.sourceIdentifier, rhs.sourceIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.displayName, rhs.displayName) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.kind, rhs.kind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.estimatedCount, rhs.estimatedCount) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.availability, rhs.availability) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.canAddContent, rhs.canAddContent)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -287,10 +319,13 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
     WaketokPlatformApisPigeonInternal.deepHash(value: sourceIdentifier, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: displayName, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: kind, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: estimatedCount, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: availability, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: canAddContent, hasher: &hasher)
   }
 
   public var description: String {
-    return "AssetSourceDto(sourceIdentifier: \(String(describing: sourceIdentifier)), displayName: \(String(describing: displayName)), kind: \(String(describing: kind)))"
+    return "AssetSourceDto(sourceIdentifier: \(String(describing: sourceIdentifier)), displayName: \(String(describing: displayName)), kind: \(String(describing: kind)), estimatedCount: \(String(describing: estimatedCount)), availability: \(String(describing: availability)), canAddContent: \(String(describing: canAddContent)))"
   }
 }
 
@@ -795,30 +830,36 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
     case 134:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return PlaybackState(rawValue: enumResultAsInt)
+        return AssetSourceAvailabilityDto(rawValue: enumResultAsInt)
       }
       return nil
     case 135:
-      return AssetSourceDto.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return PlaybackState(rawValue: enumResultAsInt)
+      }
+      return nil
     case 136:
-      return SourceReferenceDto.fromList(self.readValue() as! [Any?])
+      return AssetSourceDto.fromList(self.readValue() as! [Any?])
     case 137:
-      return ResolvedSourceDto.fromList(self.readValue() as! [Any?])
+      return SourceReferenceDto.fromList(self.readValue() as! [Any?])
     case 138:
-      return DisplayAssetDto.fromList(self.readValue() as! [Any?])
+      return ResolvedSourceDto.fromList(self.readValue() as! [Any?])
     case 139:
-      return PlayableVideoDto.fromList(self.readValue() as! [Any?])
+      return DisplayAssetDto.fromList(self.readValue() as! [Any?])
     case 140:
-      return LibraryAssetDto.fromList(self.readValue() as! [Any?])
+      return PlayableVideoDto.fromList(self.readValue() as! [Any?])
     case 141:
-      return LibraryPageDto.fromList(self.readValue() as! [Any?])
+      return LibraryAssetDto.fromList(self.readValue() as! [Any?])
     case 142:
-      return LibraryTotalsDto.fromList(self.readValue() as! [Any?])
+      return LibraryPageDto.fromList(self.readValue() as! [Any?])
     case 143:
-      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
+      return LibraryTotalsDto.fromList(self.readValue() as! [Any?])
     case 144:
-      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
     case 145:
+      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+    case 146:
       return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -843,41 +884,44 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? AssetAvailabilityDto {
       super.writeByte(133)
       super.writeValue(value.rawValue)
-    } else if let value = value as? PlaybackState {
+    } else if let value = value as? AssetSourceAvailabilityDto {
       super.writeByte(134)
       super.writeValue(value.rawValue)
-    } else if let value = value as? AssetSourceDto {
+    } else if let value = value as? PlaybackState {
       super.writeByte(135)
-      super.writeValue(value.toList())
-    } else if let value = value as? SourceReferenceDto {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? AssetSourceDto {
       super.writeByte(136)
       super.writeValue(value.toList())
-    } else if let value = value as? ResolvedSourceDto {
+    } else if let value = value as? SourceReferenceDto {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? DisplayAssetDto {
+    } else if let value = value as? ResolvedSourceDto {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayableVideoDto {
+    } else if let value = value as? DisplayAssetDto {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? LibraryAssetDto {
+    } else if let value = value as? PlayableVideoDto {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? LibraryPageDto {
+    } else if let value = value as? LibraryAssetDto {
       super.writeByte(141)
       super.writeValue(value.toList())
-    } else if let value = value as? LibraryTotalsDto {
+    } else if let value = value as? LibraryPageDto {
       super.writeByte(142)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackItemDto {
+    } else if let value = value as? LibraryTotalsDto {
       super.writeByte(143)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackPlanDto {
+    } else if let value = value as? PlaybackItemDto {
       super.writeByte(144)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackRuntimeEventDto {
+    } else if let value = value as? PlaybackPlanDto {
       super.writeByte(145)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackRuntimeEventDto {
+      super.writeByte(146)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -922,7 +966,14 @@ protocol PhotoLibraryApi {
   /// Sort: creationDate descending; nil creationDate at end. No album
   /// enumeration; no device-local filter.
   func fetchLibraryPage(cursor: String?, pageSize: Int64, completion: @escaping (Result<LibraryPageDto, Error>) -> Void)
+  /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
+  /// Synchronous — counts use PHFetchResult.count only (no network).
+  /// Album / Smart Album listing is deferred.
   func listAssetSources() throws -> [AssetSourceDto]
+  /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
+  /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;
+  /// pair must match frozen built-in ids (all / photos / videos).
+  /// Mismatch → [ErrorCode.assetUnavailable].
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
   func requestDisplayAsset(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
   func requestPlayableVideo(assetIdentifier: String, completion: @escaping (Result<PlayableVideoDto, Error>) -> Void)
@@ -1029,6 +1080,9 @@ class PhotoLibraryApiSetup {
     } else {
       fetchLibraryPageChannel.setMessageHandler(nil)
     }
+    /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
+    /// Synchronous — counts use PHFetchResult.count only (no network).
+    /// Album / Smart Album listing is deferred.
     let listAssetSourcesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.listAssetSources\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       listAssetSourcesChannel.setMessageHandler { _, reply in
@@ -1042,6 +1096,10 @@ class PhotoLibraryApiSetup {
     } else {
       listAssetSourcesChannel.setMessageHandler(nil)
     }
+    /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
+    /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;
+    /// pair must match frozen built-in ids (all / photos / videos).
+    /// Mismatch → [ErrorCode.assetUnavailable].
     let resolveSourceChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.resolveSource\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       resolveSourceChannel.setMessageHandler { message, reply in

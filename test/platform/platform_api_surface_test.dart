@@ -132,10 +132,38 @@ void main() {
       photoChannel('fetchLibraryPage'),
       LibraryPageDto(assets: <LibraryAssetDto>[], nextCursor: null),
     );
-    mockSuccess(photoChannel('listAssetSources'), <Object?>[]);
+    mockSuccess(photoChannel('listAssetSources'), <Object?>[
+      AssetSourceDto(
+        sourceIdentifier: 'all',
+        displayName: '',
+        kind: AssetSourceKind.entireLibrary,
+        estimatedCount: 3,
+        availability: AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+      AssetSourceDto(
+        sourceIdentifier: 'photos',
+        displayName: '',
+        kind: AssetSourceKind.mediaTypePhotos,
+        estimatedCount: 2,
+        availability: AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+      AssetSourceDto(
+        sourceIdentifier: 'videos',
+        displayName: '',
+        kind: AssetSourceKind.mediaTypeVideos,
+        estimatedCount: 1,
+        availability: AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+    ]);
     mockSuccess(
       photoChannel('resolveSource'),
-      ResolvedSourceDto(sourceIdentifier: 's', assetIdentifiers: <String>[]),
+      ResolvedSourceDto(
+        sourceIdentifier: 'all',
+        assetIdentifiers: <String>['a', 'b', 'c'],
+      ),
     );
     mockSuccess(
       photoChannel('requestDisplayAsset'),
@@ -154,12 +182,21 @@ void main() {
     await api.presentLimitedLibraryPicker();
     expect((await api.libraryTotals()).all, 3);
     expect((await api.fetchLibraryPage(null, 50)).assets, isEmpty);
-    expect(await api.listAssetSources(), isEmpty);
+    final sources = await api.listAssetSources();
+    expect(sources, hasLength(3));
+    expect(sources[0].sourceIdentifier, 'all');
+    expect(sources[0].kind, AssetSourceKind.entireLibrary);
+    expect(sources[0].estimatedCount, 3);
+    expect(sources[0].canAddContent, isFalse);
+    expect(sources[0].displayName, isEmpty);
     expect(
       (await api.resolveSource(
-        SourceReferenceDto(sourceType: 'album', sourceIdentifier: 's'),
+        SourceReferenceDto(
+          sourceType: 'entireLibrary',
+          sourceIdentifier: 'all',
+        ),
       )).assetIdentifiers,
-      isEmpty,
+      ['a', 'b', 'c'],
     );
     expect(
       (await api.requestDisplayAsset('a')).assetIdentifier,

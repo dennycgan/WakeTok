@@ -59,11 +59,11 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
-  // MARK: - Shared catalog fetch options (Cap 5.4)
+  // MARK: - Shared library fetch (Cap 5.4 + Cap 6)
 
   /// Single construction site for library enumeration options.
   ///
-  /// Used by both [libraryTotals] and [fetchLibraryPage] so inclusion / sort
+  /// Used by totals, paging, built-in list, and resolve so inclusion / sort
   /// cannot drift. Default PhotoKit semantics (Hidden + Recently Deleted
   /// excluded). Sort: creationDate descending; nil dates sort last under
   /// Cocoa descending NSSortDescriptor. No device-local filter.
@@ -75,8 +75,18 @@ final class PhotoLibraryService: PhotoLibraryApi {
     return options
   }
 
-  /// Catalog universe matching totals: images (incl. Live) + videos only.
-  private func fetchCatalogAssets() -> PHFetchResult<PHAsset> {
+  /// Photos universe: still images + Live Photos (matches libraryTotals.photos).
+  private func photosFetchResult() -> PHFetchResult<PHAsset> {
+    PHAsset.fetchAssets(with: .image, options: makeLibraryFetchOptions())
+  }
+
+  /// Videos universe (matches libraryTotals.videos).
+  private func videosFetchResult() -> PHFetchResult<PHAsset> {
+    PHAsset.fetchAssets(with: .video, options: makeLibraryFetchOptions())
+  }
+
+  /// All = image OR video (matches libraryTotals.all / catalog paging).
+  private func allFetchResult() -> PHFetchResult<PHAsset> {
     let options = makeLibraryFetchOptions()
     options.predicate = NSPredicate(
       format: "mediaType == %d OR mediaType == %d",
@@ -84,6 +94,99 @@ final class PhotoLibraryService: PhotoLibraryApi {
       PHAssetMediaType.video.rawValue
     )
     return PHAsset.fetchAssets(with: options)
+  }
+
+  /// Catalog universe matching totals: images (incl. Live) + videos only.
+  private func fetchCatalogAssets() -> PHFetchResult<PHAsset> {
+    allFetchResult()
+  }
+
+  // MARK: - Built-in source resolution (Cap 6 / ADR-013)
+
+  private static let builtinIdAll = "all"
+  private static let builtinIdPhotos = "photos"
+  private static let builtinIdVideos = "videos"
+
+  private enum BuiltinSource {
+    case entireLibrary
+    case mediaTypePhotos
+    case mediaTypeVideos
+
+    var kind: AssetSourceKind {
+      switch self {
+      case .entireLibrary: return .entireLibrary
+      case .mediaTypePhotos: return .mediaTypePhotos
+      case .mediaTypeVideos: return .mediaTypeVideos
+      }
+    }
+
+    var sourceType: String {
+      switch self {
+      case .entireLibrary: return "entireLibrary"
+      case .mediaTypePhotos: return "mediaTypePhotos"
+      case .mediaTypeVideos: return "mediaTypeVideos"
+      }
+    }
+
+    var sourceIdentifier: String {
+      switch self {
+      case .entireLibrary: return PhotoLibraryService.builtinIdAll
+      case .mediaTypePhotos: return PhotoLibraryService.builtinIdPhotos
+      case .mediaTypeVideos: return PhotoLibraryService.builtinIdVideos
+      }
+    }
+  }
+
+  /// Exactly three legal (sourceType, sourceIdentifier) pairs.
+  private func builtinSource(
+    from reference: SourceReferenceDto
+  ) -> BuiltinSource? {
+    switch (reference.sourceType, reference.sourceIdentifier) {
+    case (BuiltinSource.entireLibrary.sourceType, BuiltinSource.entireLibrary.sourceIdentifier):
+      return .entireLibrary
+    case (BuiltinSource.mediaTypePhotos.sourceType, BuiltinSource.mediaTypePhotos.sourceIdentifier):
+      return .mediaTypePhotos
+    case (BuiltinSource.mediaTypeVideos.sourceType, BuiltinSource.mediaTypeVideos.sourceIdentifier):
+      return .mediaTypeVideos
+    default:
+      return nil
+    }
+  }
+
+  private func fetchResult(for source: BuiltinSource) -> PHFetchResult<PHAsset> {
+    switch source {
+    case .entireLibrary:
+      return allFetchResult()
+    case .mediaTypePhotos:
+      return photosFetchResult()
+    case .mediaTypeVideos:
+      return videosFetchResult()
+    }
+  }
+
+  private func makeBuiltinSourceDto(
+    _ source: BuiltinSource,
+    count: Int
+  ) -> AssetSourceDto {
+    AssetSourceDto(
+      sourceIdentifier: source.sourceIdentifier,
+      displayName: "",
+      kind: source.kind,
+      estimatedCount: Int64(count),
+      availability: count > 0 ? .available : .empty,
+      canAddContent: false
+    )
+  }
+
+  private func collectLocalIdentifiers(
+    from result: PHFetchResult<PHAsset>
+  ) -> [String] {
+    var ids: [String] = []
+    ids.reserveCapacity(result.count)
+    result.enumerateObjects { asset, _, _ in
+      ids.append(asset.localIdentifier)
+    }
+    return ids
   }
 
   private func mapMediaKind(_ asset: PHAsset) -> MediaKind {
@@ -227,9 +330,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     do {
       try requireLibraryAccess()
-      let options = makeLibraryFetchOptions()
-      let photos = PHAsset.fetchAssets(with: .image, options: options).count
-      let videos = PHAsset.fetchAssets(with: .video, options: options).count
+      let photos = photosFetchResult().count
+      let videos = videosFetchResult().count
       completion(
         .success(
           LibraryTotalsDto(
@@ -278,8 +380,14 @@ final class PhotoLibraryService: PhotoLibraryApi {
 
   func listAssetSources() throws -> [AssetSourceDto] {
     try requireLibraryAccess()
-    // Album / source enumeration is the next capability — not Cap 5.4.
-    return []
+    let photosCount = photosFetchResult().count
+    let videosCount = videosFetchResult().count
+    let allCount = photosCount + videosCount
+    return [
+      makeBuiltinSourceDto(.entireLibrary, count: allCount),
+      makeBuiltinSourceDto(.mediaTypePhotos, count: photosCount),
+      makeBuiltinSourceDto(.mediaTypeVideos, count: videosCount),
+    ]
   }
 
   func resolveSource(
@@ -288,14 +396,33 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     do {
       try requireLibraryAccess()
-      completion(
-        .success(
-          ResolvedSourceDto(
-            sourceIdentifier: sourceReference.sourceIdentifier,
-            assetIdentifiers: []
+      guard let source = builtinSource(from: sourceReference) else {
+        completion(
+          .failure(
+            fail(
+              .assetUnavailable,
+              message: "Invalid built-in source reference pair"
+            )
           )
         )
-      )
+        return
+      }
+      let shortId = source.sourceIdentifier
+      DispatchQueue.global(qos: .userInitiated).async {
+        let result = self.fetchResult(for: source)
+        let ids = self.collectLocalIdentifiers(from: result)
+        // BinaryMessenger replies must run on the platform (main) thread.
+        DispatchQueue.main.async {
+          completion(
+            .success(
+              ResolvedSourceDto(
+                sourceIdentifier: shortId,
+                assetIdentifiers: ids
+              )
+            )
+          )
+        }
+      }
     } catch {
       completion(.failure(error))
     }

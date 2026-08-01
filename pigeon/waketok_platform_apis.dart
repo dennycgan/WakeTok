@@ -43,7 +43,12 @@ enum AuthStatus {
 enum AssetSourceKind {
   album,
   smartAlbum,
-  userLibrary,
+  /// Built-in All / Entire Library Source (Cap 6).
+  entireLibrary,
+  /// Built-in Photos Media Type Source (image + Live Photo).
+  mediaTypePhotos,
+  /// Built-in Videos Media Type Source.
+  mediaTypeVideos,
   other,
 }
 
@@ -65,6 +70,16 @@ enum AssetAvailabilityDto {
   unavailable,
 }
 
+/// Asset Source availability at list/resolve time (Glossary §16).
+///
+/// Distinct from asset-level [AssetAvailabilityDto]. Name avoids clash.
+enum AssetSourceAvailabilityDto {
+  available,
+  empty,
+  unavailable,
+  unauthorized,
+}
+
 enum PlaybackState {
   idle,
   loading,
@@ -80,11 +95,26 @@ class AssetSourceDto {
     required this.sourceIdentifier,
     required this.displayName,
     required this.kind,
+    required this.availability,
+    required this.canAddContent,
+    this.estimatedCount,
   });
 
   String sourceIdentifier;
+
+  /// Not an l10n source for built-ins — Cap 6 uses empty string; UI uses ARB.
   String displayName;
   AssetSourceKind kind;
+
+  /// For built-ins: always present and exactly equals the matching
+  /// [LibraryTotalsDto] component. Approximate semantics reserved for
+  /// future Album / Smart Album sources.
+  int? estimatedCount;
+
+  AssetSourceAvailabilityDto availability;
+
+  /// Built-ins and non-writable sources: false. User albums may be true later.
+  bool canAddContent;
 }
 
 class SourceReferenceDto {
@@ -248,8 +278,15 @@ abstract class PhotoLibraryApi {
   @async
   LibraryPageDto fetchLibraryPage(String? cursor, int pageSize);
 
+  /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
+  /// Synchronous — counts use PHFetchResult.count only (no network).
+  /// Album / Smart Album listing is deferred.
   List<AssetSourceDto> listAssetSources();
 
+  /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
+  /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;
+  /// pair must match frozen built-in ids (all / photos / videos).
+  /// Mismatch → [ErrorCode.assetUnavailable].
   @async
   ResolvedSourceDto resolveSource(SourceReferenceDto sourceReference);
 
