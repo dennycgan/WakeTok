@@ -36,13 +36,18 @@ The product needs a TikTok-like vertical feed over the user’s own library.
 The hard question was whether **Flutter UI + native iOS video** could meet a
 measurable hitch budget on **iPhone 13 Pro** before any production domain layer.
 
-**POC-04 (architecture gate).** The spike used Platform View (`UiKitView` +
-`AVPlayerLayer`), a bounded 1+1 player pool, and image temp files. Instruments
-Animation Hitches originally targeted **< 5 ms/s**. Everyday hand scrolling on
-PV landed around **13–19 ms/s** and felt acceptable; the written bar was
-**recalibrated to < 25 ms/s with no Severe Hang** so the gate matched
-product-acceptable feel rather than an over-strict lab number (ADR-001).
-First-frame (warming-assisted) **p90 ≈ 93 ms** passed a < 500 ms bar.
+**POC-04 (architecture gate — one of a numbered series of proof-of-concept
+spikes on the internal roadmap; each answers a concrete “does this architecture
+actually work?” question before production coding).** The spike used Platform
+View (`UiKitView` + `AVPlayerLayer`), a bounded 1+1 player pool, and image temp
+files. Instruments Animation Hitches originally targeted **< 5 ms/s**
+(milliseconds of frame-time hitching accumulated per second of scrolling —
+lower is smoother). Everyday hand scrolling on PV landed around
+**13–19 ms/s** and felt acceptable; the written bar was **recalibrated to
+< 25 ms/s with no Severe Hang** (Instruments’ classification for multi-frame
+stalls worse than an ordinary hitch) so the gate matched product-acceptable
+feel rather than an over-strict lab number (ADR-001). First-frame
+(warming-assisted) **p90 ≈ 93 ms** passed a < 500 ms bar.
 
 **Texture escape — rejected.** A Conditional path pushed frames through
 `AVPlayerItemVideoOutput` → Flutter Texture. Hand hitch was **worse** than PV
@@ -70,7 +75,7 @@ attach/release (that race SIGABRT’d the lock-screen feed probe).
 | Status | Capability |
 |--------|------------|
 | ✅ | **Project Bootstrap** — Flutter iOS scaffold, docs skeleton, `pigeon/` placeholder |
-| ✅ | **POC-04** — Feed architecture gate; hitch bar recalibrated; Texture escape rejected (ADR-001) |
+| ✅ | **POC-04** — Confirmed Flutter UI + native iOS video can deliver acceptable everyday vertical-feed scrolling on a real iPhone (ADR-001) |
 | ✅ | **POC-03** — Lock-screen continuous playback gate; native queue / Now Playing substrate (ADR-002) |
 | ✅ | **POC-09** — Current Photos representation export gate (ADR-003 / ADR-004) |
 | ✅ | **App Foundation** — gen_l10n, `Result`/`AppError`, production Pigeon baseline (ADR-006–008) |
