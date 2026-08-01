@@ -6,6 +6,12 @@ import 'package:waketok/domain/library/library_catalog_repository.dart';
 import 'package:waketok/domain/library/library_media_kind.dart';
 import 'package:waketok/domain/library/library_page.dart';
 import 'package:waketok/domain/library/library_totals.dart';
+import 'package:waketok/domain/source/asset_source.dart';
+import 'package:waketok/domain/source/asset_source_availability.dart';
+import 'package:waketok/domain/source/asset_source_kind.dart';
+import 'package:waketok/domain/source/asset_source_repository.dart';
+import 'package:waketok/domain/source/resolved_source.dart';
+import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/platform/generated/waketok_platform_apis.g.dart' as pigeon;
 
 /// Maps Pigeon [AuthStatus] → domain [PhotosAccess].
@@ -50,6 +56,62 @@ AssetAvailability assetAvailabilityFromPigeon(pigeon.AssetAvailabilityDto value)
   }
 }
 
+/// Cap 6 domain kinds only — non-built-in wire kinds must not be coerced.
+AssetSourceKind assetSourceKindFromPigeon(pigeon.AssetSourceKind kind) {
+  switch (kind) {
+    case pigeon.AssetSourceKind.entireLibrary:
+      return AssetSourceKind.entireLibrary;
+    case pigeon.AssetSourceKind.mediaTypePhotos:
+      return AssetSourceKind.mediaTypePhotos;
+    case pigeon.AssetSourceKind.mediaTypeVideos:
+      return AssetSourceKind.mediaTypeVideos;
+    case pigeon.AssetSourceKind.album:
+    case pigeon.AssetSourceKind.smartAlbum:
+    case pigeon.AssetSourceKind.other:
+      throw StateError(
+        'Unsupported AssetSourceKind for Cap 6 domain mapping: $kind',
+      );
+  }
+}
+
+AssetSourceAvailability assetSourceAvailabilityFromPigeon(
+  pigeon.AssetSourceAvailabilityDto value,
+) {
+  switch (value) {
+    case pigeon.AssetSourceAvailabilityDto.available:
+      return AssetSourceAvailability.available;
+    case pigeon.AssetSourceAvailabilityDto.empty:
+      return AssetSourceAvailability.empty;
+    case pigeon.AssetSourceAvailabilityDto.unavailable:
+      return AssetSourceAvailability.unavailable;
+    case pigeon.AssetSourceAvailabilityDto.unauthorized:
+      return AssetSourceAvailability.unauthorized;
+  }
+}
+
+AssetSource assetSourceFromDto(pigeon.AssetSourceDto dto) {
+  final count = dto.estimatedCount;
+  if (count == null) {
+    throw StateError(
+      'Built-in AssetSourceDto.estimatedCount must be present (ADR-013)',
+    );
+  }
+  return AssetSource(
+    kind: assetSourceKindFromPigeon(dto.kind),
+    id: dto.sourceIdentifier,
+    estimatedCount: count,
+    availability: assetSourceAvailabilityFromPigeon(dto.availability),
+    canAddContent: dto.canAddContent,
+  );
+}
+
+ResolvedSource resolvedSourceFromDto(pigeon.ResolvedSourceDto dto) {
+  return ResolvedSource(
+    sourceId: dto.sourceIdentifier,
+    assetIdentifiers: List<String>.unmodifiable(dto.assetIdentifiers),
+  );
+}
+
 LibraryAsset libraryAssetFromDto(pigeon.LibraryAssetDto dto) {
   DateTime? createdAt;
   final ms = dto.creationDateMs;
@@ -81,7 +143,10 @@ LibraryPage libraryPageFromDto(pigeon.LibraryPageDto dto) {
 
 /// Pigeon [PhotoLibraryApi] adapter (ADR-009 platform layer).
 class PhotoLibraryGateway
-    implements PhotosAuthorizationRepository, LibraryCatalogRepository {
+    implements
+        PhotosAuthorizationRepository,
+        LibraryCatalogRepository,
+        AssetSourceRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -114,5 +179,22 @@ class PhotoLibraryGateway
   Future<LibraryPage> fetchPage({String? cursor, required int pageSize}) async {
     final dto = await _api.fetchLibraryPage(cursor, pageSize);
     return libraryPageFromDto(dto);
+  }
+
+  @override
+  Future<List<AssetSource>> listBuiltInSources() async {
+    final dtos = await _api.listAssetSources();
+    return dtos.map(assetSourceFromDto).toList(growable: false);
+  }
+
+  @override
+  Future<ResolvedSource> resolve(SourceReference reference) async {
+    final dto = await _api.resolveSource(
+      pigeon.SourceReferenceDto(
+        sourceType: reference.kind.name,
+        sourceIdentifier: reference.id,
+      ),
+    );
+    return resolvedSourceFromDto(dto);
   }
 }
