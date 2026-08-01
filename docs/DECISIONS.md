@@ -644,3 +644,68 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     must not become the 5.3 permission-screen foundation.
   - Local Cursor rules should cite ADR-010 alongside ADR-009 for domain /
     composition-root constraints.
+---
+
+## ADR-011: Library catalog API vs source resolution; shared fetch options; nullable createdAt
+
+- Status: Accepted (2026-08-01)
+- Commit/PR anchor: 690aa0d
+- Plain summary (owner reads this):
+  The app reads the Photos library as a flat list of assets with shared
+  counting rules, and keeps creation dates honest when PhotoKit leaves them
+  empty — album/source browsing stays a later feature.
+- Context / what problem forced this:
+  Cap 5.4 needs PHAsset-level paging, per-type totals for the debug shell,
+  and an availability vocabulary without implementing product All/Photos/
+  Videos source resolution. Existing Pigeon `listAssetSources` /
+  `resolveSource` look like album APIs; reusing them for full-library
+  enumeration would conflict with STATE (“no PHAssetCollection/Album
+  enumeration”) and confuse the next capability. Totals for a ~40k library
+  must not require shipping every asset over Pigeon. PhotoKit
+  `creationDate` may be nil; inventing an epoch would corrupt sort and UX.
+- Decision (what was chosen):
+  1. **Catalog HostApi (separate from source resolution):** add
+     `libraryTotals()` and `fetchLibraryPage(cursor, pageSize)` on
+     `PhotoLibraryApi`. Leave `listAssetSources` / `resolveSource` as
+     stubs for the next capability.
+  2. **Totals vs paging:** `libraryTotals` uses PhotoKit typed fetch
+     counts (photos = images including Live Photos; videos separate;
+     all = photos + videos). `fetchLibraryPage` pages metadata only
+     (id / media kind / creationDate / availability). Do not derive
+     shell totals by scanning every page in Dart.
+  3. **Shared `PHFetchOptions` construction:** one Swift helper
+     (`makeLibraryFetchOptions`) owns inclusion/sort defaults for both
+     totals and paging so the two paths cannot drift. Default PhotoKit
+     semantics (Hidden / Recently Deleted excluded). Sort:
+     `creationDate` descending; nil dates at end (no epoch fallback).
+     No device-local-only filter.
+  4. **Nullable createdAt:** domain `DateTime?` / wire `creationDateMs?`
+     mirror PhotoKit nil; never substitute epoch.
+  5. **Availability at list time:** domain keeps four values
+     (`deviceLocal` / `iCloudNotDownloaded` / `downloading` /
+     `unavailable`); catalog listing must not fabricate `downloading`.
+     Wire enum is `AssetAvailabilityDto` to avoid clashing with domain
+     `AssetAvailability`.
+- Rejected alternatives (why not B):
+  - **Implement catalog via `resolveSource` / album enumeration:**
+    Rejected — contradicts Cap 5.4 “PHAsset only, no album enumeration”
+    and steals the next capability’s API shape.
+  - **Totals by paging the entire library in Dart:** Rejected —
+    unacceptable cost/memory for ~40k assets; fragile vs Photos counts.
+  - **Independent `PHFetchOptions` in totals vs page:** Rejected —
+    silent count/page mismatch under 5.5 acceptance.
+  - **`createdAt` non-null with epoch (or similar) fallback:** Rejected —
+    lies about PhotoKit and breaks “nil sorts last”.
+  - **Fabricate `downloading` during enumeration:** Rejected — not
+    observable without an in-flight resource request.
+- Consequences / constraints accepted:
+  - Next All/Photos/Videos **source** work must not repurpose catalog
+    page APIs as album browsers without a new ADR.
+  - Shell totals and page universe must keep sharing the same options
+    helper; changing inclusion/sort requires updating that one site.
+  - List-time local-vs-iCloud uses undocumented KVC
+    `PHAssetResource.locallyAvailable` (no public Swift property);
+    tracked as STATE known debt; fix `7d8f022`. Prefer a public API if
+    Apple ships one.
+  - Opaque page cursors are index-based; library mutations mid-pagination
+    can stale a cursor (acceptable for Cap 5.4 debug catalog).

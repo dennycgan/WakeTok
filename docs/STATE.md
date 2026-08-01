@@ -155,7 +155,7 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 - Goal (one line): 5.5 Real-device acceptance on iPhone 13 Pro (permission flows + totals vs Photos ~42k)
 - Sub-steps done: 5.4 closed (work `690aa0d`; device light smoke PASS; availability via resource KVC `7d8f022`)
 - Next step: owner runs 5.5 acceptance checklist on iPhone 13 Pro
-- Related decisions: ADR-001 … ADR-010 (see DECISIONS.md)
+- Related decisions: ADR-001 … ADR-011 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -164,10 +164,10 @@ Active capability: iOS Photos Permission, Library Access, iCloud Asset State
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
-- Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage; totals shell: lib/features/library_smoke/
+- Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); totals shell: lib/features/library_smoke/
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + test/architecture/ guard tests
-- ADR-001 … ADR-010: docs/DECISIONS.md
+- ADR-001 … ADR-011: docs/DECISIONS.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
