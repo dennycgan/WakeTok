@@ -2,7 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
+import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
+
+import '../../library_smoke/fake_library_catalog_repository.dart';
 
 class _FakePhotosAuthorizationRepository
     implements PhotosAuthorizationRepository {
@@ -48,16 +52,23 @@ void main() {
     );
   });
 
-  test('R2 presentLimitedLibraryPicker refreshes status via repo', () async {
+  test('R2 presentLimitedLibraryPicker refreshes status and totals', () async {
     final fake = _FakePhotosAuthorizationRepository(PhotosAccess.limited);
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 1, photos: 1, videos: 0),
+    );
     final container = ProviderContainer(
       overrides: [
         photosAuthorizationRepositoryProvider.overrideWithValue(fake),
+        libraryCatalogRepositoryProvider.overrideWithValue(catalog),
       ],
     );
     addTearDown(container.dispose);
 
     await container.read(photosAuthorizationProvider.future);
+    await container.read(libraryTotalsProvider.future);
+    final totalsBefore = catalog.totalsCalls;
+
     await container
         .read(photosAuthorizationProvider.notifier)
         .presentLimitedLibraryPicker();
@@ -66,5 +77,8 @@ void main() {
       container.read(photosAuthorizationProvider).value,
       PhotosAccess.limited,
     );
+
+    await container.read(libraryTotalsProvider.future);
+    expect(catalog.totalsCalls, greaterThan(totalsBefore));
   });
 }

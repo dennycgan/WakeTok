@@ -92,12 +92,38 @@ void main() {
 
     // Simulate return from system picker / foregrounding.
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
     expect(find.byType(LimitedAccessBanner), findsOneWidget);
     expect(find.byType(PermissionRequestPage), findsNothing);
     expect(find.byType(PermissionBlockedPage), findsNothing);
+  });
+
+  testWidgets(
+      'W5b manage selection dismissal refreshes library totals',
+      (tester) async {
+    final repo =
+        ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 3, photos: 2, videos: 1),
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, catalog: catalog),
+    );
+    await tester.pumpAndSettle();
+    expect(catalog.totalsCalls, greaterThanOrEqualTo(1));
+    final callsAfterOpen = catalog.totalsCalls;
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    catalog.totalsValue = const LibraryTotals(all: 5, photos: 4, videos: 1);
+    await tester.tap(find.text(l10n.limitedAccessManageSelection));
+    await tester.pumpAndSettle();
+
+    expect(catalog.totalsCalls, greaterThan(callsAfterOpen));
+    expect(find.text('5'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
   });
 
   testWidgets('W6 full shows shell without banner', (tester) async {
@@ -166,9 +192,26 @@ void main() {
 
     repo.status = PhotosAccess.denied;
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     expect(find.byType(PermissionBlockedPage), findsOneWidget);
     expect(find.byType(LibraryTotalsShellPage), findsNothing);
+  });
+
+  testWidgets('W9b resume from Settings can leave blocked for full',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.denied);
+    await tester.pumpWidget(permissionUiHarness(repo: repo));
+    await tester.pumpAndSettle();
+    expect(find.byType(PermissionBlockedPage), findsOneWidget);
+
+    repo.status = PhotosAccess.full;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(PermissionBlockedPage), findsNothing);
   });
 }

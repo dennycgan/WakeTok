@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
+import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 
 /// Overridden at the composition root with [PhotoLibraryGateway].
 ///
@@ -30,8 +31,11 @@ class PhotosAuthorizationNotifier extends AsyncNotifier<PhotosAccess> {
     state = await AsyncValue.guard(_repo.requestAccess);
   }
 
+  /// Presents the limited-library picker and refreshes auth + catalog totals
+  /// after the host reports dismissal (not at present-time).
   Future<void> presentLimitedLibraryPicker() async {
     await _repo.presentLimitedLibraryPicker();
     state = await AsyncValue.guard(_repo.currentStatus);
+    ref.invalidate(libraryTotalsProvider);
   }
 }

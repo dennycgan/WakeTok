@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
@@ -22,6 +24,9 @@ class PhotosAccessGate extends ConsumerStatefulWidget {
 
 class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
     with WidgetsBindingObserver {
+  /// PhotoKit / privacy Settings can lag briefly after returning to foreground.
+  static const _resumeRefreshDelay = Duration(milliseconds: 300);
+
   @override
   void initState() {
     super.initState();
@@ -37,9 +42,17 @@ class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      ref.invalidate(photosAuthorizationProvider);
-      ref.invalidate(libraryTotalsProvider);
+      unawaited(_refreshAfterResume());
     }
+  }
+
+  Future<void> _refreshAfterResume() async {
+    await Future<void>.delayed(_resumeRefreshDelay);
+    if (!mounted) {
+      return;
+    }
+    ref.invalidate(photosAuthorizationProvider);
+    ref.invalidate(libraryTotalsProvider);
   }
 
   @override

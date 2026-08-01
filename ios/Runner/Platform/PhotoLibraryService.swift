@@ -213,8 +213,12 @@ final class PhotoLibraryService: PhotoLibraryApi {
         )
         return
       }
-      PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: host)
-      completion(.success(()))
+      // iOS 15+ completion runs when the picker is dismissed (selection may
+      // have changed). Completing at present-time left Dart unable to refresh
+      // totals because the modal often never toggles app lifecycle.
+      PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: host) { _ in
+        completion(.success(()))
+      }
     }
   }
 
