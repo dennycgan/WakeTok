@@ -112,7 +112,10 @@ Active capability: Main Browse Screen and vertical Media Feed
       baselines; Release not mixed into the gate — optional Release notes
       only as a separate secondary dataset if owner later asks); mean hitch
       < 25 ms/s AND **zero** Severe Hang (hard gate; no Conditional Pass
-      rewrite of ADR-001). Design-freeze (no production feed code in 7.1).
+      rewrite of ADR-001). **Retest surface must be full production chrome**
+      (top All/Photos/Videos + disabled Pools tab + bottom bar shell) — not
+      a bare PageView; POC-04 spike had no chrome, so hitch may regress once
+      chrome is mounted. Design-freeze (no production feed code in 7.1).
 
 - [ ] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
       Known debt); feed scrim / on-media contrast tokens as needed; still
