@@ -136,11 +136,12 @@ Active capability: All / Photos / Videos built-in source resolution
       guards green.
       — work `80d4806`
 
-- [ ] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
+- [x] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
       resolved count vs `libraryTotals`; All-only date-quantile + id
       alignment tooling; built-in labels via ARB only (wire `displayName`
       not l10n); explicit negative path — pair mismatch →
       `assetUnavailable`. No product top-bar.
+      — work `cbdc317`
 
 - [ ] 6.5 Real-device acceptance (iPhone 13 Pro + owner ~40k library):
       counts exact; full library incl. iCloud-only; All date-distribution
@@ -156,9 +157,9 @@ Active capability: All / Photos / Videos built-in source resolution
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 6.3 closed (work `80d4806`); awaiting owner order for 6.4
-- Sub-steps done: 6.1 (`1a4e131`); 6.2 (`6e3714d`); 6.3 domain/gateway/Riverpod (`80d4806`)
-- Next step: owner orders 6.4 design or push
+- Goal (one line): Cap 6.4 closed (work `cbdc317`); awaiting owner order for 6.5
+- Sub-steps done: 6.1 (`1a4e131`); 6.2 (`6e3714d`); 6.3 (`80d4806`); 6.4 smoke UI (`cbdc317`)
+- Next step: owner orders 6.5 real-device acceptance / notes
 - Related decisions: ADR-001 … ADR-013 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -200,3 +201,4 @@ Active capability: All / Photos / Videos built-in source resolution
 | iOS Photos permission | Typography text-style tokens (5.1 ships color tokens only; M3 default TextTheme) | Color-first keeps 5.1 small; type scale locks when heavy content UI lands | Main Browse Screen | ADR-009 |
 | iOS Photos permission | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
+| Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
