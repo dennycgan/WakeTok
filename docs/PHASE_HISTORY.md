@@ -152,3 +152,55 @@ Docs close-out (STATE + PHASE_HISTORY + acceptance notes): (this commit)
 Related ADRs: ADR-009, ADR-010, ADR-011. Known debt carried: typography
 tokens → Main Browse; Usage Description PLACEHOLDER → TestFlight;
 PHAssetResource KVC `locallyAvailable` → Final hardening.
+
+## All / Photos / Videos built-in source resolution — completed 2026-08-02
+
+- [x] 6.1 Contract lock (ADR-013): freeze built-in wire shape before Swift —
+      `AssetSourceKind` rename/add (`userLibrary`→`entireLibrary`,
+      `mediaTypePhotos`, `mediaTypeVideos`); `AssetSourceDto` fields
+      (`estimatedCount` exact for built-ins, `AssetSourceAvailabilityDto`,
+      `canAddContent=false`); `listAssetSources` stays synchronous;
+      `resolveSource` keeps full-list DTO (D1=A); Ordering = creationDate
+      descending via shared `makeLibraryFetchOptions` (D2=A, no new PoC);
+      Option A reference pairs + round-trip
+      (`AssetSourceDto.sourceIdentifier` from list ==
+      `SourceReferenceDto.sourceIdentifier` into resolve; only
+      `all`/`photos`/`videos`); pair mismatch → `assetUnavailable`;
+      D5 All-only quantile sampling via `fetchLibraryPage(cursor:q,
+      pageSize:1)` + id alignment; iCloud sample reuses ADR-011 KVC only;
+      year-span N owner-supplied before 6.5 (placeholder N=3); debug/smoke
+      UI only (D3); list returns only three built-ins (D4); minimal domain
+      AssetSource built-in kinds (D6). Design-freeze only (no Pigeon/Swift
+      in 6.1).
+      — work `1a4e131`
+- [x] 6.2 Pigeon regen + Swift host: expand kind/DTO/availability enum;
+      implement `listAssetSources` (three built-ins, sync counts) and
+      `resolveSource` (full id list, off-main enumeration, main-thread
+      BinaryMessenger reply; shared PHFetchResult helpers matching
+      `libraryTotals`); no device-local filter; host pair validation on
+      the three legal (kind, id) pairs. Accept ~40k id bridge cost.
+      — work `6e3714d`
+- [x] 6.3 Dart domain + gateway + Riverpod (ADR-009/010): minimal
+      built-in AssetSource types + repository under `lib/domain/source/`
+      (separate from `domain/library`); composition-root wiring;
+      features do not construct gateways. Architecture + localization
+      guards green.
+      — work `80d4806`
+- [x] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
+      resolved count vs `libraryTotals`; All-only date-quantile + id
+      alignment tooling; built-in labels via ARB only (wire `displayName`
+      not l10n); explicit negative path — pair mismatch →
+      `assetUnavailable`. No product top-bar.
+      — work `cbdc317`
+- [x] 6.5 Real-device acceptance (iPhone 13 Pro + owner ~40k library):
+      counts exact; full library incl. iCloud-only; All date-distribution
+      sampling (N=3; epoch exclude; span = maxYear−minYear); ≥1
+      `iCloudNotDownloaded`; M9 Limited subset list/resolve; notes under
+      `docs/acceptance/cap6-6.5-notes.md`. Cap 6 capability close-out
+      (STATE + PHASE_HISTORY; ADR-013 already Accepted at 6.2 docs).
+      — acceptance on `6091b5d` (feature work through `cbdc317`)
+
+Docs close-out (STATE + PHASE_HISTORY + acceptance notes): (this commit)
+
+Related ADR: ADR-013. Known debt carried: Library Totals Shell raw
+exception error row → Settings and localisation completion (ADR-012).

@@ -36,14 +36,14 @@
 - [x] iOS Photos permission, Library access, iCloud asset state handling
       (phase 5.1 establishes theme token baseline; token-only styling
       from this capability onward — ADR-009)
-- [ ] All / Photos / Videos built-in source resolution
+- [x] All / Photos / Videos built-in source resolution
       (production resolution must enumerate the FULL library including
       iCloud-only assets; device-local filtering is spike-only; acceptance
       includes date-distribution sampling on owner's real 40k library)
-      <-- YOU ARE HERE
 - [ ] Main Browse Screen and vertical Media Feed
       (Severe Hang debt from ADR-001: measurable acceptance criteria to be
       defined in this capability's phase design)
+      <-- YOU ARE HERE
 - [ ] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
@@ -100,54 +100,10 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: All / Photos / Videos built-in source resolution
+Active capability: Main Browse Screen and vertical Media Feed
 
-- [x] 6.1 Contract lock (ADR-013): freeze built-in wire shape before Swift —
-      `AssetSourceKind` rename/add (`userLibrary`→`entireLibrary`,
-      `mediaTypePhotos`, `mediaTypeVideos`); `AssetSourceDto` fields
-      (`estimatedCount` exact for built-ins, `AssetSourceAvailabilityDto`,
-      `canAddContent=false`); `listAssetSources` stays synchronous;
-      `resolveSource` keeps full-list DTO (D1=A); Ordering = creationDate
-      descending via shared `makeLibraryFetchOptions` (D2=A, no new PoC);
-      Option A reference pairs + round-trip
-      (`AssetSourceDto.sourceIdentifier` from list ==
-      `SourceReferenceDto.sourceIdentifier` into resolve; only
-      `all`/`photos`/`videos`); pair mismatch → `assetUnavailable`;
-      D5 All-only quantile sampling via `fetchLibraryPage(cursor:q,
-      pageSize:1)` + id alignment; iCloud sample reuses ADR-011 KVC only;
-      year-span N owner-supplied before 6.5 (placeholder N=3); debug/smoke
-      UI only (D3); list returns only three built-ins (D4); minimal domain
-      AssetSource built-in kinds (D6). Design-freeze only (no Pigeon/Swift
-      in 6.1).
-      — work `1a4e131`
-
-- [x] 6.2 Pigeon regen + Swift host: expand kind/DTO/availability enum;
-      implement `listAssetSources` (three built-ins, sync counts) and
-      `resolveSource` (full id list, off-main enumeration, main-thread
-      BinaryMessenger reply; shared PHFetchResult helpers matching
-      `libraryTotals`); no device-local filter; host pair validation on
-      the three legal (kind, id) pairs. Accept ~40k id bridge cost.
-      — work `6e3714d`
-
-- [x] 6.3 Dart domain + gateway + Riverpod (ADR-009/010): minimal
-      built-in AssetSource types + repository under `lib/domain/source/`
-      (separate from `domain/library`); composition-root wiring;
-      features do not construct gateways. Architecture + localization
-      guards green.
-      — work `80d4806`
-
-- [x] 6.4 Debug/smoke UI (extend library_smoke): switch All/Photos/Videos;
-      resolved count vs `libraryTotals`; All-only date-quantile + id
-      alignment tooling; built-in labels via ARB only (wire `displayName`
-      not l10n); explicit negative path — pair mismatch →
-      `assetUnavailable`. No product top-bar.
-      — work `cbdc317`
-
-- [ ] 6.5 Real-device acceptance (iPhone 13 Pro + owner ~40k library):
-      counts exact; full library incl. iCloud-only; All date-distribution
-      sampling (N per owner); ≥1 `iCloudNotDownloaded` or N/A + evidence;
-      notes under `docs/acceptance/`. Then Cap 6 capability close-out
-      (STATE + PHASE_HISTORY; ADR-013 already Accepted at 6.2 docs).
+- [ ] Phases TBD — placeholder only. Owner will derive the Phase Roadmap
+      from local kickoff before coding starts; do not invent phase content.
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -157,10 +113,9 @@ Active capability: All / Photos / Videos built-in source resolution
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 6.5 real-device acceptance (~40k) + Cap 6 close-out docs
-- Sub-steps done: 6.1–6.4 closed; design locked (N=3; epoch exclude + <2 credible → N/A;
-      M9 Limited subset mandatory; Q3=A no new code; Q5=A pure docs close-out)
-- Next step: owner runs M1–M9 on device; then notes + STATE/PHASE_HISTORY close-out
+- Goal (one line): Define Main Browse Phase Roadmap from kickoff (after Cap 6 close-out)
+- Sub-steps done: Cap 6 closed (6.5 notes `docs/acceptance/cap6-6.5-notes.md`)
+- Next step: owner approves Main Browse phases before coding
 - Related decisions: ADR-001 … ADR-013 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -177,6 +132,7 @@ Active capability: All / Photos / Videos built-in source resolution
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
 - ADR-001 … ADR-013: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
+- Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
