@@ -194,6 +194,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'—'**
   String get countsPending;
+
+  /// Cap 6.4 smoke section title for All/Photos/Videos resolve
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in sources (debug)'**
+  String get sourceSmokeSectionTitle;
+
+  /// Runs resolveSource for the selected built-in source
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve selected'**
+  String get sourceResolveButton;
+
+  /// Shows AssetSource.estimatedCount from listAssetSources
+  ///
+  /// In en, this message translates to:
+  /// **'estimatedCount: {count}'**
+  String sourceEstimatedCount(int count);
+
+  /// Shows ResolvedSource.assetIdentifiers length after resolve
+  ///
+  /// In en, this message translates to:
+  /// **'resolved length: {count}'**
+  String sourceResolvedLength(int count);
+
+  /// Resolved length equals the matching libraryTotals component
+  ///
+  /// In en, this message translates to:
+  /// **'match vs totals: OK'**
+  String get sourceCountMatch;
+
+  /// Resolved length does not equal libraryTotals
+  ///
+  /// In en, this message translates to:
+  /// **'match vs totals: FAIL'**
+  String get sourceCountMismatch;
+
+  /// Shown before the first successful resolve for the selection
+  ///
+  /// In en, this message translates to:
+  /// **'match vs totals: —'**
+  String get sourceCountPending;
+
+  /// Cap 6.4 debug section for ADR-013 All-only date quantiles
+  ///
+  /// In en, this message translates to:
+  /// **'All-only quantile sample (debug)'**
+  String get sourceQuantileSectionTitle;
+
+  /// Runs All resolve + fetchLibraryPage(cursor:q, pageSize:1) alignment
+  ///
+  /// In en, this message translates to:
+  /// **'Run All quantile sample'**
+  String get sourceQuantileRunButton;
+
+  /// Explains why quantile is disabled unless All is selected
+  ///
+  /// In en, this message translates to:
+  /// **'Quantile sampling is All-only (Photos/Videos unsupported).'**
+  String get sourceQuantileOnlyAllHint;
+
+  /// One All quantile sample result line
+  ///
+  /// In en, this message translates to:
+  /// **'q={q} id={id} date={date} align={align} avail={avail}'**
+  String sourceQuantileRow(
+    int q,
+    String id,
+    String date,
+    String align,
+    String avail,
+  );
+
+  /// ids[q] matches catalog page asset id
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get sourceQuantileAlignOk;
+
+  /// ids[q] does not match catalog page asset id
+  ///
+  /// In en, this message translates to:
+  /// **'FAIL'**
+  String get sourceQuantileAlignFail;
+
+  /// Shown when PhotoKit creationDate is null
+  ///
+  /// In en, this message translates to:
+  /// **'nil'**
+  String get sourceQuantileDateUnknown;
+
+  /// Cap 6.4 section that exercises illegal sourceType/id pair
+  ///
+  /// In en, this message translates to:
+  /// **'Negative pair probe (debug)'**
+  String get sourceNegativeSectionTitle;
+
+  /// Calls resolve with a mismatched kind/id pair
+  ///
+  /// In en, this message translates to:
+  /// **'Probe illegal pair'**
+  String get sourceProbeIllegalPairButton;
+
+  /// Shown when illegal pair correctly returns assetUnavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Expected error: source reference unavailable.'**
+  String get sourcePairMismatchError;
+
+  /// Shown when illegal pair did not yield assetUnavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Unexpected result from illegal pair probe.'**
+  String get sourcePairProbeUnexpected;
+
+  /// Shown while resolve or quantile sample is in progress
+  ///
+  /// In en, this message translates to:
+  /// **'Working…'**
+  String get sourceBusy;
+
+  /// Generic ARB fallback when resolve or quantile throws (not raw exception text)
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in source smoke operation failed.'**
+  String get sourceSmokeOperationFailed;
+
+  /// Debug span between earliest and latest non-null creationDate years; not a 6.4 pass gate
+  ///
+  /// In en, this message translates to:
+  /// **'year span (non-null dates): {years}'**
+  String sourceQuantileYearSpan(String years);
 }
 
 class _AppLocalizationsDelegate

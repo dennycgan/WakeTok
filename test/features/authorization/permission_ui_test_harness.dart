@@ -6,9 +6,11 @@ import 'package:waketok/domain/authorization/photos_authorization_repository.dar
 import 'package:waketok/features/authorization/open_app_settings.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 
 class ControllablePhotosAuthorizationRepository
@@ -40,12 +42,15 @@ Widget permissionUiHarness({
   OpenAppSettings? openSettings,
   Locale? locale,
   FakeLibraryCatalogRepository? catalog,
+  FakeAssetSourceRepository? assetSources,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
+  final sources = assetSources ?? FakeAssetSourceRepository();
   return ProviderScope(
     overrides: [
       photosAuthorizationRepositoryProvider.overrideWithValue(repo),
       libraryCatalogRepositoryProvider.overrideWithValue(libraryCatalog),
+      assetSourceRepositoryProvider.overrideWithValue(sources),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
     ],

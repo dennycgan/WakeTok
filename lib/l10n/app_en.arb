@@ -63,5 +63,105 @@
   "countsPending": "—",
   "@countsPending": {
     "description": "Placeholder for per-type totals until 5.4 library enumeration (not a fake zero)"
+  },
+  "sourceSmokeSectionTitle": "Built-in sources (debug)",
+  "@sourceSmokeSectionTitle": {
+    "description": "Cap 6.4 smoke section title for All/Photos/Videos resolve"
+  },
+  "sourceResolveButton": "Resolve selected",
+  "@sourceResolveButton": {
+    "description": "Runs resolveSource for the selected built-in source"
+  },
+  "sourceEstimatedCount": "estimatedCount: {count}",
+  "@sourceEstimatedCount": {
+    "description": "Shows AssetSource.estimatedCount from listAssetSources",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "sourceResolvedLength": "resolved length: {count}",
+  "@sourceResolvedLength": {
+    "description": "Shows ResolvedSource.assetIdentifiers length after resolve",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "sourceCountMatch": "match vs totals: OK",
+  "@sourceCountMatch": {
+    "description": "Resolved length equals the matching libraryTotals component"
+  },
+  "sourceCountMismatch": "match vs totals: FAIL",
+  "@sourceCountMismatch": {
+    "description": "Resolved length does not equal libraryTotals"
+  },
+  "sourceCountPending": "match vs totals: —",
+  "@sourceCountPending": {
+    "description": "Shown before the first successful resolve for the selection"
+  },
+  "sourceQuantileSectionTitle": "All-only quantile sample (debug)",
+  "@sourceQuantileSectionTitle": {
+    "description": "Cap 6.4 debug section for ADR-013 All-only date quantiles"
+  },
+  "sourceQuantileRunButton": "Run All quantile sample",
+  "@sourceQuantileRunButton": {
+    "description": "Runs All resolve + fetchLibraryPage(cursor:q, pageSize:1) alignment"
+  },
+  "sourceQuantileOnlyAllHint": "Quantile sampling is All-only (Photos/Videos unsupported).",
+  "@sourceQuantileOnlyAllHint": {
+    "description": "Explains why quantile is disabled unless All is selected"
+  },
+  "sourceQuantileRow": "q={q} id={id} date={date} align={align} avail={avail}",
+  "@sourceQuantileRow": {
+    "description": "One All quantile sample result line",
+    "placeholders": {
+      "q": {"type": "int"},
+      "id": {"type": "String"},
+      "date": {"type": "String"},
+      "align": {"type": "String"},
+      "avail": {"type": "String"}
+    }
+  },
+  "sourceQuantileAlignOk": "OK",
+  "@sourceQuantileAlignOk": {
+    "description": "ids[q] matches catalog page asset id"
+  },
+  "sourceQuantileAlignFail": "FAIL",
+  "@sourceQuantileAlignFail": {
+    "description": "ids[q] does not match catalog page asset id"
+  },
+  "sourceQuantileDateUnknown": "nil",
+  "@sourceQuantileDateUnknown": {
+    "description": "Shown when PhotoKit creationDate is null"
+  },
+  "sourceNegativeSectionTitle": "Negative pair probe (debug)",
+  "@sourceNegativeSectionTitle": {
+    "description": "Cap 6.4 section that exercises illegal sourceType/id pair"
+  },
+  "sourceProbeIllegalPairButton": "Probe illegal pair",
+  "@sourceProbeIllegalPairButton": {
+    "description": "Calls resolve with a mismatched kind/id pair"
+  },
+  "sourcePairMismatchError": "Expected error: source reference unavailable.",
+  "@sourcePairMismatchError": {
+    "description": "Shown when illegal pair correctly returns assetUnavailable"
+  },
+  "sourcePairProbeUnexpected": "Unexpected result from illegal pair probe.",
+  "@sourcePairProbeUnexpected": {
+    "description": "Shown when illegal pair did not yield assetUnavailable"
+  },
+  "sourceBusy": "Working…",
+  "@sourceBusy": {
+    "description": "Shown while resolve or quantile sample is in progress"
+  },
+  "sourceSmokeOperationFailed": "Built-in source smoke operation failed.",
+  "@sourceSmokeOperationFailed": {
+    "description": "Generic ARB fallback when resolve or quantile throws (not raw exception text)"
+  },
+  "sourceQuantileYearSpan": "year span (non-null dates): {years}",
+  "@sourceQuantileYearSpan": {
+    "description": "Debug span between earliest and latest non-null creationDate years; not a 6.4 pass gate",
+    "placeholders": {
+      "years": {"type": "String"}
+    }
   }
 }

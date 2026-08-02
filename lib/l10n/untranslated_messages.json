@@ -1,1 +1,25 @@
-{}
+{
+  "zh": [
+    "sourceSmokeSectionTitle",
+    "sourceResolveButton",
+    "sourceEstimatedCount",
+    "sourceResolvedLength",
+    "sourceCountMatch",
+    "sourceCountMismatch",
+    "sourceCountPending",
+    "sourceQuantileSectionTitle",
+    "sourceQuantileRunButton",
+    "sourceQuantileOnlyAllHint",
+    "sourceQuantileRow",
+    "sourceQuantileAlignOk",
+    "sourceQuantileAlignFail",
+    "sourceQuantileDateUnknown",
+    "sourceNegativeSectionTitle",
+    "sourceProbeIllegalPairButton",
+    "sourcePairMismatchError",
+    "sourcePairProbeUnexpected",
+    "sourceBusy",
+    "sourceSmokeOperationFailed",
+    "sourceQuantileYearSpan"
+  ]
+}

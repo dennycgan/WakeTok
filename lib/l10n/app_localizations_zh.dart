@@ -55,6 +55,87 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get countsPending => '—';
+
+  @override
+  String get sourceSmokeSectionTitle => 'Built-in sources (debug)';
+
+  @override
+  String get sourceResolveButton => 'Resolve selected';
+
+  @override
+  String sourceEstimatedCount(int count) {
+    return 'estimatedCount: $count';
+  }
+
+  @override
+  String sourceResolvedLength(int count) {
+    return 'resolved length: $count';
+  }
+
+  @override
+  String get sourceCountMatch => 'match vs totals: OK';
+
+  @override
+  String get sourceCountMismatch => 'match vs totals: FAIL';
+
+  @override
+  String get sourceCountPending => 'match vs totals: —';
+
+  @override
+  String get sourceQuantileSectionTitle => 'All-only quantile sample (debug)';
+
+  @override
+  String get sourceQuantileRunButton => 'Run All quantile sample';
+
+  @override
+  String get sourceQuantileOnlyAllHint =>
+      'Quantile sampling is All-only (Photos/Videos unsupported).';
+
+  @override
+  String sourceQuantileRow(
+    int q,
+    String id,
+    String date,
+    String align,
+    String avail,
+  ) {
+    return 'q=$q id=$id date=$date align=$align avail=$avail';
+  }
+
+  @override
+  String get sourceQuantileAlignOk => 'OK';
+
+  @override
+  String get sourceQuantileAlignFail => 'FAIL';
+
+  @override
+  String get sourceQuantileDateUnknown => 'nil';
+
+  @override
+  String get sourceNegativeSectionTitle => 'Negative pair probe (debug)';
+
+  @override
+  String get sourceProbeIllegalPairButton => 'Probe illegal pair';
+
+  @override
+  String get sourcePairMismatchError =>
+      'Expected error: source reference unavailable.';
+
+  @override
+  String get sourcePairProbeUnexpected =>
+      'Unexpected result from illegal pair probe.';
+
+  @override
+  String get sourceBusy => 'Working…';
+
+  @override
+  String get sourceSmokeOperationFailed =>
+      'Built-in source smoke operation failed.';
+
+  @override
+  String sourceQuantileYearSpan(String years) {
+    return 'year span (non-null dates): $years';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -108,4 +189,81 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get countsPending => '—';
+
+  @override
+  String get sourceSmokeSectionTitle => '内置来源（调试）';
+
+  @override
+  String get sourceResolveButton => '解析当前来源';
+
+  @override
+  String sourceEstimatedCount(int count) {
+    return 'estimatedCount：$count';
+  }
+
+  @override
+  String sourceResolvedLength(int count) {
+    return '解析长度：$count';
+  }
+
+  @override
+  String get sourceCountMatch => '与 totals 比对：通过';
+
+  @override
+  String get sourceCountMismatch => '与 totals 比对：失败';
+
+  @override
+  String get sourceCountPending => '与 totals 比对：—';
+
+  @override
+  String get sourceQuantileSectionTitle => '仅 All 分位抽样（调试）';
+
+  @override
+  String get sourceQuantileRunButton => '运行 All 分位抽样';
+
+  @override
+  String get sourceQuantileOnlyAllHint => '分位抽样仅支持 All（Photos/Videos 不可用）。';
+
+  @override
+  String sourceQuantileRow(
+    int q,
+    String id,
+    String date,
+    String align,
+    String avail,
+  ) {
+    return 'q=$q id=$id date=$date align=$align avail=$avail';
+  }
+
+  @override
+  String get sourceQuantileAlignOk => '通过';
+
+  @override
+  String get sourceQuantileAlignFail => '失败';
+
+  @override
+  String get sourceQuantileDateUnknown => '空';
+
+  @override
+  String get sourceNegativeSectionTitle => '非法 pair 探针（调试）';
+
+  @override
+  String get sourceProbeIllegalPairButton => '探测非法 pair';
+
+  @override
+  String get sourcePairMismatchError => '符合预期的错误：来源引用不可用。';
+
+  @override
+  String get sourcePairProbeUnexpected => '非法 pair 探针出现意外结果。';
+
+  @override
+  String get sourceBusy => '处理中…';
+
+  @override
+  String get sourceSmokeOperationFailed => '内置来源调试操作失败。';
+
+  @override
+  String sourceQuantileYearSpan(String years) {
+    return '年份跨度（非空日期）：$years';
+  }
 }
