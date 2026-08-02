@@ -157,9 +157,10 @@ Active capability: All / Photos / Videos built-in source resolution
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 6.4 closed (work `cbdc317`); awaiting owner order for 6.5
-- Sub-steps done: 6.1 (`1a4e131`); 6.2 (`6e3714d`); 6.3 (`80d4806`); 6.4 smoke UI (`cbdc317`)
-- Next step: owner orders 6.5 real-device acceptance / notes
+- Goal (one line): Cap 6.5 real-device acceptance (~40k) + Cap 6 close-out docs
+- Sub-steps done: 6.1–6.4 closed; design locked (N=3; epoch exclude + <2 credible → N/A;
+      M9 Limited subset mandatory; Q3=A no new code; Q5=A pure docs close-out)
+- Next step: owner runs M1–M9 on device; then notes + STATE/PHASE_HISTORY close-out
 - Related decisions: ADR-001 … ADR-013 (see DECISIONS.md)
 
 ## Contract pointers (don't memorize, go read the source)
