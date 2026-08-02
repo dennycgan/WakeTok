@@ -102,8 +102,52 @@
 ## Phase Roadmap (active capability only)
 Active capability: Main Browse Screen and vertical Media Feed
 
-- [ ] Phases TBD — placeholder only. Owner will derive the Phase Roadmap
-      from local kickoff before coding starts; do not invent phase content.
+- [ ] 7.1 Contract freeze (ADR-014): Cap 7 slim feed model — ephemeral id
+      queue from Cap 6 resolve only; Sequential + Manual (kickoff General/
+      Mixed default Shuffle deferred until Endless Shuffle capability);
+      chrome In/Out; Pools tab visible+disabled; tab switch resets to
+      queue head; smoke demoted from default landing; Live Photo = static
+      (+ optional LIVE badge). Freeze Severe Hang / hitch bar for 7.7:
+      iPhone 13 Pro, **Instruments Profile** (same mode as ADR-001
+      baselines; Release not mixed into the gate — optional Release notes
+      only as a separate secondary dataset if owner later asks); mean hitch
+      < 25 ms/s AND **zero** Severe Hang (hard gate; no Conditional Pass
+      rewrite of ADR-001). Design-freeze (no production feed code in 7.1).
+
+- [ ] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
+      Known debt); feed scrim / on-media contrast tokens as needed; still
+      `accentProvisional` (freeze in 7.8 only).
+
+- [ ] 7.3 Playback + image pipeline (ADR-006): production foreground
+      PlaybackApi path — PV attach/detach, bounded 1+1; image display
+      request path; no Background Audio / Now Playing product scope.
+
+- [ ] 7.4 Main Browse chrome shell: top All/Photos/Videos + Pools disabled
+      (ARB); bottom bar shell (Browse active; Clips/Auto/Settings stub);
+      Main Browse = default post-auth landing; library_smoke debug-only;
+      Limited banner kept.
+
+- [ ] 7.5 Vertical Media Feed: PageView (or equivalent) over ephemeral
+      queue; Manual swipe; wire resolve(All|Photos|Videos); pool/preheat
+      bounds (ADR-P.5 spirit); architecture + localization guards green.
+
+- [ ] 7.6 Source switch behavior: changing top tab rebuilds ephemeral
+      queue from Cap 6 resolve and starts at queue head; no Pool model;
+      no Session Continuity product rules.
+
+- [ ] 7.7 Real-device feed acceptance (iPhone 13 Pro, **Profile**): scroll
+      real library; hitch < 25 ms/s AND no Severe Hang per 7.1 hard gate;
+      notes under `docs/acceptance/`; portfolio eligibility evidence
+      (feed screenshot-able). Fail path = ADR-001 SwiftUI / all-native
+      re-evaluation discussion — not a new Conditional Pass / Known debt.
+
+- [ ] 7.8 Accent freeze (last) + Cap 7 close-out: freeze current
+      `accentProvisional` as formal accent (Q6=A) or owner-supplied hex;
+      Light/Dark token-only. In the **same** docs close-out commit, clear
+      or mark resolved the Known debt rows that named Main Browse /
+      Production Main Browse as picker-up: (1) Severe Hang ADR-001,
+      (2) typography tokens ADR-009, (3) final accent color ADR-009.
+      STATE + PHASE_HISTORY; portfolio Public scan remains owner-only.
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -113,10 +157,11 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Define Main Browse Phase Roadmap from kickoff (after Cap 6 close-out)
-- Sub-steps done: Cap 6 closed (6.5 notes `docs/acceptance/cap6-6.5-notes.md`)
-- Next step: owner approves Main Browse phases before coding
-- Related decisions: ADR-001 … ADR-013 (see DECISIONS.md)
+- Goal (one line): Cap 7 phase roadmap frozen; next is ADR-014 draft (chat) for 7.1
+- Sub-steps done: Cap 7 phases 7.1–7.8 written into STATE (Q1–Q7=A; Profile hard gate;
+      7.8 Known debt clear for Severe Hang / typography / accent)
+- Next step: draft ADR-014 in chat → owner OK → then 7.1 docs/Accepted discipline
+- Related decisions: ADR-001 … ADR-013; ADR-014 not in DECISIONS yet
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
