@@ -16,7 +16,8 @@
 - Flutter project name: `waketok`; device display name: WakeTok
 - Bundle ID: `com.dennycgan.waketok`
   - Explicit App ID registration in Certificates, Identifiers & Profiles: owner-only
-  - App Store Connect app-record creation: owner-only
+  - App Store Connect app-record: created — App name `WakeTok` reserved
+    (primary language English (UK)); further ASC configuration remains owner-only
   - See `release-handoff.mdc`
 - iOS deployment target: iOS 18.0 (see ADR-007; ADR-005 superseded)
 - Test devices: iPhone 13 (performance floor), iPhone 17 (current-device compat)
