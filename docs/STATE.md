@@ -41,8 +41,8 @@
       iCloud-only assets; device-local filtering is spike-only; acceptance
       includes date-distribution sampling on owner's real 40k library)
 - [ ] Main Browse Screen and vertical Media Feed
-      (Severe Hang debt from ADR-001: measurable acceptance criteria to be
-      defined in this capability's phase design)
+      (Severe Hang hard gate frozen in 7.1 / ADR-014 chat: Profile + full
+      chrome; zero Severe Hang; fail → ADR-001 SwiftUI re-evaluation)
       <-- YOU ARE HERE
 - [ ] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
@@ -102,7 +102,7 @@
 ## Phase Roadmap (active capability only)
 Active capability: Main Browse Screen and vertical Media Feed
 
-- [ ] 7.1 Contract freeze (ADR-014): Cap 7 slim feed model — ephemeral id
+- [x] 7.1 Contract freeze (ADR-014): Cap 7 slim feed model — ephemeral id
       queue from Cap 6 resolve only; Sequential + Manual (kickoff General/
       Mixed default Shuffle deferred until Endless Shuffle capability);
       chrome In/Out; Pools tab visible+disabled; tab switch resets to
@@ -116,6 +116,9 @@ Active capability: Main Browse Screen and vertical Media Feed
       (top All/Photos/Videos + disabled Pools tab + bottom bar shell) — not
       a bare PageView; POC-04 spike had no chrome, so hitch may regress once
       chrome is mounted. Design-freeze (no production feed code in 7.1).
+      ADR-014: chat-finalized; Status **Pending Accepted** (anchor deferred
+      to first Cap 7 implementing work — **not** this docs commit).
+      — docs (this commit)
 
 - [ ] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
       Known debt); feed scrim / on-media contrast tokens as needed; still
@@ -160,11 +163,10 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7 phase roadmap frozen; next is ADR-014 draft (chat) for 7.1
-- Sub-steps done: Cap 7 phases 7.1–7.8 written into STATE (Q1–Q7=A; Profile hard gate;
-      7.8 Known debt clear for Severe Hang / typography / accent)
-- Next step: draft ADR-014 in chat → owner OK → then 7.1 docs/Accepted discipline
-- Related decisions: ADR-001 … ADR-013; ADR-014 not in DECISIONS yet
+- Goal (one line): Cap 7.2 theme tokens for feed chrome (typography + scrim)
+- Sub-steps done: 7.1 contract freeze (ADR-014 chat-finalized, Pending Accepted)
+- Next step: owner orders 7.2 design or coding
+- Related decisions: ADR-001 … ADR-013; ADR-014 Pending (not in DECISIONS yet)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
