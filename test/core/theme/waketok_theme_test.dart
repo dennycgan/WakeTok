@@ -23,7 +23,7 @@ void main() {
     );
   });
 
-  test('T2 modes differ except feedBackground (same black)', () {
+  test('T2 modes differ except feedBackground / on-media scrim family', () {
     final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
 
@@ -33,6 +33,9 @@ void main() {
     expect(light.accentProvisional, isNot(dark.accentProvisional));
     expect(light.feedBackground, dark.feedBackground);
     expect(light.feedBackground, const Color(0xFF000000));
+    expect(light.mediaScrim, dark.mediaScrim);
+    expect(light.onMedia, dark.onMedia);
+    expect(light.onMediaMuted, dark.onMediaMuted);
   });
 
   test('T3 ThemeData wiring uses tokens', () {
@@ -47,6 +50,63 @@ void main() {
     expect(darkTheme.colorScheme.primary, dark.accentProvisional);
     expect(lightTheme.appBarTheme.backgroundColor, light.surface);
     expect(darkTheme.appBarTheme.backgroundColor, dark.surface);
+  });
+
+  test('T-typo-1 L/D typography sizes match; chrome colors follow onSurface',
+      () {
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+
+    expect(light.titleChrome.fontSize, dark.titleChrome.fontSize);
+    expect(light.labelChrome.fontSize, dark.labelChrome.fontSize);
+    expect(light.bodyChrome.fontSize, dark.bodyChrome.fontSize);
+    expect(light.labelOnMedia.fontSize, dark.labelOnMedia.fontSize);
+    expect(light.bodyOnMedia.fontSize, dark.bodyOnMedia.fontSize);
+
+    expect(light.titleChrome.color, light.onSurface);
+    expect(dark.titleChrome.color, dark.onSurface);
+    expect(light.labelOnMedia.color, light.onMedia);
+    expect(dark.labelOnMedia.color, dark.onMedia);
+  });
+
+  test('T-typo-2 textTheme slots map from chrome / on-media tokens', () {
+    final theme = waketokTheme(Brightness.light);
+    final tokens = theme.extension<WakeTokTokens>()!;
+
+    // ThemeData merges TextTheme onto Material defaults (family/debugLabel),
+    // so assert semantic fields — not full TextStyle equality.
+    void expectMaps(TextStyle? actual, TextStyle expected) {
+      expect(actual?.color, expected.color);
+      expect(actual?.fontSize, expected.fontSize);
+      expect(actual?.fontWeight, expected.fontWeight);
+      expect(actual?.height, expected.height);
+    }
+
+    expectMaps(theme.textTheme.titleMedium, tokens.titleChrome);
+    expectMaps(theme.textTheme.labelLarge, tokens.labelChrome);
+    expectMaps(theme.textTheme.bodyMedium, tokens.bodyChrome);
+    expectMaps(theme.textTheme.labelSmall, tokens.labelOnMedia);
+    expectMaps(theme.textTheme.bodySmall, tokens.bodyOnMedia);
+    expectMaps(theme.appBarTheme.titleTextStyle, tokens.titleChrome);
+  });
+
+  test('T-scrim-1 mediaScrim and onMedia tokens present (L==D)', () {
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+
+    expect(light.mediaScrim.a, greaterThan(0));
+    expect(light.onMedia, const Color(0xFFFFFFFF));
+    expect(light.mediaScrim, dark.mediaScrim);
+    expect(light.onMedia, dark.onMedia);
+    expect(light.onMediaMuted, dark.onMediaMuted);
+  });
+
+  test('T-accent accentProvisional hex unchanged (still provisional)', () {
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+
+    expect(light.accentProvisional, const Color(0xFF2F6FED));
+    expect(dark.accentProvisional, const Color(0xFF5B8DEF));
   });
 
   testWidgets('T4 app resolves light tokens under light platform brightness',
@@ -73,6 +133,7 @@ void main() {
     final expected = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     expect(theme.scaffoldBackgroundColor, expected.background);
     expect(theme.extension<WakeTokTokens>()!.surface, expected.surface);
+    expect(theme.textTheme.titleMedium?.fontSize, expected.titleChrome.fontSize);
   });
 
   testWidgets('T5 app resolves dark tokens under dark platform brightness',
@@ -99,5 +160,6 @@ void main() {
     final expected = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
     expect(theme.scaffoldBackgroundColor, expected.background);
     expect(theme.extension<WakeTokTokens>()!.surface, expected.surface);
+    expect(theme.textTheme.titleMedium?.fontSize, expected.titleChrome.fontSize);
   });
 }
