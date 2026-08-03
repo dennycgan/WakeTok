@@ -41,8 +41,8 @@
       iCloud-only assets; device-local filtering is spike-only; acceptance
       includes date-distribution sampling on owner's real 40k library)
 - [ ] Main Browse Screen and vertical Media Feed
-      (Severe Hang hard gate frozen in 7.1 / ADR-014 chat: Profile + full
-      chrome; zero Severe Hang; fail → ADR-001 SwiftUI re-evaluation)
+      (ADR-014 Accepted; Severe Hang hard gate: Profile + full chrome;
+      zero Severe Hang; fail → ADR-001 SwiftUI re-evaluation)
       <-- YOU ARE HERE
 - [ ] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
@@ -116,13 +116,13 @@ Active capability: Main Browse Screen and vertical Media Feed
       (top All/Photos/Videos + disabled Pools tab + bottom bar shell) — not
       a bare PageView; POC-04 spike had no chrome, so hitch may regress once
       chrome is mounted. Design-freeze (no production feed code in 7.1).
-      ADR-014: chat-finalized; Status **Pending Accepted** (anchor deferred
-      to first Cap 7 implementing work — **not** this docs commit).
-      — docs (this commit)
+      ADR-014: Accepted at Cap 7.2 work `5ef2e8a` (see DECISIONS).
+      — docs `fb4bc9f`
 
-- [ ] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
+- [x] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
       Known debt); feed scrim / on-media contrast tokens as needed; still
       `accentProvisional` (freeze in 7.8 only).
+      — work `5ef2e8a`
 
 - [ ] 7.3 Playback + image pipeline (ADR-006): production foreground
       PlaybackApi path — PV attach/detach, bounded 1+1; image display
@@ -163,10 +163,11 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7.2 theme tokens for feed chrome (typography + scrim)
-- Sub-steps done: 7.1 contract freeze (ADR-014 chat-finalized, Pending Accepted)
-- Next step: owner orders 7.2 design or coding
-- Related decisions: ADR-001 … ADR-013; ADR-014 Pending (not in DECISIONS yet)
+- Goal (one line): Cap 7.3 Playback + image pipeline (ADR-006)
+- Sub-steps done: 7.1 contract freeze; 7.2 typography + media scrim tokens
+      (`5ef2e8a`); ADR-014 Accepted
+- Next step: owner orders 7.3 design or coding
+- Related decisions: ADR-001 … ADR-014
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -180,7 +181,7 @@ Active capability: Main Browse Screen and vertical Media Feed
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-013: docs/DECISIONS.md
+- ADR-001 … ADR-014: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
@@ -209,3 +210,4 @@ Active capability: Main Browse Screen and vertical Media Feed
 | iOS Photos permission | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
+| Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |

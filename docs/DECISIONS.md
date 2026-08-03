@@ -876,3 +876,129 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     otherwise.
   - Kickoff Item Ordering Open Question is closed for Entire Library +
     Media Type only.
+
+---
+
+## ADR-014: Cap 7 slim Main Browse feed model (Sequential + Manual)
+
+- Status: Accepted (2026-08-03)
+- Commit/PR anchor: 5ef2e8a
+- Plain summary (owner reads this):
+  Cap 7 Main Browse drives a vertical feed from Cap 6 built-in
+  `resolveSource` id lists only. Order is Sequential (creation-date
+  descending as returned by resolve); advance is Manual swipe. Kickoff’s
+  General/Mixed default Shuffle is deferred until the Endless Shuffle
+  capability. Severe Hang must be cleared on **full production chrome**
+  under Instruments **Profile** with a hard gate — not Conditional Pass.
+- Context / what problem forced this:
+  Cap 6 (ADR-013) delivered All / Photos / Videos resolution and left
+  product chrome to Main Browse. Kickoff §7 / ADR-N defaults General /
+  Mixed pools to Shuffle + Manual + Repeat All, but STATE schedules
+  Endless Shuffle / Queue Stability / Session Continuity **after** Cap 7.
+  Cap 6 built-ins are Entire Library / Media Type sources (not Pure
+  Generated Clip Pools) — they fall under that General/Mixed default.
+  STATE Phase Roadmap text is replaced when the next capability opens, so
+  a multi-capability deferral of Shuffle cannot live only in STATE.
+  Separately, ADR-001 left Severe Hang as Known debt that **must** be
+  triaged in production feed; its rejected alternative already points to
+  SwiftUI / all-native re-evaluation if production feed cannot clear the
+  debt — not another Conditional Pass. Cap 7 therefore needs an
+  append-only ADR that freezes: slim queue shape, Sequential+Manual,
+  chrome/Severe Hang gate, and explicit Out-of-scope vs later capabilities.
+- Decision (what was chosen):
+  1. **Slim feed input = Cap 6 resolve only.** The Cap 7 ephemeral queue is
+     the ordered `assetIdentifiers` from `AssetSourceRepository.resolve`
+     for one built-in `SourceReference` (`all` / `photos` / `videos`).
+     No Source Pool Definition, Identity Coalescing product layer, Saved
+     Pool, or Album listing in Cap 7.
+  2. **Order Policy = Sequential; Advance = Manual.** Queue order is the
+     resolve list order (ADR-013 creationDate descending). User advances
+     by vertical swipe. No Endless Shuffle, no Auto-play, no Repeat
+     product controls in Cap 7. Videos may play while on-screen; end-of-
+     item does **not** auto-advance (Manual).
+  3. **Kickoff Shuffle default deferred (structural).** Kickoff General /
+     Mixed default Shuffle remains the long-term product default but is
+     **not** implemented in Cap 7. It is scheduled for the STATE
+     capability “Endless Shuffle, Queue Stability, and Session
+     Continuity” (and related Session Queue work). This ADR records that
+     deliberate multi-capability deferral.
+  4. **Tab switch resets to queue head.** Changing All / Photos / Videos
+     rebuilds the ephemeral queue from that source’s resolve result and
+     starts at index 0. No Session Continuity “keep current asset”
+     semantics (no Session Queue model yet).
+  5. **Resolve binding — no client-side subset derivation.** Photos /
+     Videos queues must **not** be derived by filtering/reordering All’s
+     id list on Dart. `ResolvedSourceDto` carries ids only (no
+     `mediaKind`). Host uses independent predicates per built-in. Cap 7
+     implementation (phases 7.5–7.6) must call `resolve` per selected
+     built-in; **session-scoped cache per source** (at most one real
+     `resolveSource` per All / Photos / Videos per session, reuse on
+     revisit) is the intended performance strategy — detail in 7.5/7.6
+     design, constraint frozen here.
+  6. **Chrome In / Out for Cap 7.**
+     - **In:** Top All / Photos / Videos; **Pools** tab visible but
+       disabled (ARB); bottom bar shell (Browse active; Clips / Auto /
+       Settings stub); Limited banner; Main Browse = default post-auth
+       landing; `library_smoke` demoted to debug-only.
+     - **Out:** Media Info Overlay / Location / file-size (next
+       capability); Live Photo motion (static + optional LIVE badge
+       only; full treatment later + POC-08); Pool / Auto-play /
+       Lookahead / Background Audio / Share / Mute / Fit·Fill·Crop /
+       2× / Add to Album / clip flows.
+  7. **Severe Hang / hitch hard gate (pays ADR-001 debt).** Cap 7.7
+     acceptance on **iPhone 13 Pro**, Instruments **Profile** only (same
+     mode as ADR-001 baselines; Release must not be mixed into the gate
+     number — optional Release notes only as a **separate** secondary
+     dataset if owner later asks). Bar: mean hitch **< 25 ms/s** AND
+     **zero** Severe Hang. **Retest surface = full production chrome**
+     (top tabs including disabled Pools + bottom bar) — **not** a bare
+     PageView (POC-04 spike lacked chrome). Fail path = ADR-001’s
+     already-written SwiftUI / all-native re-evaluation discussion —
+     **not** a new Conditional Pass or new Known debt that rewrites
+     ADR-001.
+  8. **Accent / typography close-out (ADR-009 debts).** Cap 7.8 freezes
+     accent (current `accentProvisional` may become formal accent, or
+     owner-supplied hex). Typography tokens land in Cap 7.2. Cap 7
+     close-out docs commit must clear/mark resolved the Known debt rows
+     that named Main Browse / Production Main Browse as picker-up:
+     Severe Hang (ADR-001), typography tokens (ADR-009), final accent
+     (ADR-009). Portfolio Private→Public scan remains owner-only.
+- Rejected alternatives (why not B):
+  - Implement kickoff Shuffle in Cap 7 — rejected (STATE schedules
+    Shuffle later; would pull Session Queue / Continuity early).
+  - Keep current asset across tab switches — rejected (no Session Queue
+    / Continuity model yet; Q3=A).
+  - Derive Photos/Videos by filtering All’s resolve list — rejected
+    (no `mediaKind` on wire; host predicates are independent).
+  - Severe Hang Conditional Pass / new Known debt if 7.7 fails —
+    rejected (conflicts with ADR-001 “must triage in production feed”
+    and the written SwiftUI re-evaluation fail path).
+  - Measure hitch on bare PageView without chrome — rejected (production
+    surface includes chrome; spike was not representative).
+  - Mix Release hitch numbers into the Profile gate — rejected
+    (incomparable to ADR-001 Profile baselines).
+  - Block Cap 7 close on final app-icon pixels before accent freeze —
+    rejected (Known debt separates accent freeze at Main Browse close
+    from icon assets before TestFlight).
+  - Full `PHLivePhotoView` in Cap 7 — rejected (STATE lists Live Photo
+    capability after Main Browse).
+  - Ship Pools / bottom destinations as real features in Cap 7 —
+    rejected (later capabilities).
+- Consequences / constraints accepted:
+  - ADR-013 remains the resolve/ordering contract for built-ins; Cap 7
+    **consumes** it and does not reopen Pigeon for feed paging.
+  - ADR-006 foreground PlaybackApi production path is Cap 7.3 work;
+    Background Audio / Now Playing stay later.
+  - ADR-009/010/012 continue to bind layering, Riverpod, ARB, tokens.
+  - Until Endless Shuffle capability lands, product default for
+    All/Photos/Videos browse is **Sequential + Manual** under this ADR,
+    despite kickoff Shuffle wording.
+  - 7.1 is design-freeze only (STATE / chat contract). This ADR is
+    appended and marked Accepted only after the first Cap 7 work commit
+    that implements part of this contract exists; Accepted date =
+    that commit’s author date (`git log -1 --format=%cs <sha>`). Do not
+    anchor on a docs-only 7.1 `[x]` commit.
+  - This ADR’s Accepted anchor (`5ef2e8a`) marks the **start** of Cap 7
+    implementation (Decision 8 typography / scrim tokens only).
+    Decisions 1–2 / 4–7 land progressively across 7.3–7.7 — see
+    PHASE_HISTORY for the full per-phase trail.
