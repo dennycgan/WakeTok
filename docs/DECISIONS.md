@@ -398,6 +398,18 @@
     `jumpToPage` + adopt cannot race a second `attach`/`release` path — that
     race SIGABRT'd the probe. Separately, probe mode disables warming promotion
     so a display-pool promote cannot replace AVQueuePlayer and clear lookahead.
+  - **Cap 7.3 fill-in (work `29fcf2d`, 2026-08-04):** production image path
+    extends `DisplayAssetDto` with `localFilePath` (host JPEG temp → Flutter
+    `Image.file`). Display temps share the display-pool **≤1+1** eviction
+    discipline (POC-04 `tmpMax=2`): a new temp must clean up an unused prior
+    file — no unbounded accumulation. Host `requestDisplayAsset` /
+    `requestPlayableVideo` (and foreground player prepare) are **local-only**
+    (`isNetworkAccessAllowed = false`); iCloud-only assets return
+    `ErrorCode.iCloudDownloadRequired` immediately with **no** host-initiated
+    network download — waiting/retry UI is the next capability. Cap 7.3
+    foreground lifecycle: detach layer + **pause** on background; re-adopt
+    existing player on foreground / play (no recreate). Keep-audio + queue
+    advance + Now Playing remain Production Background Audio (ADR-002).
 
 ---
 

@@ -124,9 +124,10 @@ Active capability: Main Browse Screen and vertical Media Feed
       `accentProvisional` (freeze in 7.8 only).
       — work `5ef2e8a`
 
-- [ ] 7.3 Playback + image pipeline (ADR-006): production foreground
+- [x] 7.3 Playback + image pipeline (ADR-006): production foreground
       PlaybackApi path — PV attach/detach, bounded 1+1; image display
       request path; no Background Audio / Now Playing product scope.
+      — work `29fcf2d`
 
 - [ ] 7.4 Main Browse chrome shell: top All/Photos/Videos + Pools disabled
       (ARB); bottom bar shell (Browse active; Clips/Auto/Settings stub);
@@ -163,10 +164,10 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7.3 Playback + image pipeline (ADR-006)
-- Sub-steps done: 7.1 contract freeze; 7.2 typography + media scrim tokens
-      (`5ef2e8a`); ADR-014 Accepted
-- Next step: owner orders 7.3 design or coding
+- Goal (one line): Cap 7.4 Main Browse chrome shell
+- Sub-steps done: 7.1–7.3 (ADR-014; theme tokens `5ef2e8a`; playback +
+      display pipeline `29fcf2d`)
+- Next step: owner orders 7.4 design or coding
 - Related decisions: ADR-001 … ADR-014
 
 ## Contract pointers (don't memorize, go read the source)
@@ -179,6 +180,9 @@ Active capability: Main Browse Screen and vertical Media Feed
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); totals shell: lib/features/library_smoke/
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
+- Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
+  PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
+  debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
 - ADR-001 … ADR-014: docs/DECISIONS.md
