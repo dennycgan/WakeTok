@@ -17,9 +17,17 @@ import UIKit
       binaryMessenger: messenger,
       api: PhotoLibraryService()
     )
+    let playbackHost = PlaybackApiHost()
     PlaybackApiSetup.setUp(
       binaryMessenger: messenger,
-      api: PlaybackApiHost()
+      api: playbackHost
+    )
+    let registrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "WakeTokPlaybackSurface"
+    )
+    registrar?.register(
+      PlaybackPlatformViewFactory(host: playbackHost),
+      withId: PlaybackApiHost.viewType
     )
   }
 }

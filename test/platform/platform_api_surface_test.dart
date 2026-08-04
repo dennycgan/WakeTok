@@ -170,6 +170,7 @@ void main() {
       DisplayAssetDto(
         assetIdentifier: 'a',
         mediaKind: MediaKind.unknown,
+        localFilePath: '/tmp/a.jpg',
       ),
     );
     mockSuccess(

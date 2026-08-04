@@ -409,10 +409,18 @@ struct ResolvedSourceDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Displayable still (incl. Live Photo key photo) for Flutter [Image.file].
+///
+/// Cap 7.3: [localFilePath] is a host temp JPEG/PNG; count bounded ≤1+1 with
+/// the display pool (ADR-001 / POC-04). Local-only request — iCloud-only →
+/// [ErrorCode.iCloudDownloadRequired] (no host-initiated download).
+///
 /// Generated class from Pigeon that represents data sent in messages.
 struct DisplayAssetDto: Hashable, CustomStringConvertible {
   var assetIdentifier: String
   var mediaKind: MediaKind
+  /// Absolute path to a host-managed temp file (JPEG). Bounded ≤1+1.
+  var localFilePath: String
   var pixelWidth: Int64? = nil
   var pixelHeight: Int64? = nil
 
@@ -421,12 +429,14 @@ struct DisplayAssetDto: Hashable, CustomStringConvertible {
   static func fromList(_ pigeonVar_list: [Any?]) -> DisplayAssetDto? {
     let assetIdentifier = pigeonVar_list[0] as! String
     let mediaKind = pigeonVar_list[1] as! MediaKind
-    let pixelWidth: Int64? = nilOrValue(pigeonVar_list[2])
-    let pixelHeight: Int64? = nilOrValue(pigeonVar_list[3])
+    let localFilePath = pigeonVar_list[2] as! String
+    let pixelWidth: Int64? = nilOrValue(pigeonVar_list[3])
+    let pixelHeight: Int64? = nilOrValue(pigeonVar_list[4])
 
     return DisplayAssetDto(
       assetIdentifier: assetIdentifier,
       mediaKind: mediaKind,
+      localFilePath: localFilePath,
       pixelWidth: pixelWidth,
       pixelHeight: pixelHeight
     )
@@ -435,6 +445,7 @@ struct DisplayAssetDto: Hashable, CustomStringConvertible {
     return [
       assetIdentifier,
       mediaKind,
+      localFilePath,
       pixelWidth,
       pixelHeight,
     ]
@@ -443,19 +454,20 @@ struct DisplayAssetDto: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.mediaKind, rhs.mediaKind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.pixelWidth, rhs.pixelWidth) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.pixelHeight, rhs.pixelHeight)
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.mediaKind, rhs.mediaKind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.localFilePath, rhs.localFilePath) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.pixelWidth, rhs.pixelWidth) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.pixelHeight, rhs.pixelHeight)
   }
 
   func hash(into hasher: inout Hasher) {
     hasher.combine("DisplayAssetDto")
     WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: mediaKind, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: localFilePath, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: pixelWidth, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: pixelHeight, hasher: &hasher)
   }
 
   public var description: String {
-    return "DisplayAssetDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), pixelWidth: \(String(describing: pixelWidth)), pixelHeight: \(String(describing: pixelHeight)))"
+    return "DisplayAssetDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), localFilePath: \(String(describing: localFilePath)), pixelWidth: \(String(describing: pixelWidth)), pixelHeight: \(String(describing: pixelHeight)))"
   }
 }
 

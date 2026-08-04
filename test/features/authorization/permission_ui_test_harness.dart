@@ -8,10 +8,13 @@ import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
+import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
+import '../../library_smoke/fake_media_display_repository.dart';
+import '../../library_smoke/fake_playback_repository.dart';
 
 class ControllablePhotosAuthorizationRepository
     implements PhotosAuthorizationRepository {
@@ -51,6 +54,10 @@ Widget permissionUiHarness({
       photosAuthorizationRepositoryProvider.overrideWithValue(repo),
       libraryCatalogRepositoryProvider.overrideWithValue(libraryCatalog),
       assetSourceRepositoryProvider.overrideWithValue(sources),
+      mediaDisplayRepositoryProvider.overrideWithValue(
+        FakeMediaDisplayRepository(),
+      ),
+      playbackRepositoryProvider.overrideWithValue(FakePlaybackRepository()),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
     ],

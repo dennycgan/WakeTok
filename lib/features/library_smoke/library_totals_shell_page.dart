@@ -12,6 +12,7 @@ import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/builtin_quantile.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
+import 'package:waketok/features/library_smoke/playback_pipeline_probe.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Post-authorization landing shell (Cap 5.3 / 5.4 + Cap 6.4 smoke).
@@ -406,6 +407,7 @@ class _LibraryTotalsShellPageState
                       style: bodyStyle,
                     ),
                   ),
+                const PlaybackPipelineProbeSection(),
               ],
             ),
           ),

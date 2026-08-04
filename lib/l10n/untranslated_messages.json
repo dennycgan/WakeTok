@@ -20,6 +20,17 @@
     "sourcePairProbeUnexpected",
     "sourceBusy",
     "sourceSmokeOperationFailed",
-    "sourceQuantileYearSpan"
+    "sourceQuantileYearSpan",
+    "playbackProbeSectionTitle",
+    "playbackProbeLoadImage",
+    "playbackProbeLoadVideo",
+    "playbackProbePlay",
+    "playbackProbePause",
+    "playbackProbeImageOk",
+    "playbackProbeVideoReady",
+    "playbackProbeSurfaceReady",
+    "playbackProbeNoAssets",
+    "playbackProbeICloudOnly",
+    "playbackProbeFailed"
   ]
 }

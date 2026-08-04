@@ -11,10 +11,13 @@ import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
+import '../../library_smoke/fake_media_display_repository.dart';
+import '../../library_smoke/fake_playback_repository.dart';
 
 Widget _harness({
   required FakeAssetSourceRepository sources,
@@ -24,6 +27,10 @@ Widget _harness({
     overrides: [
       assetSourceRepositoryProvider.overrideWithValue(sources),
       libraryCatalogRepositoryProvider.overrideWithValue(catalog),
+      mediaDisplayRepositoryProvider.overrideWithValue(
+        FakeMediaDisplayRepository(),
+      ),
+      playbackRepositoryProvider.overrideWithValue(FakePlaybackRepository()),
     ],
     child: MaterialApp(
       locale: const Locale('en'),

@@ -137,16 +137,25 @@ class ResolvedSourceDto {
   List<String> assetIdentifiers;
 }
 
+/// Displayable still (incl. Live Photo key photo) for Flutter [Image.file].
+///
+/// Cap 7.3: [localFilePath] is a host temp JPEG/PNG; count bounded ≤1+1 with
+/// the display pool (ADR-001 / POC-04). Local-only request — iCloud-only →
+/// [ErrorCode.iCloudDownloadRequired] (no host-initiated download).
 class DisplayAssetDto {
   DisplayAssetDto({
     required this.assetIdentifier,
     required this.mediaKind,
+    required this.localFilePath,
     this.pixelWidth,
     this.pixelHeight,
   });
 
   String assetIdentifier;
   MediaKind mediaKind;
+
+  /// Absolute path to a host-managed temp file (JPEG). Bounded ≤1+1.
+  String localFilePath;
   int? pixelWidth;
   int? pixelHeight;
 }

@@ -326,6 +326,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'year span (non-null dates): {years}'**
   String sourceQuantileYearSpan(String years);
+
+  /// Cap 7.3 debug probe section title
+  ///
+  /// In en, this message translates to:
+  /// **'Playback + image pipeline (debug)'**
+  String get playbackProbeSectionTitle;
+
+  /// Requests display asset temp file for first Photos id
+  ///
+  /// In en, this message translates to:
+  /// **'Load first Photos still'**
+  String get playbackProbeLoadImage;
+
+  /// Prepares first Videos id and mounts Platform View
+  ///
+  /// In en, this message translates to:
+  /// **'Load first Videos item'**
+  String get playbackProbeLoadVideo;
+
+  /// Calls PlaybackApi.play on the probe video
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get playbackProbePlay;
+
+  /// Calls PlaybackApi.pause on the probe video
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get playbackProbePause;
+
+  /// Shown when requestDisplayAsset returns a local path
+  ///
+  /// In en, this message translates to:
+  /// **'Image temp file ready.'**
+  String get playbackProbeImageOk;
+
+  /// Shown after setPlaybackPlan/load before PV ready
+  ///
+  /// In en, this message translates to:
+  /// **'Video plan loaded; surface mounting…'**
+  String get playbackProbeVideoReady;
+
+  /// Shown after notifyDisplaySurfaceReady
+  ///
+  /// In en, this message translates to:
+  /// **'Display surface ready (adopt).'**
+  String get playbackProbeSurfaceReady;
+
+  /// Resolve returned an empty id list
+  ///
+  /// In en, this message translates to:
+  /// **'No assets in the selected built-in source.'**
+  String get playbackProbeNoAssets;
+
+  /// Host returned iCloudDownloadRequired (local-only policy)
+  ///
+  /// In en, this message translates to:
+  /// **'iCloud-only on device; Cap 7.3 does not download.'**
+  String get playbackProbeICloudOnly;
+
+  /// Generic ARB fallback for probe errors
+  ///
+  /// In en, this message translates to:
+  /// **'Playback / display probe failed.'**
+  String get playbackProbeFailed;
 }
 
 class _AppLocalizationsDelegate

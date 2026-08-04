@@ -136,6 +136,41 @@ class AppLocalizationsZh extends AppLocalizations {
   String sourceQuantileYearSpan(String years) {
     return 'year span (non-null dates): $years';
   }
+
+  @override
+  String get playbackProbeSectionTitle => 'Playback + image pipeline (debug)';
+
+  @override
+  String get playbackProbeLoadImage => 'Load first Photos still';
+
+  @override
+  String get playbackProbeLoadVideo => 'Load first Videos item';
+
+  @override
+  String get playbackProbePlay => 'Play';
+
+  @override
+  String get playbackProbePause => 'Pause';
+
+  @override
+  String get playbackProbeImageOk => 'Image temp file ready.';
+
+  @override
+  String get playbackProbeVideoReady => 'Video plan loaded; surface mounting…';
+
+  @override
+  String get playbackProbeSurfaceReady => 'Display surface ready (adopt).';
+
+  @override
+  String get playbackProbeNoAssets =>
+      'No assets in the selected built-in source.';
+
+  @override
+  String get playbackProbeICloudOnly =>
+      'iCloud-only on device; Cap 7.3 does not download.';
+
+  @override
+  String get playbackProbeFailed => 'Playback / display probe failed.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -266,4 +301,37 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String sourceQuantileYearSpan(String years) {
     return '年份跨度（非空日期）：$years';
   }
+
+  @override
+  String get playbackProbeSectionTitle => '播放与图像管线（调试）';
+
+  @override
+  String get playbackProbeLoadImage => '加载首张 Photos 静图';
+
+  @override
+  String get playbackProbeLoadVideo => '加载首个 Videos 项';
+
+  @override
+  String get playbackProbePlay => '播放';
+
+  @override
+  String get playbackProbePause => '暂停';
+
+  @override
+  String get playbackProbeImageOk => '图像临时文件已就绪。';
+
+  @override
+  String get playbackProbeVideoReady => '视频计划已加载；正在挂载表面…';
+
+  @override
+  String get playbackProbeSurfaceReady => '显示表面就绪（adopt）。';
+
+  @override
+  String get playbackProbeNoAssets => '所选内置来源没有资源。';
+
+  @override
+  String get playbackProbeICloudOnly => '设备上为仅 iCloud；Cap 7.3 不发起下载。';
+
+  @override
+  String get playbackProbeFailed => '播放 / 显示探针失败。';
 }

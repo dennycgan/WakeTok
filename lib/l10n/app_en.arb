@@ -163,5 +163,49 @@
     "placeholders": {
       "years": {"type": "String"}
     }
+  },
+  "playbackProbeSectionTitle": "Playback + image pipeline (debug)",
+  "@playbackProbeSectionTitle": {
+    "description": "Cap 7.3 debug probe section title"
+  },
+  "playbackProbeLoadImage": "Load first Photos still",
+  "@playbackProbeLoadImage": {
+    "description": "Requests display asset temp file for first Photos id"
+  },
+  "playbackProbeLoadVideo": "Load first Videos item",
+  "@playbackProbeLoadVideo": {
+    "description": "Prepares first Videos id and mounts Platform View"
+  },
+  "playbackProbePlay": "Play",
+  "@playbackProbePlay": {
+    "description": "Calls PlaybackApi.play on the probe video"
+  },
+  "playbackProbePause": "Pause",
+  "@playbackProbePause": {
+    "description": "Calls PlaybackApi.pause on the probe video"
+  },
+  "playbackProbeImageOk": "Image temp file ready.",
+  "@playbackProbeImageOk": {
+    "description": "Shown when requestDisplayAsset returns a local path"
+  },
+  "playbackProbeVideoReady": "Video plan loaded; surface mounting…",
+  "@playbackProbeVideoReady": {
+    "description": "Shown after setPlaybackPlan/load before PV ready"
+  },
+  "playbackProbeSurfaceReady": "Display surface ready (adopt).",
+  "@playbackProbeSurfaceReady": {
+    "description": "Shown after notifyDisplaySurfaceReady"
+  },
+  "playbackProbeNoAssets": "No assets in the selected built-in source.",
+  "@playbackProbeNoAssets": {
+    "description": "Resolve returned an empty id list"
+  },
+  "playbackProbeICloudOnly": "iCloud-only on device; Cap 7.3 does not download.",
+  "@playbackProbeICloudOnly": {
+    "description": "Host returned iCloudDownloadRequired (local-only policy)"
+  },
+  "playbackProbeFailed": "Playback / display probe failed.",
+  "@playbackProbeFailed": {
+    "description": "Generic ARB fallback for probe errors"
   }
 }

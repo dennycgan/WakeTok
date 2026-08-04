@@ -139,4 +139,39 @@ class AppLocalizationsEn extends AppLocalizations {
   String sourceQuantileYearSpan(String years) {
     return 'year span (non-null dates): $years';
   }
+
+  @override
+  String get playbackProbeSectionTitle => 'Playback + image pipeline (debug)';
+
+  @override
+  String get playbackProbeLoadImage => 'Load first Photos still';
+
+  @override
+  String get playbackProbeLoadVideo => 'Load first Videos item';
+
+  @override
+  String get playbackProbePlay => 'Play';
+
+  @override
+  String get playbackProbePause => 'Pause';
+
+  @override
+  String get playbackProbeImageOk => 'Image temp file ready.';
+
+  @override
+  String get playbackProbeVideoReady => 'Video plan loaded; surface mounting…';
+
+  @override
+  String get playbackProbeSurfaceReady => 'Display surface ready (adopt).';
+
+  @override
+  String get playbackProbeNoAssets =>
+      'No assets in the selected built-in source.';
+
+  @override
+  String get playbackProbeICloudOnly =>
+      'iCloud-only on device; Cap 7.3 does not download.';
+
+  @override
+  String get playbackProbeFailed => 'Playback / display probe failed.';
 }

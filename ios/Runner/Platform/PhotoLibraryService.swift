@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Photos
 import PhotosUI
@@ -434,16 +435,112 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     do {
       try requireLibraryAccess()
-      completion(
-        .success(
-          DisplayAssetDto(
-            assetIdentifier: assetIdentifier,
-            mediaKind: .unknown,
-            pixelWidth: nil,
-            pixelHeight: nil
+      let fetch = PHAsset.fetchAssets(
+        withLocalIdentifiers: [assetIdentifier],
+        options: nil
+      )
+      guard let asset = fetch.firstObject else {
+        completion(
+          .failure(
+            fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
           )
         )
-      )
+        return
+      }
+      if asset.mediaType == .video {
+        completion(
+          .failure(
+            fail(
+              .unsupportedMedia,
+              message: "requestDisplayAsset is for stills / Live Photo key frames"
+            )
+          )
+        )
+        return
+      }
+
+      let options = PHImageRequestOptions()
+      // Cap 7.3: local-only; no host-initiated iCloud download.
+      options.isNetworkAccessAllowed = false
+      options.deliveryMode = .highQualityFormat
+      options.resizeMode = .fast
+      options.isSynchronous = false
+
+      PHImageManager.default().requestImageDataAndOrientation(
+        for: asset,
+        options: options
+      ) { data, _, _, info in
+        let infoDict = info ?? [:]
+        if (infoDict[PHImageCancelledKey] as? Bool) == true {
+          completion(
+            .failure(
+              self.fail(.operationCancelled, message: "Display request cancelled")
+            )
+          )
+          return
+        }
+        if infoDict[PHImageErrorKey] != nil, data == nil {
+          let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
+          completion(
+            .failure(
+              self.fail(
+                inCloud ? .iCloudDownloadRequired : .assetUnavailable,
+                message: inCloud
+                  ? "Asset is iCloud-only; download not started in Cap 7.3"
+                  : "Failed to load display data"
+              )
+            )
+          )
+          return
+        }
+        if data == nil {
+          let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
+          completion(
+            .failure(
+              self.fail(
+                inCloud ? .iCloudDownloadRequired : .assetUnavailable,
+                message: inCloud
+                  ? "Asset is iCloud-only; download not started in Cap 7.3"
+                  : "No display data for asset"
+              )
+            )
+          )
+          return
+        }
+        guard let data else { return }
+
+        do {
+          let path = try DisplayTempFileStore.shared.replace(
+            assetId: assetIdentifier,
+            data: data
+          )
+          let kind = self.mapMediaKind(asset)
+          DispatchQueue.main.async {
+            completion(
+              .success(
+                DisplayAssetDto(
+                  assetIdentifier: assetIdentifier,
+                  mediaKind: kind,
+                  localFilePath: path,
+                  pixelWidth: Int64(asset.pixelWidth),
+                  pixelHeight: Int64(asset.pixelHeight)
+                )
+              )
+            )
+          }
+        } catch {
+          DispatchQueue.main.async {
+            completion(
+              .failure(
+                self.fail(
+                  .insufficientStorage,
+                  message: "Failed to write display temp file"
+                )
+              )
+            )
+          }
+        }
+      }
     } catch {
       completion(.failure(error))
     }
@@ -455,14 +552,80 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     do {
       try requireLibraryAccess()
-      completion(
-        .success(
-          PlayableVideoDto(
-            assetIdentifier: assetIdentifier,
-            durationSeconds: nil
+      let fetch = PHAsset.fetchAssets(
+        withLocalIdentifiers: [assetIdentifier],
+        options: nil
+      )
+      guard let asset = fetch.firstObject else {
+        completion(
+          .failure(
+            fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
           )
         )
-      )
+        return
+      }
+      guard asset.mediaType == .video else {
+        completion(
+          .failure(
+            fail(.unsupportedMedia, message: "Not a video asset")
+          )
+        )
+        return
+      }
+
+      let options = PHVideoRequestOptions()
+      // Same Cap 7.3 local-only policy as display images.
+      options.isNetworkAccessAllowed = false
+      options.deliveryMode = .highQualityFormat
+
+      PHImageManager.default().requestAVAsset(
+        forVideo: asset,
+        options: options
+      ) { avAsset, _, info in
+        let infoDict = info ?? [:]
+        if (infoDict[PHImageCancelledKey] as? Bool) == true {
+          completion(
+            .failure(
+              self.fail(.operationCancelled, message: "Video request cancelled")
+            )
+          )
+          return
+        }
+        if avAsset == nil {
+          let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
+          completion(
+            .failure(
+              self.fail(
+                inCloud ? .iCloudDownloadRequired : .assetUnavailable,
+                message: inCloud
+                  ? "Video is iCloud-only; download not started in Cap 7.3"
+                  : "Failed to load playable video"
+              )
+            )
+          )
+          return
+        }
+        let duration: Double?
+        if let urlAsset = avAsset as? AVURLAsset {
+          let seconds = CMTimeGetSeconds(urlAsset.duration)
+          duration = seconds.isFinite ? seconds : nil
+        } else if let avAsset {
+          let seconds = CMTimeGetSeconds(avAsset.duration)
+          duration = seconds.isFinite ? seconds : Double(asset.duration)
+        } else {
+          duration = Double(asset.duration)
+        }
+        DispatchQueue.main.async {
+          completion(
+            .success(
+              PlayableVideoDto(
+                assetIdentifier: assetIdentifier,
+                durationSeconds: duration
+              )
+            )
+          )
+        }
+      }
     } catch {
       completion(.failure(error))
     }
@@ -507,4 +670,60 @@ final class PhotoLibraryService: PhotoLibraryApi {
       )
     )
   }
+}
+
+// MARK: - Display temp files (≤1+1, Cap 7.3 / POC-04)
+
+/// Host-managed JPEG temps for [requestDisplayAsset]. Max two files; inserting
+/// a third evicts the oldest unused entry (same bound as display-pool 1+1).
+final class DisplayTempFileStore {
+  static let shared = DisplayTempFileStore()
+
+  private let maxFiles = 2
+  private var order: [String] = []
+  private var paths: [String: URL] = [:]
+  private let lock = NSLock()
+
+  /// Writes/replaces the temp for [assetId]; evicts LRU others beyond maxFiles.
+  func replace(assetId: String, data: Data) throws -> String {
+    lock.lock()
+    defer { lock.unlock() }
+
+    if let existing = paths[assetId] {
+      try? FileManager.default.removeItem(at: existing)
+      paths.removeValue(forKey: assetId)
+      order.removeAll { $0 == assetId }
+    }
+
+    while order.count >= maxFiles {
+      let evictId = order.removeFirst()
+      if let url = paths.removeValue(forKey: evictId) {
+        try? FileManager.default.removeItem(at: url)
+      }
+    }
+
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("waketok_display_\(UUID().uuidString).jpg")
+    try data.write(to: url, options: .atomic)
+    paths[assetId] = url
+    order.append(assetId)
+    return url.path
+  }
+
+  func release(assetId: String) {
+    lock.lock()
+    defer { lock.unlock() }
+    if let url = paths.removeValue(forKey: assetId) {
+      try? FileManager.default.removeItem(at: url)
+    }
+    order.removeAll { $0 == assetId }
+  }
+
+  #if DEBUG
+  var fileCountForTests: Int {
+    lock.lock()
+    defer { lock.unlock() }
+    return paths.count
+  }
+  #endif
 }

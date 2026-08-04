@@ -39,5 +39,16 @@
   "sourcePairProbeUnexpected": "非法 pair 探针出现意外结果。",
   "sourceBusy": "处理中…",
   "sourceSmokeOperationFailed": "内置来源调试操作失败。",
-  "sourceQuantileYearSpan": "年份跨度（非空日期）：{years}"
+  "sourceQuantileYearSpan": "年份跨度（非空日期）：{years}",
+  "playbackProbeSectionTitle": "播放与图像管线（调试）",
+  "playbackProbeLoadImage": "加载首张 Photos 静图",
+  "playbackProbeLoadVideo": "加载首个 Videos 项",
+  "playbackProbePlay": "播放",
+  "playbackProbePause": "暂停",
+  "playbackProbeImageOk": "图像临时文件已就绪。",
+  "playbackProbeVideoReady": "视频计划已加载；正在挂载表面…",
+  "playbackProbeSurfaceReady": "显示表面就绪（adopt）。",
+  "playbackProbeNoAssets": "所选内置来源没有资源。",
+  "playbackProbeICloudOnly": "设备上为仅 iCloud；Cap 7.3 不发起下载。",
+  "playbackProbeFailed": "播放 / 显示探针失败。"
 }

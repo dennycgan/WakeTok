@@ -6,6 +6,8 @@ import 'package:waketok/domain/library/library_catalog_repository.dart';
 import 'package:waketok/domain/library/library_media_kind.dart';
 import 'package:waketok/domain/library/library_page.dart';
 import 'package:waketok/domain/library/library_totals.dart';
+import 'package:waketok/domain/playback/media_display_repository.dart';
+import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
@@ -13,6 +15,7 @@ import 'package:waketok/domain/source/asset_source_repository.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/platform/generated/waketok_platform_apis.g.dart' as pigeon;
+import 'package:waketok/platform/playback_gateway.dart';
 
 /// Maps Pigeon [AuthStatus] → domain [PhotosAccess].
 PhotosAccess photosAccessFromAuthStatus(pigeon.AuthStatus status) {
@@ -146,7 +149,8 @@ class PhotoLibraryGateway
     implements
         PhotosAuthorizationRepository,
         LibraryCatalogRepository,
-        AssetSourceRepository {
+        AssetSourceRepository,
+        MediaDisplayRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -196,5 +200,26 @@ class PhotoLibraryGateway
       ),
     );
     return resolvedSourceFromDto(dto);
+  }
+
+  @override
+  Future<DisplayAsset> requestDisplayAsset(String assetIdentifier) async {
+    final dto = await _api.requestDisplayAsset(assetIdentifier);
+    return DisplayAsset(
+      assetIdentifier: dto.assetIdentifier,
+      mediaKind: playbackMediaKindFromPigeon(dto.mediaKind),
+      localFilePath: dto.localFilePath,
+      pixelWidth: dto.pixelWidth,
+      pixelHeight: dto.pixelHeight,
+    );
+  }
+
+  @override
+  Future<PlayableVideo> requestPlayableVideo(String assetIdentifier) async {
+    final dto = await _api.requestPlayableVideo(assetIdentifier);
+    return PlayableVideo(
+      assetIdentifier: dto.assetIdentifier,
+      durationSeconds: dto.durationSeconds,
+    );
   }
 }

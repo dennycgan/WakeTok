@@ -358,10 +358,16 @@ class ResolvedSourceDto {
   }
 }
 
+/// Displayable still (incl. Live Photo key photo) for Flutter [Image.file].
+///
+/// Cap 7.3: [localFilePath] is a host temp JPEG/PNG; count bounded ≤1+1 with
+/// the display pool (ADR-001 / POC-04). Local-only request — iCloud-only →
+/// [ErrorCode.iCloudDownloadRequired] (no host-initiated download).
 class DisplayAssetDto {
   DisplayAssetDto({
     required this.assetIdentifier,
     required this.mediaKind,
+    required this.localFilePath,
     this.pixelWidth,
     this.pixelHeight,
   });
@@ -369,6 +375,9 @@ class DisplayAssetDto {
   String assetIdentifier;
 
   MediaKind mediaKind;
+
+  /// Absolute path to a host-managed temp file (JPEG). Bounded ≤1+1.
+  String localFilePath;
 
   int? pixelWidth;
 
@@ -378,6 +387,7 @@ class DisplayAssetDto {
     return <Object?>[
       assetIdentifier,
       mediaKind,
+      localFilePath,
       pixelWidth,
       pixelHeight,
     ];
@@ -391,8 +401,9 @@ class DisplayAssetDto {
     return DisplayAssetDto(
       assetIdentifier: result[0]! as String,
       mediaKind: result[1]! as MediaKind,
-      pixelWidth: result[2] as int?,
-      pixelHeight: result[3] as int?,
+      localFilePath: result[2]! as String,
+      pixelWidth: result[3] as int?,
+      pixelHeight: result[4] as int?,
     );
   }
 
@@ -405,7 +416,7 @@ class DisplayAssetDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(mediaKind, other.mediaKind) && _deepEquals(pixelWidth, other.pixelWidth) && _deepEquals(pixelHeight, other.pixelHeight);
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(mediaKind, other.mediaKind) && _deepEquals(localFilePath, other.localFilePath) && _deepEquals(pixelWidth, other.pixelWidth) && _deepEquals(pixelHeight, other.pixelHeight);
   }
 
   @override
@@ -414,7 +425,7 @@ class DisplayAssetDto {
 
   @override
   String toString() {
-    return 'DisplayAssetDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, pixelWidth: $pixelWidth, pixelHeight: $pixelHeight)';
+    return 'DisplayAssetDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, localFilePath: $localFilePath, pixelWidth: $pixelWidth, pixelHeight: $pixelHeight)';
   }
 }
 
