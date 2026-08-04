@@ -52,3 +52,6 @@ app.*.map.json
 
 # Private local docs (not published to the remote repo)
 docs/WakeTok(App)_project_kickoff.md
+
+# Local scratch / export working directory (not published)
+tmp/
