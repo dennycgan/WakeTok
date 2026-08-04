@@ -6,6 +6,7 @@ import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/authorization/permission_blocked_page.dart';
 import 'package:waketok/features/authorization/permission_request_page.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_library_catalog_repository.dart';
@@ -35,7 +36,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(repo.requestCalls, 1);
-    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
+    expect(find.byType(LibraryTotalsShellPage), findsNothing);
     expect(find.byType(LimitedAccessBanner), findsNothing);
   });
 
@@ -80,7 +82,7 @@ void main() {
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
 
-    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
     expect(find.byType(LimitedAccessBanner), findsOneWidget);
     expect(find.byType(PermissionRequestPage), findsNothing);
     expect(find.byType(PermissionBlockedPage), findsNothing);
@@ -95,43 +97,35 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
-    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
     expect(find.byType(LimitedAccessBanner), findsOneWidget);
     expect(find.byType(PermissionRequestPage), findsNothing);
     expect(find.byType(PermissionBlockedPage), findsNothing);
   });
 
   testWidgets(
-      'W5b manage selection dismissal refreshes library totals',
+      'W5b manage selection dismissal keeps Main Browse; picker completes',
       (tester) async {
     final repo =
         ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
-    final catalog = FakeLibraryCatalogRepository(
-      totalsValue: const LibraryTotals(all: 3, photos: 2, videos: 1),
-    );
-    await tester.pumpWidget(
-      permissionUiHarness(repo: repo, catalog: catalog),
-    );
+    await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
-    expect(catalog.totalsCalls, greaterThanOrEqualTo(1));
-    final callsAfterOpen = catalog.totalsCalls;
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    catalog.totalsValue = const LibraryTotals(all: 5, photos: 4, videos: 1);
     await tester.tap(find.text(l10n.limitedAccessManageSelection));
     await tester.pumpAndSettle();
 
-    expect(catalog.totalsCalls, greaterThan(callsAfterOpen));
-    expect(find.text('5'), findsOneWidget);
-    expect(find.text('4'), findsOneWidget);
+    expect(repo.presentCalls, 1);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
+    expect(find.byType(LimitedAccessBanner), findsOneWidget);
   });
 
-  testWidgets('W6 full shows shell without banner', (tester) async {
+  testWidgets('W6 full shows Main Browse without banner', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
 
-    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
     expect(find.byType(LimitedAccessBanner), findsNothing);
   });
 
@@ -153,7 +147,8 @@ void main() {
     expect(find.text(l10n.permissionRequestContinue), findsOneWidget);
   });
 
-  testWidgets('W8 shell shows library totals from catalog', (tester) async {
+  testWidgets('W8 debug smoke still shows library totals from catalog',
+      (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final catalog = FakeLibraryCatalogRepository(
       totalsValue: const LibraryTotals(all: 12, photos: 10, videos: 2),
@@ -164,13 +159,19 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.tap(find.text(l10n.mainBrowseNavSettings));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
     expect(find.text(l10n.countsPending), findsNothing);
     expect(find.text('12'), findsOneWidget);
     expect(find.text('10'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
   });
 
-  testWidgets('W8b empty library may show real zeros', (tester) async {
+  testWidgets('W8b empty library zeros on debug smoke', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final catalog = FakeLibraryCatalogRepository(
       totalsValue: const LibraryTotals(all: 0, photos: 0, videos: 0),
@@ -178,6 +179,12 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(repo: repo, catalog: catalog),
     );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.tap(find.text(l10n.mainBrowseNavSettings));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
     await tester.pumpAndSettle();
 
     expect(find.text('0'), findsNWidgets(3));
@@ -188,7 +195,7 @@ void main() {
         ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
-    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
 
     repo.status = PhotosAccess.denied;
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
@@ -196,7 +203,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(PermissionBlockedPage), findsOneWidget);
-    expect(find.byType(LibraryTotalsShellPage), findsNothing);
+    expect(find.byType(MainBrowseShellPage), findsNothing);
   });
 
   testWidgets('W9b resume from Settings can leave blocked for full',
@@ -211,7 +218,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
-    expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
     expect(find.byType(PermissionBlockedPage), findsNothing);
   });
 }

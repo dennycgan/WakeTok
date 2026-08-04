@@ -207,5 +207,49 @@
   "playbackProbeFailed": "Playback / display probe failed.",
   "@playbackProbeFailed": {
     "description": "Generic ARB fallback for probe errors"
+  },
+  "mainBrowsePoolsTab": "Pools",
+  "@mainBrowsePoolsTab": {
+    "description": "Top chrome fourth tab label (visible, disabled in Cap 7)"
+  },
+  "mainBrowsePoolsComingSoon": "Coming soon",
+  "@mainBrowsePoolsComingSoon": {
+    "description": "Visible subtitle on disabled Pools tab (not a SnackBar)"
+  },
+  "mainBrowseNavBrowse": "Browse",
+  "@mainBrowseNavBrowse": {
+    "description": "Bottom navigation Browse destination"
+  },
+  "mainBrowseNavClips": "Clips",
+  "@mainBrowseNavClips": {
+    "description": "Bottom navigation Clips stub destination"
+  },
+  "mainBrowseNavAuto": "Auto",
+  "@mainBrowseNavAuto": {
+    "description": "Bottom navigation Auto-play stub destination"
+  },
+  "mainBrowseNavSettings": "Settings",
+  "@mainBrowseNavSettings": {
+    "description": "Bottom navigation Settings stub destination"
+  },
+  "mainBrowseFeedPlaceholder": "Feed arrives in a later step.",
+  "@mainBrowseFeedPlaceholder": {
+    "description": "Cap 7.4 body stub until vertical Media Feed (7.5)"
+  },
+  "mainBrowseStubClipsBody": "Clips — coming in a later capability.",
+  "@mainBrowseStubClipsBody": {
+    "description": "Clips tab stub body copy"
+  },
+  "mainBrowseStubAutoBody": "Auto-play — coming in a later capability.",
+  "@mainBrowseStubAutoBody": {
+    "description": "Auto tab stub body copy"
+  },
+  "mainBrowseStubSettingsBody": "Settings — coming in a later capability.",
+  "@mainBrowseStubSettingsBody": {
+    "description": "Settings tab stub body copy"
+  },
+  "mainBrowseOpenLibrarySmokeDebug": "Library smoke (debug)",
+  "@mainBrowseOpenLibrarySmokeDebug": {
+    "description": "kDebugMode-only button on Settings stub to open library_smoke"
   }
 }

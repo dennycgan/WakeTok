@@ -8,13 +8,14 @@ import 'package:waketok/features/authorization/permission_blocked_page.dart';
 import 'package:waketok/features/authorization/permission_request_page.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
-import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
 
-/// Root switcher for Photos authorization → permission UI or library shell.
+/// Root switcher for Photos authorization → permission UI or Main Browse.
 ///
 /// On app resume, refreshes authorization status so Settings changes apply.
 /// While reloading, keeps the last known [PhotosAccess] so the user does not
 /// flash back to Request/Blocked during limited-picker or Settings round-trips.
+/// Denied / restricted stay on [PermissionBlockedPage] (ADR-K §5) — not browse.
 class PhotosAccessGate extends ConsumerStatefulWidget {
   const PhotosAccessGate({super.key});
 
@@ -89,7 +90,7 @@ class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
       PhotosAccess.denied || PhotosAccess.restricted =>
         PermissionBlockedPage(access: access),
       PhotosAccess.limited || PhotosAccess.full =>
-        LibraryTotalsShellPage(access: access),
+        MainBrowseShellPage(access: access),
     };
   }
 }

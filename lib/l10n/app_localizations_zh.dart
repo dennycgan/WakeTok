@@ -171,6 +171,41 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get playbackProbeFailed => 'Playback / display probe failed.';
+
+  @override
+  String get mainBrowsePoolsTab => 'Pools';
+
+  @override
+  String get mainBrowsePoolsComingSoon => 'Coming soon';
+
+  @override
+  String get mainBrowseNavBrowse => 'Browse';
+
+  @override
+  String get mainBrowseNavClips => 'Clips';
+
+  @override
+  String get mainBrowseNavAuto => 'Auto';
+
+  @override
+  String get mainBrowseNavSettings => 'Settings';
+
+  @override
+  String get mainBrowseFeedPlaceholder => 'Feed arrives in a later step.';
+
+  @override
+  String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';
+
+  @override
+  String get mainBrowseStubAutoBody =>
+      'Auto-play — coming in a later capability.';
+
+  @override
+  String get mainBrowseStubSettingsBody =>
+      'Settings — coming in a later capability.';
+
+  @override
+  String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -334,4 +369,37 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get playbackProbeFailed => '播放 / 显示探针失败。';
+
+  @override
+  String get mainBrowsePoolsTab => '片库';
+
+  @override
+  String get mainBrowsePoolsComingSoon => '即将推出';
+
+  @override
+  String get mainBrowseNavBrowse => '浏览';
+
+  @override
+  String get mainBrowseNavClips => '切片';
+
+  @override
+  String get mainBrowseNavAuto => '自动播放';
+
+  @override
+  String get mainBrowseNavSettings => '设置';
+
+  @override
+  String get mainBrowseFeedPlaceholder => '信息流将在后续步骤加入。';
+
+  @override
+  String get mainBrowseStubClipsBody => '切片 — 将在后续能力提供。';
+
+  @override
+  String get mainBrowseStubAutoBody => '自动播放 — 将在后续能力提供。';
+
+  @override
+  String get mainBrowseStubSettingsBody => '设置 — 将在后续能力提供。';
+
+  @override
+  String get mainBrowseOpenLibrarySmokeDebug => '图库调试（debug）';
 }

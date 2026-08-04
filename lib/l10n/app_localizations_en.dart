@@ -174,4 +174,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get playbackProbeFailed => 'Playback / display probe failed.';
+
+  @override
+  String get mainBrowsePoolsTab => 'Pools';
+
+  @override
+  String get mainBrowsePoolsComingSoon => 'Coming soon';
+
+  @override
+  String get mainBrowseNavBrowse => 'Browse';
+
+  @override
+  String get mainBrowseNavClips => 'Clips';
+
+  @override
+  String get mainBrowseNavAuto => 'Auto';
+
+  @override
+  String get mainBrowseNavSettings => 'Settings';
+
+  @override
+  String get mainBrowseFeedPlaceholder => 'Feed arrives in a later step.';
+
+  @override
+  String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';
+
+  @override
+  String get mainBrowseStubAutoBody =>
+      'Auto-play — coming in a later capability.';
+
+  @override
+  String get mainBrowseStubSettingsBody =>
+      'Settings — coming in a later capability.';
+
+  @override
+  String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 }

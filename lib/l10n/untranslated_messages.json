@@ -31,6 +31,17 @@
     "playbackProbeSurfaceReady",
     "playbackProbeNoAssets",
     "playbackProbeICloudOnly",
-    "playbackProbeFailed"
+    "playbackProbeFailed",
+    "mainBrowsePoolsTab",
+    "mainBrowsePoolsComingSoon",
+    "mainBrowseNavBrowse",
+    "mainBrowseNavClips",
+    "mainBrowseNavAuto",
+    "mainBrowseNavSettings",
+    "mainBrowseFeedPlaceholder",
+    "mainBrowseStubClipsBody",
+    "mainBrowseStubAutoBody",
+    "mainBrowseStubSettingsBody",
+    "mainBrowseOpenLibrarySmokeDebug"
   ]
 }

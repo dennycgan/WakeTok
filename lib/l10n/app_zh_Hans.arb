@@ -50,5 +50,16 @@
   "playbackProbeSurfaceReady": "显示表面就绪（adopt）。",
   "playbackProbeNoAssets": "所选内置来源没有资源。",
   "playbackProbeICloudOnly": "设备上为仅 iCloud；Cap 7.3 不发起下载。",
-  "playbackProbeFailed": "播放 / 显示探针失败。"
+  "playbackProbeFailed": "播放 / 显示探针失败。",
+  "mainBrowsePoolsTab": "片库",
+  "mainBrowsePoolsComingSoon": "即将推出",
+  "mainBrowseNavBrowse": "浏览",
+  "mainBrowseNavClips": "切片",
+  "mainBrowseNavAuto": "自动播放",
+  "mainBrowseNavSettings": "设置",
+  "mainBrowseFeedPlaceholder": "信息流将在后续步骤加入。",
+  "mainBrowseStubClipsBody": "切片 — 将在后续能力提供。",
+  "mainBrowseStubAutoBody": "自动播放 — 将在后续能力提供。",
+  "mainBrowseStubSettingsBody": "设置 — 将在后续能力提供。",
+  "mainBrowseOpenLibrarySmokeDebug": "图库调试（debug）"
 }

@@ -392,6 +392,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Playback / display probe failed.'**
   String get playbackProbeFailed;
+
+  /// Top chrome fourth tab label (visible, disabled in Cap 7)
+  ///
+  /// In en, this message translates to:
+  /// **'Pools'**
+  String get mainBrowsePoolsTab;
+
+  /// Visible subtitle on disabled Pools tab (not a SnackBar)
+  ///
+  /// In en, this message translates to:
+  /// **'Coming soon'**
+  String get mainBrowsePoolsComingSoon;
+
+  /// Bottom navigation Browse destination
+  ///
+  /// In en, this message translates to:
+  /// **'Browse'**
+  String get mainBrowseNavBrowse;
+
+  /// Bottom navigation Clips stub destination
+  ///
+  /// In en, this message translates to:
+  /// **'Clips'**
+  String get mainBrowseNavClips;
+
+  /// Bottom navigation Auto-play stub destination
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get mainBrowseNavAuto;
+
+  /// Bottom navigation Settings stub destination
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get mainBrowseNavSettings;
+
+  /// Cap 7.4 body stub until vertical Media Feed (7.5)
+  ///
+  /// In en, this message translates to:
+  /// **'Feed arrives in a later step.'**
+  String get mainBrowseFeedPlaceholder;
+
+  /// Clips tab stub body copy
+  ///
+  /// In en, this message translates to:
+  /// **'Clips — coming in a later capability.'**
+  String get mainBrowseStubClipsBody;
+
+  /// Auto tab stub body copy
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-play — coming in a later capability.'**
+  String get mainBrowseStubAutoBody;
+
+  /// Settings tab stub body copy
+  ///
+  /// In en, this message translates to:
+  /// **'Settings — coming in a later capability.'**
+  String get mainBrowseStubSettingsBody;
+
+  /// kDebugMode-only button on Settings stub to open library_smoke
+  ///
+  /// In en, this message translates to:
+  /// **'Library smoke (debug)'**
+  String get mainBrowseOpenLibrarySmokeDebug;
 }
 
 class _AppLocalizationsDelegate

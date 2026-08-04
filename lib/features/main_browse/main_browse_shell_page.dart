@@ -1,0 +1,362 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/authorization/limited_access_banner.dart';
+import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/l10n/app_localizations.dart';
+
+/// Cap 7.4 Main Browse chrome shell (ADR-014 Decision 6).
+///
+/// Feed body is a placeholder until Cap 7.5. Does not call resolve.
+class MainBrowseShellPage extends ConsumerWidget {
+  const MainBrowseShellPage({super.key, required this.access});
+
+  final PhotosAccess access;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final destination = ref.watch(mainBrowseDestinationProvider);
+
+    return Scaffold(
+      backgroundColor: tokens.background,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (access == PhotosAccess.limited) const LimitedAccessBanner(),
+          Expanded(child: _destinationBody(context, ref, destination, l10n)),
+          _MainBrowseBottomBar(
+            selected: destination,
+            onSelect: (next) =>
+                ref.read(mainBrowseDestinationProvider.notifier).select(next),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _destinationBody(
+    BuildContext context,
+    WidgetRef ref,
+    MainBrowseDestination destination,
+    AppLocalizations l10n,
+  ) {
+    return switch (destination) {
+      MainBrowseDestination.browse => const _BrowsePane(),
+      MainBrowseDestination.clips => _StubPane(
+          title: l10n.mainBrowseNavClips,
+          body: l10n.mainBrowseStubClipsBody,
+        ),
+      MainBrowseDestination.auto => _StubPane(
+          title: l10n.mainBrowseNavAuto,
+          body: l10n.mainBrowseStubAutoBody,
+        ),
+      MainBrowseDestination.settings => _SettingsStubPane(access: access),
+    };
+  }
+}
+
+class _BrowsePane extends ConsumerWidget {
+  const _BrowsePane();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final selected = ref.watch(mainBrowseSelectedSourceProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _TopSourceChrome(
+          selected: selected,
+          onSelect: (next) =>
+              ref.read(mainBrowseSelectedSourceProvider.notifier).select(next),
+        ),
+        Expanded(
+          child: ColoredBox(
+            color: tokens.feedBackground,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  l10n.mainBrowseFeedPlaceholder,
+                  textAlign: TextAlign.center,
+                  style: tokens.bodyOnMedia,
+                  key: const Key('mainBrowseFeedPlaceholder'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Custom four-cell top chrome — avoids Material SegmentedButton defaults
+/// (secondaryContainer). Selected label uses [WakeTokTokens.accentProvisional].
+class _TopSourceChrome extends StatelessWidget {
+  const _TopSourceChrome({
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final SourceReference selected;
+  final ValueChanged<SourceReference> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+
+    return Material(
+      color: tokens.surface,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: _SourceCell(
+                  key: const Key('mainBrowseSourceAll'),
+                  label: l10n.libraryRowAll,
+                  selected: selected == SourceReference.all,
+                  onTap: () => onSelect(SourceReference.all),
+                ),
+              ),
+              Expanded(
+                child: _SourceCell(
+                  key: const Key('mainBrowseSourcePhotos'),
+                  label: l10n.libraryRowPhotos,
+                  selected: selected == SourceReference.photos,
+                  onTap: () => onSelect(SourceReference.photos),
+                ),
+              ),
+              Expanded(
+                child: _SourceCell(
+                  key: const Key('mainBrowseSourceVideos'),
+                  label: l10n.libraryRowVideos,
+                  selected: selected == SourceReference.videos,
+                  onTap: () => onSelect(SourceReference.videos),
+                ),
+              ),
+              Expanded(
+                child: _PoolsCell(
+                  key: const Key('mainBrowseSourcePools'),
+                  title: l10n.mainBrowsePoolsTab,
+                  subtitle: l10n.mainBrowsePoolsComingSoon,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SourceCell extends StatelessWidget {
+  const _SourceCell({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final color =
+        selected ? tokens.accentProvisional : tokens.onSurface.withValues(alpha: 0.55);
+    final style = tokens.labelChrome.copyWith(color: color);
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: style,
+        ),
+      ),
+    );
+  }
+}
+
+/// Visible + disabled Pools tab with on-cell "Coming soon" ARB (no SnackBar).
+class _PoolsCell extends StatelessWidget {
+  const _PoolsCell({
+    super.key,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final muted = tokens.onSurface.withValues(alpha: 0.38);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: tokens.labelChrome.copyWith(color: muted),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: tokens.bodyChrome.copyWith(
+              color: muted,
+              fontSize: 11,
+              height: 1.1,
+            ),
+            key: const Key('mainBrowsePoolsComingSoon'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MainBrowseBottomBar extends StatelessWidget {
+  const _MainBrowseBottomBar({
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final MainBrowseDestination selected;
+  final ValueChanged<MainBrowseDestination> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+
+    // Explicit indicatorColor — must not rely on ColorScheme.secondaryContainer.
+    return NavigationBar(
+      key: const Key('mainBrowseNavigationBar'),
+      backgroundColor: tokens.surface,
+      indicatorColor: tokens.accentProvisional.withValues(alpha: 0.20),
+      selectedIndex: selected.index,
+      onDestinationSelected: (i) => onSelect(MainBrowseDestination.values[i]),
+      destinations: [
+        NavigationDestination(
+          icon: const Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home, color: tokens.accentProvisional),
+          label: l10n.mainBrowseNavBrowse,
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.movie_outlined),
+          selectedIcon: Icon(Icons.movie, color: tokens.accentProvisional),
+          label: l10n.mainBrowseNavClips,
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.play_circle_outline),
+          selectedIcon: Icon(Icons.play_circle, color: tokens.accentProvisional),
+          label: l10n.mainBrowseNavAuto,
+        ),
+        NavigationDestination(
+          icon: const Icon(Icons.settings_outlined),
+          selectedIcon: Icon(Icons.settings, color: tokens.accentProvisional),
+          label: l10n.mainBrowseNavSettings,
+        ),
+      ],
+    );
+  }
+}
+
+class _StubPane extends StatelessWidget {
+  const _StubPane({required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              title,
+              style: tokens.titleChrome,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              body,
+              style: tokens.bodyChrome.copyWith(color: tokens.onSurface),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsStubPane extends StatelessWidget {
+  const _SettingsStubPane({required this.access});
+
+  final PhotosAccess access;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
+            const SizedBox(height: 12),
+            Text(
+              l10n.mainBrowseStubSettingsBody,
+              style: tokens.bodyChrome.copyWith(color: tokens.onSurface),
+            ),
+            if (kDebugMode) ...[
+              const SizedBox(height: 24),
+              FilledButton(
+                key: const Key('mainBrowseOpenLibrarySmokeDebug'),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => LibraryTotalsShellPage(access: access),
+                    ),
+                  );
+                },
+                child: Text(l10n.mainBrowseOpenLibrarySmokeDebug),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
