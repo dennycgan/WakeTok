@@ -148,11 +148,29 @@ Active capability: Main Browse Screen and vertical Media Feed
       failures uncached; “session” ≠ Consumption Session).
       — work `79f8c12`
 
-- [ ] 7.7 Real-device feed acceptance (iPhone 13 Pro, **Profile**): scroll
+- [x] 7.7 Real-device feed acceptance (iPhone 13 Pro, **Profile**): scroll
       real library; hitch < 25 ms/s AND no Severe Hang per 7.1 hard gate;
       notes under `docs/acceptance/`; portfolio eligibility evidence
-      (feed screenshot-able). Fail path = ADR-001 SwiftUI / all-native
-      re-evaluation discussion — not a new Conditional Pass / Known debt.
+      (feed screenshot-able). **FAIL** (V-hard; Videos+All) 2026-08-06 —
+      do **not** rewrite; Fail path opened (ADR-001 re-evaluation). Hard bar
+      unchanged. Notes `cap7-7.7-notes.md`; outline
+      `cap7-7.7-adr001-reevaluation-outline.md`.
+      — docs `b45a318`
+
+- [~] 7.7b Severe Hang diagnosis: Time Profiler / System Trace on Kafka
+      Profile + full chrome; sessions D-A-high, D-A-low, D-V-hang, D-idle;
+      attribute main-thread block (no product code by default; probes only
+      if stacks unreadable — owner-approved). Notes
+      `cap7-7.7b-hang-diagnosis-notes.md`. Does **not** change 7.7 FAIL or
+      the hard bar. ADR-015 **not** drafted here.
+
+- [ ] 7.7c Fix concrete hang root cause(s) from 7.7b notes (product code
+      only as justified by diagnosis).
+
+- [ ] 7.7d Re-run Videos×3 + All×3 under **same** locked rules as 7.7
+      (V-hard, Profile, full chrome, every Run must PASS). Then draft
+      ADR-015 from closed evidence (keep Flutter+PV **or** SwiftUI path —
+      follow stacks + retest, no pre-written conclusion).
 
 - [ ] 7.8 Accent freeze (last) + Cap 7 close-out: freeze current
       `accentProvisional` as formal accent (Q6=A) or owner-supplied hex;
@@ -161,6 +179,7 @@ Active capability: Main Browse Screen and vertical Media Feed
       Production Main Browse as picker-up: (1) Severe Hang ADR-001,
       (2) typography tokens ADR-009, (3) final accent color ADR-009.
       STATE + PHASE_HISTORY; portfolio Public scan remains owner-only.
+      Blocked until 7.7d + ADR-015 path is settled.
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -170,12 +189,13 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7.7 Real-device feed acceptance
-- Sub-steps done: 7.1–7.6 (ADR-014; theme `5ef2e8a`; playback
-      `29fcf2d`; Main Browse shell `d54d9be`; vertical feed `fb82bf6`;
-      resolve cache `79f8c12`)
-- Next step: owner orders 7.7 Profile Instruments acceptance on Kafka
-- Related decisions: ADR-001 … ADR-014
+- Goal (one line): Cap 7.7b Severe Hang diagnosis (Time Profiler /
+      System Trace)
+- Sub-steps done: 7.1–7.7 (7.7 **FAIL** archived `b45a318` /
+      `cap7-7.7-notes.md`; hard bar unchanged)
+- Next step: owner runs D-A-high / D-A-low / D-V-hang / D-idle on Kafka;
+      fill `cap7-7.7b-hang-diagnosis-notes.md` (no product code default)
+- Related decisions: ADR-001 … ADR-014; ADR-015 only after 7.7d
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -198,6 +218,10 @@ Active capability: Main Browse Screen and vertical Media Feed
 - ADR-001 … ADR-014: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
+- Acceptance notes (Cap 7.7 FAIL): docs/acceptance/cap7-7.7-notes.md
+- ADR-001 re-eval outline (D1 deferred → diagnosis):
+  docs/acceptance/cap7-7.7-adr001-reevaluation-outline.md
+- Hang diagnosis (Cap 7.7b): docs/acceptance/cap7-7.7b-hang-diagnosis-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
@@ -209,7 +233,7 @@ Active capability: Main Browse Screen and vertical Media Feed
 ## Known debt / intentionally deferred
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
-| POC-04 | Severe Hang under fast scrolling / animateToPage load | Conditional Pass accepted; must address in production feed | Production Main Browse Screen | ADR-001 |
+| POC-04 | Severe Hang under fast scrolling / animateToPage load | Conditional Pass accepted; Cap 7.7 production Profile gate **FAIL** (`cap7-7.7-notes.md`); hard bar unchanged; diagnose before architecture fork | Cap 7.7b hang diagnosis → 7.7c fix → 7.7d retest | ADR-001 |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
@@ -225,4 +249,4 @@ Active capability: Main Browse Screen and vertical Media Feed
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
-| Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.5 defers transition polish | Cap 7.7 real-device feed acceptance | ADR-006 |
+| Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`) | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
