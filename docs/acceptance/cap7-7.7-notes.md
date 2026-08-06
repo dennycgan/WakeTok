@@ -2,7 +2,27 @@
 
 > Hard gate for production Main Browse vertical feed hitch / Severe Hang
 > (STATE Phase 7.7 / ADR-014 Decision 7; pays ADR-001 Severe Hang debt).
-> Owner acceptance on **iPhone 13 Pro** — result: **FAIL** (2026-08-06).
+> Owner acceptance on **iPhone 13 Pro** — result: **INVALIDATED as Profile hard
+> gate** (errata 2026-08-06). Historical campaign label was **FAIL**; that
+> **FAIL is not a valid ADR-014 Profile gate verdict** — see **Errata** below.
+> Binding Profile retest = Cap **7.7a** (`cap7-7.7a-profile-retest-notes.md`).
+
+## Errata (2026-08-06) — build mode violation
+
+| Field | Value |
+|-------|--------|
+| What was recorded | Videos×3 + All×3 (tables below) |
+| What notes claimed | **Profile** hard gate |
+| What was actually installed | **`flutter build ios --release`** then **`flutter install --release -d 00008110-…`** |
+| Rule violated | Procedure / ADR-014: **do not** use Release for the Profile hard gate |
+| Why it happened | `flutter run --release` hangs on VM Service; owner used `build`+`install` to install, but kept the **`--release`** flag (habit from Cap 7.4/7.5). Profile does not need that workaround the same way (`flutter run --profile` works; preferred install path is still `build`+`install` **`--profile`**) |
+| Effect on gate | **Profile hard-gate verdict INVALIDATED.** Tables kept as **Release forensic only** (real device evidence that Release can Severe Hang / hitch). Must **not** drive ADR-001 Fail path or Cap 7.7b as if Profile FAIL were proven |
+| Correct install for Profile gates | `flutter build ios --profile` then `flutter install --profile -d 00008110-001114420AEA801E` |
+| Next | Cap **7.7a** Profile retest (same V-hard rules). Cap **7.7b** paused until 7.7a |
+
+**Do not delete the run tables.** They remain the Release campaign archive.
+
+---
 
 ## Locked acceptance rules (2026-08-06 design)
 
@@ -11,9 +31,9 @@
 | Q1 | Residual video frame (flash of previous video): **observe only** in 7.7; rewrite existing Known debt `Picks it up` → Final real-device performance… hardening; **do not** fix in 7.7; **do not** accept as permanent product residue without later triage |
 | Q2 | Instruments surfaces: **All** and **Videos** (both required) |
 | Q3 | Per surface: **3** independent Runs; **every** Run must PASS the bar |
-| Q4 | No iPhone 17 / Release secondary dataset |
-| Q5 | On PASS with no product code: **single docs commit** (notes + STATE 7.7 `[x]` + residual debt row rewrite); Severe Hang Known debt row cleared only at **7.8** close-out. **On FAIL:** fill these notes + open ADR-001 re-evaluation (outline: `cap7-7.7-adr001-reevaluation-outline.md`); do **not** invent Conditional Pass; STATE/debt follow-up decided in that discussion |
-| V-gate | **V-hard**: All and Videos use the **same** hard bar; either surface failing any Run → phase **FAIL** → ADR-001 SwiftUI / all-native re-evaluation discussion (no new Conditional Pass) |
+| Q4 | No iPhone 17 / Release secondary dataset **for the Profile hard gate** (Release forensic campaign below is accidental, not Q4 intent) |
+| Q5 | Superseded by errata + 7.7a path — see STATE |
+| V-gate | **V-hard**: All and Videos use the **same** hard bar |
 
 **Hard bar (each Run):** Instruments Animation Hitches, **Profile**, mean hitch **&lt; 25 ms/s** **AND** **zero** Severe Hang in the evaluation window.
 
@@ -27,11 +47,11 @@ Do **not** use Avg Duration of individual hitches as the gate number.
 - **Residual frame** = content (prior video’s last frame briefly visible while the next frame is on time). Q1=B — does **not** alone fail 7.7.
 - If a Videos Run **fails** the hard bar, note whether the anomaly **roughly coincides** with a visible residual flash (see correlation column). That does not reclassify residual into Q1=A; it only preserves the forensic link.
 
-**Confounding (mandatory honesty):** This gate’s Profile numbers are **not** a pure chrome delta vs ADR-001. At least two variables moved together: (1) full production chrome vs POC-04 bare spike feed; (2) device OS **iOS 26.6** vs ADR-001 baseline **iOS 26.5.2 (23F84)**. Do not attribute deltas to chrome alone.
+**Confounding (mandatory honesty):** Even a **valid** Profile gate is **not** a pure chrome delta vs ADR-001 (chrome + iOS 26.6 vs 26.5.2). This file’s tables add a **third** confound: **Release vs Profile**.
 
-**Scroll direction:** Kickoff / product Manual advance is **up and down**. Mid-run reverse scrolls are **in-scope** everyday interaction — not contamination. V3 and All×3 include reverse gestures; those Runs remain valid evidence.
+**Scroll direction:** Kickoff / product Manual advance is **up and down**. Mid-run reverse scrolls are **in-scope**.
 
-**Out of scope for 7.7:** product code changes; Hitch Probe / `animateToPage` synthetic drive as gate; Release hitch mixed into the Profile bar; clearing ADR-001 Severe Hang Known debt row (→ 7.8 only if Cap 7 later PASSes that debt).
+**Out of scope for 7.7 (original):** product code changes; Hitch Probe as gate; using Release **as** the Profile bar (violated — see Errata).
 
 ---
 
@@ -42,10 +62,11 @@ Do **not** use Avg Duration of individual hitches as the gate number.
 | Device | iPhone 13 Pro |
 | Device name | Kafka (owner; same Cap 5.5 / 6.5 floor unit) |
 | UDID | `00008110-001114420AEA801E` |
-| **OS under test (this gate)** | **iOS 26.6** (build **23G71**) |
-| **OS at ADR-001 / POC-04 baseline** | **iOS 26.5.2 (23F84)** — **different**; not the same environment |
+| **OS under test (this campaign)** | **iOS 26.6** (build **23G71**) |
+| **OS at ADR-001 / POC-04 baseline** | **iOS 26.5.2 (23F84)** — **different** |
 | Note vs STATE project facts | STATE lists “iPhone 13 (performance floor)”; this gate uses **iPhone 13 Pro** — notes are authoritative |
-| Build mode | **Profile** (`flutter run --profile`) — not Debug, not Release for the hard gate |
+| **Build mode (actual)** | **Release** — see Errata (**not** Profile) |
+| Build mode (claimed at fill time — wrong) | Profile |
 | Surface | Full production chrome: top All / Photos / Videos + disabled Pools + bottom bar |
 | Git HEAD (tested) | `dd40f53` (Cap 7.6 docs on `main`; includes resolve cache `79f8c12`) |
 | Date (local) | 2026-08-06 |
@@ -65,19 +86,31 @@ Do **not** use Avg Duration of individual hitches as the gate number.
 
 ---
 
-## Procedure (owner) — executed
+## Procedure (owner) — as executed (Release)
 
-1. Profile build on Kafka; Main Browse chrome confirmed.
+1. Installed via **`flutter build ios --release`** + **`flutter install --release`** (errata).
 2. Instruments Animation Hitches → Attach Runner; separate Recording per Run.
-3. Videos ×3 then All ×3; on first hard-bar miss, campaign continued to full 6 Runs.
+3. Videos ×3 then All ×3; campaign continued to full 6 Runs after first hard-bar miss.
 4. No Hitch Probe / no new product code for drive.
-5. On FAIL: do not claim PASS; open ADR-001 re-evaluation outline (see Gate verdict).
+5. Campaign was recorded as FAIL and Fail path opened — **later invalidated** as Profile gate (Errata); Fail path **suspended** pending **7.7a**.
+
+### Correct Profile install (for 7.7a and later Profile work)
+
+**Preferred:**
+
+```bash
+flutter build ios --profile
+flutter install --profile -d 00008110-001114420AEA801E
+```
+
+**Alternate:** `flutter run --profile -d 00008110-001114420AEA801E`  
+(Do **not** use `--release` for Profile hard gates.)
 
 ---
 
-## Instruments results
+## Instruments results — **Release forensic only** (not Profile hard gate)
 
-### Videos (V-hard; content type closest to ADR-001 PV hand / pure video)
+### Videos (V-hard tables; Release build)
 
 | Run | Window (s) | Hitch count | Hitch Total | Mean hitch (ms/s) | Severe Hang? | Residual flash seen? | If hard-bar fail: flash coincides with anomaly? | Gesture notes | Result |
 |-----|------------|-------------|-------------|-------------------|--------------|----------------------|-------------------------------------------------|---------------|--------|
@@ -85,9 +118,9 @@ Do **not** use Avg Duration of individual hitches as the gate number.
 | V2 | 37 | 2 | 16.67 ms | **≈0.45** | No | Yes (every video transition) | n/a (PASS) | Hand down (typical) | **PASS** |
 | V3 | 39 | 5 | 58.34 ms | **≈1.50** | **Yes** | Yes (every video transition) | Owner: residual is **always** present on every transition; **no** necessary link to this hang | Mid-window **reverse up** back toward first video (everyday Manual) | **FAIL** |
 
-Videos surface: **FAIL** (V3 Severe Hang; hitch alone on V3 would have passed &lt;25).
+Videos surface (Release forensic): **FAIL** (V3 Severe Hang).
 
-### All (V-hard; mixed stills + video — chrome + dilution context)
+### All (Release forensic)
 
 | Run | Window (s) | Hitch count | Hitch Total | Mean hitch (ms/s) | Severe Hang? | Gesture notes | Result |
 |-----|------------|-------------|-------------|-------------------|--------------|---------------|--------|
@@ -95,14 +128,14 @@ Videos surface: **FAIL** (V3 Severe Hang; hitch alone on V3 would have passed &l
 | A2 | ≈64.7 | 28 | 9.41 s | **≈145** | **Yes** | Occasional mid-run reverse (up); Max hitch ≈6.38 s | **FAIL** |
 | A3 | ≈84 | 15 | 233.35 ms | **≈2.8** | **Yes** (long block ≈50–60 s region) | Occasional mid-run reverse (up) | **FAIL** (hitch would pass; Severe Hang fails) |
 
-All surface: **FAIL** (3/3 hard-bar miss).
+All surface (Release forensic): **FAIL** (3/3 hard-bar miss on Release).
 
 ### Reference (not a pass/fail row)
 
 | Reference | Value |
 |-----------|--------|
-| ADR-001 / POC-04 PV hand (iOS **26.5.2**) | ≈13.2 / 19.2 / 32.7 ms/s (Run3 FAIL + Severe Hang) — spike bare feed |
-| This gate | Production chrome + iOS **26.6** — compare only with confounding stated above |
+| ADR-001 / POC-04 PV hand (iOS **26.5.2**, Profile) | ≈13.2 / 19.2 / 32.7 ms/s (Run3 FAIL + Severe Hang) — spike bare feed |
+| This file’s tables | Production chrome + iOS **26.6** + **Release** — not Profile gate |
 | POC-04 Hitch Probe HN (not used as 7.7 gate) | ≈38 ms/s + Severe Hang under `animateToPage` — upper bound only |
 
 ---
@@ -115,7 +148,7 @@ All surface: **FAIL** (3/3 hard-bar miss).
 | How often | **Always** — every video→video transition shows a brief flash of the previous playing frame |
 | Severity (owner one-liner) | One-frame (or brief) residual; noticeable but owner judges **orthogonal** to Severe Hang |
 | Overlap with hard-bar failures | No necessary coincidence; residual present on PASS Runs (V1/V2) as well as FAIL Runs |
-| Known debt action | On Cap 7 close-out / FAIL follow-up docs: rewrite existing residual row `Picks it up` → Final real-device performance… hardening; Reason += “7.7 observe-only; see this notes file”. **Do not** clear as “accepted product residue” without triage. Not done in this FAIL fill alone unless owner’s FAIL docs commit includes it |
+| Known debt action | Rewritten to Final real-device hardening (see STATE); orthogonal to hang |
 
 ---
 
@@ -123,7 +156,7 @@ All surface: **FAIL** (3/3 hard-bar miss).
 
 | ID | Scenario | Result | Notes |
 |----|----------|--------|-------|
-| S1 | Cold start → Main Browse chrome visible | PASS | Profile session |
+| S1 | Cold start → Main Browse chrome visible | PASS | On **Release** install (errata) |
 | S2 | Tab switch All ↔ Photos ↔ Videos resets toward queue head | PASS | smoke; Cap 7.6 already验收 |
 | S3 | Videos item plays on-screen | PASS | |
 | S4 | Portfolio: feed screenshot-able on device | PASS | local only; eligibility evidence exists; **Public scan still owner-only** |
@@ -134,21 +167,19 @@ All surface: **FAIL** (3/3 hard-bar miss).
 
 | Field | Value |
 |-------|--------|
-| Videos 3/3 | **FAIL** |
-| All 3/3 | **FAIL** |
-| **Phase 7.7** | **FAIL** |
-| Fail path taken? | **Yes — ADR-001 SwiftUI / all-native re-evaluation discussion** (outline dated 2026-08-06) |
-| Evidence completeness | **Yes** — Videos×3 + All×3 rows filled |
+| Videos 3/3 (Release forensic) | **FAIL** |
+| All 3/3 (Release forensic) | **FAIL** |
+| Historical phase label | **FAIL** (2026-08-06 fill) |
+| **Profile hard-gate status** | **INVALIDATED** — see Errata; pending Cap **7.7a** |
+| Fail path (ADR-001) | **Suspended** until 7.7a Profile verdict — must **not** treat Release FAIL as Profile gate FAIL |
+| Evidence completeness | **Yes** — six Release Runs retained |
 
-### Docs commit checklist (PASS only — N/A this campaign)
+### Docs / process after errata
 
-- [ ] ~~PASS path~~ — not applicable
-
-### Docs / process on FAIL
-
-- [x] This notes file filled (incl. OS under test vs ADR-001 baseline)
-- [x] Discussion outline opened: `docs/acceptance/cap7-7.7-adr001-reevaluation-outline.md`
-- [ ] Owner-directed STATE / Known debt updates after re-evaluation decisions (do **not** invent Conditional Pass; do **not** clear ADR-001 Severe Hang row as “paid”)
+- [x] Errata recorded; tables retained as Release forensic
+- [x] Cap **7.7a** Profile retest notes opened
+- [x] Cap **7.7b** paused; Fail path suspended pending 7.7a
+- [x] Known debt: Release hang row + Severe Hang retarget to 7.7a…
 
 ---
 
@@ -157,5 +188,5 @@ All surface: **FAIL** (3/3 hard-bar miss).
 | Field | Value |
 |-------|--------|
 | Owner | Denny C. Gan |
-| Date | 2026-08-06 |
-| Comment | V-hard FAIL on both surfaces. Bidirectional hand scroll in-scope. No Hitch Probe. Residual always-on, orthogonal to hang. Proceed to ADR-001 re-evaluation outline. |
+| Date | 2026-08-06 (campaign); errata 2026-08-06 |
+| Comment | Original fill: V-hard FAIL both surfaces on device. Errata: build was **Release**, not Profile — Profile gate invalidated; proceed 7.7a. Residual always-on, orthogonal to hang. |

@@ -1,36 +1,48 @@
 # Cap 7 — Phase 7.7b Severe Hang diagnosis notes
 
-> Attribute Cap 7.7 Severe Hang main-thread blocks (ADR-001 re-evaluation,
-> diagnosis-first). Does **not** rewrite 7.7 **FAIL** or the hard bar.  
-> Result: **TBD** (fill after Instruments sessions).
+> Attribute Severe Hang main-thread blocks (ADR-001 re-evaluation,
+> diagnosis-first) **if** Cap **7.7a** Profile hard gate **FAIL**s.  
+> **Status: PAUSED** pending Cap **7.7a** (`cap7-7.7a-profile-retest-notes.md`).  
+> Cap **7.7** Profile gate was **INVALIDATED** (Release used — see
+> `cap7-7.7-notes.md` Errata). Do **not** treat Release FAIL as Profile FAIL.
 
-## Locked rules (2026-08-06)
+## Campaign status
+
+| Field | Value |
+|-------|--------|
+| Status | **Paused** (2026-08-06) |
+| Resume when | Cap **7.7a** Profile hard gate **FAIL** |
+| Cancel / N/A when | Cap **7.7a** Profile hard gate **PASS** |
+| Early Profile attempts | Two **D-A-high** sessions (correct Profile build) — hang **not** reproduced; **retain** as spare if 7.7a FAILs — do **not** discard |
+| Do not run now | D-A-low / D-V-hang / D-idle (off-campaign until resume) |
+
+## Locked rules (when resumed)
 
 | # | Choice |
 |---|--------|
-| Q1 | STATE Phase Roadmap: 7.7 FAIL archived + 7.7b/c/d expanded |
+| Q1 | STATE: 7.7 invalidated + 7.7a + 7.7b/c/d |
 | Q2 | Sessions: **D-A-high**, **D-A-low**, **D-V-hang**, **D-idle** |
 | Q3 | No temporary probes by default; ask owner if stacks unreadable |
-| Q4 | ADR-015 only after **7.7d** retest — do **not** draft here |
-| Q5 | Outline updated: D1 deferred → diagnosis path |
+| Q4 | ADR-015 only after **7.7d** — do **not** draft here |
+| Q5 | Outline: D1 deferred; Fail path only after valid Profile FAIL |
 
-**Tools:** Instruments **Time Profiler** + **System Trace** (and/or Hangs aligned
-to wall clock). Build: **Profile**. Device: Kafka. Surface: full production chrome.
+**Tools:** Instruments **Time Profiler** + **System Trace**. Build: **Profile**
+(`build`+`install --profile` preferred).
 
-**Hard bar (unchanged; not re-judged in 7.7b):** mean hitch &lt; 25 ms/s AND zero
-Severe Hang — see `cap7-7.7-notes.md`.
+**Hard bar (unchanged; judged in 7.7a, not here):** mean hitch &lt; 25 ms/s AND zero
+Severe Hang.
 
 **Hypothesis under test (not presumed true):** hang often on **media load /
-main-thread block**, including possibly **while not scrolling** (A3-like:
-low hitch + Severe Hang). If stacks are Flutter raster / PV composition,
-SwiftUI remains an open re-evaluation outcome.
+main-thread block**, including possibly **while not scrolling** (A3-like on
+Release forensic). If stacks are Flutter raster / PV composition, SwiftUI
+remains an open re-evaluation outcome.
 
 **Priority when reading stacks:** (1) PhotoKit / `locallyAvailable` / request
 paths (2) JPEG / `Image` decode (3) network / long sync I/O (4) PV attach /
 1+1 pool (5) Flutter framework / raster.
 
-**Out of scope:** product fixes (→ 7.7c); hard-bar retune; Hitch Probe;
-ADR-015 Accepted; rewriting 7.7 FAIL.
+**Out of scope while paused / in 7.7b:** product fixes (→ 7.7c); hard-bar retune;
+Hitch Probe; ADR-015 Accepted; rewriting 7.7 Release tables.
 
 ---
 
@@ -43,9 +55,9 @@ ADR-015 Accepted; rewriting 7.7 FAIL.
 | OS under test | iOS 26.6 (23G71) |
 | OS at ADR-001 baseline | iOS 26.5.2 (23F84) — different |
 | Build mode | Profile |
-| Git HEAD (diagnosed) | _fill_ |
+| Git HEAD (diagnosed) | _fill when resumed_ |
 | Date (local) | _fill_ |
-| Related 7.7 FAIL notes | `cap7-7.7-notes.md` (`b45a318`) |
+| Related notes | `cap7-7.7-notes.md` (Release forensic + Errata); `cap7-7.7a-profile-retest-notes.md` |
 
 ---
 
@@ -55,13 +67,15 @@ ADR-015 Accepted; rewriting 7.7 FAIL.
 
 | Field | Value |
 |-------|--------|
+| Attempt 1 (pre-pause) | Profile; hang **not** captured — retain |
+| Attempt 2 (pre-pause) | Profile; hang **not** captured — retain |
 | Window / wall clock of hang | |
 | Scrolling at hang? | |
 | iCloud / black page visible? | |
 | System Trace notes | |
 | Time Profiler heaviest main stack (top frames) | |
 | Classification | PhotoKit / decode / I/O / PV / Flutter / other / unclear |
-| Result | _captured / missed hang_ |
+| Result | _paused / captured / missed hang_ |
 
 ### D-A-low — All, low hitch + hang (A3-like)
 
@@ -73,7 +87,7 @@ ADR-015 Accepted; rewriting 7.7 FAIL.
 | Time Profiler heaviest main stack (top frames) | |
 | Same family as D-A-high? | yes / no / unclear |
 | Classification | |
-| Result | |
+| Result | _not started — paused_ |
 
 ### D-V-hang — Videos, with Severe Hang (V3-like)
 
@@ -84,7 +98,7 @@ ADR-015 Accepted; rewriting 7.7 FAIL.
 | Time Profiler heaviest main stack (top frames) | |
 | Same family as All hangs? | yes / no / unclear |
 | Classification | |
-| Result | |
+| Result | _not started — paused_ |
 
 ### D-idle — no scroll 20–40 s (control)
 
@@ -95,7 +109,7 @@ ADR-015 Accepted; rewriting 7.7 FAIL.
 | Severe Hang while idle? | yes / no |
 | If yes: stack summary | |
 | Implication | If hang while idle → weakens “render pipeline can’t keep up”; strengthens load/timer/path-on-current-item. If no hang idle → focus on become-current / load window. |
-| Result | |
+| Result | _not started — paused_ |
 
 ---
 
@@ -112,7 +126,7 @@ ADR-015 Accepted; rewriting 7.7 FAIL.
 
 ### Diagnosis conclusion (attribution only — not a fix plan freeze)
 
-_One short paragraph: what blocked the main thread; what is **not** supported._
+_One short paragraph after resume + captures._
 
 ### Inputs to Cap 7.7c (suggested fix targets)
 
@@ -125,7 +139,7 @@ _One short paragraph: what blocked the main thread; what is **not** supported._
 
 ## Explicit non-claims
 
-- [ ] Does **not** change 7.7 FAIL verdict
+- [x] Does **not** treat invalidated 7.7 Release FAIL as Profile gate FAIL
 - [ ] Does **not** change hard bar
 - [ ] Does **not** draft ADR-015
 - [ ] Does **not** lock “keep Flutter” or “SwiftUI rewrite”
@@ -138,4 +152,4 @@ _One short paragraph: what blocked the main thread; what is **not** supported._
 |-------|--------|
 | Owner | |
 | Date | |
-| Comment | |
+| Comment | Paused pending 7.7a. |
