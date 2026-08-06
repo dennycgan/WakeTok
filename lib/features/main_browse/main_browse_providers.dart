@@ -44,11 +44,42 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
   }
 }
 
-/// Cap 7.5: resolve the currently selected built-in source (no session cache).
+/// Cap 7.6: session-scoped successful resolve cache (ADR-014 Decision 5).
+///
+/// "Session" = this [ProviderContainer] / process lifetime (in-memory only).
+/// Failures are never stored. Distinct from kickoff Consumption Session.
+final mainBrowseResolveCacheProvider =
+    NotifierProvider<MainBrowseResolveCache, Map<String, ResolvedSource>>(
+  MainBrowseResolveCache.new,
+);
+
+class MainBrowseResolveCache extends Notifier<Map<String, ResolvedSource>> {
+  @override
+  Map<String, ResolvedSource> build() => const {};
+
+  static String keyFor(SourceReference source) =>
+      '${source.kind.name}:${source.id}';
+
+  ResolvedSource? get(SourceReference source) => state[keyFor(source)];
+
+  void put(SourceReference source, ResolvedSource resolved) {
+    state = {...state, keyFor(source): resolved};
+  }
+}
+
+/// Resolve the selected built-in source; reuse session cache on revisit.
 final mainBrowseFeedQueueProvider =
     FutureProvider<ResolvedSource>((ref) async {
   final source = ref.watch(mainBrowseSelectedSourceProvider);
-  return ref.watch(assetSourceRepositoryProvider).resolve(source);
+  final cache = ref.read(mainBrowseResolveCacheProvider.notifier);
+  final hit = cache.get(source);
+  if (hit != null) {
+    return hit;
+  }
+  final resolved =
+      await ref.read(assetSourceRepositoryProvider).resolve(source);
+  cache.put(source, resolved);
+  return resolved;
 });
 
 /// Current PageView index; resets to 0 when the top source changes (Cap 7.5).

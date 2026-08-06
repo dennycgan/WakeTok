@@ -21,6 +21,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
   int listCalls = 0;
   int resolveCalls = 0;
   SourceReference? lastResolve;
+  final List<SourceReference> resolveHistory = <SourceReference>[];
 
   @override
   Future<List<AssetSource>> listBuiltInSources() async {
@@ -60,6 +61,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
   Future<ResolvedSource> resolve(SourceReference reference) async {
     resolveCalls += 1;
     lastResolve = reference;
+    resolveHistory.add(reference);
     if (!reference.isLegalBuiltInPair) {
       throw PlatformException(code: AppError.assetUnavailable.name);
     }

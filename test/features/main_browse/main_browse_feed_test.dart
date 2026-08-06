@@ -102,6 +102,7 @@ void main() {
 
   testWidgets('W-F6 switching Photos calls resolve for photos and resets',
       (tester) async {
+    // First visit to Photos — always a host resolve (cache miss).
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['all-1', 'all-2'],
@@ -120,6 +121,132 @@ void main() {
     expect(sources.resolveCalls, greaterThan(callsBefore));
     expect(sources.lastResolve, SourceReference.photos);
     expect(find.byKey(const Key('mainBrowseFeedStill_ph-1')), findsOneWidget);
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+  });
+
+  testWidgets(
+      'W-S1 All→Photos→All resolves each source once (session cache)',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['all-1'],
+      photosIds: const ['ph-1'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.libraryRowAll));
+    await tester.pumpAndSettle();
+
+    expect(
+      sources.resolveHistory.where((r) => r == SourceReference.all).length,
+      1,
+    );
+    expect(
+      sources.resolveHistory.where((r) => r == SourceReference.photos).length,
+      1,
+    );
+    expect(sources.resolveCalls, 2);
+    expect(find.byKey(const Key('mainBrowseFeedStill_all-1')), findsOneWidget);
+  });
+
+  testWidgets('W-S2 cache-hit source switch still resets feed index to 0',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c'],
+      photosIds: const ['ph-1'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
+    await tester.pumpAndSettle();
+    expect(container.read(mainBrowseFeedIndexProvider), 2);
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await tester.pumpAndSettle();
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+
+    await tester.tap(find.text(l10n.libraryRowAll));
+    await tester.pumpAndSettle();
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+    expect(find.byKey(const Key('mainBrowseFeedStill_a')), findsOneWidget);
+    expect(
+      sources.resolveHistory.where((r) => r == SourceReference.all).length,
+      1,
+    );
+  });
+
+  testWidgets('W-S3 Photos resolve is independent of All (not Dart filter)',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['shared', 'all-only'],
+      photosIds: const ['ph-only'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await tester.pumpAndSettle();
+
+    expect(sources.lastResolve, SourceReference.photos);
+    expect(find.byKey(const Key('mainBrowseFeedStill_ph-only')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedStill_all-only')), findsNothing);
+    expect(find.byKey(const Key('mainBrowseFeedStill_shared')), findsNothing);
+  });
+
+  testWidgets(
+      'W-S4 retry after failure resolves again then caches success',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = _FailThenSucceedRepository(
+      allIds: const ['a1'],
+      failTimes: 1,
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.mainBrowseFeedResolveFailed), findsOneWidget);
+    expect(sources.resolveCalls, 1);
+
+    await tester.tap(find.byKey(const Key('mainBrowseFeedRetry')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(sources.resolveCalls, 2);
+
+    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.libraryRowAll));
+    await tester.pumpAndSettle();
+
+    // All success was cached — no third resolve for All.
+    expect(
+      sources.resolveHistory.where((r) => r == SourceReference.all).length,
+      2,
+    );
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
   });
 
   testWidgets(
@@ -318,6 +445,34 @@ void main() {
 class _ThrowingResolveRepository extends FakeAssetSourceRepository {
   @override
   Future<ResolvedSource> resolve(SourceReference reference) async {
+    resolveCalls += 1;
+    lastResolve = reference;
+    resolveHistory.add(reference);
     throw StateError('resolve failed');
+  }
+}
+
+/// Fails the first [failTimes] resolve calls, then delegates to the fake.
+class _FailThenSucceedRepository extends FakeAssetSourceRepository {
+  _FailThenSucceedRepository({
+    super.allIds,
+    super.photosIds,
+    super.videosIds,
+    this.failTimes = 1,
+  });
+
+  final int failTimes;
+  int _failuresEmitted = 0;
+
+  @override
+  Future<ResolvedSource> resolve(SourceReference reference) async {
+    if (_failuresEmitted < failTimes) {
+      _failuresEmitted += 1;
+      resolveCalls += 1;
+      lastResolve = reference;
+      resolveHistory.add(reference);
+      throw StateError('resolve failed');
+    }
+    return super.resolve(reference);
   }
 }
