@@ -1,6 +1,7 @@
 part of 'waketok_theme.dart';
 
-/// WakeTok semantic tokens (ADR-009 Decision 5; Cap 7.2 typography + scrim).
+/// WakeTok semantic tokens (ADR-009 Decision 5; Cap 7.2 typography + scrim;
+/// Cap 7.8 frozen accent + brandGold).
 ///
 /// Numeric values live only in code — never in rules or docs.
 /// Resolve at runtime via `Theme.of(context).extension<WakeTokTokens>()`.
@@ -12,7 +13,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.background,
     required this.surface,
     required this.onSurface,
-    required this.accentProvisional,
+    required this.accent,
+    required this.brandGold,
     required this.feedBackground,
     required this.mediaScrim,
     required this.onMedia,
@@ -33,8 +35,11 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   /// Primary text and icons on [surface] / [background].
   final Color onSurface;
 
-  /// Provisional accent — frozen in Cap 7.8 (Known debt until then).
-  final Color accentProvisional;
+  /// Formal brand accent (CTA, selected chrome). Cap 7.8 freeze.
+  final Color accent;
+
+  /// Brand gold for loading indicators (not CTAs). Light/Dark same. Cap 7.8.
+  final Color brandGold;
 
   /// Vertical media feed backdrop (same black in both modes).
   final Color feedBackground;
@@ -74,7 +79,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     background: Color(0xFFF4F4F5),
     surface: Color(0xFFFFFFFF),
     onSurface: Color(0xFF1A1A1A),
-    accentProvisional: Color(0xFF2F6FED),
+    accent: Color(0xFFFC2555),
+    brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
     mediaScrim: Color(0x99000000),
     onMedia: Color(0xFFFFFFFF),
@@ -115,7 +121,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     background: Color(0xFF121212),
     surface: Color(0xFF1E1E1E),
     onSurface: Color(0xFFF5F5F5),
-    accentProvisional: Color(0xFF5B8DEF),
+    accent: Color(0xFFFF6B8A),
+    brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
     mediaScrim: Color(0x99000000),
     onMedia: Color(0xFFFFFFFF),
@@ -157,7 +164,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? background,
     Color? surface,
     Color? onSurface,
-    Color? accentProvisional,
+    Color? accent,
+    Color? brandGold,
     Color? feedBackground,
     Color? mediaScrim,
     Color? onMedia,
@@ -172,7 +180,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       background: background ?? this.background,
       surface: surface ?? this.surface,
       onSurface: onSurface ?? this.onSurface,
-      accentProvisional: accentProvisional ?? this.accentProvisional,
+      accent: accent ?? this.accent,
+      brandGold: brandGold ?? this.brandGold,
       feedBackground: feedBackground ?? this.feedBackground,
       mediaScrim: mediaScrim ?? this.mediaScrim,
       onMedia: onMedia ?? this.onMedia,
@@ -194,8 +203,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       background: Color.lerp(background, other.background, t)!,
       surface: Color.lerp(surface, other.surface, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
-      accentProvisional:
-          Color.lerp(accentProvisional, other.accentProvisional, t)!,
+      accent: Color.lerp(accent, other.accent, t)!,
+      brandGold: Color.lerp(brandGold, other.brandGold, t)!,
       feedBackground: Color.lerp(feedBackground, other.feedBackground, t)!,
       mediaScrim: Color.lerp(mediaScrim, other.mediaScrim, t)!,
       onMedia: Color.lerp(onMedia, other.onMedia, t)!,

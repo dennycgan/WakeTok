@@ -75,7 +75,7 @@ void main() {
     expect(find.byType(LimitedAccessBanner), findsOneWidget);
   });
 
-  testWidgets('W-5 top selected source uses accentProvisional token color',
+  testWidgets('W-5 top selected source uses accent token color',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
@@ -89,14 +89,14 @@ void main() {
       return tester.widget<Text>(find.text(label)).style!;
     }
 
-    expect(styleOf(l10n.libraryRowAll).color, tokens.accentProvisional);
+    expect(styleOf(l10n.libraryRowAll).color, tokens.accent);
 
     await tester.tap(find.byKey(const Key('mainBrowseSourcePhotos')));
     await tester.pumpAndSettle();
-    expect(styleOf(l10n.libraryRowPhotos).color, tokens.accentProvisional);
+    expect(styleOf(l10n.libraryRowPhotos).color, tokens.accent);
     expect(
       styleOf(l10n.libraryRowAll).color,
-      isNot(tokens.accentProvisional),
+      isNot(tokens.accent),
     );
   });
 
@@ -113,7 +113,7 @@ void main() {
     );
     expect(
       bar.indicatorColor,
-      tokens.accentProvisional.withValues(alpha: 0.20),
+      tokens.accent.withValues(alpha: 0.20),
     );
   });
 

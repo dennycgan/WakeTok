@@ -14,10 +14,10 @@ ThemeData waketokTheme(Brightness brightness) {
       : WakeTokTokens._light;
 
   final colorScheme = ColorScheme.fromSeed(
-    seedColor: tokens.accentProvisional,
+    seedColor: tokens.accent,
     brightness: brightness,
   ).copyWith(
-    primary: tokens.accentProvisional,
+    primary: tokens.accent,
     surface: tokens.surface,
     onSurface: tokens.onSurface,
   );

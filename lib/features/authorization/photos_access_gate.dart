@@ -80,7 +80,7 @@ class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
       return Scaffold(
         backgroundColor: tokens.background,
         body: Center(
-          child: CircularProgressIndicator(color: tokens.accentProvisional),
+          child: CircularProgressIndicator(color: tokens.brandGold),
         ),
       );
     }

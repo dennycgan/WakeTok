@@ -35,7 +35,8 @@ void main() {
     expect(light.background, isNot(dark.background));
     expect(light.surface, isNot(dark.surface));
     expect(light.onSurface, isNot(dark.onSurface));
-    expect(light.accentProvisional, isNot(dark.accentProvisional));
+    expect(light.accent, isNot(dark.accent));
+    expect(light.brandGold, dark.brandGold);
     expect(light.feedBackground, dark.feedBackground);
     expect(light.feedBackground, const Color(0xFF000000));
     expect(light.mediaScrim, dark.mediaScrim);
@@ -51,8 +52,8 @@ void main() {
 
     expect(lightTheme.scaffoldBackgroundColor, light.background);
     expect(darkTheme.scaffoldBackgroundColor, dark.background);
-    expect(lightTheme.colorScheme.primary, light.accentProvisional);
-    expect(darkTheme.colorScheme.primary, dark.accentProvisional);
+    expect(lightTheme.colorScheme.primary, light.accent);
+    expect(darkTheme.colorScheme.primary, dark.accent);
     expect(lightTheme.appBarTheme.backgroundColor, light.surface);
     expect(darkTheme.appBarTheme.backgroundColor, dark.surface);
   });
@@ -106,12 +107,22 @@ void main() {
     expect(light.onMediaMuted, dark.onMediaMuted);
   });
 
-  test('T-accent accentProvisional hex unchanged (still provisional)', () {
+  test('T-accent frozen hex Light #FC2555 Dark #FF6B8A', () {
     final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
 
-    expect(light.accentProvisional, const Color(0xFF2F6FED));
-    expect(dark.accentProvisional, const Color(0xFF5B8DEF));
+    expect(light.accent, const Color(0xFFFC2555));
+    expect(dark.accent, const Color(0xFFFF6B8A));
+    expect(light.accent, isNot(dark.accent));
+  });
+
+  test('T-brandGold Light equals Dark #E0C590', () {
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+
+    expect(light.brandGold, const Color(0xFFE0C590));
+    expect(dark.brandGold, const Color(0xFFE0C590));
+    expect(light.brandGold, dark.brandGold);
   });
 
   testWidgets('T4 app resolves light tokens under light platform brightness',

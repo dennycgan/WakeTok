@@ -95,7 +95,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(color: tokens.accentProvisional),
+              CircularProgressIndicator(color: tokens.brandGold),
               const SizedBox(height: 16),
               Text(
                 l10n.mainBrowseFeedLoading,
@@ -300,7 +300,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
 
     if (_loading) {
       return Center(
-        child: CircularProgressIndicator(color: tokens.accentProvisional),
+        child: CircularProgressIndicator(color: tokens.brandGold),
       );
     }
 

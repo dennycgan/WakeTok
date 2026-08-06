@@ -81,7 +81,7 @@ class _BrowsePane extends ConsumerWidget {
 }
 
 /// Custom four-cell top chrome — avoids Material SegmentedButton defaults
-/// (secondaryContainer). Selected label uses [WakeTokTokens.accentProvisional].
+/// (secondaryContainer). Selected label uses [WakeTokTokens.accent].
 class _TopSourceChrome extends StatelessWidget {
   const _TopSourceChrome({
     required this.selected,
@@ -159,7 +159,7 @@ class _SourceCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final color =
-        selected ? tokens.accentProvisional : tokens.onSurface.withValues(alpha: 0.55);
+        selected ? tokens.accent : tokens.onSurface.withValues(alpha: 0.55);
     final style = tokens.labelChrome.copyWith(color: color);
 
     return InkWell(
@@ -237,28 +237,28 @@ class _MainBrowseBottomBar extends StatelessWidget {
     return NavigationBar(
       key: const Key('mainBrowseNavigationBar'),
       backgroundColor: tokens.surface,
-      indicatorColor: tokens.accentProvisional.withValues(alpha: 0.20),
+      indicatorColor: tokens.accent.withValues(alpha: 0.20),
       selectedIndex: selected.index,
       onDestinationSelected: (i) => onSelect(MainBrowseDestination.values[i]),
       destinations: [
         NavigationDestination(
           icon: const Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home, color: tokens.accentProvisional),
+          selectedIcon: Icon(Icons.home, color: tokens.accent),
           label: l10n.mainBrowseNavBrowse,
         ),
         NavigationDestination(
           icon: const Icon(Icons.movie_outlined),
-          selectedIcon: Icon(Icons.movie, color: tokens.accentProvisional),
+          selectedIcon: Icon(Icons.movie, color: tokens.accent),
           label: l10n.mainBrowseNavClips,
         ),
         NavigationDestination(
           icon: const Icon(Icons.play_circle_outline),
-          selectedIcon: Icon(Icons.play_circle, color: tokens.accentProvisional),
+          selectedIcon: Icon(Icons.play_circle, color: tokens.accent),
           label: l10n.mainBrowseNavAuto,
         ),
         NavigationDestination(
           icon: const Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings, color: tokens.accentProvisional),
+          selectedIcon: Icon(Icons.settings, color: tokens.accent),
           label: l10n.mainBrowseNavSettings,
         ),
       ],
