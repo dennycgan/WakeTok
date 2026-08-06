@@ -162,7 +162,7 @@ Active capability: Main Browse Screen and vertical Media Feed
       `flutter install --profile`). Doomscroll intensity credibility **yes**.
       **PASS** 2026-08-06 (Videos ≈0.29/0.89/0.98; All ≈2.7/8.2/1.9 ms/s;
       zero Severe Hang). Notes `cap7-7.7a-profile-retest-notes.md`.
-      — docs (follow-up with filled notes)
+      — docs `eed9d22`
 
 - [x] 7.7b Severe Hang diagnosis — **N/A** (7.7a Profile PASS; diagnosis path
       not required). Notes left paused/cancelled:
@@ -239,8 +239,8 @@ Active capability: Main Browse Screen and vertical Media Feed
 ## Known debt / intentionally deferred
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
-| POC-04 | Severe Hang under fast scrolling / animateToPage load | Cap 7.7 Profile gate INVALIDATED (Release forensic); **Cap 7.7a Profile V-hard PASS** (`cap7-7.7a-profile-retest-notes.md`) — ADR-001 production Profile triage paid; clear row at Cap 7.8 close-out | Cap 7.8 Cap 7 close-out | ADR-001 |
-| Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS** — Release vs Profile divergence confirmed worth tracking for shipping | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
+| POC-04 | Severe Hang under fast scrolling / animateToPage load | Cap 7.7 Profile gate INVALIDATED (Release forensic); **Cap 7.7a Profile V-hard PASS** (`cap7-7.7a-profile-retest-notes.md`) — ADR-001 production Profile triage paid; clear row at Cap 7.8 close-out | Cap 7.8 (Cap 7 close-out) | ADR-001 |
+| Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
