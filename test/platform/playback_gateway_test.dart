@@ -97,4 +97,15 @@ void main() {
     expect(event.currentItemIdentifier, 'v1');
     expect(event.playbackState, PlaybackRuntimeState.playing);
   });
+
+  test('T-P4 FlutterApi restore maps into restoreRequests stream', () async {
+    final gateway = PlaybackGateway();
+    addTearDown(gateway.dispose);
+
+    final future = gateway.restoreRequests.first;
+    gateway.onPlaybackRestoreRequired(3, 'asset-3');
+    final event = await future;
+    expect(event.feedIndex, 3);
+    expect(event.assetIdentifier, 'asset-3');
+  });
 }

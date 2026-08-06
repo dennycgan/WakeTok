@@ -21,6 +21,13 @@ final class PlaybackApiHost: PlaybackApi {
   private var warmingPlayer: AVPlayer?
   private var warmingAssetId: String?
 
+  /// Play intent that arrived while the active player was still preparing.
+  /// Without this, an early Dart play() is silently dropped (frozen first frame).
+  private var pendingPlay = false
+  /// Asset ids with an in-flight prepareActive, so a second request for the
+  /// same asset does not build a duplicate player that pauses the first one.
+  private var preparingAssetIds = Set<String>()
+
   private weak var surfaceView: PlaybackSurfaceView?
 
   /// Guard raised by native on willEnterForeground; cleared on notifyDisplaySurfaceReady.
@@ -70,12 +77,24 @@ final class PlaybackApiHost: PlaybackApi {
       guard let self else { return }
       // After background detach, layer may still be nil — re-adopt before play.
       self.adoptActivePlayerOntoSurface()
-      self.activePlayer?.play()
+      // Only play when the active player is already the *current* asset.
+      // After a swipe, activePlayer may still be the previous video until
+      // prepareActive finishes — playing that would clear pendingPlay and
+      // leave the newly prepared player paused at frame 0.
+      if let player = self.activePlayer,
+        self.activeAssetId == self.currentAssetIdentifier
+      {
+        self.pendingPlay = false
+        player.play()
+      } else {
+        self.pendingPlay = true
+      }
     }
   }
 
   func pause() throws {
     DispatchQueue.main.async { [weak self] in
+      self?.pendingPlay = false
       self?.activePlayer?.pause()
     }
   }
@@ -190,6 +209,7 @@ final class PlaybackApiHost: PlaybackApi {
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
         self.surfaceView?.attach(player: self.activePlayer)
+        self.consumePendingPlayIfNeeded()
       }
       return
     }
@@ -202,15 +222,24 @@ final class PlaybackApiHost: PlaybackApi {
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
         self.surfaceView?.attach(player: self.activePlayer)
+        self.consumePendingPlayIfNeeded()
       }
       return
     }
+    // Same asset already being prepared (e.g. load then
+    // notifyDisplaySurfaceReady) — do not build a duplicate player that
+    // would pause/replace the first one mid-playback.
+    if preparingAssetIds.contains(assetId) {
+      return
+    }
+    preparingAssetIds.insert(assetId)
 
     let token = assetId
     prepareQueue.async { [weak self] in
       let player = Self.makePlayer(assetId: token)
       DispatchQueue.main.async {
         guard let self else { return }
+        self.preparingAssetIds.remove(token)
         guard self.currentAssetIdentifier == token || self.activeAssetId == token
           || self.currentAssetIdentifier == nil
         else { return }
@@ -218,12 +247,30 @@ final class PlaybackApiHost: PlaybackApi {
         if self.currentAssetIdentifier != nil, self.currentAssetIdentifier != token {
           return
         }
+        // Already active for this asset — keep the existing player.
+        if self.activeAssetId == token, self.activePlayer != nil {
+          self.surfaceView?.attach(player: self.activePlayer)
+          self.consumePendingPlayIfNeeded()
+          return
+        }
         self.activePlayer?.pause()
         self.activePlayer = player
         self.activeAssetId = token
         self.surfaceView?.attach(player: player)
+        self.consumePendingPlayIfNeeded()
       }
     }
+  }
+
+  /// Fires a play() intent that arrived before the current asset's player
+  /// was ready (or while activePlayer still pointed at the previous video).
+  private func consumePendingPlayIfNeeded() {
+    guard pendingPlay,
+      let player = activePlayer,
+      activeAssetId == currentAssetIdentifier
+    else { return }
+    pendingPlay = false
+    player.play()
   }
 
   private func warmNextIfPossible() {

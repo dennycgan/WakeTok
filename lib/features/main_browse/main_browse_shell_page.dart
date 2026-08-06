@@ -7,11 +7,10 @@ import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Cap 7.4 Main Browse chrome shell (ADR-014 Decision 6).
-///
-/// Feed body is a placeholder until Cap 7.5. Does not call resolve.
+/// Cap 7.4 Main Browse chrome shell + Cap 7.5 vertical Media Feed (ADR-014).
 class MainBrowseShellPage extends ConsumerWidget {
   const MainBrowseShellPage({super.key, required this.access});
 
@@ -29,7 +28,26 @@ class MainBrowseShellPage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (access == PhotosAccess.limited) const LimitedAccessBanner(),
-          Expanded(child: _destinationBody(context, ref, destination, l10n)),
+          Expanded(
+            // IndexedStack keeps Browse (feed index / PageController) alive
+            // when switching bottom destinations (Cap 7.5 Q4=A).
+            child: IndexedStack(
+              index: destination.index,
+              sizing: StackFit.expand,
+              children: [
+                const _BrowsePane(),
+                _StubPane(
+                  title: l10n.mainBrowseNavClips,
+                  body: l10n.mainBrowseStubClipsBody,
+                ),
+                _StubPane(
+                  title: l10n.mainBrowseNavAuto,
+                  body: l10n.mainBrowseStubAutoBody,
+                ),
+                _SettingsStubPane(access: access),
+              ],
+            ),
+          ),
           _MainBrowseBottomBar(
             selected: destination,
             onSelect: (next) =>
@@ -39,26 +57,6 @@ class MainBrowseShellPage extends ConsumerWidget {
       ),
     );
   }
-
-  Widget _destinationBody(
-    BuildContext context,
-    WidgetRef ref,
-    MainBrowseDestination destination,
-    AppLocalizations l10n,
-  ) {
-    return switch (destination) {
-      MainBrowseDestination.browse => const _BrowsePane(),
-      MainBrowseDestination.clips => _StubPane(
-          title: l10n.mainBrowseNavClips,
-          body: l10n.mainBrowseStubClipsBody,
-        ),
-      MainBrowseDestination.auto => _StubPane(
-          title: l10n.mainBrowseNavAuto,
-          body: l10n.mainBrowseStubAutoBody,
-        ),
-      MainBrowseDestination.settings => _SettingsStubPane(access: access),
-    };
-  }
 }
 
 class _BrowsePane extends ConsumerWidget {
@@ -66,8 +64,6 @@ class _BrowsePane extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final selected = ref.watch(mainBrowseSelectedSourceProvider);
 
     return Column(
@@ -78,22 +74,7 @@ class _BrowsePane extends ConsumerWidget {
           onSelect: (next) =>
               ref.read(mainBrowseSelectedSourceProvider.notifier).select(next),
         ),
-        Expanded(
-          child: ColoredBox(
-            color: tokens.feedBackground,
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  l10n.mainBrowseFeedPlaceholder,
-                  textAlign: TextAlign.center,
-                  style: tokens.bodyOnMedia,
-                  key: const Key('mainBrowseFeedPlaceholder'),
-                ),
-              ),
-            ),
-          ),
-        ),
+        const Expanded(child: VerticalMediaFeed()),
       ],
     );
   }

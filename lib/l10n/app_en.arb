@@ -234,7 +234,35 @@
   },
   "mainBrowseFeedPlaceholder": "Feed arrives in a later step.",
   "@mainBrowseFeedPlaceholder": {
-    "description": "Cap 7.4 body stub until vertical Media Feed (7.5)"
+    "description": "Legacy Cap 7.4 stub; unused after Cap 7.5 feed (kept for key stability)"
+  },
+  "mainBrowseFeedLoading": "Loading library…",
+  "@mainBrowseFeedLoading": {
+    "description": "Main Browse feed while resolveSource is in flight"
+  },
+  "mainBrowseFeedEmpty": "No items in this source.",
+  "@mainBrowseFeedEmpty": {
+    "description": "Main Browse feed when resolve returns an empty id list"
+  },
+  "mainBrowseFeedResolveFailed": "Could not load this source.",
+  "@mainBrowseFeedResolveFailed": {
+    "description": "Main Browse feed when resolveSource fails"
+  },
+  "mainBrowseFeedRetry": "Retry",
+  "@mainBrowseFeedRetry": {
+    "description": "Retry button for feed resolve or page media errors"
+  },
+  "mainBrowseFeedICloudOnly": "This item is iCloud-only on this device.",
+  "@mainBrowseFeedICloudOnly": {
+    "description": "Feed page when host returns iCloudDownloadRequired (local-only)"
+  },
+  "mainBrowseFeedMediaFailed": "Could not display this item.",
+  "@mainBrowseFeedMediaFailed": {
+    "description": "Feed page generic display/playable failure"
+  },
+  "mainBrowseLiveBadge": "LIVE",
+  "@mainBrowseLiveBadge": {
+    "description": "Corner badge when display mediaKind is livePhoto (static mark only)"
   },
   "mainBrowseStubClipsBody": "Clips — coming in a later capability.",
   "@mainBrowseStubClipsBody": {

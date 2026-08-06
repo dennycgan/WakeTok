@@ -58,6 +58,17 @@ class PlaybackRuntimeEvent {
   final PlaybackRuntimeState playbackState;
 }
 
+/// Native asks Dart to sync the feed to [feedIndex] (Cap 7.5).
+class PlaybackRestoreRequest {
+  const PlaybackRestoreRequest({
+    required this.feedIndex,
+    required this.assetIdentifier,
+  });
+
+  final int feedIndex;
+  final String assetIdentifier;
+}
+
 /// Still (or Live Photo key frame) ready for Flutter [Image.file].
 class DisplayAsset {
   const DisplayAsset({

@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 
-/// Cap 7.4 UI-only selected built-in source (no resolve — Cap 7.5/7.6).
+/// Selected built-in source for Main Browse (All / Photos / Videos).
 final mainBrowseSelectedSourceProvider =
     NotifierProvider<MainBrowseSelectedSource, SourceReference>(
   MainBrowseSelectedSource.new,
@@ -39,5 +41,44 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
 
   void select(MainBrowseDestination next) {
     state = next;
+  }
+}
+
+/// Cap 7.5: resolve the currently selected built-in source (no session cache).
+final mainBrowseFeedQueueProvider =
+    FutureProvider<ResolvedSource>((ref) async {
+  final source = ref.watch(mainBrowseSelectedSourceProvider);
+  return ref.watch(assetSourceRepositoryProvider).resolve(source);
+});
+
+/// Current PageView index; resets to 0 when the top source changes (Cap 7.5).
+final mainBrowseFeedIndexProvider =
+    NotifierProvider<MainBrowseFeedIndex, int>(MainBrowseFeedIndex.new);
+
+class MainBrowseFeedIndex extends Notifier<int> {
+  @override
+  int build() {
+    ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
+      if (prev != next) {
+        state = 0;
+      }
+    });
+    return 0;
+  }
+
+  void setIndex(int index) {
+    if (index == state) {
+      return;
+    }
+    state = index;
+  }
+
+  /// Clamp [feedIndex] into the queue, or ignore when empty (restore safety).
+  void applyRestoreIndex(int feedIndex, int queueLength) {
+    if (queueLength <= 0) {
+      return;
+    }
+    final clamped = feedIndex.clamp(0, queueLength - 1);
+    setIndex(clamped);
   }
 }

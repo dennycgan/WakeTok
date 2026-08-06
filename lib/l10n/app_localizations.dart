@@ -429,11 +429,53 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get mainBrowseNavSettings;
 
-  /// Cap 7.4 body stub until vertical Media Feed (7.5)
+  /// Legacy Cap 7.4 stub; unused after Cap 7.5 feed (kept for key stability)
   ///
   /// In en, this message translates to:
   /// **'Feed arrives in a later step.'**
   String get mainBrowseFeedPlaceholder;
+
+  /// Main Browse feed while resolveSource is in flight
+  ///
+  /// In en, this message translates to:
+  /// **'Loading library…'**
+  String get mainBrowseFeedLoading;
+
+  /// Main Browse feed when resolve returns an empty id list
+  ///
+  /// In en, this message translates to:
+  /// **'No items in this source.'**
+  String get mainBrowseFeedEmpty;
+
+  /// Main Browse feed when resolveSource fails
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load this source.'**
+  String get mainBrowseFeedResolveFailed;
+
+  /// Retry button for feed resolve or page media errors
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get mainBrowseFeedRetry;
+
+  /// Feed page when host returns iCloudDownloadRequired (local-only)
+  ///
+  /// In en, this message translates to:
+  /// **'This item is iCloud-only on this device.'**
+  String get mainBrowseFeedICloudOnly;
+
+  /// Feed page generic display/playable failure
+  ///
+  /// In en, this message translates to:
+  /// **'Could not display this item.'**
+  String get mainBrowseFeedMediaFailed;
+
+  /// Corner badge when display mediaKind is livePhoto (static mark only)
+  ///
+  /// In en, this message translates to:
+  /// **'LIVE'**
+  String get mainBrowseLiveBadge;
 
   /// Clips tab stub body copy
   ///

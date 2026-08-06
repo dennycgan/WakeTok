@@ -194,6 +194,28 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedPlaceholder => 'Feed arrives in a later step.';
 
   @override
+  String get mainBrowseFeedLoading => 'Loading library…';
+
+  @override
+  String get mainBrowseFeedEmpty => 'No items in this source.';
+
+  @override
+  String get mainBrowseFeedResolveFailed => 'Could not load this source.';
+
+  @override
+  String get mainBrowseFeedRetry => 'Retry';
+
+  @override
+  String get mainBrowseFeedICloudOnly =>
+      'This item is iCloud-only on this device.';
+
+  @override
+  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
+
+  @override
+  String get mainBrowseLiveBadge => 'LIVE';
+
+  @override
   String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';
 
   @override
@@ -390,6 +412,27 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedPlaceholder => '信息流将在后续步骤加入。';
+
+  @override
+  String get mainBrowseFeedLoading => '正在加载图库…';
+
+  @override
+  String get mainBrowseFeedEmpty => '此来源没有内容。';
+
+  @override
+  String get mainBrowseFeedResolveFailed => '无法加载此来源。';
+
+  @override
+  String get mainBrowseFeedRetry => '重试';
+
+  @override
+  String get mainBrowseFeedICloudOnly => '此项目在本机仅为 iCloud。';
+
+  @override
+  String get mainBrowseFeedMediaFailed => '无法显示此项目。';
+
+  @override
+  String get mainBrowseLiveBadge => 'LIVE';
 
   @override
   String get mainBrowseStubClipsBody => '切片 — 将在后续能力提供。';

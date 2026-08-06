@@ -28,4 +28,7 @@ abstract class PlaybackRepository {
 
   /// Native → Dart runtime observe (may be empty until host emits).
   Stream<PlaybackRuntimeEvent> get runtimeEvents;
+
+  /// Native → Dart feed restore (Cap 7.5; may be empty until host emits).
+  Stream<PlaybackRestoreRequest> get restoreRequests;
 }

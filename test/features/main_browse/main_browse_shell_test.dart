@@ -36,8 +36,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('mainBrowseSourcePools')));
     await tester.pumpAndSettle();
-    // Still on browse placeholder — Pools does not become a selected source.
-    expect(find.byKey(const Key('mainBrowseFeedPlaceholder')), findsOneWidget);
+    // Still on browse feed — Pools does not become a selected source.
+    expect(find.byKey(const Key('mainBrowseFeed')), findsOneWidget);
   });
 
   testWidgets('W-3 bottom nav stubs switch destinations', (tester) async {
@@ -62,7 +62,7 @@ void main() {
 
     await tester.tap(find.text(l10n.mainBrowseNavBrowse));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('mainBrowseFeedPlaceholder')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeed')), findsOneWidget);
   });
 
   testWidgets('W-4 limited keeps banner on Main Browse', (tester) async {

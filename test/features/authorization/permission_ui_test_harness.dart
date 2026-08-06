@@ -46,6 +46,8 @@ Widget permissionUiHarness({
   Locale? locale,
   FakeLibraryCatalogRepository? catalog,
   FakeAssetSourceRepository? assetSources,
+  FakeMediaDisplayRepository? mediaDisplay,
+  FakePlaybackRepository? playback,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -55,9 +57,11 @@ Widget permissionUiHarness({
       libraryCatalogRepositoryProvider.overrideWithValue(libraryCatalog),
       assetSourceRepositoryProvider.overrideWithValue(sources),
       mediaDisplayRepositoryProvider.overrideWithValue(
-        FakeMediaDisplayRepository(),
+        mediaDisplay ?? FakeMediaDisplayRepository(),
       ),
-      playbackRepositoryProvider.overrideWithValue(FakePlaybackRepository()),
+      playbackRepositoryProvider.overrideWithValue(
+        playback ?? FakePlaybackRepository(),
+      ),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
     ],

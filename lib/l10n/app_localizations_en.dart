@@ -197,6 +197,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedPlaceholder => 'Feed arrives in a later step.';
 
   @override
+  String get mainBrowseFeedLoading => 'Loading library…';
+
+  @override
+  String get mainBrowseFeedEmpty => 'No items in this source.';
+
+  @override
+  String get mainBrowseFeedResolveFailed => 'Could not load this source.';
+
+  @override
+  String get mainBrowseFeedRetry => 'Retry';
+
+  @override
+  String get mainBrowseFeedICloudOnly =>
+      'This item is iCloud-only on this device.';
+
+  @override
+  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
+
+  @override
+  String get mainBrowseLiveBadge => 'LIVE';
+
+  @override
   String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';
 
   @override

@@ -4,10 +4,22 @@ import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
 
 class FakePlaybackRepository implements PlaybackRepository {
+  FakePlaybackRepository();
+
   final List<String> calls = <String>[];
+  final StreamController<PlaybackRestoreRequest> restoreController =
+      StreamController<PlaybackRestoreRequest>.broadcast();
 
   @override
   Stream<PlaybackRuntimeEvent> get runtimeEvents => const Stream.empty();
+
+  @override
+  Stream<PlaybackRestoreRequest> get restoreRequests =>
+      restoreController.stream;
+
+  void dispose() {
+    restoreController.close();
+  }
 
   @override
   Future<void> load(PlaybackItem item) async {

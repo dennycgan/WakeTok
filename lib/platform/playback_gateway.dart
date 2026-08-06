@@ -60,13 +60,20 @@ class PlaybackGateway
   final pigeon.PlaybackApi _api;
   final StreamController<PlaybackRuntimeEvent> _runtimeController =
       StreamController<PlaybackRuntimeEvent>.broadcast();
+  final StreamController<PlaybackRestoreRequest> _restoreController =
+      StreamController<PlaybackRestoreRequest>.broadcast();
 
   @override
   Stream<PlaybackRuntimeEvent> get runtimeEvents => _runtimeController.stream;
 
+  @override
+  Stream<PlaybackRestoreRequest> get restoreRequests =>
+      _restoreController.stream;
+
   void dispose() {
     pigeon.PlaybackFlutterApi.setUp(null);
     _runtimeController.close();
+    _restoreController.close();
   }
 
   @override
@@ -148,7 +155,15 @@ class PlaybackGateway
 
   @override
   void onPlaybackRestoreRequired(int feedIndex, String assetIdentifier) {
-    // Cap 7.3: guard/adopt skeleton on native; Dart feed jump lands in 7.5.
+    if (_restoreController.isClosed) {
+      return;
+    }
+    _restoreController.add(
+      PlaybackRestoreRequest(
+        feedIndex: feedIndex,
+        assetIdentifier: assetIdentifier,
+      ),
+    );
   }
 
   @override
