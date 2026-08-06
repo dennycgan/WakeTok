@@ -1018,3 +1018,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     implementation (Decision 8 typography / scrim tokens only).
     Decisions 1–2 / 4–7 land progressively across 7.3–7.7 — see
     PHASE_HISTORY for the full per-phase trail.
+  - **Cap 7.6 session-scoped resolve cache (work `79f8c12`, 2026-08-06):**
+    Decision 5 detail — successful `resolve` results for All / Photos /
+    Videos are kept in-memory for the `ProviderContainer` / process
+    lifetime and reused on tab revisit; failures are never stored. This
+    “session” is **not** the kickoff Consumption Session (no Session
+    Continuity / Session Queue product rules). Tab switch still presents
+    that source’s cached (or freshly resolved) id list and resets to
+    queue head (Decision 4).

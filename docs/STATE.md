@@ -141,9 +141,12 @@ Active capability: Main Browse Screen and vertical Media Feed
       bounds (ADR-P.5 spirit); architecture + localization guards green.
       — work `fb82bf6`
 
-- [ ] 7.6 Source switch behavior: changing top tab rebuilds ephemeral
+- [x] 7.6 Source switch behavior: changing top tab rebuilds ephemeral
       queue from Cap 6 resolve and starts at queue head; no Pool model;
-      no Session Continuity product rules.
+      no Session Continuity product rules; session-scoped successful
+      resolve cache per built-in (ADR-014 Decision 5; process lifetime;
+      failures uncached; “session” ≠ Consumption Session).
+      — work `79f8c12`
 
 - [ ] 7.7 Real-device feed acceptance (iPhone 13 Pro, **Profile**): scroll
       real library; hitch < 25 ms/s AND no Severe Hang per 7.1 hard gate;
@@ -167,10 +170,11 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7.6 Source switch behavior
-- Sub-steps done: 7.1–7.5 (ADR-014; theme `5ef2e8a`; playback
-      `29fcf2d`; Main Browse shell `d54d9be`; vertical feed `fb82bf6`)
-- Next step: owner orders 7.6 design or coding
+- Goal (one line): Cap 7.7 Real-device feed acceptance
+- Sub-steps done: 7.1–7.6 (ADR-014; theme `5ef2e8a`; playback
+      `29fcf2d`; Main Browse shell `d54d9be`; vertical feed `fb82bf6`;
+      resolve cache `79f8c12`)
+- Next step: owner orders 7.7 Profile Instruments acceptance on Kafka
 - Related decisions: ADR-001 … ADR-014
 
 ## Contract pointers (don't memorize, go read the source)
@@ -183,7 +187,8 @@ Active capability: Main Browse Screen and vertical Media Feed
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); debug totals shell: lib/features/library_smoke/
 - Main Browse shell: lib/features/main_browse/ (Cap 7.4 post-auth landing;
-  Cap 7.5 VerticalMediaFeed + restoreRequests)
+  Cap 7.5 VerticalMediaFeed + restoreRequests; Cap 7.6
+  `mainBrowseResolveCacheProvider`)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
