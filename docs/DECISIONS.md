@@ -614,6 +614,13 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Dart boundaries = guard tests; Swift product-rule discipline = review +
     ADR-006 (not claimed by Dart scanners).
   - Guard tests are a release gate for tasks that touch `lib/`.
+  - **Cap 7.8 accent freeze (work `0e3eec2`, 2026-08-06):**
+    Renamed `accentProvisional` → `accent`. Frozen hex: Light `#FC2555`,
+    Dark `#FF6B8A`. New token `brandGold` `#E0C590` (Light == Dark).
+    Loading `CircularProgressIndicator` uses `brandGold`; CTA / selected
+    chrome / `ColorScheme.primary` use `accent`. `onPrimary` remains
+    Material `fromSeed` (not pinned). ADR-014 Decision 8 cross-references
+    this note only and does not duplicate hex.
 
 ---
 
@@ -1026,3 +1033,6 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     Continuity / Session Queue product rules). Tab switch still presents
     that source’s cached (or freshly resolved) id list and resets to
     queue head (Decision 4).
+  - **Cap 7.8 accent freeze:** frozen accent / `brandGold` values are
+    recorded in ADR-009 Consequences (work `0e3eec2`); this ADR does not
+    duplicate hex.

@@ -40,13 +40,13 @@
       (production resolution must enumerate the FULL library including
       iCloud-only assets; device-local filtering is spike-only; acceptance
       includes date-distribution sampling on owner's real 40k library)
-- [ ] Main Browse Screen and vertical Media Feed
-      (ADR-014 Accepted; Cap 7.7a Profile V-hard PASS — Severe Hang Profile
-      gate paid; Release hang Known debt separate; Cap 7.8 close-out next)
-      <-- YOU ARE HERE
+- [x] Main Browse Screen and vertical Media Feed
+      (ADR-014; Cap 7.7a Profile V-hard PASS; accent/brandGold freeze
+      `0e3eec2`; Release hang Known debt separate)
 - [ ] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
+      <-- YOU ARE HERE
 - [ ] Live Photo rendering and static fallback (POC-08)
 - [ ] Asset Source and Source Pool Definition domain models
 - [ ] Live Resolution, Asset Source Availability,
@@ -100,88 +100,15 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Main Browse Screen and vertical Media Feed
+Active capability: Media Info Overlay, loading states, empty states,
+POC-10 file-size semantics, optional best-effort Location Label
+(not release-blocking)
 
-- [x] 7.1 Contract freeze (ADR-014): Cap 7 slim feed model — ephemeral id
-      queue from Cap 6 resolve only; Sequential + Manual (kickoff General/
-      Mixed default Shuffle deferred until Endless Shuffle capability);
-      chrome In/Out; Pools tab visible+disabled; tab switch resets to
-      queue head; smoke demoted from default landing; Live Photo = static
-      (+ optional LIVE badge). Freeze Severe Hang / hitch bar for 7.7:
-      iPhone 13 Pro, **Instruments Profile** (same mode as ADR-001
-      baselines; Release not mixed into the gate — optional Release notes
-      only as a separate secondary dataset if owner later asks); mean hitch
-      < 25 ms/s AND **zero** Severe Hang (hard gate; no Conditional Pass
-      rewrite of ADR-001). **Retest surface must be full production chrome**
-      (top All/Photos/Videos + disabled Pools tab + bottom bar shell) — not
-      a bare PageView; POC-04 spike had no chrome, so hitch may regress once
-      chrome is mounted. Design-freeze (no production feed code in 7.1).
-      ADR-014: Accepted at Cap 7.2 work `5ef2e8a` (see DECISIONS).
-      — docs `fb4bc9f`
-
-- [x] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
-      Known debt); feed scrim / on-media contrast tokens as needed; still
-      `accentProvisional` (freeze in 7.8 only).
-      — work `5ef2e8a`
-
-- [x] 7.3 Playback + image pipeline (ADR-006): production foreground
-      PlaybackApi path — PV attach/detach, bounded 1+1; image display
-      request path; no Background Audio / Now Playing product scope.
-      — work `29fcf2d`
-
-- [x] 7.4 Main Browse chrome shell: top All/Photos/Videos + Pools disabled
-      (ARB Coming soon on-cell; no tap SnackBar); bottom NavigationBar
-      (Browse active; Clips/Auto/Settings stub; explicit indicatorColor
-      token); Main Browse = default post-auth landing; library_smoke
-      debug-only via Settings; Limited banner kept.
-      — work `d54d9be`
-
-- [x] 7.5 Vertical Media Feed: PageView (or equivalent) over ephemeral
-      queue; Manual swipe; wire resolve(All|Photos|Videos); pool/preheat
-      bounds (ADR-P.5 spirit); architecture + localization guards green.
-      — work `fb82bf6`
-
-- [x] 7.6 Source switch behavior: changing top tab rebuilds ephemeral
-      queue from Cap 6 resolve and starts at queue head; no Pool model;
-      no Session Continuity product rules; session-scoped successful
-      resolve cache per built-in (ADR-014 Decision 5; process lifetime;
-      failures uncached; “session” ≠ Consumption Session).
-      — work `79f8c12`
-
-- [x] 7.7 Real-device feed acceptance (iPhone 13 Pro, **Profile**): scroll
-      real library; hitch < 25 ms/s AND no Severe Hang per 7.1 hard gate;
-      notes under `docs/acceptance/`. Campaign recorded **FAIL** then
-      **INVALIDATED as Profile gate** (errata: actual install was **Release**
-      via `build`+`install --release`; tables retained as Release forensic
-      only — `cap7-7.7-notes.md`). Hard bar unchanged. Fail path was
-      suspended pending 7.7a (later **not** taken — 7.7a PASS).
-      — docs `b45a318` + errata `2481d49`
-
-- [x] 7.7a Profile hard-gate retest: Videos×3 + All×3, **same V-hard** rules,
-      **Profile only** (`flutter build ios --profile` +
-      `flutter install --profile`). Doomscroll intensity credibility **yes**.
-      **PASS** 2026-08-06 (Videos ≈0.29/0.89/0.98; All ≈2.7/8.2/1.9 ms/s;
-      zero Severe Hang). Notes `cap7-7.7a-profile-retest-notes.md`.
-      — docs `eed9d22`
-
-- [x] 7.7b Severe Hang diagnosis — **N/A** (7.7a Profile PASS; diagnosis path
-      not required). Notes left paused/cancelled:
-      `cap7-7.7b-hang-diagnosis-notes.md`.
-
-- [x] 7.7c Fix hang root cause — **N/A** (no 7.7b).
-
-- [x] 7.7d Profile re-retest after fix — **N/A** (no 7.7c). ADR-015 **not**
-      required on this PASS path.
-
-- [~] 7.8 Accent freeze (last) + Cap 7 close-out: freeze current
-      `accentProvisional` as formal accent (Q6=A) or owner-supplied hex;
-      Light/Dark token-only. In the **same** docs close-out commit, clear
-      or mark resolved the Known debt rows that named Main Browse /
-      Production Main Browse as picker-up: (1) Severe Hang ADR-001 (**Profile
-      gate paid by 7.7a** — clear at close-out), (2) typography tokens
-      ADR-009, (3) final accent color ADR-009. STATE + PHASE_HISTORY;
-      portfolio Public scan remains owner-only. **Release hang** Known debt
-      stays separate (not cleared by 7.7a).
+> Phase list pending explicit owner approval before coding starts.
+> Cap 7.8 close-out claimed the following Known debt rows for this
+> capability (separate lines; do not merge when scheduling):
+> - Browse doomscroll forced-dark chrome (does not follow Appearance)
+> - Opaque top bar eating media
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -191,13 +118,12 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7.8 Accent freeze + Cap 7 close-out
-- Sub-steps done: 7.1–7.7a (7.7 Release forensic INVALIDATED; **7.7a
-      Profile V-hard PASS** — `cap7-7.7a-profile-retest-notes.md`; 7.7b–d N/A)
-- Next step: owner orders accent freeze (Q6) + close-out docs (clear
-      Profile Severe Hang / typography / accent debts; PHASE_HISTORY)
-- Related decisions: ADR-001 … ADR-014; ADR-015 not required on this path;
-      Release hang debt remains for Final hardening
+- Goal (one line): Media Info Overlay / loading / empty / POC-10 (phase
+      design pending owner approval)
+- Sub-steps done: Cap 7 closed (work `0e3eec2`; this docs close-out)
+- Next step: owner approves Media Info Overlay Phase Roadmap
+- Related decisions: ADR-001 … ADR-014; Release hang debt remains for
+      Final hardening; Portfolio Private→Public scan remains owner-only
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -239,8 +165,9 @@ Active capability: Main Browse Screen and vertical Media Feed
 ## Known debt / intentionally deferred
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
-| POC-04 | Severe Hang under fast scrolling / animateToPage load | Cap 7.7 Profile gate INVALIDATED (Release forensic); **Cap 7.7a Profile V-hard PASS** (`cap7-7.7a-profile-retest-notes.md`) — ADR-001 production Profile triage paid; clear row at Cap 7.8 close-out | Cap 7.8 (Cap 7 close-out) | ADR-001 |
 | Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
+| Media Info Overlay | Browse doomscroll forced-dark chrome (does not follow system Appearance) | Product rule: immersive Browse stays dark regardless of Settings Appearance preference (independent of System/Light/Dark); Cap 7 left shell on ambient Theme | Media Info Overlay, loading states, empty states, POC-10 file-size semantics, optional best-effort Location Label | ADR-009 / ADR-014 |
+| Media Info Overlay | Opaque top bar eating media | Cap 7 top source chrome uses solid `surface`; immersive Browse should let media show through (separate from forced-dark) | Media Info Overlay, loading states, empty states, POC-10 file-size semantics, optional best-effort Location Label | ADR-014 |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
@@ -248,10 +175,8 @@ Active capability: Main Browse Screen and vertical Media Feed
 | POC-09 | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
 | App Foundation | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |
 | App Foundation | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
-| App Foundation | Final accent color (depends on app icon design); provisional accent in theme tokens | Icon design is owner parallel track; accent must freeze before Main Browse Screen closes | Main Browse Screen | ADR-009 |
 | App Foundation | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
-| Portfolio | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Portfolio value requires something screenshot-able, not just decision records; premature public exposure shows unfinished POC/scaffold with no product surface. Eligibility alone is not enough: before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); Cursor reminds only and must not run the scan. | Main Browse Screen (or first capability after it that ships a real feed) | — |
-| iOS Photos permission | Typography text-style tokens (5.1 ships color tokens only; M3 default TextTheme) | Color-first keeps 5.1 small; type scale locks when heavy content UI lands | Main Browse Screen | ADR-009 |
+| Portfolio | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); Cursor reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7) | — |
 | iOS Photos permission | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |

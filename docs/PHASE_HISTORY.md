@@ -204,3 +204,93 @@ Docs close-out (STATE + PHASE_HISTORY + acceptance notes): (this commit)
 
 Related ADR: ADR-013. Known debt carried: Library Totals Shell raw
 exception error row → Settings and localisation completion (ADR-012).
+
+## Main Browse Screen and vertical Media Feed — completed 2026-08-06
+
+- [x] 7.1 Contract freeze (ADR-014): Cap 7 slim feed model — ephemeral id
+      queue from Cap 6 resolve only; Sequential + Manual (kickoff General/
+      Mixed default Shuffle deferred until Endless Shuffle capability);
+      chrome In/Out; Pools tab visible+disabled; tab switch resets to
+      queue head; smoke demoted from default landing; Live Photo = static
+      (+ optional LIVE badge). Freeze Severe Hang / hitch bar for 7.7:
+      iPhone 13 Pro, **Instruments Profile** (same mode as ADR-001
+      baselines; Release not mixed into the gate — optional Release notes
+      only as a separate secondary dataset if owner later asks); mean hitch
+      < 25 ms/s AND **zero** Severe Hang (hard gate; no Conditional Pass
+      rewrite of ADR-001). **Retest surface must be full production chrome**
+      (top All/Photos/Videos + disabled Pools tab + bottom bar shell) — not
+      a bare PageView; POC-04 spike had no chrome, so hitch may regress once
+      chrome is mounted. Design-freeze (no production feed code in 7.1).
+      ADR-014: Accepted at Cap 7.2 work `5ef2e8a` (see DECISIONS).
+      — docs `fb4bc9f`
+
+- [x] 7.2 Theme tokens for feed chrome: typography scale tokens (ADR-009
+      Known debt); feed scrim / on-media contrast tokens as needed; still
+      `accentProvisional` (freeze in 7.8 only).
+      — work `5ef2e8a`
+
+- [x] 7.3 Playback + image pipeline (ADR-006): production foreground
+      PlaybackApi path — PV attach/detach, bounded 1+1; image display
+      request path; no Background Audio / Now Playing product scope.
+      — work `29fcf2d`
+
+- [x] 7.4 Main Browse chrome shell: top All/Photos/Videos + Pools disabled
+      (ARB Coming soon on-cell; no tap SnackBar); bottom NavigationBar
+      (Browse active; Clips/Auto/Settings stub; explicit indicatorColor
+      token); Main Browse = default post-auth landing; library_smoke
+      debug-only via Settings; Limited banner kept.
+      — work `d54d9be`
+
+- [x] 7.5 Vertical Media Feed: PageView (or equivalent) over ephemeral
+      queue; Manual swipe; wire resolve(All|Photos|Videos); pool/preheat
+      bounds (ADR-P.5 spirit); architecture + localization guards green.
+      — work `fb82bf6`
+
+- [x] 7.6 Source switch behavior: changing top tab rebuilds ephemeral
+      queue from Cap 6 resolve and starts at queue head; no Pool model;
+      no Session Continuity product rules; session-scoped successful
+      resolve cache per built-in (ADR-014 Decision 5; process lifetime;
+      failures uncached; “session” ≠ Consumption Session).
+      — work `79f8c12`
+
+- [x] 7.7 Real-device feed acceptance (iPhone 13 Pro, **Profile**): scroll
+      real library; hitch < 25 ms/s AND no Severe Hang per 7.1 hard gate;
+      notes under `docs/acceptance/`. Campaign recorded **FAIL** then
+      **INVALIDATED as Profile gate** (errata: actual install was **Release**
+      via `build`+`install --release`; tables retained as Release forensic
+      only — `cap7-7.7-notes.md`). Hard bar unchanged. Fail path was
+      suspended pending 7.7a (later **not** taken — 7.7a PASS).
+      — docs `b45a318` + errata `2481d49`
+
+- [x] 7.7a Profile hard-gate retest: Videos×3 + All×3, **same V-hard** rules,
+      **Profile only** (`flutter build ios --profile` +
+      `flutter install --profile`). Doomscroll intensity credibility **yes**.
+      **PASS** 2026-08-06 (Videos ≈0.29/0.89/0.98; All ≈2.7/8.2/1.9 ms/s;
+      zero Severe Hang). Notes `cap7-7.7a-profile-retest-notes.md`.
+      — docs `eed9d22`
+
+- [x] 7.7b Severe Hang diagnosis — **N/A** (7.7a Profile PASS; diagnosis path
+      not required). Notes left paused/cancelled:
+      `cap7-7.7b-hang-diagnosis-notes.md`.
+
+- [x] 7.7c Fix hang root cause — **N/A** (no 7.7b).
+
+- [x] 7.7d Profile re-retest after fix — **N/A** (no 7.7c). ADR-015 **not**
+      required on this PASS path.
+
+- [x] 7.8 Accent freeze (last) + Cap 7 close-out: rename
+      `accentProvisional` → `accent` (Light `#FC2555`, Dark `#FF6B8A`);
+      add `brandGold` `#E0C590` (L==D); Loading spinners → `brandGold`;
+      CTA / selected chrome → `accent`. Same docs commit: clear Profile
+      Severe Hang / typography / final-accent Known debt rows; add Browse
+      forced-dark + opaque top-bar debts (Media Info Overlay); ADR-009
+      Consequences + ADR-014 cross-ref; STATE + PHASE_HISTORY. Portfolio
+      Public scan remains owner-only. **Release hang** Known debt stays.
+      — work `0e3eec2`
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-009/014): (this commit)
+
+Related ADRs: ADR-001, ADR-006, ADR-009, ADR-010, ADR-012, ADR-014.
+Known debt carried: Release hang → Final hardening; Browse forced-dark +
+opaque top bar → Media Info Overlay; Portfolio Private→Public scan
+owner-only (eligibility met).
