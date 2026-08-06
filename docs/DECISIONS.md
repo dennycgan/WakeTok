@@ -410,6 +410,10 @@
     foreground lifecycle: detach layer + **pause** on background; re-adopt
     existing player on foreground / play (no recreate). Keep-audio + queue
     advance + Now Playing remain Production Background Audio (ADR-002).
+  - **Cap 7.5 restore wiring (work `fb82bf6`, 2026-08-06):** restore contract
+    is wired — `PlaybackGateway.onPlaybackRestoreRequired` → domain
+    `PlaybackRepository.restoreRequests` → `main_browse` listens and syncs
+    feed index / `PageController` (empty queue ignored; index clamped).
 
 ---
 
