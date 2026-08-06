@@ -2,19 +2,18 @@
 
 > Attribute Severe Hang main-thread blocks (ADR-001 re-evaluation,
 > diagnosis-first) **if** Cap **7.7a** Profile hard gate **FAIL**s.  
-> **Status: PAUSED** pending Cap **7.7a** (`cap7-7.7a-profile-retest-notes.md`).  
-> Cap **7.7** Profile gate was **INVALIDATED** (Release used — see
-> `cap7-7.7-notes.md` Errata). Do **not** treat Release FAIL as Profile FAIL.
+> **Status: N/A** — Cap **7.7a** Profile hard gate **PASS** (2026-08-06).
+> Diagnosis path not required. Early Profile D-A-high attempts archived as
+> unused. See `cap7-7.7a-profile-retest-notes.md`.
 
 ## Campaign status
 
 | Field | Value |
 |-------|--------|
-| Status | **Paused** (2026-08-06) |
-| Resume when | Cap **7.7a** Profile hard gate **FAIL** |
-| Cancel / N/A when | Cap **7.7a** Profile hard gate **PASS** |
-| Early Profile attempts | Two **D-A-high** sessions (correct Profile build) — hang **not** reproduced; **retain** as spare if 7.7a FAILs — do **not** discard |
-| Do not run now | D-A-low / D-V-hang / D-idle (off-campaign until resume) |
+| Status | **N/A** (2026-08-06) — cancelled because 7.7a PASS |
+| Resume when | n/a |
+| Cancel / N/A when | Cap **7.7a** Profile hard gate **PASS** — **done** |
+| Early Profile attempts | Two **D-A-high** (hang not reproduced) — retained for history only |
 
 ## Locked rules (when resumed)
 

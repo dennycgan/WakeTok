@@ -171,7 +171,7 @@ All surface (Release forensic): **FAIL** (3/3 hard-bar miss on Release).
 | All 3/3 (Release forensic) | **FAIL** |
 | Historical phase label | **FAIL** (2026-08-06 fill) |
 | **Profile hard-gate status** | **INVALIDATED** — see Errata; pending Cap **7.7a** |
-| Fail path (ADR-001) | **Suspended** until 7.7a Profile verdict — must **not** treat Release FAIL as Profile gate FAIL |
+| Fail path (ADR-001) | **Not taken** — Cap **7.7a** Profile PASS (`cap7-7.7a-profile-retest-notes.md`); was suspended after Errata |
 | Evidence completeness | **Yes** — six Release Runs retained |
 
 ### Docs / process after errata

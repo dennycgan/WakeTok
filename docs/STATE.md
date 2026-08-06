@@ -41,8 +41,8 @@
       iCloud-only assets; device-local filtering is spike-only; acceptance
       includes date-distribution sampling on owner's real 40k library)
 - [ ] Main Browse Screen and vertical Media Feed
-      (ADR-014 Accepted; Severe Hang hard gate: Profile + full chrome;
-      zero Severe Hang; fail → ADR-001 SwiftUI re-evaluation)
+      (ADR-014 Accepted; Cap 7.7a Profile V-hard PASS — Severe Hang Profile
+      gate paid; Release hang Known debt separate; Cap 7.8 close-out next)
       <-- YOU ARE HERE
 - [ ] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
@@ -153,41 +153,35 @@ Active capability: Main Browse Screen and vertical Media Feed
       notes under `docs/acceptance/`. Campaign recorded **FAIL** then
       **INVALIDATED as Profile gate** (errata: actual install was **Release**
       via `build`+`install --release`; tables retained as Release forensic
-      only — `cap7-7.7-notes.md`). Hard bar unchanged. Fail path
-      **suspended** pending 7.7a. Outline updated.
-      — docs `b45a318` + errata docs (follow-up)
+      only — `cap7-7.7-notes.md`). Hard bar unchanged. Fail path was
+      suspended pending 7.7a (later **not** taken — 7.7a PASS).
+      — docs `b45a318` + errata `2481d49`
 
-- [~] 7.7a Profile hard-gate retest: Videos×3 + All×3, **same V-hard** rules,
+- [x] 7.7a Profile hard-gate retest: Videos×3 + All×3, **same V-hard** rules,
       **Profile only** (`flutter build ios --profile` +
-      `flutter install --profile`). Match prior hang-trigger scroll intensity
-      for credibility (not a new bar). Notes
-      `cap7-7.7a-profile-retest-notes.md`. **PASS** → 7.7b–d N/A; Release hang
-      Known debt remains. **FAIL** → resume 7.7b.
+      `flutter install --profile`). Doomscroll intensity credibility **yes**.
+      **PASS** 2026-08-06 (Videos ≈0.29/0.89/0.98; All ≈2.7/8.2/1.9 ms/s;
+      zero Severe Hang). Notes `cap7-7.7a-profile-retest-notes.md`.
+      — docs (follow-up with filled notes)
 
-- [ ] 7.7b Severe Hang diagnosis: Time Profiler / System Trace on Kafka
-      Profile + full chrome; sessions D-A-high, D-A-low, D-V-hang, D-idle;
-      attribute main-thread block (no product code by default; probes only
-      if stacks unreadable — owner-approved). Notes
-      `cap7-7.7b-hang-diagnosis-notes.md`. **Paused** until 7.7a FAIL.
-      Early Profile D-A-high attempts retained. ADR-015 **not** drafted here.
+- [x] 7.7b Severe Hang diagnosis — **N/A** (7.7a Profile PASS; diagnosis path
+      not required). Notes left paused/cancelled:
+      `cap7-7.7b-hang-diagnosis-notes.md`.
 
-- [ ] 7.7c Fix concrete hang root cause(s) from 7.7b notes (product code
-      only as justified by diagnosis). Only if 7.7a FAIL then 7.7b completes.
+- [x] 7.7c Fix hang root cause — **N/A** (no 7.7b).
 
-- [ ] 7.7d Re-run Videos×3 + All×3 under **same** locked rules as 7.7/7.7a
-      (V-hard, Profile, full chrome, every Run must PASS). Then draft
-      ADR-015 from closed evidence (keep Flutter+PV **or** SwiftUI path —
-      follow stacks + retest, no pre-written conclusion). Only if 7.7a FAIL.
+- [x] 7.7d Profile re-retest after fix — **N/A** (no 7.7c). ADR-015 **not**
+      required on this PASS path.
 
-- [ ] 7.8 Accent freeze (last) + Cap 7 close-out: freeze current
+- [~] 7.8 Accent freeze (last) + Cap 7 close-out: freeze current
       `accentProvisional` as formal accent (Q6=A) or owner-supplied hex;
       Light/Dark token-only. In the **same** docs close-out commit, clear
       or mark resolved the Known debt rows that named Main Browse /
-      Production Main Browse as picker-up: (1) Severe Hang ADR-001 (only if
-      Profile gate actually paid), (2) typography tokens ADR-009, (3) final
-      accent color ADR-009. STATE + PHASE_HISTORY; portfolio Public scan
-      remains owner-only. Blocked until 7.7a settles (and if FAIL, until
-      7.7d + ADR-015 path is settled). Release hang debt is separate.
+      Production Main Browse as picker-up: (1) Severe Hang ADR-001 (**Profile
+      gate paid by 7.7a** — clear at close-out), (2) typography tokens
+      ADR-009, (3) final accent color ADR-009. STATE + PHASE_HISTORY;
+      portfolio Public scan remains owner-only. **Release hang** Known debt
+      stays separate (not cleared by 7.7a).
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -197,13 +191,13 @@ Active capability: Main Browse Screen and vertical Media Feed
 > explicit owner approval of the phases.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 7.7a Profile hard-gate retest (V-hard)
-- Sub-steps done: 7.1–7.7 (7.7 campaign **INVALIDATED** as Profile gate —
-      Release install errata in `cap7-7.7-notes.md`; `b45a318` + follow-up)
-- Next step: `flutter build ios --profile` + `flutter install --profile` on
-      Kafka; fill `cap7-7.7a-profile-retest-notes.md` (intensity credibility)
-- Related decisions: ADR-001 … ADR-014; Fail path / 7.7b only if 7.7a FAIL;
-      ADR-015 only after 7.7d if that path runs
+- Goal (one line): Cap 7.8 Accent freeze + Cap 7 close-out
+- Sub-steps done: 7.1–7.7a (7.7 Release forensic INVALIDATED; **7.7a
+      Profile V-hard PASS** — `cap7-7.7a-profile-retest-notes.md`; 7.7b–d N/A)
+- Next step: owner orders accent freeze (Q6) + close-out docs (clear
+      Profile Severe Hang / typography / accent debts; PHASE_HISTORY)
+- Related decisions: ADR-001 … ADR-014; ADR-015 not required on this path;
+      Release hang debt remains for Final hardening
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -230,9 +224,9 @@ Active capability: Main Browse Screen and vertical Media Feed
   docs/acceptance/cap7-7.7-notes.md
 - Acceptance notes (Cap 7.7a Profile retest):
   docs/acceptance/cap7-7.7a-profile-retest-notes.md
-- ADR-001 re-eval outline (Fail path suspended → 7.7a first):
+- ADR-001 re-eval outline (Fail path not taken — 7.7a PASS):
   docs/acceptance/cap7-7.7-adr001-reevaluation-outline.md
-- Hang diagnosis (Cap 7.7b, paused):
+- Hang diagnosis (Cap 7.7b, N/A):
   docs/acceptance/cap7-7.7b-hang-diagnosis-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
@@ -245,8 +239,8 @@ Active capability: Main Browse Screen and vertical Media Feed
 ## Known debt / intentionally deferred
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
-| POC-04 | Severe Hang under fast scrolling / animateToPage load | Cap 7.7 Profile gate **INVALIDATED** (Release used; forensic FAIL retained in `cap7-7.7-notes.md`); hard bar unchanged; binding verdict = Cap **7.7a** Profile retest | Cap 7.7a Profile retest → (if FAIL) 7.7b→c→d | ADR-001 |
-| Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release hard-gate campaign showed V-hard FAIL (`cap7-7.7-notes.md`); Profile may differ — track for shipping path even if 7.7a Profile PASSes | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
+| POC-04 | Severe Hang under fast scrolling / animateToPage load | Cap 7.7 Profile gate INVALIDATED (Release forensic); **Cap 7.7a Profile V-hard PASS** (`cap7-7.7a-profile-retest-notes.md`) — ADR-001 production Profile triage paid; clear row at Cap 7.8 close-out | Cap 7.8 Cap 7 close-out | ADR-001 |
+| Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS** — Release vs Profile divergence confirmed worth tracking for shipping | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |

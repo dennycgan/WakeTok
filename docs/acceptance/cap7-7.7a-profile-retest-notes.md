@@ -3,7 +3,7 @@
 > Binding **Profile** retest of Cap 7.7 hard bar after 7.7 campaign was
 > **INVALIDATED** (Release build used by mistake — see `cap7-7.7-notes.md` Errata).
 > Same V-hard rules as 7.7. Does **not** rewrite the Release forensic tables.
-> Result: **TBD**.
+> Result: **PASS** (2026-08-06).
 
 ## Locked rules
 
@@ -18,7 +18,7 @@
 | Hitch formula | `Total hitch duration ÷ window seconds` |
 | Continue on first miss | Yes — finish all 6 Runs for evidence |
 | Fail path | Only if **this** Profile campaign FAILs → resume 7.7b / ADR-001 path |
-| PASS path | Profile gate PASS → 7.7b–7.7d **N/A** (cancel/pause permanently unless new evidence); Release hang remains separate Known debt |
+| PASS path | Profile gate PASS → 7.7b–7.7d **N/A**; Release hang remains separate Known debt |
 
 ### Operational intensity (credibility — not a new numeric bar)
 
@@ -26,17 +26,8 @@ Prior **Release** campaign and early Profile diagnosis showed hangs under
 **everyday / assertive** Manual scroll (including reverse, fast leave-page,
 iCloud black pages kept scrolling) — not only gentle one-direction paging.
 
-For 7.7a:
-
-- Intentionally exercise **similar intensity** to those sessions (not a
-  deliberately gentle “standardized” crawl).
-- On **PASS**, fill the credibility field below: whether the campaign
-  **attempted** to match previously hang-triggering patterns.
-- This does **not** invent a third verdict. V-hard still decides PASS/FAIL
-  from Instruments numbers. Partial surface FAIL (e.g. Videos PASS, All one
-  miss) is simply **phase FAIL** under V-hard — no special branch.
-- “Looked clean but may not have stressed the feed” must be called out in
-  notes so a PASS is not later misread as under-tested.
+For 7.7a: intentionally exercise **similar intensity** (doomscroll / frame-out
+then fling / mid-run reverse). On PASS, record credibility below.
 
 ---
 
@@ -48,11 +39,11 @@ For 7.7a:
 | UDID | `00008110-001114420AEA801E` |
 | OS under test | iOS 26.6 (23G71) |
 | OS at ADR-001 baseline | iOS 26.5.2 (23F84) — different |
-| Build mode | **Profile** (verify in Xcode/Flutter that install is Profile) |
-| Git HEAD (tested) | _fill_ |
-| Date (local) | _fill_ |
+| Build mode | **Profile** |
+| Git HEAD (tested) | `2481d49` (errata / 7.7a notes template on tree) |
+| Date (local) | 2026-08-06 |
 | Related invalidated campaign | `cap7-7.7-notes.md` (Release forensic) |
-| Install commands used | _paste exact commands_ |
+| Install commands used | `flutter build ios --profile` then `flutter install --profile -d 00008110-001114420AEA801E` |
 
 ---
 
@@ -62,21 +53,21 @@ For 7.7a:
 
 | Run | Window (s) | Hitch count | Hitch Total | Mean hitch (ms/s) | Severe Hang? | Gesture / intensity notes | Result |
 |-----|------------|-------------|-------------|-------------------|--------------|---------------------------|--------|
-| V1 | | | | | | | |
-| V2 | | | | | | | |
-| V3 | | | | | | | |
+| V1 | ≈86.9 | 3 | 25.00 ms | **≈0.29** | No | Doomscroll; frame-out then fling; mid-run reverse | **PASS** |
+| V2 | ≈75.1 | 5 | 66.67 ms | **≈0.89** | No | Same intensity | **PASS** |
+| V3 | ≈67.9 | 5 | 66.67 ms | **≈0.98** | No | Same intensity | **PASS** |
 
-Videos surface: **PASS / FAIL**
+Videos surface: **PASS**
 
 ### All
 
 | Run | Window (s) | Hitch count | Hitch Total | Mean hitch (ms/s) | Severe Hang? | Gesture / intensity notes | Result |
 |-----|------------|-------------|-------------|-------------------|--------------|---------------------------|--------|
-| A1 | | | | | | | |
-| A2 | | | | | | | |
-| A3 | | | | | | | |
+| A1 | ≈79 | 23 | 216.68 ms | **≈2.7** | No | Same intensity; iCloud-only pages kept scrolling | **PASS** |
+| A2 | ≈70 | 55 | 575.04 ms | **≈8.2** | No | Same intensity | **PASS** |
+| A3 | ≈94 | 21 | 183.35 ms | **≈1.9** | No | Same intensity | **PASS** |
 
-All surface: **PASS / FAIL**
+All surface: **PASS**
 
 ---
 
@@ -84,11 +75,11 @@ All surface: **PASS / FAIL**
 
 | Field | Value |
 |-------|--------|
-| Videos 3/3 | |
-| All 3/3 | |
-| **Phase 7.7a (Profile hard gate)** | **PASS / FAIL** |
-| Intensity credibility (esp. if PASS) | Did this campaign attempt prior hang-trigger patterns (assertive scroll, reverse, fast leave, iCloud pages kept)? **yes / partial / no** — _one line_ |
-| Next | If PASS → close 7.7b–d as N/A; keep Release hang Known debt; toward 7.8 (or Release triage). If FAIL → resume **7.7b** (keep existing Profile D-A-high attempts) |
+| Videos 3/3 | **PASS** |
+| All 3/3 | **PASS** |
+| **Phase 7.7a (Profile hard gate)** | **PASS** |
+| Intensity credibility (esp. if PASS) | **yes** — assertive doomscroll, reverse, fast leave; iCloud black pages not skipped |
+| Next | **7.7b–7.7d N/A**; ADR-001 Fail path **not** taken; Release hang Known debt **remains**; proceed toward **Cap 7.8** |
 
 ---
 
@@ -96,6 +87,6 @@ All surface: **PASS / FAIL**
 
 | Field | Value |
 |-------|--------|
-| Owner | |
-| Date | |
-| Comment | |
+| Owner | Denny C. Gan |
+| Date | 2026-08-06 |
+| Comment | Profile V-hard 6/6 PASS under doomscroll intensity. Release forensic FAIL retained separately. |
