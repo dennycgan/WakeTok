@@ -1041,7 +1041,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-015: Cap 8 Media Info Overlay contract + POC-10 file-size semantics
 
-- Status: Accepted (2026-08-08)
+- Status: Accepted (2026-08-08); the Decision 7 clause that top source chrome
+  uses translucent/scrim (mediaScrim) is superseded by ADR-016 (2026-08-08) —
+  the forced-dark portion of Decision 7 is unaffected
 - Commit/PR anchor: a721bdc
 - Plain summary (owner reads this):
   Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell,
@@ -1140,3 +1142,75 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Kickoff ADR-W §5 disclaimer (size ≠ device disk / iCloud quota /
     optimized-local / immediate free-on-delete) remains a copy landing
     Known debt — not duplicated as eng Decisions here.
+
+---
+
+## ADR-016: Cap 8.2 revision — transparent top chrome + compact bottom bar
+
+- Status: Accepted (2026-08-08)
+- Commit/PR anchor: 5fb93de
+- Plain summary (owner reads this):
+  Browse top tabs no longer sit on a grey translucent band — labels float on
+  the media with a light text shadow. The bottom bar stays opaque dark but uses
+  a compact custom icon+label row (48 logical pixels) so Material 3 NavigationBar
+  SafeArea no longer inflates the grey block; height feels closer to
+  Douyin/TikTok’s compact bar while keeping destination labels.
+- Context / what problem forced this:
+  Cap 8.2 work `a721bdc` (ADR-015 Decision 7) paid the “opaque top bar eating
+  media” debt with a Stack overlay and `mediaScrim` fill. Owner real-device
+  comparison against Douyin/TikTok showed the scrim still reads as a grey color
+  band over media; the reference UI floats tab labels with no background block,
+  relying on text shadow for contrast on bright frames. Separately, Material 3
+  `NavigationBar` paints SafeArea *inside* its Material, so setting `height`
+  still yields a tall grey block (row + Home Indicator). ADR-015 never froze a
+  bottom-bar height. Forced-dark destination rules from ADR-015 Decision 7 remain
+  correct and are not reopened.
+- Decision (what was chosen):
+  1. **Supersede scope (narrow):** Only the ADR-015 Decision 7 clause that the
+     top source chrome uses a **translucent/scrim** (`mediaScrim`) fill so media
+     shows through is superseded. The **forced-dark** portion of ADR-015
+     Decision 7 (Browse/Clips/Auto + shared bottom bar forced dark via
+     destination-conditional Theme; Settings follows Appearance;
+     Theme+Builder so Scaffold resolves tokens after override) is **unaffected**
+     and remains binding.
+  2. **Top source chrome treatment (final):** `_TopSourceChrome` `Material.color`
+     is `Colors.transparent` (Material retained for InkWell). Selected /
+     unselected colors remain `accent` / `onMedia`·`onMediaMuted`. Readability
+     on arbitrary media comes from **on-media text shadows**, not a scrim band.
+     Shadow parameters live on `WakeTokTokens.onMediaLabelShadows` (same in
+     Light/Dark): single layer `Color(0x8A000000)`, `blurRadius: 6`,
+     `offset: Offset(0, 1)`. Dual-shadow remains an optional post-device follow-up,
+     not part of this Decision. `_PoolsCell` uses the same shadows.
+  3. **Bottom bar (new; not a supersede):** Do **not** use Material 3
+     `NavigationBar` for Main Browse. Use a custom compact destination row with
+     content height **`48`** logical pixels (`WakeTokTokens.immersiveBottomBarHeight`,
+     L/D same), keeping destination labels. Paint the same opaque `surface` under
+     the Home Indicator as a separate inset below the row so SafeArea does not
+     inflate the icon+label strip. Background remains opaque under the existing
+     forced-dark rules. Widget tests guard content height and transparent top
+     Material (W-9 / W-11).
+- Rejected alternatives (why not B):
+  - Keep / only lower `mediaScrim` alpha — rejected (still a visible color band;
+    fails Douyin-style floating labels).
+  - Edit ADR-015 Decision 7 in place to replace scrim wording — rejected
+    (Accepted entries are immutable; supersede via new ADR).
+  - Broad “supersedes ADR-015 Decision 7” without clause scope — rejected
+    (would falsely imply forced-dark is overturned).
+  - Treat height 48 / custom bar as superseding ADR-015 — rejected (ADR-015 never
+    specified height or NavigationBar; this is additive).
+  - Keep M3 `NavigationBar` and only set `height` / `MediaQuery.removePadding` —
+    rejected (inner SafeArea still paints a tall grey block on device; owner
+    acceptance failed until the custom row landed).
+  - Hide destination labels (`alwaysHide`) for a thinner bar — rejected (owner
+    requires labels; accept remaining thickness vs Douyin).
+  - Hard-code shadow / height `Color(0x…)` or `48` inside `lib/features/**` —
+    rejected (ADR-009 token discipline; architecture `Color(0x` guard; tests
+    must share the same token values).
+- Consequences / constraints accepted:
+  - ADR-015 Status records the Decision 7 translucent/scrim clause supersession;
+    forced-dark text in Decision 7 stays historically accurate and binding.
+  - `mediaScrim` token remains available for other on-media chrome (e.g. future
+    Overlay); it is no longer used as the top source switcher background.
+  - Accepted anchor is Cap 8.2 revision work `5fb93de` (2026-08-08).
+  - Cap 8 continues at phase 8.3 (Presentation Metadata); this revision does not
+    open 8.3 scope.

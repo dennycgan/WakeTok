@@ -126,9 +126,10 @@ POC-10 file-size semantics, optional best-effort Location Label
       ADR-015 wide draft approved in chat (Accepted at 8.2 work `a721bdc`)
 - [x] 8.2 Immersive Browse chrome: forced-dark for Browse/Clips/Auto
       destinations including shared bottom bar; Settings follows
-      Appearance; translucent top source chrome (Stack + mediaScrim).
-      ADR-015 Accepted anchor `a721bdc` (Decisions land progressively
-      8.2–8.6). Pays forced-dark + opaque-top Known debts.
+      Appearance. Initial work `a721bdc` (ADR-015). Revision `5fb93de`
+      (ADR-016): transparent top chrome + on-media label shadows;
+      compact custom bottom bar (48pt content row). Pays forced-dark +
+      opaque-top Known debts.
 - [ ] 8.3 Presentation Metadata: Pigeon + gateway + domain; current-page
       only; per-field nullable (`creationDateMs`, `mediaKind`,
       `fileSizeBytes?`, `fileSizeSemantics?`); fields may arrive on
@@ -151,11 +152,12 @@ POC-10 file-size semantics, optional best-effort Location Label
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.2 closed; next 8.3 Presentation Metadata
-- Sub-steps done: 8.1 freeze; 8.2 immersive chrome work `a721bdc`;
-      ADR-015 Accepted in DECISIONS (this docs commit)
+- Goal (one line): Cap 8.2 closed (incl. revision); next 8.3 Presentation
+      Metadata
+- Sub-steps done: 8.1 freeze; 8.2 chrome `a721bdc`; 8.2 revision `5fb93de`;
+      ADR-015 + ADR-016 in DECISIONS
 - Next step: owner go 8.3 (Pigeon + domain presentation metadata)
-- Related decisions: ADR-001 … ADR-015; Release hang → Final hardening;
+- Related decisions: ADR-001 … ADR-016; Release hang → Final hardening;
       Location Known debt; file-size disclaimer copy Known debt;
       Portfolio scan remains owner-only
 
@@ -169,14 +171,15 @@ POC-10 file-size semantics, optional best-effort Location Label
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); debug totals shell: lib/features/library_smoke/
 - Main Browse shell: lib/features/main_browse/ (Cap 7.4–7.6 feed;
-  Cap 8.2 immersive forced-dark + translucent top chrome, work `a721bdc`)
+  Cap 8.2 immersive forced-dark; Cap 8.2 revision transparent top +
+  compact bottom bar, work `5fb93de` / ADR-016)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-015: docs/DECISIONS.md
+- ADR-001 … ADR-016: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
