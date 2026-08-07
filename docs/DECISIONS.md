@@ -1036,3 +1036,105 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - **Cap 7.8 accent freeze:** frozen accent / `brandGold` values are
     recorded in ADR-009 Consequences (work `0e3eec2`); this ADR does not
     duplicate hex.
+
+---
+
+## ADR-015: Cap 8 Media Info Overlay contract + POC-10 file-size semantics
+
+- Status: Accepted (2026-08-08)
+- Commit/PR anchor: a721bdc
+- Plain summary (owner reads this):
+  Browse（以及 Clips/Auto stub）在沉浸壳里强制暗色并含底栏，Settings 仍跟
+  Appearance；左下媒体信息浮层先做三行（日期 + Live 文案/文件大小），本版不做
+  地点；文件大小只用公开、不落盘下载的本地回退，拿不到就留白。
+- Context / what problem forced this:
+  Cap 7 (ADR-014) shipped the vertical feed but left Media Info Overlay,
+  loading/empty polish, POC-10 file-size semantics, and two Known debts
+  (forced-dark immersive chrome; opaque top bar). Kickoff MVP Scope §3 /
+  ADR-W / POC-10 / ADR-X / ADR-T define the product rules. Cap 8 must freeze
+  an implementable contract without pulling Waiting for Media, Source
+  Availability, Live motion (POC-08), or Location reverse-geocode into this
+  capability. Formal Xcode 26.3 Photos headers have no PHAssetResource.dataSize,
+  so Tier 1 cannot be assumed.
+- Decision (what was chosen):
+  1. **Overlay rows:** Fixed-height Presentation Metadata overlay, bottom-leading
+     above the bottom bar. Cap 8 renders rows 1–3 only (Relative Date, Exact
+     Date and Time, Media Characteristics). Row 4 (Location) is omitted
+     (owner Q1=B; kickoff ADR-X best-effort deferral). Empty fields keep
+     reserved row height for rows that are shown so layout does not jump
+     while scrolling.
+  2. **Progressive field updates:** Host/domain expose per-field nullable
+     metadata (`creationDateMs`, `mediaKind`, `fileSizeBytes`,
+     `fileSizeSemantics`). UI paints each field when it arrives; file size
+     may update row 3 in place. Do not block paint on a fully populated DTO.
+  3. **Request discipline:** Metadata fetch is **current feed page only**
+     (owner Q5=A). Cancel on page leave; session-scoped memory cache; do not
+     scan the resolved id list. **Location “current Item only”** remains a
+     kickoff hard rule for any future Location Cap and is **not** relaxed if
+     metadata ±1 prefetch is ever added later.
+  4. **Live Photo label vs motion:** Row 3 may show Live Photo copy when
+     `mediaKind == livePhoto` (owner Q4=A). PHLivePhoto / motion playback
+     stays the Live Photo capability + POC-08.
+  5. **POC-10 tiers for Cap 8:**
+     - Tier 1 (`PHAssetResource.dataSize`): **Unavailable** on the formal
+       SDK used for MVP (verified: Xcode 26.3 / iPhoneOS SDK
+       `PHAssetResource.h` has no `dataSize`). No KVC / private API; no
+       runtime `respondsToSelector` spike.
+     - Tier 2 (generated-clip known output size): **slot only** until Physical
+       Clip Export exists.
+     - Tier 3 (local video URL via `requestAVAsset`, network access disallowed)
+       and Tier 4 (local image representation byte count via
+       `requestImageDataAndOrientation`, network disallowed): **enabled** for
+       Cap 8 when semantics are reliable.
+     - Multi-resource / ambiguous assets: return nil rather than a misleading
+       sum (kickoff ADR-W).
+     - Nil means blank row content, not zero bytes; never download solely for
+       size; never block playback for size.
+  6. **`fileSizeSemantics` enum (Cap 8 new contract — not kickoff/GLOSSARY
+     terms):** Wire/domain may carry
+     `primaryResource` | `localVideoUrl` | `currentImageRepresentation` |
+     `unknownUnavailable` (names frozen at implementation). Documents and ADR
+     must label this enum as Cap-8-introduced, not a kickoff glossary term.
+  7. **Immersive chrome (owner Q2=B):** When bottom destination is Browse,
+     Clips, or Auto, force dark immersive tokens for that content **and** the
+     shared bottom bar (destination-conditional Theme override; bar is a
+     sibling of IndexedStack). Settings follows Appearance, including the bar
+     while Settings is selected. Top source chrome becomes translucent/scrim
+     so media shows through (pays Cap 7 Known debts in phase 8.2).
+     Implementation (work `a721bdc`): Theme+Builder so Scaffold.backgroundColor
+     resolves after the dark override; Browse pane is a Stack with full-bleed
+     feed and Positioned top chrome using `mediaScrim` + on-media label tokens.
+  8. **Out of Cap 8:** Location reverse-geocode UI; Waiting for Media product
+     surface; Source Availability multi-source errors; Endless Shuffle /
+     Session Queue; Right Action Rail / Share / Mute / Fit·Fill·Crop / 2×;
+     Add to Album.
+- Rejected alternatives (why not B):
+  - Implement Location in Cap 8 — rejected (scope/risk; kickoff ADR-X allows
+    hide row 4; Known debt recorded).
+  - Forced-dark on feed+top only (bar follows Appearance) — rejected (hard
+    Light/Dark seam under immersive feed; owner Q2=B).
+  - Runtime probe for `dataSize` despite missing formal header — rejected
+    (does not change Cap 8 path; owner Q3=A).
+  - Defer Live Photo row-3 copy until Live Photo Cap — rejected (mediaKind
+    already required for size tiering; owner Q4=A).
+  - Prefetch metadata for ±1 neighbors in Cap 8 — rejected (hitch risk;
+    owner Q5=A).
+  - Extend `resolveSource` with full-library presentation metadata — rejected
+    (payload/perf; use current-page requests).
+  - KVC / private file-size APIs to raise coverage — rejected (POC-10 /
+    kickoff ban).
+- Consequences / constraints accepted:
+  - ADR-009 / ADR-010 / ADR-012 continue to bind tokens, composition root, ARB.
+  - ADR-014 feed model unchanged; Cap 8 adds chrome + overlay on top.
+  - Tier 2 wiring waits for Generated Clip / export capabilities.
+  - Location Known debt remains until Owner schedules a later Cap; current-Item
+    geocode discipline stays binding then.
+  - Accepted date/anchor = first Cap 8 work commit that implements any Decision
+    above (`a721bdc`, phase 8.2). Decisions 1–6 land progressively across
+    8.3–8.6; phase 8.4 confirms Tier 3/4 on device and must not invent a
+    second ADR for the same freeze.
+  - Clips/Auto share the immersive dark shell while stubs; a future Cap may
+    overturn with a new ADR if product context diverges.
+  - Kickoff ADR-W §5 disclaimer (size ≠ device disk / iCloud quota /
+    optimized-local / immediate free-on-delete) remains a copy landing
+    Known debt — not duplicated as eng Decisions here.
