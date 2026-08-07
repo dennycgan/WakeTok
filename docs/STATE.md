@@ -104,11 +104,14 @@ Active capability: Media Info Overlay, loading states, empty states,
 POC-10 file-size semantics, optional best-effort Location Label
 (not release-blocking)
 
-> Phase list pending explicit owner approval before coding starts.
-> Cap 7.8 close-out claimed the following Known debt rows for this
-> capability (separate lines; do not merge when scheduling):
-> - Browse doomscroll forced-dark chrome (does not follow Appearance)
-> - Opaque top bar eating media
+> Owner-approved Cap 8 design lock (Q1=B Location deferred/hide row 4;
+> Q2=B forced-dark = Browse pane + shared bottom bar when destination
+> is non-Settings; Settings follows Appearance; Q3=A Tier 1 unavailable
+> → Tier 3/4 only; Q4=A Live Photo label from mediaKind; Q5=A current
+> page only). Field-progressive Presentation Metadata (per-field nullable,
+> render on arrival). Location “current Item only” remains a hard rule
+> independent of any future ±1 metadata prefetch. Cap 7.8 debts paid in
+> 8.2 (do not merge those rows when scheduling).
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -117,13 +120,47 @@ POC-10 file-size semantics, optional best-effort Location Label
 > When YOU ARE HERE moves, do not generate Phase Roadmap content without
 > explicit owner approval of the phases.
 
+- [x] 8.1 Contract freeze: Overlay four-row contract (row 4 omitted this
+      Cap); POC-10 Tier policy (Tier 1 Unavailable; Tier 2 slot; enable
+      3/4); immersive chrome scope Q2=B; progressive field updates;
+      ADR-015 wide draft approved in chat (Accepted + DECISIONS append
+      after first Cap 8 work commit — expected 8.2)
+- [ ] 8.2 Immersive Browse chrome: forced-dark for Browse/Clips/Auto
+      destinations including shared bottom bar; Settings follows
+      Appearance; translucent top source chrome (pay Known debt:
+      forced-dark + opaque top bar). First Cap 8 work commit anchors
+      ADR-015 Accepted (Decisions land progressively 8.2–8.6)
+- [ ] 8.3 Presentation Metadata: Pigeon + gateway + domain; current-page
+      only; per-field nullable (`creationDateMs`, `mediaKind`,
+      `fileSizeBytes?`, `fileSizeSemantics?`); fields may arrive on
+      different timings — do not gate UI on a fully populated DTO
+- [ ] 8.4 POC-10: enable safe Tier 3/4 on device; multi-resource /
+      ambiguous → nil; confirm Tier policy on device (ADR-015 already
+      Accepted at 8.2 work sha; header evidence: formal SDK lacks
+      `dataSize`; no runtime selector spike)
+- [ ] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 omitted;
+      progressive per-field paint (size may update in place); ARB;
+      `Live Photo` copy when `mediaKind == livePhoto`
+- [ ] 8.6 Loading / Empty product polish (resolve + per-page); no
+      Waiting for Media / Source Availability product surfaces
+- [ ] 8.7 Location deferral close-out (lightweight): confirm Overlay row 4
+      omitted in UI; Known debt row already recorded at design lock —
+      no geocoding work this Cap
+- [ ] 8.8 Real-device acceptance: overlay height stability; file-size
+      sample semantics; coarse hitch sanity (not a Cap 7.7a re-gate)
+- [ ] 8.9 Cap 8 close-out: STATE + PHASE_HISTORY; clear Overlay
+      forced-dark / opaque-top-bar debts; Location debt remains
+
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Media Info Overlay / loading / empty / POC-10 (phase
-      design pending owner approval)
-- Sub-steps done: Cap 7 closed (work `0e3eec2`; this docs close-out)
-- Next step: owner approves Media Info Overlay Phase Roadmap
-- Related decisions: ADR-001 … ADR-014; Release hang debt remains for
-      Final hardening; Portfolio Private→Public scan remains owner-only
+- Goal (one line): Cap 8.1 closed; waiting owner go 8.2 (immersive chrome)
+- Sub-steps done: Cap 8 design lock; ADR-015 wide draft approved in chat
+      (not yet in DECISIONS); Phase Roadmap + Known debt in STATE
+- Next step: owner go 8.2 after this STATE docs commit; then implement
+      forced-dark + translucent top bar; docs commit 2 appends ADR-015
+      Accepted at 8.2 work sha
+- Related decisions: ADR-001 … ADR-014; ADR-015 pending append after 8.2
+      work; Release hang → Final hardening; Location Known debt;
+      Portfolio scan remains owner-only
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -166,8 +203,10 @@ POC-10 file-size semantics, optional best-effort Location Label
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
 | Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
-| Media Info Overlay | Browse doomscroll forced-dark chrome (does not follow system Appearance) | Product rule: immersive Browse stays dark regardless of Settings Appearance preference (independent of System/Light/Dark); Cap 7 left shell on ambient Theme | Media Info Overlay, loading states, empty states, POC-10 file-size semantics, optional best-effort Location Label | ADR-009 / ADR-014 |
-| Media Info Overlay | Opaque top bar eating media | Cap 7 top source chrome uses solid `surface`; immersive Browse should let media show through (separate from forced-dark) | Media Info Overlay, loading states, empty states, POC-10 file-size semantics, optional best-effort Location Label | ADR-014 |
+| Media Info Overlay | Browse doomscroll forced-dark chrome (does not follow system Appearance) | Product rule: immersive shell (Browse/Clips/Auto + shared bottom bar) stays dark regardless of Appearance; Settings follows Appearance; Cap 7 left shell on ambient Theme. Cap 8 lock: Q2=B | Cap 8 phase 8.2 | ADR-009 / ADR-014 |
+| Media Info Overlay | Opaque top bar eating media | Cap 7 top source chrome uses solid `surface`; immersive Browse should let media show through (separate from forced-dark) | Cap 8 phase 8.2 | ADR-014 |
+| Media Info Overlay | Location Label (reverse geocode) not implemented | Owner Cap 8 Q1=B: hide Overlay row 4 this Cap (kickoff ADR-X best-effort deferral). Current-Item-only geocode hard rule unchanged when a later Cap picks this up | Later Cap (or reopen when Owner schedules) | kickoff ADR-X |
+| Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
