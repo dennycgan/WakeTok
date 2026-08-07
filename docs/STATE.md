@@ -130,17 +130,24 @@ POC-10 file-size semantics, optional best-effort Location Label
       (ADR-015). Revision `5fb93de` (ADR-016): transparent top + compact
       custom bar. Fix `60f3283` (ADR-017): bar always dark on Settings.
       Pays forced-dark + opaque-top Known debts.
-- [ ] 8.3 Presentation Metadata: Pigeon + gateway + domain; current-page
-      only; per-field nullable (`creationDateMs`, `mediaKind`,
-      `fileSizeBytes?`, `fileSizeSemantics?`); fields may arrive on
-      different timings — do not gate UI on a fully populated DTO
-- [ ] 8.4 POC-10: enable safe Tier 3/4 on device; multi-resource /
-      ambiguous → nil; confirm Tier policy on device (ADR-015 already
-      Accepted at `a721bdc`; header evidence: formal SDK lacks
+- [x] 8.3 Presentation Metadata: Pigeon + gateway + domain; current-page
+      only; two HostApi calls (`requestPresentationMetadata` then
+      `requestPresentationFileSize`) for progressive fields
+      (`creationDateMs?`, required `mediaKind` on success,
+      `fileSizeBytes?`, `fileSizeSemantics?`); host Tier 3/4
+      implemented. Work `c0c04e1`. Feature-layer FeedMediaRequestGate
+      staleness discard + tests land with 8.5 Overlay (semantics frozen
+      here / ADR-015 Decision 3 — not re-opened at 8.5; implementation
+      deferred so no orphan helper without Overlay consumer).
+- [ ] 8.4 POC-10: device-confirm safe Tier 3/4 paths already in `c0c04e1`;
+      multi-resource / ambiguous → nil; sample local image/video sizes
+      on device (ADR-015 Accepted at `a721bdc`; formal SDK lacks
       `dataSize`; no runtime selector spike)
 - [ ] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 omitted;
       progressive per-field paint (size may update in place); ARB;
-      `Live Photo` copy when `mediaKind == livePhoto`
+      `Live Photo` copy when `mediaKind == livePhoto`; wire metadata
+      requests through existing FeedMediaRequestGate (staleness discard
+      tests with Overlay consumer)
 - [ ] 8.6 Loading / Empty product polish (resolve + per-page); no
       Waiting for Media / Source Availability product surfaces
 - [ ] 8.7 Location deferral close-out (lightweight): confirm Overlay row 4
@@ -152,14 +159,15 @@ POC-10 file-size semantics, optional best-effort Location Label
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.2 closed (incl. revision + bar-dark fix); next 8.3
-      Presentation Metadata
-- Sub-steps done: 8.1 freeze; 8.2 chrome `a721bdc`; revision `5fb93de`;
-      bar-dark fix `60f3283`; ADR-015…017 in DECISIONS
-- Next step: owner go 8.3 (Pigeon + domain presentation metadata)
+- Goal (one line): Cap 8.3 closed; next 8.4 POC-10 device confirm of
+      Tier 3/4
+- Sub-steps done: 8.1 freeze; 8.2 chrome + revisions; 8.3 presentation
+      metadata + Tier 3/4 host `c0c04e1`
+- Next step: owner go 8.4 (real-device sample of size semantics)
 - Related decisions: ADR-001 … ADR-017; Release hang → Final hardening;
       Location Known debt; file-size disclaimer copy Known debt;
-      Portfolio scan remains owner-only
+      Portfolio scan remains owner-only; 8.5 owns gate/staleness wiring
+      (frozen semantics, deferred implementation)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -177,6 +185,11 @@ POC-10 file-size semantics, optional best-effort Location Label
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
+- Presentation Metadata: lib/domain/presentation/,
+  PhotoLibraryApi.requestPresentationMetadata /
+  requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015);
+  provider: lib/features/library_smoke/presentation_providers.dart
+  (Overlay + FeedMediaRequestGate wiring → Cap 8.5)
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
 - ADR-001 … ADR-017: docs/DECISIONS.md
