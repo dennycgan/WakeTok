@@ -108,6 +108,22 @@ void main() {
     expect(light.onMediaMuted, dark.onMediaMuted);
   });
 
+  test('T-adr016 onMediaLabelShadows and bar height (L==D)', () {
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+
+    expect(light.immersiveBottomBarHeight, 48);
+    expect(dark.immersiveBottomBarHeight, 48);
+    expect(light.onMediaLabelShadows, dark.onMediaLabelShadows);
+    expect(light.onMediaLabelShadows, hasLength(1));
+    expect(
+      light.onMediaLabelShadows.single.color,
+      const Color(0x8A000000),
+    );
+    expect(light.onMediaLabelShadows.single.blurRadius, 6);
+    expect(light.onMediaLabelShadows.single.offset, const Offset(0, 1));
+  });
+
   test('T-accent frozen hex Light #FC2555 Dark #FF6B8A', () {
     final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;

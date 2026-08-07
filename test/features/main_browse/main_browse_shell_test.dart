@@ -107,7 +107,7 @@ void main() {
     );
   });
 
-  testWidgets('W-7 NavigationBar indicatorColor uses dark accent tint',
+  testWidgets('W-7 selected bottom destination uses accent indicator tint',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
@@ -115,13 +115,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final bar = tester.widget<NavigationBar>(
-      find.byKey(const Key('mainBrowseNavigationBar')),
-    );
-    expect(
-      bar.indicatorColor,
-      darkTokens.accent.withValues(alpha: 0.20),
-    );
+    final indicator = tester.widgetList<DecoratedBox>(find.byType(DecoratedBox)).where((box) {
+      final decoration = box.decoration;
+      return decoration is BoxDecoration &&
+          decoration.color == darkTokens.accent.withValues(alpha: 0.20);
+    });
+    expect(indicator, isNotEmpty);
   });
 
   testWidgets('W-8 immersive bar dark under light ambient; Settings light',
@@ -134,7 +133,7 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
-    NavigationBar barOf() => tester.widget<NavigationBar>(
+    Material barOf() => tester.widget<Material>(
           find.byKey(const Key('mainBrowseNavigationBar')),
         );
     Scaffold scaffoldOf() => tester.widget<Scaffold>(
@@ -144,21 +143,21 @@ void main() {
           ),
         );
 
-    expect(barOf().backgroundColor, darkTokens.surface);
+    expect(barOf().color, darkTokens.surface);
     expect(scaffoldOf().backgroundColor, darkTokens.background);
 
     await tester.tap(find.text(l10n.mainBrowseNavSettings));
     await tester.pumpAndSettle();
-    expect(barOf().backgroundColor, lightTokens.surface);
+    expect(barOf().color, lightTokens.surface);
     expect(scaffoldOf().backgroundColor, lightTokens.background);
 
     await tester.tap(find.text(l10n.mainBrowseNavBrowse));
     await tester.pumpAndSettle();
-    expect(barOf().backgroundColor, darkTokens.surface);
+    expect(barOf().color, darkTokens.surface);
     expect(scaffoldOf().backgroundColor, darkTokens.background);
   });
 
-  testWidgets('W-9 top chrome Material uses mediaScrim not opaque surface',
+  testWidgets('W-9 top chrome Material is transparent (no scrim band)',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
@@ -169,9 +168,25 @@ void main() {
     final material = tester.widget<Material>(
       find.byKey(const Key('mainBrowseTopSourceChrome')),
     );
-    expect(material.color, darkTokens.mediaScrim);
+    expect(material.color, Colors.transparent);
+    expect(material.color, isNot(darkTokens.mediaScrim));
     expect(material.color, isNot(darkTokens.surface));
     expect(material.color, isNot(lightTokens.surface));
+  });
+
+  testWidgets('W-11 bottom bar content height matches immersiveBottomBarHeight',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, themeMode: ThemeMode.light),
+    );
+    await tester.pumpAndSettle();
+
+    final content = tester.widget<SizedBox>(
+      find.byKey(const Key('mainBrowseNavigationBarContent')),
+    );
+    expect(content.height, darkTokens.immersiveBottomBarHeight);
+    expect(content.height, 48);
   });
 
   testWidgets('W-10 Browse pane is Stack with feed and top chrome',

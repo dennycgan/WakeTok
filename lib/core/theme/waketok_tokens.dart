@@ -1,7 +1,8 @@
 part of 'waketok_theme.dart';
 
 /// WakeTok semantic tokens (ADR-009 Decision 5; Cap 7.2 typography + scrim;
-/// Cap 7.8 frozen accent + brandGold).
+/// Cap 7.8 frozen accent + brandGold; Cap 8.2 revision on-media label
+/// shadows + immersive bottom bar height).
 ///
 /// Numeric values live only in code — never in rules or docs.
 /// Resolve at runtime via `Theme.of(context).extension<WakeTokTokens>()`.
@@ -19,6 +20,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.mediaScrim,
     required this.onMedia,
     required this.onMediaMuted,
+    required this.onMediaLabelShadows,
+    required this.immersiveBottomBarHeight,
     required this.titleChrome,
     required this.labelChrome,
     required this.bodyChrome,
@@ -45,6 +48,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   final Color feedBackground;
 
   /// Semi-transparent scrim over media for chrome/controls (L/D same).
+  /// Not used for Browse top source chrome after ADR-016 (transparent +
+  /// [onMediaLabelShadows]); retained for other on-media surfaces.
   final Color mediaScrim;
 
   /// High-contrast foreground on media (L/D same).
@@ -52,6 +57,15 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
 
   /// Secondary foreground on media (L/D same).
   final Color onMediaMuted;
+
+  /// Text shadows for floating on-media labels (L/D same). ADR-016.
+  final List<Shadow> onMediaLabelShadows;
+
+  /// Compact Main Browse destination row height (L/D same). ADR-016.
+  /// Excludes the Home Indicator inset — that zone is painted separately
+  /// in the same [surface] so M3 [NavigationBar]'s inner SafeArea does not
+  /// inflate the grey bar into a two-row-tall block.
+  final double immersiveBottomBarHeight;
 
   /// Top bar / AppBar title role.
   final TextStyle titleChrome;
@@ -74,6 +88,16 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   static const double _bodyChromeSize = 14;
   static const double _labelOnMediaSize = 12;
   static const double _bodyOnMediaSize = 13;
+  static const double _immersiveBottomBarHeight = 48;
+
+  /// Single-layer shadow: black ~54% alpha, blur 6, offset (0, 1).
+  static const List<Shadow> _onMediaLabelShadows = <Shadow>[
+    Shadow(
+      color: Color(0x8A000000),
+      blurRadius: 6,
+      offset: Offset(0, 1),
+    ),
+  ];
 
   static const WakeTokTokens _light = WakeTokTokens(
     background: Color(0xFFF4F4F5),
@@ -85,6 +109,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     mediaScrim: Color(0x99000000),
     onMedia: Color(0xFFFFFFFF),
     onMediaMuted: Color(0xB3FFFFFF),
+    onMediaLabelShadows: _onMediaLabelShadows,
+    immersiveBottomBarHeight: _immersiveBottomBarHeight,
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
       fontWeight: FontWeight.w600,
@@ -127,6 +153,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     mediaScrim: Color(0x99000000),
     onMedia: Color(0xFFFFFFFF),
     onMediaMuted: Color(0xB3FFFFFF),
+    onMediaLabelShadows: _onMediaLabelShadows,
+    immersiveBottomBarHeight: _immersiveBottomBarHeight,
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
       fontWeight: FontWeight.w600,
@@ -170,6 +198,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? mediaScrim,
     Color? onMedia,
     Color? onMediaMuted,
+    List<Shadow>? onMediaLabelShadows,
+    double? immersiveBottomBarHeight,
     TextStyle? titleChrome,
     TextStyle? labelChrome,
     TextStyle? bodyChrome,
@@ -186,6 +216,9 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       mediaScrim: mediaScrim ?? this.mediaScrim,
       onMedia: onMedia ?? this.onMedia,
       onMediaMuted: onMediaMuted ?? this.onMediaMuted,
+      onMediaLabelShadows: onMediaLabelShadows ?? this.onMediaLabelShadows,
+      immersiveBottomBarHeight:
+          immersiveBottomBarHeight ?? this.immersiveBottomBarHeight,
       titleChrome: titleChrome ?? this.titleChrome,
       labelChrome: labelChrome ?? this.labelChrome,
       bodyChrome: bodyChrome ?? this.bodyChrome,
@@ -209,6 +242,13 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       mediaScrim: Color.lerp(mediaScrim, other.mediaScrim, t)!,
       onMedia: Color.lerp(onMedia, other.onMedia, t)!,
       onMediaMuted: Color.lerp(onMediaMuted, other.onMediaMuted, t)!,
+      onMediaLabelShadows:
+          t < 0.5 ? onMediaLabelShadows : other.onMediaLabelShadows,
+      immersiveBottomBarHeight: lerpDouble(
+            immersiveBottomBarHeight,
+            other.immersiveBottomBarHeight,
+            t,
+          )!,
       titleChrome: TextStyle.lerp(titleChrome, other.titleChrome, t)!,
       labelChrome: TextStyle.lerp(labelChrome, other.labelChrome, t)!,
       bodyChrome: TextStyle.lerp(bodyChrome, other.bodyChrome, t)!,

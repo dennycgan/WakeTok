@@ -11,8 +11,8 @@ import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 7.4 Main Browse chrome shell + Cap 7.5 vertical Media Feed (ADR-014).
-/// Cap 8.2: immersive forced-dark (Browse/Clips/Auto + bar) + translucent
-/// top source chrome over the feed (ADR-015 Decisions 7).
+/// Cap 8.2: immersive forced-dark (Browse/Clips/Auto + bar). Cap 8.2
+/// revision (ADR-016): transparent floating top chrome + compact bar height.
 class MainBrowseShellPage extends ConsumerWidget {
   const MainBrowseShellPage({super.key, required this.access});
 
@@ -86,8 +86,8 @@ class _BrowsePane extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(mainBrowseSelectedSourceProvider);
 
-    // Stack overlay: feed full-bleed; top chrome floats with mediaScrim so
-    // media shows through (Cap 8.2; Column sibling cannot achieve this).
+    // Stack overlay: feed full-bleed; top chrome floats with transparent
+    // Material + on-media text shadows (ADR-016; Column sibling cannot).
     return Stack(
       key: const Key('mainBrowseBrowsePane'),
       fit: StackFit.expand,
@@ -109,8 +109,8 @@ class _BrowsePane extends ConsumerWidget {
 }
 
 /// Custom four-cell top chrome — avoids Material SegmentedButton defaults
-/// (secondaryContainer). Selected label uses [WakeTokTokens.accent];
-/// unselected uses on-media tokens over [WakeTokTokens.mediaScrim].
+/// (secondaryContainer). Selected uses [WakeTokTokens.accent]; unselected
+/// uses on-media tokens; both use [WakeTokTokens.onMediaLabelShadows].
 class _TopSourceChrome extends StatelessWidget {
   const _TopSourceChrome({
     required this.selected,
@@ -123,11 +123,10 @@ class _TopSourceChrome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
 
     return Material(
       key: const Key('mainBrowseTopSourceChrome'),
-      color: tokens.mediaScrim,
+      color: Colors.transparent,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -189,7 +188,10 @@ class _SourceCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final color = selected ? tokens.accent : tokens.onMediaMuted;
-    final style = tokens.labelOnMedia.copyWith(color: color);
+    final style = tokens.labelOnMedia.copyWith(
+      color: color,
+      shadows: tokens.onMediaLabelShadows,
+    );
 
     return InkWell(
       onTap: onTap,
@@ -220,6 +222,7 @@ class _PoolsCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final muted = tokens.onMediaMuted.withValues(alpha: 0.55);
+    final shadows = tokens.onMediaLabelShadows;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -229,7 +232,10 @@ class _PoolsCell extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: tokens.labelOnMedia.copyWith(color: muted),
+            style: tokens.labelOnMedia.copyWith(
+              color: muted,
+              shadows: shadows,
+            ),
           ),
           const SizedBox(height: 2),
           Text(
@@ -239,6 +245,7 @@ class _PoolsCell extends StatelessWidget {
               color: muted,
               fontSize: 11,
               height: 1.1,
+              shadows: shadows,
             ),
             key: const Key('mainBrowsePoolsComingSoon'),
           ),
@@ -261,36 +268,129 @@ class _MainBrowseBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final labelStyle = tokens.labelChrome.copyWith(fontSize: 11, height: 1.0);
 
-    // Explicit indicatorColor — must not rely on ColorScheme.secondaryContainer.
-    return NavigationBar(
+    // Do not use Material 3 [NavigationBar]: its SafeArea lives *inside*
+    // Material, so height+Home Indicator paints a tall grey block even when
+    // MediaQuery.removePadding is applied (and Profile rebuilds can still
+    // look unchanged). Custom row = one icon+label strip; same surface
+    // extends under the Home Indicator only.
+    final destinations = <(MainBrowseDestination, IconData, IconData, String)>[
+      (
+        MainBrowseDestination.browse,
+        Icons.home_outlined,
+        Icons.home,
+        l10n.mainBrowseNavBrowse,
+      ),
+      (
+        MainBrowseDestination.clips,
+        Icons.movie_outlined,
+        Icons.movie,
+        l10n.mainBrowseNavClips,
+      ),
+      (
+        MainBrowseDestination.auto,
+        Icons.play_circle_outline,
+        Icons.play_circle,
+        l10n.mainBrowseNavAuto,
+      ),
+      (
+        MainBrowseDestination.settings,
+        Icons.settings_outlined,
+        Icons.settings,
+        l10n.mainBrowseNavSettings,
+      ),
+    ];
+
+    return Material(
       key: const Key('mainBrowseNavigationBar'),
-      backgroundColor: tokens.surface,
-      indicatorColor: tokens.accent.withValues(alpha: 0.20),
-      selectedIndex: selected.index,
-      onDestinationSelected: (i) => onSelect(MainBrowseDestination.values[i]),
-      destinations: [
-        NavigationDestination(
-          icon: const Icon(Icons.home_outlined),
-          selectedIcon: Icon(Icons.home, color: tokens.accent),
-          label: l10n.mainBrowseNavBrowse,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.movie_outlined),
-          selectedIcon: Icon(Icons.movie, color: tokens.accent),
-          label: l10n.mainBrowseNavClips,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.play_circle_outline),
-          selectedIcon: Icon(Icons.play_circle, color: tokens.accent),
-          label: l10n.mainBrowseNavAuto,
-        ),
-        NavigationDestination(
-          icon: const Icon(Icons.settings_outlined),
-          selectedIcon: Icon(Icons.settings, color: tokens.accent),
-          label: l10n.mainBrowseNavSettings,
-        ),
-      ],
+      color: tokens.surface,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            key: const Key('mainBrowseNavigationBarContent'),
+            height: tokens.immersiveBottomBarHeight,
+            child: Row(
+              children: [
+                for (final entry in destinations)
+                  Expanded(
+                    child: _BottomNavCell(
+                      selected: selected == entry.$1,
+                      outlinedIcon: entry.$2,
+                      filledIcon: entry.$3,
+                      label: entry.$4,
+                      labelStyle: labelStyle,
+                      accent: tokens.accent,
+                      onMediaMuted: tokens.onMediaMuted,
+                      onTap: () => onSelect(entry.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(height: bottomInset),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomNavCell extends StatelessWidget {
+  const _BottomNavCell({
+    required this.selected,
+    required this.outlinedIcon,
+    required this.filledIcon,
+    required this.label,
+    required this.labelStyle,
+    required this.accent,
+    required this.onMediaMuted,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final IconData outlinedIcon;
+  final IconData filledIcon;
+  final String label;
+  final TextStyle labelStyle;
+  final Color accent;
+  final Color onMediaMuted;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconColor = selected ? accent : onMediaMuted;
+    final textColor = selected ? accent : onMediaMuted;
+
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: selected ? accent.withValues(alpha: 0.20) : null,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+              child: Icon(
+                selected ? filledIcon : outlinedIcon,
+                size: 22,
+                color: iconColor,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: labelStyle.copyWith(color: textColor),
+          ),
+        ],
+      ),
     );
   }
 }
