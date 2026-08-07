@@ -11,8 +11,10 @@ import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 7.4 Main Browse chrome shell + Cap 7.5 vertical Media Feed (ADR-014).
-/// Cap 8.2: immersive forced-dark (Browse/Clips/Auto + bar). Cap 8.2
-/// revision (ADR-016): transparent floating top chrome + compact bar height.
+/// Cap 8.2: immersive forced-dark for Browse/Clips/Auto content. Cap 8.2
+/// revision (ADR-016): transparent floating top chrome + compact bar.
+/// Bottom bar is always dark (even on Settings) so on-media label colors stay
+/// legible — Settings *pane* still follows Appearance.
 class MainBrowseShellPage extends ConsumerWidget {
   const MainBrowseShellPage({super.key, required this.access});
 
@@ -21,61 +23,65 @@ class MainBrowseShellPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final destination = ref.watch(mainBrowseDestinationProvider);
-    final immersive = destination != MainBrowseDestination.settings;
+    final immersiveContent = destination != MainBrowseDestination.settings;
+    final l10n = AppLocalizations.of(context)!;
 
-    // Theme override wraps Builder so Scaffold.backgroundColor (and all
-    // descendants) resolve tokens after dark Theme is applied — not from
-    // a precomputed ambient Color (Cap 8.2 Scaffold leak fix).
-    Widget shell = Builder(
-      builder: (context) {
-        final l10n = AppLocalizations.of(context)!;
-        final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-
-        return Scaffold(
-          backgroundColor: tokens.background,
-          body: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (access == PhotosAccess.limited) const LimitedAccessBanner(),
-              Expanded(
-                // IndexedStack keeps Browse (feed index / PageController) alive
-                // when switching bottom destinations (Cap 7.5 Q4=A).
-                child: IndexedStack(
-                  index: destination.index,
-                  sizing: StackFit.expand,
-                  children: [
-                    const _BrowsePane(),
-                    _StubPane(
-                      title: l10n.mainBrowseNavClips,
-                      body: l10n.mainBrowseStubClipsBody,
-                    ),
-                    _StubPane(
-                      title: l10n.mainBrowseNavAuto,
-                      body: l10n.mainBrowseStubAutoBody,
-                    ),
-                    _SettingsStubPane(access: access),
-                  ],
-                ),
-              ),
-              _MainBrowseBottomBar(
-                selected: destination,
-                onSelect: (next) => ref
-                    .read(mainBrowseDestinationProvider.notifier)
-                    .select(next),
-              ),
-            ],
-          ),
-        );
-      },
+    // Content theme: Browse/Clips/Auto forced-dark; Settings follows ambient.
+    Widget body = IndexedStack(
+      index: destination.index,
+      sizing: StackFit.expand,
+      children: [
+        const _BrowsePane(),
+        _StubPane(
+          title: l10n.mainBrowseNavClips,
+          body: l10n.mainBrowseStubClipsBody,
+        ),
+        _StubPane(
+          title: l10n.mainBrowseNavAuto,
+          body: l10n.mainBrowseStubAutoBody,
+        ),
+        _SettingsStubPane(access: access),
+      ],
     );
-
-    if (immersive) {
-      shell = Theme(
+    if (immersiveContent) {
+      body = Theme(
         data: waketokTheme(Brightness.dark),
-        child: shell,
+        child: body,
       );
     }
-    return shell;
+
+    // Bottom bar always dark — never inherit Light Appearance (unselected
+    // onMediaMuted icons vanish on light surface otherwise).
+    final bottomBar = Theme(
+      data: waketokTheme(Brightness.dark),
+      child: _MainBrowseBottomBar(
+        selected: destination,
+        onSelect: (next) =>
+            ref.read(mainBrowseDestinationProvider.notifier).select(next),
+      ),
+    );
+
+    final scaffoldTokens = immersiveContent
+        ? waketokTheme(Brightness.dark).extension<WakeTokTokens>()!
+        : Theme.of(context).extension<WakeTokTokens>()!;
+
+    return Scaffold(
+      backgroundColor: scaffoldTokens.background,
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (access == PhotosAccess.limited)
+            Theme(
+              data: immersiveContent
+                  ? waketokTheme(Brightness.dark)
+                  : Theme.of(context),
+              child: const LimitedAccessBanner(),
+            ),
+          Expanded(child: body),
+          bottomBar,
+        ],
+      ),
+    );
   }
 }
 

@@ -123,7 +123,8 @@ void main() {
     expect(indicator, isNotEmpty);
   });
 
-  testWidgets('W-8 immersive bar dark under light ambient; Settings light',
+  testWidgets(
+      'W-8 bottom bar always dark; Settings pane follows light ambient',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
@@ -148,8 +149,14 @@ void main() {
 
     await tester.tap(find.text(l10n.mainBrowseNavSettings));
     await tester.pumpAndSettle();
-    expect(barOf().color, lightTokens.surface);
+    // Bar stays dark; Settings content follows Light Appearance.
+    expect(barOf().color, darkTokens.surface);
     expect(scaffoldOf().backgroundColor, lightTokens.background);
+    // Unselected destinations must remain visible (not onMediaMuted-on-white).
+    expect(find.text(l10n.mainBrowseNavBrowse), findsOneWidget);
+    expect(find.text(l10n.mainBrowseNavClips), findsOneWidget);
+    expect(find.text(l10n.mainBrowseNavAuto), findsOneWidget);
+    expect(find.text(l10n.mainBrowseNavSettings), findsWidgets);
 
     await tester.tap(find.text(l10n.mainBrowseNavBrowse));
     await tester.pumpAndSettle();
