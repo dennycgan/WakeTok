@@ -44,6 +44,7 @@ Widget permissionUiHarness({
   required PhotosAuthorizationRepository repo,
   OpenAppSettings? openSettings,
   Locale? locale,
+  ThemeMode themeMode = ThemeMode.system,
   FakeLibraryCatalogRepository? catalog,
   FakeAssetSourceRepository? assetSources,
   FakeMediaDisplayRepository? mediaDisplay,
@@ -71,6 +72,7 @@ Widget permissionUiHarness({
       supportedLocales: AppLocalizations.supportedLocales,
       theme: waketokTheme(Brightness.light),
       darkTheme: waketokTheme(Brightness.dark),
+      themeMode: themeMode,
       home: const PhotosAccessGate(),
     ),
   );

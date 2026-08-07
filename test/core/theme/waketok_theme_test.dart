@@ -8,6 +8,7 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/main.dart';
+import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../features/authorization/permission_ui_test_harness.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
@@ -125,7 +126,8 @@ void main() {
     expect(light.brandGold, dark.brandGold);
   });
 
-  testWidgets('T4 app resolves light tokens under light platform brightness',
+  testWidgets(
+      'T4 light ambient: Browse forced-dark; Settings follows light',
       (tester) async {
     tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
     addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
@@ -151,12 +153,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(Scaffold));
-    final theme = Theme.of(context);
-    final expected = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
-    expect(theme.scaffoldBackgroundColor, expected.background);
-    expect(theme.extension<WakeTokTokens>()!.surface, expected.surface);
-    expect(theme.textTheme.titleMedium?.fontSize, expected.titleChrome.fontSize);
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+
+    ThemeData themeOfScaffold() {
+      final context = tester.element(find.byType(Scaffold));
+      return Theme.of(context);
+    }
+
+    // Default destination is Browse — Cap 8.2 immersive dark override.
+    var theme = themeOfScaffold();
+    expect(theme.scaffoldBackgroundColor, dark.background);
+    expect(theme.extension<WakeTokTokens>()!.surface, dark.surface);
+
+    await tester.tap(find.text(l10n.mainBrowseNavSettings));
+    await tester.pumpAndSettle();
+
+    theme = themeOfScaffold();
+    expect(theme.scaffoldBackgroundColor, light.background);
+    expect(theme.extension<WakeTokTokens>()!.surface, light.surface);
+    expect(theme.textTheme.titleMedium?.fontSize, light.titleChrome.fontSize);
   });
 
   testWidgets('T5 app resolves dark tokens under dark platform brightness',

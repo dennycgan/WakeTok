@@ -11,6 +11,8 @@ import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 7.4 Main Browse chrome shell + Cap 7.5 vertical Media Feed (ADR-014).
+/// Cap 8.2: immersive forced-dark (Browse/Clips/Auto + bar) + translucent
+/// top source chrome over the feed (ADR-015 Decisions 7).
 class MainBrowseShellPage extends ConsumerWidget {
   const MainBrowseShellPage({super.key, required this.access});
 
@@ -18,44 +20,62 @@ class MainBrowseShellPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context)!;
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final destination = ref.watch(mainBrowseDestinationProvider);
+    final immersive = destination != MainBrowseDestination.settings;
 
-    return Scaffold(
-      backgroundColor: tokens.background,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (access == PhotosAccess.limited) const LimitedAccessBanner(),
-          Expanded(
-            // IndexedStack keeps Browse (feed index / PageController) alive
-            // when switching bottom destinations (Cap 7.5 Q4=A).
-            child: IndexedStack(
-              index: destination.index,
-              sizing: StackFit.expand,
-              children: [
-                const _BrowsePane(),
-                _StubPane(
-                  title: l10n.mainBrowseNavClips,
-                  body: l10n.mainBrowseStubClipsBody,
+    // Theme override wraps Builder so Scaffold.backgroundColor (and all
+    // descendants) resolve tokens after dark Theme is applied — not from
+    // a precomputed ambient Color (Cap 8.2 Scaffold leak fix).
+    Widget shell = Builder(
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+
+        return Scaffold(
+          backgroundColor: tokens.background,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (access == PhotosAccess.limited) const LimitedAccessBanner(),
+              Expanded(
+                // IndexedStack keeps Browse (feed index / PageController) alive
+                // when switching bottom destinations (Cap 7.5 Q4=A).
+                child: IndexedStack(
+                  index: destination.index,
+                  sizing: StackFit.expand,
+                  children: [
+                    const _BrowsePane(),
+                    _StubPane(
+                      title: l10n.mainBrowseNavClips,
+                      body: l10n.mainBrowseStubClipsBody,
+                    ),
+                    _StubPane(
+                      title: l10n.mainBrowseNavAuto,
+                      body: l10n.mainBrowseStubAutoBody,
+                    ),
+                    _SettingsStubPane(access: access),
+                  ],
                 ),
-                _StubPane(
-                  title: l10n.mainBrowseNavAuto,
-                  body: l10n.mainBrowseStubAutoBody,
-                ),
-                _SettingsStubPane(access: access),
-              ],
-            ),
+              ),
+              _MainBrowseBottomBar(
+                selected: destination,
+                onSelect: (next) => ref
+                    .read(mainBrowseDestinationProvider.notifier)
+                    .select(next),
+              ),
+            ],
           ),
-          _MainBrowseBottomBar(
-            selected: destination,
-            onSelect: (next) =>
-                ref.read(mainBrowseDestinationProvider.notifier).select(next),
-          ),
-        ],
-      ),
+        );
+      },
     );
+
+    if (immersive) {
+      shell = Theme(
+        data: waketokTheme(Brightness.dark),
+        child: shell,
+      );
+    }
+    return shell;
   }
 }
 
@@ -66,22 +86,31 @@ class _BrowsePane extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selected = ref.watch(mainBrowseSelectedSourceProvider);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    // Stack overlay: feed full-bleed; top chrome floats with mediaScrim so
+    // media shows through (Cap 8.2; Column sibling cannot achieve this).
+    return Stack(
+      key: const Key('mainBrowseBrowsePane'),
+      fit: StackFit.expand,
       children: [
-        _TopSourceChrome(
-          selected: selected,
-          onSelect: (next) =>
-              ref.read(mainBrowseSelectedSourceProvider.notifier).select(next),
+        const VerticalMediaFeed(),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _TopSourceChrome(
+            selected: selected,
+            onSelect: (next) =>
+                ref.read(mainBrowseSelectedSourceProvider.notifier).select(next),
+          ),
         ),
-        const Expanded(child: VerticalMediaFeed()),
       ],
     );
   }
 }
 
 /// Custom four-cell top chrome — avoids Material SegmentedButton defaults
-/// (secondaryContainer). Selected label uses [WakeTokTokens.accent].
+/// (secondaryContainer). Selected label uses [WakeTokTokens.accent];
+/// unselected uses on-media tokens over [WakeTokTokens.mediaScrim].
 class _TopSourceChrome extends StatelessWidget {
   const _TopSourceChrome({
     required this.selected,
@@ -97,7 +126,8 @@ class _TopSourceChrome extends StatelessWidget {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
 
     return Material(
-      color: tokens.surface,
+      key: const Key('mainBrowseTopSourceChrome'),
+      color: tokens.mediaScrim,
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -158,9 +188,8 @@ class _SourceCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final color =
-        selected ? tokens.accent : tokens.onSurface.withValues(alpha: 0.55);
-    final style = tokens.labelChrome.copyWith(color: color);
+    final color = selected ? tokens.accent : tokens.onMediaMuted;
+    final style = tokens.labelOnMedia.copyWith(color: color);
 
     return InkWell(
       onTap: onTap,
@@ -190,7 +219,7 @@ class _PoolsCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final muted = tokens.onSurface.withValues(alpha: 0.38);
+    final muted = tokens.onMediaMuted.withValues(alpha: 0.55);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -200,13 +229,13 @@ class _PoolsCell extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: tokens.labelChrome.copyWith(color: muted),
+            style: tokens.labelOnMedia.copyWith(color: muted),
           ),
           const SizedBox(height: 2),
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: tokens.bodyChrome.copyWith(
+            style: tokens.bodyOnMedia.copyWith(
               color: muted,
               fontSize: 11,
               height: 1.1,
