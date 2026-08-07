@@ -233,6 +233,18 @@ enum MediaKind: Int, CaseIterable {
   case unknown = 3
 }
 
+/// Cap 8 file-size provenance (ADR-015). Not a kickoff/GLOSSARY term.
+///
+/// Tier 1 (`primaryResource`) is unavailable on the formal SDK; the wire value
+/// is retained for stability. Cap 8 host paths use [localVideoUrl] /
+/// [currentImageRepresentation] only. [unknownUnavailable] is reserved.
+enum FileSizeSemantics: Int, CaseIterable {
+  case primaryResource = 0
+  case localVideoUrl = 1
+  case currentImageRepresentation = 2
+  case unknownUnavailable = 3
+}
+
 /// List-time / catalog availability wire enum (Cap 5.4).
 ///
 /// `downloading` is reserved for in-flight resource requests; catalog
@@ -650,6 +662,108 @@ struct LibraryTotalsDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Cap 8.3: fast Presentation Metadata fields (date + kind).
+///
+/// [mediaKind] is always set when the asset exists (incl. [MediaKind.unknown]).
+/// [creationDateMs] stays null when PhotoKit `creationDate` is nil.
+/// File size is a separate call — [requestPresentationFileSize].
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct PresentationMetadataDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var mediaKind: MediaKind
+  /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
+  var creationDateMs: Int64? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> PresentationMetadataDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let mediaKind = pigeonVar_list[1] as! MediaKind
+    let creationDateMs: Int64? = nilOrValue(pigeonVar_list[2])
+
+    return PresentationMetadataDto(
+      assetIdentifier: assetIdentifier,
+      mediaKind: mediaKind,
+      creationDateMs: creationDateMs
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      mediaKind,
+      creationDateMs,
+    ]
+  }
+  static func == (lhs: PresentationMetadataDto, rhs: PresentationMetadataDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.mediaKind, rhs.mediaKind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.creationDateMs, rhs.creationDateMs)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("PresentationMetadataDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: mediaKind, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: creationDateMs, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "PresentationMetadataDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), creationDateMs: \(String(describing: creationDateMs)))"
+  }
+}
+
+/// Cap 8.3: optional file size for Overlay row 3 (ADR-015 / POC-10 Tier 3/4).
+///
+/// Null [fileSizeBytes] means blank UI (not zero). Never download solely for
+/// size. Multi-resource / ambiguous assets return nulls.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct PresentationFileSizeDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var fileSizeBytes: Int64? = nil
+  var fileSizeSemantics: FileSizeSemantics? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> PresentationFileSizeDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let fileSizeBytes: Int64? = nilOrValue(pigeonVar_list[1])
+    let fileSizeSemantics: FileSizeSemantics? = nilOrValue(pigeonVar_list[2])
+
+    return PresentationFileSizeDto(
+      assetIdentifier: assetIdentifier,
+      fileSizeBytes: fileSizeBytes,
+      fileSizeSemantics: fileSizeSemantics
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      fileSizeBytes,
+      fileSizeSemantics,
+    ]
+  }
+  static func == (lhs: PresentationFileSizeDto, rhs: PresentationFileSizeDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.fileSizeBytes, rhs.fileSizeBytes) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.fileSizeSemantics, rhs.fileSizeSemantics)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("PresentationFileSizeDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: fileSizeBytes, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: fileSizeSemantics, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "PresentationFileSizeDto(assetIdentifier: \(String(describing: assetIdentifier)), fileSizeBytes: \(String(describing: fileSizeBytes)), fileSizeSemantics: \(String(describing: fileSizeSemantics)))"
+  }
+}
+
 /// One plan item: Photos asset + feed index for PageView sync (ADR-006).
 ///
 /// Generated class from Pigeon that represents data sent in messages.
@@ -836,42 +950,52 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
     case 133:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return AssetAvailabilityDto(rawValue: enumResultAsInt)
+        return FileSizeSemantics(rawValue: enumResultAsInt)
       }
       return nil
     case 134:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return AssetSourceAvailabilityDto(rawValue: enumResultAsInt)
+        return AssetAvailabilityDto(rawValue: enumResultAsInt)
       }
       return nil
     case 135:
       let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
       if let enumResultAsInt = enumResultAsInt {
-        return PlaybackState(rawValue: enumResultAsInt)
+        return AssetSourceAvailabilityDto(rawValue: enumResultAsInt)
       }
       return nil
     case 136:
-      return AssetSourceDto.fromList(self.readValue() as! [Any?])
+      let enumResultAsInt: Int? = nilOrValue(self.readValue() as! Int?)
+      if let enumResultAsInt = enumResultAsInt {
+        return PlaybackState(rawValue: enumResultAsInt)
+      }
+      return nil
     case 137:
-      return SourceReferenceDto.fromList(self.readValue() as! [Any?])
+      return AssetSourceDto.fromList(self.readValue() as! [Any?])
     case 138:
-      return ResolvedSourceDto.fromList(self.readValue() as! [Any?])
+      return SourceReferenceDto.fromList(self.readValue() as! [Any?])
     case 139:
-      return DisplayAssetDto.fromList(self.readValue() as! [Any?])
+      return ResolvedSourceDto.fromList(self.readValue() as! [Any?])
     case 140:
-      return PlayableVideoDto.fromList(self.readValue() as! [Any?])
+      return DisplayAssetDto.fromList(self.readValue() as! [Any?])
     case 141:
-      return LibraryAssetDto.fromList(self.readValue() as! [Any?])
+      return PlayableVideoDto.fromList(self.readValue() as! [Any?])
     case 142:
-      return LibraryPageDto.fromList(self.readValue() as! [Any?])
+      return LibraryAssetDto.fromList(self.readValue() as! [Any?])
     case 143:
-      return LibraryTotalsDto.fromList(self.readValue() as! [Any?])
+      return LibraryPageDto.fromList(self.readValue() as! [Any?])
     case 144:
-      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
+      return LibraryTotalsDto.fromList(self.readValue() as! [Any?])
     case 145:
-      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+      return PresentationMetadataDto.fromList(self.readValue() as! [Any?])
     case 146:
+      return PresentationFileSizeDto.fromList(self.readValue() as! [Any?])
+    case 147:
+      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
+    case 148:
+      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+    case 149:
       return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -893,47 +1017,56 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? MediaKind {
       super.writeByte(132)
       super.writeValue(value.rawValue)
-    } else if let value = value as? AssetAvailabilityDto {
+    } else if let value = value as? FileSizeSemantics {
       super.writeByte(133)
       super.writeValue(value.rawValue)
-    } else if let value = value as? AssetSourceAvailabilityDto {
+    } else if let value = value as? AssetAvailabilityDto {
       super.writeByte(134)
       super.writeValue(value.rawValue)
-    } else if let value = value as? PlaybackState {
+    } else if let value = value as? AssetSourceAvailabilityDto {
       super.writeByte(135)
       super.writeValue(value.rawValue)
-    } else if let value = value as? AssetSourceDto {
+    } else if let value = value as? PlaybackState {
       super.writeByte(136)
-      super.writeValue(value.toList())
-    } else if let value = value as? SourceReferenceDto {
+      super.writeValue(value.rawValue)
+    } else if let value = value as? AssetSourceDto {
       super.writeByte(137)
       super.writeValue(value.toList())
-    } else if let value = value as? ResolvedSourceDto {
+    } else if let value = value as? SourceReferenceDto {
       super.writeByte(138)
       super.writeValue(value.toList())
-    } else if let value = value as? DisplayAssetDto {
+    } else if let value = value as? ResolvedSourceDto {
       super.writeByte(139)
       super.writeValue(value.toList())
-    } else if let value = value as? PlayableVideoDto {
+    } else if let value = value as? DisplayAssetDto {
       super.writeByte(140)
       super.writeValue(value.toList())
-    } else if let value = value as? LibraryAssetDto {
+    } else if let value = value as? PlayableVideoDto {
       super.writeByte(141)
       super.writeValue(value.toList())
-    } else if let value = value as? LibraryPageDto {
+    } else if let value = value as? LibraryAssetDto {
       super.writeByte(142)
       super.writeValue(value.toList())
-    } else if let value = value as? LibraryTotalsDto {
+    } else if let value = value as? LibraryPageDto {
       super.writeByte(143)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackItemDto {
+    } else if let value = value as? LibraryTotalsDto {
       super.writeByte(144)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackPlanDto {
+    } else if let value = value as? PresentationMetadataDto {
       super.writeByte(145)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackRuntimeEventDto {
+    } else if let value = value as? PresentationFileSizeDto {
       super.writeByte(146)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackItemDto {
+      super.writeByte(147)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackPlanDto {
+      super.writeByte(148)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackRuntimeEventDto {
+      super.writeByte(149)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -989,6 +1122,16 @@ protocol PhotoLibraryApi {
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
   func requestDisplayAsset(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
   func requestPlayableVideo(assetIdentifier: String, completion: @escaping (Result<PlayableVideoDto, Error>) -> Void)
+  /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
+  ///
+  /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
+  func requestPresentationMetadata(assetIdentifier: String, completion: @escaping (Result<PresentationMetadataDto, Error>) -> Void)
+  /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
+  ///
+  /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
+  /// bytes and null semantics (not an error). Missing asset →
+  /// [ErrorCode.assetUnavailable].
+  func requestPresentationFileSize(assetIdentifier: String, completion: @escaping (Result<PresentationFileSizeDto, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.albumUnavailable].
   func createAlbum(name: String, completion: @escaping (Result<String, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.photosImportFailed].
@@ -1162,6 +1305,48 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestPlayableVideoChannel.setMessageHandler(nil)
+    }
+    /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
+    ///
+    /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
+    let requestPresentationMetadataChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationMetadata\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestPresentationMetadataChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.requestPresentationMetadata(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestPresentationMetadataChannel.setMessageHandler(nil)
+    }
+    /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
+    ///
+    /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
+    /// bytes and null semantics (not an error). Missing asset →
+    /// [ErrorCode.assetUnavailable].
+    let requestPresentationFileSizeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationFileSize\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestPresentationFileSizeChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.requestPresentationFileSize(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestPresentationFileSizeChannel.setMessageHandler(nil)
     }
     /// 4.3 empty stub MUST fail with [ErrorCode.albumUnavailable].
     let createAlbumChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.createAlbum\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

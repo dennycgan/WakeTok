@@ -8,6 +8,10 @@ import 'package:waketok/domain/library/library_page.dart';
 import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/domain/playback/media_display_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
+import 'package:waketok/domain/presentation/file_size_semantics.dart';
+import 'package:waketok/domain/presentation/presentation_media_kind.dart';
+import 'package:waketok/domain/presentation/presentation_metadata.dart';
+import 'package:waketok/domain/presentation/presentation_metadata_repository.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
@@ -46,7 +50,65 @@ LibraryMediaKind libraryMediaKindFromPigeon(pigeon.MediaKind kind) {
   }
 }
 
-AssetAvailability assetAvailabilityFromPigeon(pigeon.AssetAvailabilityDto value) {
+PresentationMediaKind presentationMediaKindFromPigeon(pigeon.MediaKind kind) {
+  switch (kind) {
+    case pigeon.MediaKind.image:
+      return PresentationMediaKind.image;
+    case pigeon.MediaKind.video:
+      return PresentationMediaKind.video;
+    case pigeon.MediaKind.livePhoto:
+      return PresentationMediaKind.livePhoto;
+    case pigeon.MediaKind.unknown:
+      return PresentationMediaKind.unknown;
+  }
+}
+
+FileSizeSemantics? fileSizeSemanticsFromPigeon(
+  pigeon.FileSizeSemantics? value,
+) {
+  if (value == null) {
+    return null;
+  }
+  switch (value) {
+    case pigeon.FileSizeSemantics.primaryResource:
+      return FileSizeSemantics.primaryResource;
+    case pigeon.FileSizeSemantics.localVideoUrl:
+      return FileSizeSemantics.localVideoUrl;
+    case pigeon.FileSizeSemantics.currentImageRepresentation:
+      return FileSizeSemantics.currentImageRepresentation;
+    case pigeon.FileSizeSemantics.unknownUnavailable:
+      return FileSizeSemantics.unknownUnavailable;
+  }
+}
+
+PresentationMetadata presentationMetadataFromDto(
+  pigeon.PresentationMetadataDto dto,
+) {
+  DateTime? createdAt;
+  final ms = dto.creationDateMs;
+  if (ms != null) {
+    createdAt = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
+  }
+  return PresentationMetadata(
+    assetIdentifier: dto.assetIdentifier,
+    mediaKind: presentationMediaKindFromPigeon(dto.mediaKind),
+    createdAt: createdAt,
+  );
+}
+
+PresentationFileSize presentationFileSizeFromDto(
+  pigeon.PresentationFileSizeDto dto,
+) {
+  return PresentationFileSize(
+    assetIdentifier: dto.assetIdentifier,
+    fileSizeBytes: dto.fileSizeBytes,
+    fileSizeSemantics: fileSizeSemanticsFromPigeon(dto.fileSizeSemantics),
+  );
+}
+
+AssetAvailability assetAvailabilityFromPigeon(
+  pigeon.AssetAvailabilityDto value,
+) {
   switch (value) {
     case pigeon.AssetAvailabilityDto.deviceLocal:
       return AssetAvailability.deviceLocal;
@@ -150,7 +212,8 @@ class PhotoLibraryGateway
         PhotosAuthorizationRepository,
         LibraryCatalogRepository,
         AssetSourceRepository,
-        MediaDisplayRepository {
+        MediaDisplayRepository,
+        PresentationMetadataRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -221,5 +284,21 @@ class PhotoLibraryGateway
       assetIdentifier: dto.assetIdentifier,
       durationSeconds: dto.durationSeconds,
     );
+  }
+
+  @override
+  Future<PresentationMetadata> requestPresentationMetadata(
+    String assetIdentifier,
+  ) async {
+    final dto = await _api.requestPresentationMetadata(assetIdentifier);
+    return presentationMetadataFromDto(dto);
+  }
+
+  @override
+  Future<PresentationFileSize> requestPresentationFileSize(
+    String assetIdentifier,
+  ) async {
+    final dto = await _api.requestPresentationFileSize(assetIdentifier);
+    return presentationFileSizeFromDto(dto);
   }
 }

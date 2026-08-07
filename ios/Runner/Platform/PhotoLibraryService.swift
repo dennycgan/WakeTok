@@ -631,6 +631,204 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  // MARK: - Presentation Metadata (Cap 8.3 / ADR-015)
+
+  func requestPresentationMetadata(
+    assetIdentifier: String,
+    completion: @escaping (Result<PresentationMetadataDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      let fetch = PHAsset.fetchAssets(
+        withLocalIdentifiers: [assetIdentifier],
+        options: nil
+      )
+      guard let asset = fetch.firstObject else {
+        completion(
+          .failure(
+            fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
+          )
+        )
+        return
+      }
+      let ms: Int64?
+      if let date = asset.creationDate {
+        ms = Int64((date.timeIntervalSince1970 * 1000.0).rounded())
+      } else {
+        ms = nil
+      }
+      completion(
+        .success(
+          PresentationMetadataDto(
+            assetIdentifier: assetIdentifier,
+            mediaKind: mapMediaKind(asset),
+            creationDateMs: ms
+          )
+        )
+      )
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
+  func requestPresentationFileSize(
+    assetIdentifier: String,
+    completion: @escaping (Result<PresentationFileSizeDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      let fetch = PHAsset.fetchAssets(
+        withLocalIdentifiers: [assetIdentifier],
+        options: nil
+      )
+      guard let asset = fetch.firstObject else {
+        completion(
+          .failure(
+            fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
+          )
+        )
+        return
+      }
+
+      let kind = mapMediaKind(asset)
+      switch kind {
+      case .livePhoto, .unknown:
+        // Multi-resource / ambiguous → blank (ADR-015), not an error.
+        completion(
+          .success(
+            PresentationFileSizeDto(
+              assetIdentifier: assetIdentifier,
+              fileSizeBytes: nil,
+              fileSizeSemantics: nil
+            )
+          )
+        )
+      case .video:
+        resolveLocalVideoFileSize(asset: asset, completion: completion)
+      case .image:
+        resolveLocalImageFileSize(asset: asset, completion: completion)
+      }
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
+  /// POC-10 Tier 3: local video URL byte count (`networkAccessAllowed = false`).
+  private func resolveLocalVideoFileSize(
+    asset: PHAsset,
+    completion: @escaping (Result<PresentationFileSizeDto, Error>) -> Void
+  ) {
+    let assetIdentifier = asset.localIdentifier
+    let options = PHVideoRequestOptions()
+    options.isNetworkAccessAllowed = false
+    options.deliveryMode = .highQualityFormat
+
+    PHImageManager.default().requestAVAsset(
+      forVideo: asset,
+      options: options
+    ) { avAsset, _, info in
+      let infoDict = info ?? [:]
+      if (infoDict[PHImageCancelledKey] as? Bool) == true {
+        completion(
+          .failure(
+            self.fail(.operationCancelled, message: "File size request cancelled")
+          )
+        )
+        return
+      }
+
+      let blank = PresentationFileSizeDto(
+        assetIdentifier: assetIdentifier,
+        fileSizeBytes: nil,
+        fileSizeSemantics: nil
+      )
+
+      // iCloud-only / unavailable → blank size (never download for size).
+      guard let urlAsset = avAsset as? AVURLAsset else {
+        DispatchQueue.main.async { completion(.success(blank)) }
+        return
+      }
+
+      let url = urlAsset.url
+      guard url.isFileURL else {
+        DispatchQueue.main.async { completion(.success(blank)) }
+        return
+      }
+
+      do {
+        let values = try url.resourceValues(forKeys: [.fileSizeKey])
+        guard let size = values.fileSize, size >= 0 else {
+          DispatchQueue.main.async { completion(.success(blank)) }
+          return
+        }
+        DispatchQueue.main.async {
+          completion(
+            .success(
+              PresentationFileSizeDto(
+                assetIdentifier: assetIdentifier,
+                fileSizeBytes: Int64(size),
+                fileSizeSemantics: .localVideoUrl
+              )
+            )
+          )
+        }
+      } catch {
+        DispatchQueue.main.async { completion(.success(blank)) }
+      }
+    }
+  }
+
+  /// POC-10 Tier 4: current local image representation byte count.
+  private func resolveLocalImageFileSize(
+    asset: PHAsset,
+    completion: @escaping (Result<PresentationFileSizeDto, Error>) -> Void
+  ) {
+    let assetIdentifier = asset.localIdentifier
+    let options = PHImageRequestOptions()
+    options.isNetworkAccessAllowed = false
+    options.deliveryMode = .highQualityFormat
+    options.resizeMode = .none
+    options.isSynchronous = false
+
+    PHImageManager.default().requestImageDataAndOrientation(
+      for: asset,
+      options: options
+    ) { data, _, _, info in
+      let infoDict = info ?? [:]
+      if (infoDict[PHImageCancelledKey] as? Bool) == true {
+        completion(
+          .failure(
+            self.fail(.operationCancelled, message: "File size request cancelled")
+          )
+        )
+        return
+      }
+
+      let blank = PresentationFileSizeDto(
+        assetIdentifier: assetIdentifier,
+        fileSizeBytes: nil,
+        fileSizeSemantics: nil
+      )
+
+      guard let data, !data.isEmpty else {
+        DispatchQueue.main.async { completion(.success(blank)) }
+        return
+      }
+
+      DispatchQueue.main.async {
+        completion(
+          .success(
+            PresentationFileSizeDto(
+              assetIdentifier: assetIdentifier,
+              fileSizeBytes: Int64(data.count),
+              fileSizeSemantics: .currentImageRepresentation
+            )
+          )
+        )
+      }
+    }
+  }
+
   func createAlbum(
     name: String,
     completion: @escaping (Result<String, Error>) -> Void

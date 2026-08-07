@@ -59,6 +59,18 @@ enum MediaKind {
   unknown,
 }
 
+/// Cap 8 file-size provenance (ADR-015). Not a kickoff/GLOSSARY term.
+///
+/// Tier 1 (`primaryResource`) is unavailable on the formal SDK; the wire value
+/// is retained for stability. Cap 8 host paths use [localVideoUrl] /
+/// [currentImageRepresentation] only. [unknownUnavailable] is reserved.
+enum FileSizeSemantics {
+  primaryResource,
+  localVideoUrl,
+  currentImageRepresentation,
+  unknownUnavailable,
+}
+
 /// List-time / catalog availability wire enum (Cap 5.4).
 ///
 /// `downloading` is reserved for in-flight resource requests; catalog
@@ -211,6 +223,41 @@ class LibraryTotalsDto {
   int videos;
 }
 
+/// Cap 8.3: fast Presentation Metadata fields (date + kind).
+///
+/// [mediaKind] is always set when the asset exists (incl. [MediaKind.unknown]).
+/// [creationDateMs] stays null when PhotoKit `creationDate` is nil.
+/// File size is a separate call — [requestPresentationFileSize].
+class PresentationMetadataDto {
+  PresentationMetadataDto({
+    required this.assetIdentifier,
+    required this.mediaKind,
+    this.creationDateMs,
+  });
+
+  String assetIdentifier;
+  MediaKind mediaKind;
+
+  /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
+  int? creationDateMs;
+}
+
+/// Cap 8.3: optional file size for Overlay row 3 (ADR-015 / POC-10 Tier 3/4).
+///
+/// Null [fileSizeBytes] means blank UI (not zero). Never download solely for
+/// size. Multi-resource / ambiguous assets return nulls.
+class PresentationFileSizeDto {
+  PresentationFileSizeDto({
+    required this.assetIdentifier,
+    this.fileSizeBytes,
+    this.fileSizeSemantics,
+  });
+
+  String assetIdentifier;
+  int? fileSizeBytes;
+  FileSizeSemantics? fileSizeSemantics;
+}
+
 /// One plan item: Photos asset + feed index for PageView sync (ADR-006).
 class PlaybackItemDto {
   PlaybackItemDto({
@@ -304,6 +351,20 @@ abstract class PhotoLibraryApi {
 
   @async
   PlayableVideoDto requestPlayableVideo(String assetIdentifier);
+
+  /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
+  ///
+  /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
+  @async
+  PresentationMetadataDto requestPresentationMetadata(String assetIdentifier);
+
+  /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
+  ///
+  /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
+  /// bytes and null semantics (not an error). Missing asset →
+  /// [ErrorCode.assetUnavailable].
+  @async
+  PresentationFileSizeDto requestPresentationFileSize(String assetIdentifier);
 
   /// 4.3 empty stub MUST fail with [ErrorCode.albumUnavailable].
   @async

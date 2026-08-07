@@ -40,6 +40,8 @@ void main() {
     'resolveSource',
     'requestDisplayAsset',
     'requestPlayableVideo',
+    'requestPresentationMetadata',
+    'requestPresentationFileSize',
     'createAlbum',
     'importVideo',
     'addAssetToAlbum',
@@ -177,6 +179,22 @@ void main() {
       photoChannel('requestPlayableVideo'),
       PlayableVideoDto(assetIdentifier: 'a'),
     );
+    mockSuccess(
+      photoChannel('requestPresentationMetadata'),
+      PresentationMetadataDto(
+        assetIdentifier: 'a',
+        mediaKind: MediaKind.image,
+        creationDateMs: 1_700_000_000_000,
+      ),
+    );
+    mockSuccess(
+      photoChannel('requestPresentationFileSize'),
+      PresentationFileSizeDto(
+        assetIdentifier: 'a',
+        fileSizeBytes: 1024,
+        fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+      ),
+    );
 
     expect(await api.authorizationStatus(), AuthStatus.authorized);
     expect(await api.requestAuthorization(), AuthStatus.notDetermined);
@@ -207,6 +225,13 @@ void main() {
       (await api.requestPlayableVideo('a')).assetIdentifier,
       'a',
     );
+    final meta = await api.requestPresentationMetadata('a');
+    expect(meta.assetIdentifier, 'a');
+    expect(meta.mediaKind, MediaKind.image);
+    expect(meta.creationDateMs, 1_700_000_000_000);
+    final size = await api.requestPresentationFileSize('a');
+    expect(size.fileSizeBytes, 1024);
+    expect(size.fileSizeSemantics, FileSizeSemantics.currentImageRepresentation);
   });
 
   test('T7 PhotoLibrary host vocabulary includes 5.2 auth + 5.4 catalog', () {

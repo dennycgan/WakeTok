@@ -152,6 +152,18 @@ enum MediaKind {
   unknown,
 }
 
+/// Cap 8 file-size provenance (ADR-015). Not a kickoff/GLOSSARY term.
+///
+/// Tier 1 (`primaryResource`) is unavailable on the formal SDK; the wire value
+/// is retained for stability. Cap 8 host paths use [localVideoUrl] /
+/// [currentImageRepresentation] only. [unknownUnavailable] is reserved.
+enum FileSizeSemantics {
+  primaryResource,
+  localVideoUrl,
+  currentImageRepresentation,
+  unknownUnavailable,
+}
+
 /// List-time / catalog availability wire enum (Cap 5.4).
 ///
 /// `downloading` is reserved for in-flight resource requests; catalog
@@ -647,6 +659,126 @@ class LibraryTotalsDto {
   }
 }
 
+/// Cap 8.3: fast Presentation Metadata fields (date + kind).
+///
+/// [mediaKind] is always set when the asset exists (incl. [MediaKind.unknown]).
+/// [creationDateMs] stays null when PhotoKit `creationDate` is nil.
+/// File size is a separate call — [requestPresentationFileSize].
+class PresentationMetadataDto {
+  PresentationMetadataDto({
+    required this.assetIdentifier,
+    required this.mediaKind,
+    this.creationDateMs,
+  });
+
+  String assetIdentifier;
+
+  MediaKind mediaKind;
+
+  /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
+  int? creationDateMs;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetIdentifier,
+      mediaKind,
+      creationDateMs,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static PresentationMetadataDto decode(Object result) {
+    result as List<Object?>;
+    return PresentationMetadataDto(
+      assetIdentifier: result[0]! as String,
+      mediaKind: result[1]! as MediaKind,
+      creationDateMs: result[2] as int?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PresentationMetadataDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(mediaKind, other.mediaKind) && _deepEquals(creationDateMs, other.creationDateMs);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PresentationMetadataDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, creationDateMs: $creationDateMs)';
+  }
+}
+
+/// Cap 8.3: optional file size for Overlay row 3 (ADR-015 / POC-10 Tier 3/4).
+///
+/// Null [fileSizeBytes] means blank UI (not zero). Never download solely for
+/// size. Multi-resource / ambiguous assets return nulls.
+class PresentationFileSizeDto {
+  PresentationFileSizeDto({
+    required this.assetIdentifier,
+    this.fileSizeBytes,
+    this.fileSizeSemantics,
+  });
+
+  String assetIdentifier;
+
+  int? fileSizeBytes;
+
+  FileSizeSemantics? fileSizeSemantics;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetIdentifier,
+      fileSizeBytes,
+      fileSizeSemantics,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static PresentationFileSizeDto decode(Object result) {
+    result as List<Object?>;
+    return PresentationFileSizeDto(
+      assetIdentifier: result[0]! as String,
+      fileSizeBytes: result[1] as int?,
+      fileSizeSemantics: result[2] as FileSizeSemantics?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PresentationFileSizeDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(fileSizeBytes, other.fileSizeBytes) && _deepEquals(fileSizeSemantics, other.fileSizeSemantics);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PresentationFileSizeDto(assetIdentifier: $assetIdentifier, fileSizeBytes: $fileSizeBytes, fileSizeSemantics: $fileSizeSemantics)';
+  }
+}
+
 /// One plan item: Photos asset + feed index for PageView sync (ADR-006).
 class PlaybackItemDto {
   PlaybackItemDto({
@@ -851,47 +983,56 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is MediaKind) {
       buffer.putUint8(132);
       writeValue(buffer, value.index);
-    }    else if (value is AssetAvailabilityDto) {
+    }    else if (value is FileSizeSemantics) {
       buffer.putUint8(133);
       writeValue(buffer, value.index);
-    }    else if (value is AssetSourceAvailabilityDto) {
+    }    else if (value is AssetAvailabilityDto) {
       buffer.putUint8(134);
       writeValue(buffer, value.index);
-    }    else if (value is PlaybackState) {
+    }    else if (value is AssetSourceAvailabilityDto) {
       buffer.putUint8(135);
       writeValue(buffer, value.index);
-    }    else if (value is AssetSourceDto) {
+    }    else if (value is PlaybackState) {
       buffer.putUint8(136);
-      writeValue(buffer, value.encode());
-    }    else if (value is SourceReferenceDto) {
+      writeValue(buffer, value.index);
+    }    else if (value is AssetSourceDto) {
       buffer.putUint8(137);
       writeValue(buffer, value.encode());
-    }    else if (value is ResolvedSourceDto) {
+    }    else if (value is SourceReferenceDto) {
       buffer.putUint8(138);
       writeValue(buffer, value.encode());
-    }    else if (value is DisplayAssetDto) {
+    }    else if (value is ResolvedSourceDto) {
       buffer.putUint8(139);
       writeValue(buffer, value.encode());
-    }    else if (value is PlayableVideoDto) {
+    }    else if (value is DisplayAssetDto) {
       buffer.putUint8(140);
       writeValue(buffer, value.encode());
-    }    else if (value is LibraryAssetDto) {
+    }    else if (value is PlayableVideoDto) {
       buffer.putUint8(141);
       writeValue(buffer, value.encode());
-    }    else if (value is LibraryPageDto) {
+    }    else if (value is LibraryAssetDto) {
       buffer.putUint8(142);
       writeValue(buffer, value.encode());
-    }    else if (value is LibraryTotalsDto) {
+    }    else if (value is LibraryPageDto) {
       buffer.putUint8(143);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackItemDto) {
+    }    else if (value is LibraryTotalsDto) {
       buffer.putUint8(144);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackPlanDto) {
+    }    else if (value is PresentationMetadataDto) {
       buffer.putUint8(145);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackRuntimeEventDto) {
+    }    else if (value is PresentationFileSizeDto) {
       buffer.putUint8(146);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackItemDto) {
+      buffer.putUint8(147);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackPlanDto) {
+      buffer.putUint8(148);
+      writeValue(buffer, value.encode());
+    }    else if (value is PlaybackRuntimeEventDto) {
+      buffer.putUint8(149);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -915,34 +1056,41 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : MediaKind.values[value];
       case 133:
         final value = readValue(buffer) as int?;
-        return value == null ? null : AssetAvailabilityDto.values[value];
+        return value == null ? null : FileSizeSemantics.values[value];
       case 134:
         final value = readValue(buffer) as int?;
-        return value == null ? null : AssetSourceAvailabilityDto.values[value];
+        return value == null ? null : AssetAvailabilityDto.values[value];
       case 135:
         final value = readValue(buffer) as int?;
-        return value == null ? null : PlaybackState.values[value];
+        return value == null ? null : AssetSourceAvailabilityDto.values[value];
       case 136:
-        return AssetSourceDto.decode(readValue(buffer)!);
+        final value = readValue(buffer) as int?;
+        return value == null ? null : PlaybackState.values[value];
       case 137:
-        return SourceReferenceDto.decode(readValue(buffer)!);
+        return AssetSourceDto.decode(readValue(buffer)!);
       case 138:
-        return ResolvedSourceDto.decode(readValue(buffer)!);
+        return SourceReferenceDto.decode(readValue(buffer)!);
       case 139:
-        return DisplayAssetDto.decode(readValue(buffer)!);
+        return ResolvedSourceDto.decode(readValue(buffer)!);
       case 140:
-        return PlayableVideoDto.decode(readValue(buffer)!);
+        return DisplayAssetDto.decode(readValue(buffer)!);
       case 141:
-        return LibraryAssetDto.decode(readValue(buffer)!);
+        return PlayableVideoDto.decode(readValue(buffer)!);
       case 142:
-        return LibraryPageDto.decode(readValue(buffer)!);
+        return LibraryAssetDto.decode(readValue(buffer)!);
       case 143:
-        return LibraryTotalsDto.decode(readValue(buffer)!);
+        return LibraryPageDto.decode(readValue(buffer)!);
       case 144:
-        return PlaybackItemDto.decode(readValue(buffer)!);
+        return LibraryTotalsDto.decode(readValue(buffer)!);
       case 145:
-        return PlaybackPlanDto.decode(readValue(buffer)!);
+        return PresentationMetadataDto.decode(readValue(buffer)!);
       case 146:
+        return PresentationFileSizeDto.decode(readValue(buffer)!);
+      case 147:
+        return PlaybackItemDto.decode(readValue(buffer)!);
+      case 148:
+        return PlaybackPlanDto.decode(readValue(buffer)!);
+      case 149:
         return PlaybackRuntimeEventDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1152,6 +1300,52 @@ class PhotoLibraryApi {
     )
     ;
     return pigeonVar_replyValue! as PlayableVideoDto;
+  }
+
+  /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
+  ///
+  /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
+  Future<PresentationMetadataDto> requestPresentationMetadata(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationMetadata$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as PresentationMetadataDto;
+  }
+
+  /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
+  ///
+  /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
+  /// bytes and null semantics (not an error). Missing asset →
+  /// [ErrorCode.assetUnavailable].
+  Future<PresentationFileSizeDto> requestPresentationFileSize(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationFileSize$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as PresentationFileSizeDto;
   }
 
   /// 4.3 empty stub MUST fail with [ErrorCode.albumUnavailable].
