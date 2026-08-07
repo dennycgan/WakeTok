@@ -1044,9 +1044,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 - Status: Accepted (2026-08-08)
 - Commit/PR anchor: a721bdc
 - Plain summary (owner reads this):
-  Browse（以及 Clips/Auto stub）在沉浸壳里强制暗色并含底栏，Settings 仍跟
-  Appearance；左下媒体信息浮层先做三行（日期 + Live 文案/文件大小），本版不做
-  地点；文件大小只用公开、不落盘下载的本地回退，拿不到就留白。
+  Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell,
+  including the bottom bar; Settings still follows Appearance. The media-info
+  overlay ships three rows first (dates plus Live label / file size); Location
+  is out for this Cap. File size uses public local fallbacks only — if we cannot
+  get a value, that row stays blank.
 - Context / what problem forced this:
   Cap 7 (ADR-014) shipped the vertical feed but left Media Info Overlay,
   loading/empty polish, POC-10 file-size semantics, and two Known debts
