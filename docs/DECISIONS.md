@@ -152,8 +152,8 @@
   3. **Known debt (does not overturn Conditional Pass):**
      - WeChat/VoIP: no auto-resume on lock screen or iOS home without opening
        the app → Production Background Audio (Q1=B).
-     - kickoff「iCloud Asset 下载中断」out of POC-03 (P2=A) → Production
-       Background Audio.
+     - kickoff "iCloud Asset download interruption" out of POC-03 (P2=A) →
+       Production Background Audio.
      - **Real physical-clip integration:** After POC-09, play at least three
        consecutive WakeTok-exported clips from Photos through the native queue
        while locked. Confirm acceptable transitions, correct segment order,
