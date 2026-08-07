@@ -1042,15 +1042,17 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-015: Cap 8 Media Info Overlay contract + POC-10 file-size semantics
 
 - Status: Accepted (2026-08-08); the Decision 7 clause that top source chrome
-  uses translucent/scrim (mediaScrim) is superseded by ADR-016 (2026-08-08) —
-  the forced-dark portion of Decision 7 is unaffected
+  uses translucent/scrim (mediaScrim) is superseded by ADR-016 (2026-08-08);
+  the Decision 7 clause that Settings Appearance includes the shared bottom
+  bar is superseded by ADR-017 (2026-08-08) — Browse/Clips/Auto content
+  forced-dark and Settings *pane* Appearance remain binding
 - Commit/PR anchor: a721bdc
 - Plain summary (owner reads this):
-  Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell,
-  including the bottom bar; Settings still follows Appearance. The media-info
-  overlay ships three rows first (dates plus Live label / file size); Location
-  is out for this Cap. File size uses public local fallbacks only — if we cannot
-  get a value, that row stays blank.
+  Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell;
+  the bottom bar stays dark even on Settings. The Settings pane still follows
+  Appearance. The media-info overlay ships three rows first (dates plus Live
+  label / file size); Location is out for this Cap. File size uses public local
+  fallbacks only — if we cannot get a value, that row stays blank.
 - Context / what problem forced this:
   Cap 7 (ADR-014) shipped the vertical feed but left Media Info Overlay,
   loading/empty polish, POC-10 file-size semantics, and two Known debts
@@ -1214,3 +1216,44 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Accepted anchor is Cap 8.2 revision work `5fb93de` (2026-08-08).
   - Cap 8 continues at phase 8.3 (Presentation Metadata); this revision does not
     open 8.3 scope.
+
+---
+
+## ADR-017: Main Browse bottom bar always dark (Settings pane still follows Appearance)
+
+- Status: Accepted (2026-08-08)
+- Commit/PR anchor: 60f3283
+- Plain summary (owner reads this):
+  The Main Browse bottom bar stays dark even when Settings is open under a Light
+  system Appearance, so all four destination icons stay visible. Only the
+  Settings content area follows Light/Dark Appearance.
+- Context / what problem forced this:
+  ADR-015 Decision 7 said Settings follows Appearance, including the shared
+  bottom bar while Settings is selected. After Cap 8.2 revision (`5fb93de`),
+  unselected destinations use on-media muted foreground colors intended for a
+  dark bar. Under Light Appearance those labels/icons painted nearly invisible
+  on a light bar (Browse/Clips/Auto appeared missing; only the selected Settings
+  accent remained). Owner acceptance required the bar to stay black always.
+- Decision (what was chosen):
+  1. **Supersede scope (narrow):** Only the ADR-015 Decision 7 clause that
+     **Settings Appearance includes the shared bottom bar** is superseded. Browse /
+     Clips / Auto **content** forced-dark, and Settings **pane** following
+     Appearance, remain binding. ADR-016 top-chrome treatment is unaffected.
+  2. **Bottom bar theme:** Always apply `waketokTheme(Brightness.dark)` to the
+     Main Browse bottom bar (independent of destination and ambient ThemeMode).
+     Settings / stub panes continue to use ambient tokens when Settings is
+     selected; Browse/Clips/Auto content stay forced-dark.
+- Rejected alternatives (why not B):
+  - Keep bar on ambient Light when Settings is selected — rejected (on-media
+    muted icons vanish; owner bug report).
+  - Force the entire Main Browse shell (including Settings pane) dark always —
+    rejected (Settings content should still follow Appearance).
+  - Edit ADR-015 Decision 7 in place — rejected (Accepted entries are immutable;
+    supersede via new ADR).
+- Consequences / constraints accepted:
+  - ADR-015 Status records this bar-clause supersession alongside the ADR-016
+    top-chrome supersession; Decision 7 body text is historical.
+  - Widget tests W-8 / T4 assert: bar surface stays dark on Settings under Light
+    ambient; Settings pane tokens stay light; all four destination labels remain
+    findable.
+  - Accepted anchor is fix work `60f3283` (2026-08-08).
