@@ -139,10 +139,11 @@ POC-10 file-size semantics, optional best-effort Location Label
       staleness discard + tests land with 8.5 Overlay (semantics frozen
       here / ADR-015 Decision 3 — not re-opened at 8.5; implementation
       deferred so no orphan helper without Overlay consumer).
-- [ ] 8.4 POC-10: device-confirm safe Tier 3/4 paths already in `c0c04e1`;
-      multi-resource / ambiguous → nil; sample local image/video sizes
-      on device (ADR-015 Accepted at `a721bdc`; formal SDK lacks
-      `dataSize`; no runtime selector spike)
+- [x] 8.4 POC-10: device-confirm safe Tier 3/4 paths already in `c0c04e1`;
+      M1–M6 PASS; M7 N/A (no RAW+JPEG in owner library); Browse hitch
+      qualitative OK. Notes: docs/acceptance/cap8-8.4-poc10-notes.md
+      (2026-08-09). Temporary debug probe discarded (never on `main`).
+      No host fix; no new ADR.
 - [ ] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 omitted;
       progressive per-field paint (size may update in place); ARB;
       `Live Photo` copy when `mediaKind == livePhoto`; wire metadata
@@ -159,15 +160,14 @@ POC-10 file-size semantics, optional best-effort Location Label
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.3 closed; next 8.4 POC-10 device confirm of
-      Tier 3/4
-- Sub-steps done: 8.1 freeze; 8.2 chrome + revisions; 8.3 presentation
-      metadata + Tier 3/4 host `c0c04e1`
-- Next step: owner go 8.4 (real-device sample of size semantics)
+- Goal (one line): Cap 8.4 closed; next 8.5 Media Info Overlay UI
+- Sub-steps done: 8.1–8.3; 8.4 device confirm (M1–M6 PASS, M7 N/A)
+      notes `cap8-8.4-poc10-notes.md`
+- Next step: owner go 8.5 (Overlay rows 1–3 + gate staleness wiring)
 - Related decisions: ADR-001 … ADR-017; Release hang → Final hardening;
       Location Known debt; file-size disclaimer copy Known debt;
-      Portfolio scan remains owner-only; 8.5 owns gate/staleness wiring
-      (frozen semantics, deferred implementation)
+      Portfolio scan remains owner-only; M7 RAW+JPEG size path still
+      unverified on owner library
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -201,8 +201,10 @@ POC-10 file-size semantics, optional best-effort Location Label
   docs/acceptance/cap7-7.7a-profile-retest-notes.md
 - ADR-001 re-eval outline (Fail path not taken — 7.7a PASS):
   docs/acceptance/cap7-7.7-adr001-reevaluation-outline.md
-- Hang diagnosis (Cap 7.7b, N/A):
+- Acceptance notes (Cap 7.7b, N/A):
   docs/acceptance/cap7-7.7b-hang-diagnosis-notes.md
+- Acceptance notes (Cap 8.4 POC-10 device confirm):
+  docs/acceptance/cap8-8.4-poc10-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
