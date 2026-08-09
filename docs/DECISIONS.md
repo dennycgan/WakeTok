@@ -1045,7 +1045,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   uses translucent/scrim (mediaScrim) is superseded by ADR-016 (2026-08-08);
   the Decision 7 clause that Settings Appearance includes the shared bottom
   bar is superseded by ADR-017 (2026-08-08) — Browse/Clips/Auto content
-  forced-dark and Settings *pane* Appearance remain binding
+  forced-dark and Settings *pane* Appearance remain binding; the Decision 5
+  clause that Live Photo file size is dual-nil / undetermined is superseded by
+  ADR-018 (2026-08-10; still-only Tier 4 / `currentImageRepresentation`) —
+  other Decision 5 multi-resource rules (edited / RAW+JPEG / no misleading
+  sum) remain binding
 - Commit/PR anchor: a721bdc
 - Plain summary (owner reads this):
   Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell;
@@ -1257,3 +1261,82 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     ambient; Settings pane tokens stay light; all four destination labels remain
     findable.
   - Accepted anchor is fix work `60f3283` (2026-08-08).
+
+---
+
+## ADR-018: Live Photo file size — still-only Tier 4 (supersedes ADR-015 Live dual-nil)
+
+- Status: Accepted (2026-08-10)
+- Commit/PR anchor: 4f4c825
+- Plain summary (owner reads this):
+  Live Photos show file size for the still image only (same Tier 4 path and
+  `currentImageRepresentation` semantics as ordinary stills). WakeTok does not
+  add the paired motion video bytes. Other multi-resource cases (edited
+  ambiguity, RAW+JPEG, misleading sums) stay blank per ADR-015.
+- Context / what problem forced this:
+  Cap 8 / ADR-015 treated Live Photo as an undetermined multi-resource case and
+  returned dual nil for file size, while Overlay row 3 still showed the Live
+  Photo label. Device probes later showed:
+  - `.photo` resource / Tier 4 still bytes align with iOS Photos Info for the
+    still (example: ~2.89 MB vs Photos Info 2.9 MB on a local Live sample).
+  - Summing `.photo` + `.pairedVideo` (~4.97 MB) was briefly considered
+    (Option B) because it appeared to match a third-party gallery’s Live
+    package display (~5.1 MB).
+  - That third-party reference was then shown unreliable in an independent
+    case: an AirDrop’d mp4 whose Mac Finder and iOS Photos Info both reported
+    ~306.6 MB while the third-party UI showed ~10.87 GB (~35×). Size validation
+    therefore dropped third-party gallery numbers and kept iOS Photos Info
+    (and Finder / filesystem) as ground truth.
+  - With Option B’s external-match rationale gone, product chose Option A:
+    match Photos Info’s still size, lowest explanation cost for users who
+    cross-check in Photos.
+  - Separate M2 follow-up: Tier 3 for local video `IMG_0165` matched Photos
+    Info 11.3 MB (11,260,685 bytes) — Tier 3 itself was not the defect behind
+    earlier third-party mismatches.
+- Decision (what was chosen):
+  1. **Narrow supersede of ADR-015 Decision 5:** Only the concrete outcome
+     “Live Photo → dual nil file size because inherent dual resources are
+     undetermined” is superseded. The rest of Decision 5 remains binding
+     (Tier 1 unavailable; Tier 2 slot; Tier 3/4 enabled; edited / RAW+JPEG /
+     other ambiguous multi-resource → nil rather than a misleading sum; nil ≠
+     zero; never download solely for size).
+  2. **Live Photo size path:** Use the **same Tier 4 host path as ordinary
+     images** (`requestImageDataAndOrientation` with network access
+     disallowed). Return `fileSizeBytes` when local data is available and set
+     `fileSizeSemantics` to existing **`currentImageRepresentation`**. Do
+     **not** introduce a Live-specific semantics enum value.
+  3. **No paired-video sum:** Do not read or add `.pairedVideo` (or other
+     motion) resource bytes for Overlay file size.
+  4. **Carve-out vs other multi-resource rules:** Live Photo’s inherent
+     `{.photo, .pairedVideo}` pair is **not** treated as “undetermined → nil”
+     solely because two resources exist. Showing still-only Tier 4 is an
+     intentional, documented exception. Edited Live Photos still use Tier 4
+     (current representation), consistent with edited stills. RAW+JPEG and
+     other non-Live ambiguous combinations remain nil when semantics are not
+     clear (unchanged).
+  5. **iCloud / unavailable still:** If Tier 4 cannot obtain local image data
+     (including iCloud-only Live), return dual nil for size — same failure
+     mode as ordinary images. This is not the old “Live always nil” policy.
+- Rejected alternatives (why not B):
+  - Option B (sum `.photo` + `.pairedVideo` via `requestData`) — rejected after
+    the third-party gallery reference used to justify package-total matching
+    was disqualified; Photos Info remains the user-facing cross-check and
+    reports the still.
+  - Keep ADR-015 Live dual-nil forever — rejected (Overlay example and product
+    want a size when the still is locally measurable; Tier 4 semantics are
+    clear).
+  - New `fileSizeSemantics` for Live package total — rejected with Option B.
+  - Undocumented KVC `fileSize` / private resource URLs for production size —
+    rejected (kickoff / POC-10 public-API discipline).
+- Consequences / constraints accepted:
+  - Host maps `MediaKind.livePhoto` into `resolveLocalImageFileSize` alongside
+    `.image`.
+  - Overlay row 3 may show `Live Photo · {formatted size}` when both label and
+    size are present (existing join copy).
+  - Cap 8.4 notes M3 records the original dual-nil PASS and points here; M2
+    records the Tier 3 numeric Photos Info cross-check.
+  - Overlay device acceptance (with work `4f4c825`): Live/video Overlay sizes
+    match iOS Photos Info and Mac Finder when using decimal SI display
+    formatting — do not use third-party gallery UIs as size ground truth.
+  - ADR-015 Status line records this narrow Decision 5 supersession.
+  - Accepted date/anchor = implementing work `4f4c825` (2026-08-10).
