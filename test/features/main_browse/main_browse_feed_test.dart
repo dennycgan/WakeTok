@@ -731,6 +731,53 @@ void main() {
     expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
     expect(find.text(exact), findsOneWidget);
   });
+
+  testWidgets(
+      'W-Loc2 feed metadata lands Row2+Row3; production path has no Row4',
+      (tester) async {
+    // Hard gates: exact date (Row2) + formatted size (Row3) from this
+    // fixture prove metadata landed — not an empty Overlay shell. Row1
+    // relative date is optional (clock-dependent). No Row4 = Location
+    // specifically unset on the production feed path.
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final created = DateTime(2023, 11, 15, 8, 30);
+    const sizeBytes = 2_886_627;
+    final exact = formatOverlayExactDateTime(l10n: l10n, createdAt: created);
+    final sizeCopy =
+        formatOverlayFileSize(l10n: l10n, fileSizeBytes: sizeBytes);
+    expect(exact, isNotEmpty);
+    expect(sizeCopy, isNotEmpty);
+
+    final presentation = FakePresentationMetadataRepository(
+      basicsById: {
+        'loc1': PresentationMetadata(
+          assetIdentifier: 'loc1',
+          mediaKind: PresentationMediaKind.image,
+          createdAt: created,
+        ),
+      },
+      sizeById: {
+        'loc1': const PresentationFileSize(
+          assetIdentifier: 'loc1',
+          fileSizeBytes: sizeBytes,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      },
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['loc1']),
+        presentationMetadata: presentation,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(exact), findsOneWidget);
+    expect(find.text(sizeCopy), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+  });
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

@@ -68,6 +68,20 @@ void main() {
     expect(find.text('Auckland'), findsOneWidget);
   });
 
+  testWidgets('W-Loc1 whitespace-only locationLabel collapses row 4',
+      (tester) async {
+    await tester.pumpWidget(
+      harness(
+        const PresentationOverlaySnapshot(
+          assetIdentifier: 'a',
+          mediaKind: PresentationMediaKind.image,
+          locationLabel: '   ',
+        ),
+      ),
+    );
+    expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+  });
+
   testWidgets('W-O4 live photo copy joins size on row 3 when both present',
       (tester) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
