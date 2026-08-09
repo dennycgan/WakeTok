@@ -149,8 +149,11 @@ POC-10 file-size semantics, optional best-effort Location Label
       `FeedActivationCoordinator`; session Overlay cache + background
       refresh. Work `4f4c825`; docs ADR-018 `2bdd207`; session-cache
       regression `W-O-cache` with this close-out.
-- [ ] 8.6 Loading / Empty product polish (resolve + per-page); no
-      Waiting for Media / Source Availability product surfaces
+- [x] 8.6 Loading / Empty product polish: shared `_BrowseStatusPanel`;
+      resolve vs per-page Keys; per-page loading spinner-only (D1);
+      W-L1–W-L6 (Overlay independence on per-page iCloud/failed). Work
+      `dbc0cfd`. No Waiting for Media / Source Availability surfaces;
+      no new ADR.
 - [ ] 8.7 Location deferral close-out (lightweight): confirm Overlay row 4
       stays hidden without Location content; Known debt already recorded —
       no geocoding work this Cap
@@ -160,15 +163,13 @@ POC-10 file-size semantics, optional best-effort Location Label
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.5 closed; next 8.6 Loading / Empty product polish
-- Sub-steps done: 8.1–8.5 (Overlay + gates + session cache; Live still
-      size ADR-018; decimal SI vs Photos/Finder confirmed on device)
-- Next step: owner go 8.6 (Loading / Empty polish; no Waiting for Media /
-      Source Availability product surfaces)
-- Related decisions: ADR-001 … ADR-018; Release hang → Final hardening;
-      Location Known debt; file-size disclaimer copy Known debt;
-      Portfolio scan remains owner-only; M7 RAW+JPEG size path still
-      unverified on owner library
+- Goal (one line): Cap 8.7 Location deferral close-out (lightweight)
+- Sub-steps done: 8.1–8.6 closed
+- Next step: confirm Overlay row 4 stays hidden without Location content;
+      no geocoding this Cap (Known debt already recorded)
+- Related decisions: ADR-001 … ADR-018; Location Known debt; file-size
+      disclaimer copy Known debt; Portfolio scan remains owner-only;
+      M7 RAW+JPEG size path still unverified on owner library
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
