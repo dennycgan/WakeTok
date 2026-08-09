@@ -154,19 +154,19 @@ POC-10 file-size semantics, optional best-effort Location Label
       W-L1–W-L6 (Overlay independence on per-page iCloud/failed). Work
       `dbc0cfd`. No Waiting for Media / Source Availability surfaces;
       no new ADR.
-- [ ] 8.7 Location deferral close-out (lightweight): confirm Overlay row 4
-      stays hidden without Location content; Known debt already recorded —
-      no geocoding work this Cap
+- [x] 8.7 Location deferral close-out: W-Loc1 (whitespace trim) + W-Loc2
+      (feed Row2 exact + Row3 size fixture land; no Row4). Work `95f2037`.
+      No geocode; Known debt unchanged; no formal device notes; no new ADR.
 - [ ] 8.8 Real-device acceptance: overlay height stability; file-size
       sample semantics; coarse hitch sanity (not a Cap 7.7a re-gate)
 - [ ] 8.9 Cap 8 close-out: STATE + PHASE_HISTORY; Location debt remains
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.7 Location deferral close-out (lightweight)
-- Sub-steps done: 8.1–8.6 closed
-- Next step: confirm Overlay row 4 stays hidden without Location content;
-      no geocoding this Cap (Known debt already recorded)
+- Goal (one line): Cap 8.8 Real-device acceptance (Overlay / size / hitch)
+- Sub-steps done: 8.1–8.7 closed
+- Next step: device checks — overlay height stability; file-size sample
+      semantics; coarse hitch sanity (not Cap 7.7a re-gate)
 - Related decisions: ADR-001 … ADR-018; Location Known debt; file-size
       disclaimer copy Known debt; Portfolio scan remains owner-only;
       M7 RAW+JPEG size path still unverified on owner library
