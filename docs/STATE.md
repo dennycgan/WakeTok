@@ -104,14 +104,15 @@ Active capability: Media Info Overlay, loading states, empty states,
 POC-10 file-size semantics, optional best-effort Location Label
 (not release-blocking)
 
-> Owner-approved Cap 8 design lock (Q1=B Location deferred/hide row 4;
-> Q2=B forced-dark = Browse pane + shared bottom bar when destination
-> is non-Settings; Settings follows Appearance; Q3=A Tier 1 unavailable
-> → Tier 3/4 only; Q4=A Live Photo label from mediaKind; Q5=A current
-> page only). Field-progressive Presentation Metadata (per-field nullable,
-> render on arrival). Location “current Item only” remains a hard rule
-> independent of any future ±1 metadata prefetch. Cap 7.8 debts paid in
-> 8.2 (do not merge those rows when scheduling).
+> Owner-approved Cap 8 design lock (Q1=B Location deferred — Overlay row 4
+> hidden when empty / no geocode this Cap; Q2=B forced-dark = Browse pane +
+> shared bottom bar when destination is non-Settings; Settings follows
+> Appearance; Q3=A Tier 1 unavailable → Tier 3/4 only; Q4=A Live Photo label
+> from mediaKind; Q5=A current page only). Field-progressive Presentation
+> Metadata (per-field nullable, render on arrival). Location “current Item
+> only” remains a hard rule independent of any future ±1 metadata prefetch.
+> Cap 7.8 debts paid in 8.2 (do not merge those rows when scheduling).
+> Live still-only file size: ADR-018 (supersedes ADR-015 Live dual-nil).
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -136,23 +137,22 @@ POC-10 file-size semantics, optional best-effort Location Label
       (`creationDateMs?`, required `mediaKind` on success,
       `fileSizeBytes?`, `fileSizeSemantics?`); host Tier 3/4
       implemented. Work `c0c04e1`. Feature-layer FeedMediaRequestGate
-      staleness discard + tests land with 8.5 Overlay (semantics frozen
-      here / ADR-015 Decision 3 — not re-opened at 8.5; implementation
-      deferred so no orphan helper without Overlay consumer).
+      staleness discard + Overlay consumer landed in 8.5 (`4f4c825`).
 - [x] 8.4 POC-10: device-confirm safe Tier 3/4 paths already in `c0c04e1`;
       M1–M6 PASS; M7 N/A (no RAW+JPEG in owner library); Browse hitch
       qualitative OK. Notes: docs/acceptance/cap8-8.4-poc10-notes.md
-      (2026-08-09). Temporary debug probe discarded (never on `main`).
-      No host fix; no new ADR.
-- [ ] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 omitted;
-      progressive per-field paint (size may update in place); ARB;
-      `Live Photo` copy when `mediaKind == livePhoto`; wire metadata
-      requests through existing FeedMediaRequestGate (staleness discard
-      tests with Overlay consumer)
+      (2026-08-09; M2/M3 follow-ups + ADR-018). Temporary debug probe
+      discarded (never on `main`). No host fix at 8.4 close-out.
+- [x] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 hidden when
+      `locationLabel` empty (no geocode); progressive paint; ARB; Live
+      label + still size (ADR-018 Tier 4); dual-gate sync via
+      `FeedActivationCoordinator`; session Overlay cache + background
+      refresh. Work `4f4c825`; docs ADR-018 `2bdd207`; session-cache
+      regression `W-O-cache` with this close-out.
 - [ ] 8.6 Loading / Empty product polish (resolve + per-page); no
       Waiting for Media / Source Availability product surfaces
 - [ ] 8.7 Location deferral close-out (lightweight): confirm Overlay row 4
-      omitted in UI; Known debt row already recorded at design lock —
+      stays hidden without Location content; Known debt already recorded —
       no geocoding work this Cap
 - [ ] 8.8 Real-device acceptance: overlay height stability; file-size
       sample semantics; coarse hitch sanity (not a Cap 7.7a re-gate)
@@ -160,11 +160,12 @@ POC-10 file-size semantics, optional best-effort Location Label
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.4 closed; next 8.5 Media Info Overlay UI
-- Sub-steps done: 8.1–8.3; 8.4 device confirm (M1–M6 PASS, M7 N/A)
-      notes `cap8-8.4-poc10-notes.md`
-- Next step: owner go 8.5 (Overlay rows 1–3 + gate staleness wiring)
-- Related decisions: ADR-001 … ADR-017; Release hang → Final hardening;
+- Goal (one line): Cap 8.5 closed; next 8.6 Loading / Empty product polish
+- Sub-steps done: 8.1–8.5 (Overlay + gates + session cache; Live still
+      size ADR-018; decimal SI vs Photos/Finder confirmed on device)
+- Next step: owner go 8.6 (Loading / Empty polish; no Waiting for Media /
+      Source Availability product surfaces)
+- Related decisions: ADR-001 … ADR-018; Release hang → Final hardening;
       Location Known debt; file-size disclaimer copy Known debt;
       Portfolio scan remains owner-only; M7 RAW+JPEG size path still
       unverified on owner library
@@ -187,12 +188,14 @@ POC-10 file-size semantics, optional best-effort Location Label
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
-  requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015);
-  provider: lib/features/library_smoke/presentation_providers.dart
-  (Overlay + FeedMediaRequestGate wiring → Cap 8.5)
+  requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
+  size ADR-018); Overlay + dual-gate + session cache: Cap 8.5 `4f4c825`
+  (`lib/features/main_browse/media_info_overlay.dart`,
+  `feed_activation_coordinator.dart`); provider:
+  lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-017: docs/DECISIONS.md
+- ADR-001 … ADR-018: docs/DECISIONS.md
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
@@ -217,7 +220,7 @@ POC-10 file-size semantics, optional best-effort Location Label
 | Capability | Item | Reason | Picks it up | Related ADR |
 |---|---|---|---|---|
 | Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
-| Media Info Overlay | Location Label (reverse geocode) not implemented | Owner Cap 8 Q1=B: hide Overlay row 4 this Cap (kickoff ADR-X best-effort deferral). Current-Item-only geocode hard rule unchanged when a later Cap picks this up | Later Cap (or reopen when Owner schedules) | kickoff ADR-X |
+| Media Info Overlay | Location Label (reverse geocode) not implemented | Owner Cap 8 Q1=B: Overlay row 4 hidden when empty this Cap (kickoff ADR-X best-effort deferral; no geocode). Current-Item-only geocode hard rule unchanged when a later Cap picks this up | Later Cap (or reopen when Owner schedules) | kickoff ADR-X |
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |

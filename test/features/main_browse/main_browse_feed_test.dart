@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
+import 'package:waketok/domain/presentation/file_size_semantics.dart';
+import 'package:waketok/domain/presentation/presentation_media_kind.dart';
+import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
@@ -12,6 +15,8 @@ import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
+import 'package:waketok/features/main_browse/presentation_date_format.dart';
+import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -461,6 +466,90 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
     expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
     expect(presentation.basicsCalls, greaterThan(0));
+  });
+
+  testWidgets(
+      'W-O-cache returning to seen asset shows cached Overlay without blank',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final a1Created = DateTime(2024, 1, 15, 10, 30);
+    final a2Created = DateTime(2023, 5, 20, 8, 0);
+    final a1Exact = formatOverlayExactDateTime(
+      l10n: l10n,
+      createdAt: a1Created,
+    );
+    final a2Exact = formatOverlayExactDateTime(
+      l10n: l10n,
+      createdAt: a2Created,
+    );
+    final a1Size = formatOverlayFileSize(
+      l10n: l10n,
+      fileSizeBytes: 2_886_627,
+    );
+
+    final presentation = FakePresentationMetadataRepository(
+      basicsById: {
+        'a1': PresentationMetadata(
+          assetIdentifier: 'a1',
+          mediaKind: PresentationMediaKind.image,
+          createdAt: a1Created,
+        ),
+        'a2': PresentationMetadata(
+          assetIdentifier: 'a2',
+          mediaKind: PresentationMediaKind.image,
+          createdAt: a2Created,
+        ),
+      },
+      sizeById: {
+        'a1': const PresentationFileSize(
+          assetIdentifier: 'a1',
+          fileSizeBytes: 2_886_627,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+        'a2': const PresentationFileSize(
+          assetIdentifier: 'a2',
+          fileSizeBytes: 11_260_685,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      },
+    );
+
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        presentationMetadata: presentation,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(a1Exact), findsOneWidget);
+    expect(find.text(a1Size), findsOneWidget);
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+    expect(find.text(a2Exact), findsOneWidget);
+    expect(find.text(a1Exact), findsNothing);
+
+    // Hang subsequent metadata refresh so only the session cache can paint.
+    presentation.basicsGate = Completer<void>();
+    presentation.sizeGate = Completer<void>();
+    final callsBeforeReturn = presentation.basicsCalls;
+
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await tester.pump(); // one frame — do not settle / wait for hung refresh
+
+    expect(find.text(a1Exact), findsOneWidget);
+    expect(find.text(a1Size), findsOneWidget);
+    expect(find.text(a2Exact), findsNothing);
+    expect(presentation.basicsCalls, greaterThan(callsBeforeReturn));
+
+    // Unblock hung refresh so the test does not leak pending futures.
+    presentation.basicsGate!.complete();
+    presentation.sizeGate!.complete();
+    await tester.pumpAndSettle();
   });
 }
 
