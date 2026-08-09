@@ -163,6 +163,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
       color: tokens.feedBackground,
       child: asyncQueue.when(
         loading: () => Center(
+          key: const Key('mainBrowseFeedLoading'),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -175,16 +176,23 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
             ],
           ),
         ),
-        error: (error, stackTrace) => _FeedMessage(
+        error: (error, stackTrace) => _BrowseStatusPanel(
+          // Resolve-level failure path (source could not load).
+          panelKey: const Key('mainBrowseFeedResolveFailed'),
           message: l10n.mainBrowseFeedResolveFailed,
           actionLabel: l10n.mainBrowseFeedRetry,
+          actionKey: const Key('mainBrowseFeedRetry'),
           onAction: () => ref.invalidate(mainBrowseFeedQueueProvider),
         ),
         data: (resolved) {
           final ids = resolved.assetIdentifiers;
           _ids = ids;
           if (ids.isEmpty) {
-            return _FeedMessage(message: l10n.mainBrowseFeedEmpty);
+            return _BrowseStatusPanel(
+              // Resolve-level empty path (source resolved to zero items).
+              panelKey: const Key('mainBrowseFeedEmpty'),
+              message: l10n.mainBrowseFeedEmpty,
+            );
           }
           if (feedIndex >= ids.length) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -240,21 +248,31 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   }
 }
 
-class _FeedMessage extends StatelessWidget {
-  const _FeedMessage({
+class _BrowseStatusPanel extends StatelessWidget {
+  /// Shared presentation shell for Browse status copy (+ optional Retry).
+  ///
+  /// Call sites stay separate: resolve-level empty/error vs per-page
+  /// iCloud/failed decide *when* to show this panel and which ARB strings
+  /// to pass — this widget only paints.
+  const _BrowseStatusPanel({
     required this.message,
+    this.panelKey,
     this.actionLabel,
+    this.actionKey,
     this.onAction,
   });
 
+  final Key? panelKey;
   final String message;
   final String? actionLabel;
+  final Key? actionKey;
   final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     return Center(
+      key: panelKey,
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -268,7 +286,7 @@ class _FeedMessage extends StatelessWidget {
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 16),
               TextButton(
-                key: const Key('mainBrowseFeedRetry'),
+                key: actionKey,
                 onPressed: onAction,
                 child: Text(actionLabel!),
               ),
@@ -422,6 +440,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
 
     if (_loading) {
       return Center(
+        key: const Key('mainBrowseFeedPageLoading'),
         child: CircularProgressIndicator(color: tokens.brandGold),
       );
     }
@@ -453,15 +472,21 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
             await _syncPlaybackActive();
           },
         ),
-      FeedPageMediaKind.iCloudOnly => _FeedPageStatus(
+      FeedPageMediaKind.iCloudOnly => _BrowseStatusPanel(
+          // Per-page path: this asset is iCloud-only (not resolve-level empty).
+          panelKey: const Key('mainBrowseFeedPageICloud'),
           message: l10n.mainBrowseFeedICloudOnly,
-          onRetry: _startLoad,
-          retryLabel: l10n.mainBrowseFeedRetry,
+          actionLabel: l10n.mainBrowseFeedRetry,
+          actionKey: const Key('mainBrowseFeedPageRetry'),
+          onAction: _startLoad,
         ),
-      FeedPageMediaKind.failed => _FeedPageStatus(
+      FeedPageMediaKind.failed => _BrowseStatusPanel(
+          // Per-page path: this asset failed to display/play.
+          panelKey: const Key('mainBrowseFeedPageFailed'),
           message: l10n.mainBrowseFeedMediaFailed,
-          onRetry: _startLoad,
-          retryLabel: l10n.mainBrowseFeedRetry,
+          actionLabel: l10n.mainBrowseFeedRetry,
+          actionKey: const Key('mainBrowseFeedPageRetry'),
+          onAction: _startLoad,
         ),
     };
   }
@@ -580,43 +605,6 @@ class _VideoPageState extends State<_VideoPage> {
               ),
             )
           : const SizedBox.expand(),
-    );
-  }
-}
-
-class _FeedPageStatus extends StatelessWidget {
-  const _FeedPageStatus({
-    required this.message,
-    required this.onRetry,
-    required this.retryLabel,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-  final String retryLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: tokens.bodyOnMedia,
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: onRetry,
-              child: Text(retryLabel),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

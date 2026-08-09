@@ -71,6 +71,8 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.mainBrowseFeedEmpty), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
   });
 
   testWidgets('W-F4 resolve failure shows error ARB and retry', (tester) async {
@@ -83,7 +85,9 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.mainBrowseFeedResolveFailed), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedResolveFailed')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseFeedRetry')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
   });
 
   testWidgets('W-F5 page change updates feed index via PageController',
@@ -551,6 +555,194 @@ void main() {
     presentation.sizeGate!.complete();
     await tester.pumpAndSettle();
   });
+
+  testWidgets('W-L1 resolve loading shows Key and copy; no Overlay',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = _HangingResolveRepository(allIds: const ['a1']);
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseFeedLoading')), findsOneWidget);
+    expect(find.text(l10n.mainBrowseFeedLoading), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+
+    sources.gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+  });
+
+  testWidgets(
+      'W-L2 per-page loading Key; Overlay paints when metadata arrives',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final created = DateTime(2024, 7, 1, 9, 0);
+    final exact = formatOverlayExactDateTime(l10n: l10n, createdAt: created);
+    final presentation = FakePresentationMetadataRepository(
+      basicsById: {
+        'a1': PresentationMetadata(
+          assetIdentifier: 'a1',
+          mediaKind: PresentationMediaKind.image,
+          createdAt: created,
+        ),
+      },
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayGates['a1'] = Completer<void>();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        presentationMetadata: presentation,
+      ),
+    );
+    var sawPageLoading = false;
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (find
+          .byKey(const Key('mainBrowseFeedPageLoading'))
+          .evaluate()
+          .isNotEmpty) {
+        sawPageLoading = true;
+        break;
+      }
+    }
+    expect(sawPageLoading, isTrue);
+
+    // Metadata can finish while display is still hung — Overlay stays up.
+    for (var i = 0; i < 40; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+      if (find.text(exact).evaluate().isNotEmpty) {
+        break;
+      }
+    }
+    expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
+    expect(find.text(exact), findsOneWidget);
+
+    display.displayGates['a1']!.complete();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+  });
+
+  testWidgets('W-L3 per-page iCloud-only shows panel + retry', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['a1'] = 'iCloudDownloadRequired';
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedPageICloud')), findsOneWidget);
+    expect(find.text(l10n.mainBrowseFeedICloudOnly), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
+  });
+
+  testWidgets('W-L4 per-page failed shows panel + retry', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['a1'] = 'assetUnavailable';
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
+    expect(find.text(l10n.mainBrowseFeedMediaFailed), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
+  });
+
+  testWidgets('W-L5 resolve loading hides Overlay', (tester) async {
+    // Empty / resolve-failed Overlay absence covered by W-F3 / W-F4.
+    // Separate testWidgets — re-pumping ProviderScope in one test can
+    // retain a cached resolve and falsely keep a non-empty feed.
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final hanging = _HangingResolveRepository(allIds: const ['a1']);
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: hanging),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseFeedLoading')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+    hanging.gate.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+      'W-L6 per-page iCloud/failed keeps Overlay when metadata arrived',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final created = DateTime(2024, 3, 10, 14, 5);
+    final exact = formatOverlayExactDateTime(l10n: l10n, createdAt: created);
+    final presentation = FakePresentationMetadataRepository(
+      basicsById: {
+        'cloud': PresentationMetadata(
+          assetIdentifier: 'cloud',
+          mediaKind: PresentationMediaKind.image,
+          createdAt: created,
+        ),
+        'bad': PresentationMetadata(
+          assetIdentifier: 'bad',
+          mediaKind: PresentationMediaKind.image,
+          createdAt: created,
+        ),
+      },
+    );
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['cloud'] = 'iCloudDownloadRequired';
+    display.displayErrorById['bad'] = 'assetUnavailable';
+
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['cloud', 'bad'],
+        ),
+        mediaDisplay: display,
+        presentationMetadata: presentation,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedPageICloud')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
+    expect(find.text(exact), findsOneWidget);
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
+    expect(find.text(exact), findsOneWidget);
+  });
+}
+
+class _HangingResolveRepository extends FakeAssetSourceRepository {
+  _HangingResolveRepository({super.allIds});
+
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<ResolvedSource> resolve(SourceReference reference) async {
+    await gate.future;
+    return super.resolve(reference);
+  }
 }
 
 class _ThrowingResolveRepository extends FakeAssetSourceRepository {
