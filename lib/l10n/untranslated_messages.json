@@ -49,6 +49,18 @@
     "mainBrowseStubClipsBody",
     "mainBrowseStubAutoBody",
     "mainBrowseStubSettingsBody",
-    "mainBrowseOpenLibrarySmokeDebug"
+    "mainBrowseOpenLibrarySmokeDebug",
+    "mediaInfoRelativeToday",
+    "mediaInfoRelativeDaysAgo",
+    "mediaInfoRelativeMonthsAgo",
+    "mediaInfoRelativeYearsAgo",
+    "mediaInfoRelativeYearsMonthsAgo",
+    "mediaInfoExactDateTime",
+    "mediaInfoLivePhoto",
+    "mediaInfoFileSizeBytes",
+    "mediaInfoFileSizeKb",
+    "mediaInfoFileSizeMb",
+    "mediaInfoFileSizeGb",
+    "mediaInfoCharacteristicsJoined"
   ]
 }

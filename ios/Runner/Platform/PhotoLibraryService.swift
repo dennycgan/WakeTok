@@ -692,8 +692,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
 
       let kind = mapMediaKind(asset)
       switch kind {
-      case .livePhoto, .unknown:
-        // Multi-resource / ambiguous → blank (ADR-015), not an error.
+      case .unknown:
+        // Ambiguous media kind → blank (ADR-015), not an error.
         completion(
           .success(
             PresentationFileSizeDto(
@@ -705,7 +705,9 @@ final class PhotoLibraryService: PhotoLibraryApi {
         )
       case .video:
         resolveLocalVideoFileSize(asset: asset, completion: completion)
-      case .image:
+      case .image, .livePhoto:
+        // Live Photo: Tier 4 still only (ADR-018) — same path as ordinary image.
+        // Does not sum .pairedVideo. Paired motion size is out of scope here.
         resolveLocalImageFileSize(asset: asset, completion: completion)
       }
     } catch {

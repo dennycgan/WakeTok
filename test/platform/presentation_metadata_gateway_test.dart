@@ -79,7 +79,7 @@ void main() {
       ),
       (message) async => <Object?>[
         pigeon.PresentationFileSizeDto(
-          assetIdentifier: 'live1',
+          assetIdentifier: 'missing-local',
           fileSizeBytes: null,
           fileSizeSemantics: null,
         ),
@@ -87,9 +87,35 @@ void main() {
     );
 
     final size =
-        await PhotoLibraryGateway().requestPresentationFileSize('live1');
+        await PhotoLibraryGateway().requestPresentationFileSize('missing-local');
     expect(size.fileSizeBytes, isNull);
     expect(size.fileSizeSemantics, isNull);
+  });
+
+  test('G-P1 Live Photo size uses currentImageRepresentation (ADR-018)', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestPresentationFileSize'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        pigeon.PresentationFileSizeDto(
+          assetIdentifier: 'live1',
+          fileSizeBytes: 2_886_627,
+          fileSizeSemantics:
+              pigeon.FileSizeSemantics.currentImageRepresentation,
+        ),
+      ],
+    );
+
+    final size =
+        await PhotoLibraryGateway().requestPresentationFileSize('live1');
+    expect(size.fileSizeBytes, 2_886_627);
+    expect(
+      size.fileSizeSemantics,
+      FileSizeSemantics.currentImageRepresentation,
+    );
   });
 
   test('G-P1 file size semantics map 1:1', () async {

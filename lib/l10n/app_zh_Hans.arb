@@ -68,5 +68,17 @@
   "mainBrowseStubClipsBody": "切片 — 将在后续能力提供。",
   "mainBrowseStubAutoBody": "自动播放 — 将在后续能力提供。",
   "mainBrowseStubSettingsBody": "设置 — 将在后续能力提供。",
-  "mainBrowseOpenLibrarySmokeDebug": "图库调试（debug）"
+  "mainBrowseOpenLibrarySmokeDebug": "图库调试（debug）",
+  "mediaInfoRelativeToday": "今天",
+  "mediaInfoRelativeDaysAgo": "{count} 天前",
+  "mediaInfoRelativeMonthsAgo": "{count} 个月前",
+  "mediaInfoRelativeYearsAgo": "{count} 年前",
+  "mediaInfoRelativeYearsMonthsAgo": "{years} 年 {months} 个月前",
+  "mediaInfoExactDateTime": "{year}-{month}-{day} {hour}:{minute}",
+  "mediaInfoLivePhoto": "实况照片",
+  "mediaInfoFileSizeBytes": "{count} B",
+  "mediaInfoFileSizeKb": "{count} KB",
+  "mediaInfoFileSizeMb": "{count} MB",
+  "mediaInfoFileSizeGb": "{count} GB",
+  "mediaInfoCharacteristicsJoined": "{live} · {size}"
 }

@@ -13,6 +13,8 @@ import 'library_smoke/fake_asset_source_repository.dart';
 import 'library_smoke/fake_library_catalog_repository.dart';
 import 'library_smoke/fake_media_display_repository.dart';
 import 'library_smoke/fake_playback_repository.dart';
+import 'library_smoke/fake_presentation_metadata_repository.dart';
+import 'package:waketok/features/library_smoke/presentation_providers.dart';
 
 void main() {
   testWidgets('WakeTokApp opens PhotosAccessGate', (tester) async {
@@ -32,6 +34,9 @@ void main() {
             FakeMediaDisplayRepository(),
           ),
           playbackRepositoryProvider.overrideWithValue(FakePlaybackRepository()),
+          presentationMetadataRepositoryProvider.overrideWithValue(
+            FakePresentationMetadataRepository(),
+          ),
         ],
         child: const WakeTokApp(),
       ),

@@ -500,6 +500,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Library smoke (debug)'**
   String get mainBrowseOpenLibrarySmokeDebug;
+
+  /// Overlay row 1 when the asset was created on the current local calendar day
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get mediaInfoRelativeToday;
+
+  /// Overlay row 1 when age is 1–30 days (inclusive)
+  ///
+  /// In en, this message translates to:
+  /// **'{count} days ago'**
+  String mediaInfoRelativeDaysAgo(String count);
+
+  /// Overlay row 1 when age is over 30 days and only months (no years)
+  ///
+  /// In en, this message translates to:
+  /// **'{count} months ago'**
+  String mediaInfoRelativeMonthsAgo(String count);
+
+  /// Overlay row 1 when age is whole years (no leftover months)
+  ///
+  /// In en, this message translates to:
+  /// **'{count} years ago'**
+  String mediaInfoRelativeYearsAgo(String count);
+
+  /// Overlay row 1 when age is over 30 days with both years and months
+  ///
+  /// In en, this message translates to:
+  /// **'{years} years {months} months ago'**
+  String mediaInfoRelativeYearsMonthsAgo(String years, String months);
+
+  /// Overlay row 2 exact local date and time
+  ///
+  /// In en, this message translates to:
+  /// **'{year}-{month}-{day} {hour}:{minute}'**
+  String mediaInfoExactDateTime(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  );
+
+  /// Overlay row 3 label when mediaKind is livePhoto
+  ///
+  /// In en, this message translates to:
+  /// **'Live Photo'**
+  String get mediaInfoLivePhoto;
+
+  /// Overlay row 3 size under 1 KiB
+  ///
+  /// In en, this message translates to:
+  /// **'{count} B'**
+  String mediaInfoFileSizeBytes(String count);
+
+  /// Overlay row 3 size in kibibytes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} KB'**
+  String mediaInfoFileSizeKb(String count);
+
+  /// Overlay row 3 size in mebibytes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} MB'**
+  String mediaInfoFileSizeMb(String count);
+
+  /// Overlay row 3 size in gibibytes
+  ///
+  /// In en, this message translates to:
+  /// **'{count} GB'**
+  String mediaInfoFileSizeGb(String count);
+
+  /// Overlay row 3 when both Live Photo label and file size are present
+  ///
+  /// In en, this message translates to:
+  /// **'{live} · {size}'**
+  String mediaInfoCharacteristicsJoined(String live, String size);
 }
 
 class _AppLocalizationsDelegate

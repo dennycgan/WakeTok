@@ -7,6 +7,7 @@ import 'package:waketok/features/authorization/photos_authorization_notifier.dar
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
+import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/main.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
@@ -16,6 +17,7 @@ import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../../library_smoke/fake_playback_repository.dart';
+import '../../library_smoke/fake_presentation_metadata_repository.dart';
 
 void main() {
   test('T1 light and dark ThemeData carry WakeTokTokens', () {
@@ -164,6 +166,9 @@ void main() {
             FakeMediaDisplayRepository(),
           ),
           playbackRepositoryProvider.overrideWithValue(FakePlaybackRepository()),
+          presentationMetadataRepositoryProvider.overrideWithValue(
+            FakePresentationMetadataRepository(),
+          ),
         ],
         child: const WakeTokApp(),
       ),
@@ -221,6 +226,9 @@ void main() {
             FakeMediaDisplayRepository(),
           ),
           playbackRepositoryProvider.overrideWithValue(FakePlaybackRepository()),
+          presentationMetadataRepositoryProvider.overrideWithValue(
+            FakePresentationMetadataRepository(),
+          ),
         ],
         child: const WakeTokApp(),
       ),

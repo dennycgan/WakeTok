@@ -11,9 +11,13 @@ import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
+import 'package:waketok/features/library_smoke/presentation_providers.dart';
+import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/media_info_overlay.dart';
+import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Vertical Manual feed over Cap 6 resolve ids (Cap 7.5 / ADR-014).
@@ -28,6 +32,14 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   PageController? _pageController;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
+
+  final FeedActivationCoordinator _activation = FeedActivationCoordinator();
+  final Map<String, PresentationOverlaySnapshot> _overlayCache =
+      <String, PresentationOverlaySnapshot>{};
+
+  String? _activeAssetId;
+  int? _activeDisplayGeneration;
+  PresentationOverlaySnapshot? _overlaySnapshot;
 
   @override
   void initState() {
@@ -61,6 +73,62 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     super.dispose();
   }
 
+  /// Hard constraint: metadata + current-display [begin] in one synchronous call.
+  void _activateCurrentItem(String assetId) {
+    if (_activeAssetId == assetId &&
+        _activeDisplayGeneration ==
+            _activation.currentDisplayGate.generation) {
+      return;
+    }
+    final gens = _activation.beginCurrentItem();
+    final cached = _overlayCache[assetId];
+    setState(() {
+      _activeAssetId = assetId;
+      _activeDisplayGeneration = gens.display;
+      _overlaySnapshot = cached ??
+          PresentationOverlaySnapshot(assetIdentifier: assetId);
+    });
+    unawaited(_loadOverlay(gens.metadata, assetId));
+  }
+
+  Future<void> _loadOverlay(int metadataGeneration, String assetId) async {
+    final repo = ref.read(presentationMetadataRepositoryProvider);
+    try {
+      final meta = await repo.requestPresentationMetadata(assetId);
+      if (!mounted ||
+          !_activation.metadataGate.isCurrent(metadataGeneration)) {
+        return;
+      }
+      setState(() {
+        final base = (_overlaySnapshot?.assetIdentifier == assetId)
+            ? _overlaySnapshot!
+            : PresentationOverlaySnapshot(assetIdentifier: assetId);
+        final next = base.mergeBasics(meta);
+        _overlaySnapshot = next;
+        _overlayCache[assetId] = next;
+      });
+    } catch (_) {
+      // Leave fields blank; do not block playback.
+    }
+    try {
+      final size = await repo.requestPresentationFileSize(assetId);
+      if (!mounted ||
+          !_activation.metadataGate.isCurrent(metadataGeneration)) {
+        return;
+      }
+      setState(() {
+        final base = (_overlaySnapshot?.assetIdentifier == assetId)
+            ? _overlaySnapshot!
+            : PresentationOverlaySnapshot(assetIdentifier: assetId);
+        final next = base.mergeSize(size);
+        _overlaySnapshot = next;
+        _overlayCache[assetId] = next;
+      });
+    } catch (_) {
+      // Size stays blank.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -84,6 +152,9 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
       }
       if (controller.page?.round() != next) {
         controller.jumpToPage(next);
+      }
+      if (_ids.isNotEmpty && next >= 0 && next < _ids.length) {
+        _activateCurrentItem(_ids[next]);
       }
     });
 
@@ -115,29 +186,53 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           if (ids.isEmpty) {
             return _FeedMessage(message: l10n.mainBrowseFeedEmpty);
           }
-          // Keep controller page in range after source switch.
           if (feedIndex >= ids.length) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
             });
           }
-          return PageView.builder(
-            key: ValueKey<String>('feed-${source.id}-${ids.length}'),
-            controller: _pageController,
-            scrollDirection: Axis.vertical,
-            itemCount: ids.length,
-            onPageChanged: (i) {
-              ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
-            },
-            itemBuilder: (context, index) {
-              return MediaFeedPage(
-                key: ValueKey<String>('page-${ids[index]}-$index'),
-                assetIdentifier: ids[index],
-                feedIndex: index,
-                sourceKind: source.kind,
-                isCurrent: browseActive && index == feedIndex,
-              );
-            },
+          final safeIndex = feedIndex.clamp(0, ids.length - 1);
+          final currentId = ids[safeIndex];
+          // Sync activate in this build so the current page receives
+          // assignedDisplayGeneration before its first _startLoad.
+          if (_activeAssetId != currentId ||
+              _activeDisplayGeneration == null) {
+            final gens = _activation.beginCurrentItem();
+            _activeAssetId = currentId;
+            _activeDisplayGeneration = gens.display;
+            _overlaySnapshot = _overlayCache[currentId] ??
+                PresentationOverlaySnapshot(assetIdentifier: currentId);
+            unawaited(_loadOverlay(gens.metadata, currentId));
+          }
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              PageView.builder(
+                key: ValueKey<String>('feed-${source.id}-${ids.length}'),
+                controller: _pageController,
+                scrollDirection: Axis.vertical,
+                itemCount: ids.length,
+                onPageChanged: (i) {
+                  ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
+                  _activateCurrentItem(ids[i]);
+                },
+                itemBuilder: (context, index) {
+                  final isCurrent = browseActive && index == feedIndex;
+                  return MediaFeedPage(
+                    key: ValueKey<String>('page-${ids[index]}-$index'),
+                    assetIdentifier: ids[index],
+                    feedIndex: index,
+                    sourceKind: source.kind,
+                    isCurrent: isCurrent,
+                    currentDisplayGate:
+                        isCurrent ? _activation.currentDisplayGate : null,
+                    assignedDisplayGeneration:
+                        isCurrent ? _activeDisplayGeneration : null,
+                  );
+                },
+              ),
+              if (browseActive) MediaInfoOverlay(snapshot: _overlaySnapshot),
+            ],
           );
         },
       ),
@@ -193,12 +288,18 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.feedIndex,
     required this.sourceKind,
     required this.isCurrent,
+    this.currentDisplayGate,
+    this.assignedDisplayGeneration,
   });
 
   final String assetIdentifier;
   final int feedIndex;
   final AssetSourceKind sourceKind;
   final bool isCurrent;
+
+  /// When current: feed-owned gate already begun in [_activateCurrentItem].
+  final FeedMediaRequestGate? currentDisplayGate;
+  final int? assignedDisplayGeneration;
 
   static const String playbackViewType = 'waketok/playback_surface';
 
@@ -207,7 +308,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
 }
 
 class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
-  final FeedMediaRequestGate _gate = FeedMediaRequestGate();
+  final FeedMediaRequestGate _localGate = FeedMediaRequestGate();
   FeedPageMedia? _media;
   bool _loading = true;
   bool _surfaceReady = false;
@@ -223,7 +324,9 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.assetIdentifier != widget.assetIdentifier ||
         oldWidget.feedIndex != widget.feedIndex ||
-        oldWidget.sourceKind != widget.sourceKind) {
+        oldWidget.sourceKind != widget.sourceKind ||
+        oldWidget.assignedDisplayGeneration !=
+            widget.assignedDisplayGeneration) {
       _startLoad();
     } else if (oldWidget.isCurrent != widget.isCurrent) {
       if (oldWidget.isCurrent && !widget.isCurrent) {
@@ -248,7 +351,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
 
   @override
   void dispose() {
-    _gate.begin(); // invalidate in-flight
+    _localGate.begin(); // invalidate in-flight local loads
     if (_media?.kind == FeedPageMediaKind.video && widget.isCurrent) {
       unawaited(ref.read(playbackRepositoryProvider).pause());
     }
@@ -256,14 +359,33 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   }
 
   Future<void> _startLoad() async {
-    final generation = _gate.begin();
+    final FeedMediaRequestGate gate;
+    final int generation;
+    if (widget.isCurrent) {
+      final shared = widget.currentDisplayGate;
+      final assigned = widget.assignedDisplayGeneration;
+      if (shared == null || assigned == null) {
+        // Parent activation not ready yet — keep spinner; reload on assign.
+        setState(() {
+          _loading = true;
+          _media = null;
+          _surfaceReady = false;
+        });
+        return;
+      }
+      gate = shared;
+      generation = assigned;
+    } else {
+      gate = _localGate;
+      generation = _localGate.begin();
+    }
     setState(() {
       _loading = true;
       _media = null;
       _surfaceReady = false;
     });
     final result = await loadFeedPageMedia(
-      gate: _gate,
+      gate: gate,
       generation: generation,
       sourceKind: widget.sourceKind,
       assetIdentifier: widget.assetIdentifier,
@@ -272,7 +394,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       displayRepository: ref.read(mediaDisplayRepositoryProvider),
       playbackRepository: ref.read(playbackRepositoryProvider),
     );
-    if (!mounted || !_gate.isCurrent(generation) || result == null) {
+    if (!mounted || !gate.isCurrent(generation) || result == null) {
       return;
     }
     setState(() {

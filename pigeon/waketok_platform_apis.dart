@@ -360,8 +360,10 @@ abstract class PhotoLibraryApi {
 
   /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
   ///
-  /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
-  /// bytes and null semantics (not an error). Missing asset →
+  /// Network access disallowed. Live Photo uses Tier 4 still-only
+  /// ([FileSizeSemantics.currentImageRepresentation], ADR-018) — same path as
+  /// ordinary images; does not sum paired video. Ambiguous / unavailable →
+  /// null bytes and null semantics (not an error). Missing asset →
   /// [ErrorCode.assetUnavailable].
   @async
   PresentationFileSizeDto requestPresentationFileSize(String assetIdentifier);

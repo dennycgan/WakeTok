@@ -279,5 +279,89 @@
   "mainBrowseOpenLibrarySmokeDebug": "Library smoke (debug)",
   "@mainBrowseOpenLibrarySmokeDebug": {
     "description": "kDebugMode-only button on Settings stub to open library_smoke"
+  },
+  "mediaInfoRelativeToday": "Today",
+  "@mediaInfoRelativeToday": {
+    "description": "Overlay row 1 when the asset was created on the current local calendar day"
+  },
+  "mediaInfoRelativeDaysAgo": "{count} days ago",
+  "@mediaInfoRelativeDaysAgo": {
+    "description": "Overlay row 1 when age is 1–30 days (inclusive)",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoRelativeMonthsAgo": "{count} months ago",
+  "@mediaInfoRelativeMonthsAgo": {
+    "description": "Overlay row 1 when age is over 30 days and only months (no years)",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoRelativeYearsAgo": "{count} years ago",
+  "@mediaInfoRelativeYearsAgo": {
+    "description": "Overlay row 1 when age is whole years (no leftover months)",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoRelativeYearsMonthsAgo": "{years} years {months} months ago",
+  "@mediaInfoRelativeYearsMonthsAgo": {
+    "description": "Overlay row 1 when age is over 30 days with both years and months",
+    "placeholders": {
+      "years": {"type": "String"},
+      "months": {"type": "String"}
+    }
+  },
+  "mediaInfoExactDateTime": "{year}-{month}-{day} {hour}:{minute}",
+  "@mediaInfoExactDateTime": {
+    "description": "Overlay row 2 exact local date and time",
+    "placeholders": {
+      "year": {"type": "String"},
+      "month": {"type": "String"},
+      "day": {"type": "String"},
+      "hour": {"type": "String"},
+      "minute": {"type": "String"}
+    }
+  },
+  "mediaInfoLivePhoto": "Live Photo",
+  "@mediaInfoLivePhoto": {
+    "description": "Overlay row 3 label when mediaKind is livePhoto"
+  },
+  "mediaInfoFileSizeBytes": "{count} B",
+  "@mediaInfoFileSizeBytes": {
+    "description": "Overlay row 3 size under 1 KiB",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoFileSizeKb": "{count} KB",
+  "@mediaInfoFileSizeKb": {
+    "description": "Overlay row 3 size in kibibytes",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoFileSizeMb": "{count} MB",
+  "@mediaInfoFileSizeMb": {
+    "description": "Overlay row 3 size in mebibytes",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoFileSizeGb": "{count} GB",
+  "@mediaInfoFileSizeGb": {
+    "description": "Overlay row 3 size in gibibytes",
+    "placeholders": {
+      "count": {"type": "String"}
+    }
+  },
+  "mediaInfoCharacteristicsJoined": "{live} · {size}",
+  "@mediaInfoCharacteristicsJoined": {
+    "description": "Overlay row 3 when both Live Photo label and file size are present",
+    "placeholders": {
+      "live": {"type": "String"},
+      "size": {"type": "String"}
+    }
   }
 }

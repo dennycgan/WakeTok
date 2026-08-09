@@ -18,6 +18,7 @@ import 'package:waketok/l10n/app_localizations.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../../library_smoke/fake_playback_repository.dart';
+import '../../library_smoke/fake_presentation_metadata_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
 
 void main() {
@@ -439,6 +440,27 @@ void main() {
 
     expect(mediaN, isNull);
     expect(mediaN2?.display?.assetIdentifier, 'n2');
+  });
+
+  testWidgets(
+      'W-O-display metadata delay does not block still display',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final presentation = FakePresentationMetadataRepository(
+      basicsGate: Completer<void>(),
+      sizeGate: Completer<void>(),
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        presentationMetadata: presentation,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
+    expect(presentation.basicsCalls, greaterThan(0));
   });
 }
 

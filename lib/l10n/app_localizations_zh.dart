@@ -228,6 +228,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
+
+  @override
+  String get mediaInfoRelativeToday => 'Today';
+
+  @override
+  String mediaInfoRelativeDaysAgo(String count) {
+    return '$count days ago';
+  }
+
+  @override
+  String mediaInfoRelativeMonthsAgo(String count) {
+    return '$count months ago';
+  }
+
+  @override
+  String mediaInfoRelativeYearsAgo(String count) {
+    return '$count years ago';
+  }
+
+  @override
+  String mediaInfoRelativeYearsMonthsAgo(String years, String months) {
+    return '$years years $months months ago';
+  }
+
+  @override
+  String mediaInfoExactDateTime(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String get mediaInfoLivePhoto => 'Live Photo';
+
+  @override
+  String mediaInfoFileSizeBytes(String count) {
+    return '$count B';
+  }
+
+  @override
+  String mediaInfoFileSizeKb(String count) {
+    return '$count KB';
+  }
+
+  @override
+  String mediaInfoFileSizeMb(String count) {
+    return '$count MB';
+  }
+
+  @override
+  String mediaInfoFileSizeGb(String count) {
+    return '$count GB';
+  }
+
+  @override
+  String mediaInfoCharacteristicsJoined(String live, String size) {
+    return '$live · $size';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -445,4 +507,66 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => '图库调试（debug）';
+
+  @override
+  String get mediaInfoRelativeToday => '今天';
+
+  @override
+  String mediaInfoRelativeDaysAgo(String count) {
+    return '$count 天前';
+  }
+
+  @override
+  String mediaInfoRelativeMonthsAgo(String count) {
+    return '$count 个月前';
+  }
+
+  @override
+  String mediaInfoRelativeYearsAgo(String count) {
+    return '$count 年前';
+  }
+
+  @override
+  String mediaInfoRelativeYearsMonthsAgo(String years, String months) {
+    return '$years 年 $months 个月前';
+  }
+
+  @override
+  String mediaInfoExactDateTime(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String get mediaInfoLivePhoto => '实况照片';
+
+  @override
+  String mediaInfoFileSizeBytes(String count) {
+    return '$count B';
+  }
+
+  @override
+  String mediaInfoFileSizeKb(String count) {
+    return '$count KB';
+  }
+
+  @override
+  String mediaInfoFileSizeMb(String count) {
+    return '$count MB';
+  }
+
+  @override
+  String mediaInfoFileSizeGb(String count) {
+    return '$count GB';
+  }
+
+  @override
+  String mediaInfoCharacteristicsJoined(String live, String size) {
+    return '$live · $size';
+  }
 }

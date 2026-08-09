@@ -231,4 +231,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
+
+  @override
+  String get mediaInfoRelativeToday => 'Today';
+
+  @override
+  String mediaInfoRelativeDaysAgo(String count) {
+    return '$count days ago';
+  }
+
+  @override
+  String mediaInfoRelativeMonthsAgo(String count) {
+    return '$count months ago';
+  }
+
+  @override
+  String mediaInfoRelativeYearsAgo(String count) {
+    return '$count years ago';
+  }
+
+  @override
+  String mediaInfoRelativeYearsMonthsAgo(String years, String months) {
+    return '$years years $months months ago';
+  }
+
+  @override
+  String mediaInfoExactDateTime(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String get mediaInfoLivePhoto => 'Live Photo';
+
+  @override
+  String mediaInfoFileSizeBytes(String count) {
+    return '$count B';
+  }
+
+  @override
+  String mediaInfoFileSizeKb(String count) {
+    return '$count KB';
+  }
+
+  @override
+  String mediaInfoFileSizeMb(String count) {
+    return '$count MB';
+  }
+
+  @override
+  String mediaInfoFileSizeGb(String count) {
+    return '$count GB';
+  }
+
+  @override
+  String mediaInfoCharacteristicsJoined(String live, String size) {
+    return '$live · $size';
+  }
 }
