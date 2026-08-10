@@ -73,4 +73,9 @@ class FakePlaybackRepository implements PlaybackRepository {
   Future<void> updateNowPlayingMetadata() async {
     calls.add('nowPlaying');
   }
+
+  @override
+  Future<void> clearPlaybackPool() async {
+    calls.add('clearPlaybackPool');
+  }
 }

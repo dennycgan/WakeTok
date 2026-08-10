@@ -5,10 +5,12 @@ import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
+import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 import 'package:waketok/l10n/locale_resolution.dart';
+import 'package:waketok/platform/live_photo_gateway.dart';
 import 'package:waketok/platform/photo_library_gateway.dart';
 import 'package:waketok/platform/playback_gateway.dart';
 
@@ -16,6 +18,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   final gateway = PhotoLibraryGateway();
   final playback = PlaybackGateway();
+  final livePhoto = LivePhotoGateway();
   runApp(
     ProviderScope(
       overrides: [
@@ -25,6 +28,7 @@ void main() {
         mediaDisplayRepositoryProvider.overrideWithValue(gateway),
         presentationMetadataRepositoryProvider.overrideWithValue(gateway),
         playbackRepositoryProvider.overrideWithValue(playback),
+        livePhotoRepositoryProvider.overrideWithValue(livePhoto),
       ],
       child: const WakeTokApp(),
     ),

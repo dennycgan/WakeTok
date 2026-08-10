@@ -26,6 +26,9 @@ abstract class PlaybackRepository {
   /// Stub until Production Background Audio.
   Future<void> updateNowPlayingMetadata();
 
+  /// Cap 9 / ADR-019: release active+warming AVPlayers before Live motion.
+  Future<void> clearPlaybackPool();
+
   /// Native → Dart runtime observe (may be empty until host emits).
   Stream<PlaybackRuntimeEvent> get runtimeEvents;
 

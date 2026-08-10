@@ -138,6 +138,9 @@ class PlaybackGateway
   Future<void> updateNowPlayingMetadata() => _api.updateNowPlayingMetadata();
 
   @override
+  Future<void> clearPlaybackPool() => _api.clearPlaybackPool();
+
+  @override
   void onPlaybackRuntimeEvent(pigeon.PlaybackRuntimeEventDto event) {
     if (_runtimeController.isClosed) {
       return;
