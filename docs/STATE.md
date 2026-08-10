@@ -129,8 +129,10 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       Pigeon LivePhotoApi + clearPlaybackPool channels (D1=A);
       D3 gesture recognizer disabled; ADR-019 appended
       — work `94358be` (ADR anchor `98fe191`)
-- [ ] 9.3 Pigeon + gateway + domain (current-page only); composition root
-      (channels already in 9.2; this phase is Dart wiring only)
+- [x] 9.3 Pigeon + gateway + domain (current-page only); composition root
+      (channels already in 9.2; Dart LivePhotoRepository + LivePhotoGateway
+      + clearPlaybackPool on PlaybackRepository; no Feed wiring)
+      — work `afd3181`
 - [ ] 9.4 Feed integration: Live current → await clear → play-once →
       Q7 still; leave/re-enter; Overlay/badge coexistence
 - [ ] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
@@ -147,12 +149,10 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.3 Dart domain/gateway/composition root for LivePhotoApi
-- Sub-steps done: 9.1 contract freeze (docs `b4c1061`); 9.2 native +
-      Pigeon + ADR-019 (work `94358be`)
-- Next step: owner design-first OK for 9.3, then implement gateway/domain
-- Related decisions: ADR-019 (extends ADR-006); ADR-001, ADR-014/015,
-      ADR-018; mute-after-clear reminder → 9.6
+- Goal (one line): Cap 9.4 Feed Live play-once + Q7 still (design not started)
+- Sub-steps done: 9.1–9.3 (native + Dart wiring `afd3181`)
+- Next step: owner design-first OK for 9.4 Feed integration
+- Related decisions: ADR-019; mute-after-clear → 9.6; Known debt unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -169,11 +169,13 @@ Active capability: Live Photo rendering and static fallback (POC-08)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
-  PlaybackApi.clearPlaybackPool (Cap 9.2 / ADR-019);
+  PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
   (viewType `waketok/live_photo_surface`); Pigeon LivePhotoApi /
-  LivePhotoFlutterApi (Cap 9.2 `94358be` / ADR-019); Dart gateway → Cap 9.3
+  LivePhotoFlutterApi (Cap 9.2); Dart domain
+  `lib/domain/live_photo/` + `LivePhotoGateway` +
+  `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed → Cap 9.4
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
   requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
