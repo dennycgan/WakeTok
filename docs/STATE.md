@@ -48,7 +48,7 @@
       optional best-effort Location Label (not release-blocking)
       (ADR-015…018; 8.8 notes; Location + cross-source playhead debts)
 - [~] <-- YOU ARE HERE: Live Photo rendering and static fallback (POC-08)
-      (ADR-019 draft in chat; Accepted after first Cap 9 work commit;
+      (ADR-019 Accepted at Cap 9.2 work `94358be` / anchor `98fe191`;
       does not clear any Known debt table row)
 - [ ] Asset Source and Source Pool Definition domain models
 - [ ] Live Resolution, Asset Source Availability,
@@ -112,7 +112,7 @@ Active capability: Live Photo rendering and static fallback (POC-08)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-- [~] 9.1 Contract freeze: Q1–Q7; LivePhotoApi + viewType; visible PV
+- [x] 9.1 Contract freeze: Q1–Q7; LivePhotoApi + viewType; visible PV
       exclusivity; `PlaybackApi.clearPlaybackPool()` (Dart await before
       LivePhotoApi; host race guards; Live-activation-only clear — stills
       stay pause-only); Q7 unload PV→still; Known debt table rows not
@@ -122,16 +122,22 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       PHLivePhotoView plugin; photo_manager-class packages expose
       still+paired video files for DIY VideoPlayer, not Photos-parity
       PHLivePhotoView lifecycle/mute/styles — self-built Pigeon+PV);
-      draft ADR-019 (Accepted on first Cap 9 work commit)
-- [ ] 9.2 Native host: PHLivePhoto request + PHLivePhotoView factory;
-      `clearPlaybackPool` + clear-in-flight guards; cancel/failure
+      ADR-019 drafted in chat; Accepted at Cap 9.2 work
+      — docs `b4c1061` (roadmap) / work `94358be`
+- [x] 9.2 Native host: PHLivePhoto request + PHLivePhotoView factory;
+      `clearPlaybackPool` + clear-in-flight guards; cancel/failure;
+      Pigeon LivePhotoApi + clearPlaybackPool channels (D1=A);
+      D3 gesture recognizer disabled; ADR-019 appended
+      — work `94358be` (ADR anchor `98fe191`)
 - [ ] 9.3 Pigeon + gateway + domain (current-page only); composition root
+      (channels already in 9.2; this phase is Dart wiring only)
 - [ ] 9.4 Feed integration: Live current → await clear → play-once →
       Q7 still; leave/re-enter; Overlay/badge coexistence
 - [ ] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
       no auto-skip (not Waiting for Media product surface)
 - [ ] 9.6 Mute preference binding (default unmuted) + Playback Style
-      matrix (POC-08 #4 / #7)
+      matrix (POC-08 #4 / #7); re-apply shared mute after video pool
+      rebuild (ADR-019 Consequences reminder)
 - [ ] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
       local + iCloud + weak net; Q7 switch feel; item #5: note observed
       iCloud download state changes during motion prepare; items 1–8
@@ -141,14 +147,12 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.1 contract freeze (Live Photo / POC-08) + ADR-019 draft
-- Sub-steps done: Cap identity locked; Q1–Q7=A; Q2 clearPlaybackPool +
-      await/race; POC-08 #5/#8 Success Criteria gaps closed in STATE;
-      Phase Roadmap 9.1–9.8 written
-- Next step: owner OK on STATE diff → 9.1 docs commit (STATE only);
-      ADR-019 append+Accepted with first Cap 9 work commit (9.2)
-- Related decisions: ADR-001, ADR-006 (narrow extend), ADR-014/015
-      (Live motion deferred here), ADR-018 (size unchanged); ADR-019 draft
+- Goal (one line): Cap 9.3 Dart domain/gateway/composition root for LivePhotoApi
+- Sub-steps done: 9.1 contract freeze (docs `b4c1061`); 9.2 native +
+      Pigeon + ADR-019 (work `94358be`)
+- Next step: owner design-first OK for 9.3, then implement gateway/domain
+- Related decisions: ADR-019 (extends ADR-006); ADR-001, ADR-014/015,
+      ADR-018; mute-after-clear reminder → 9.6
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -165,7 +169,11 @@ Active capability: Live Photo rendering and static fallback (POC-08)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
+  PlaybackApi.clearPlaybackPool (Cap 9.2 / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
+- Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
+  (viewType `waketok/live_photo_surface`); Pigeon LivePhotoApi /
+  LivePhotoFlutterApi (Cap 9.2 `94358be` / ADR-019); Dart gateway → Cap 9.3
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
   requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
@@ -175,9 +183,7 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-018: docs/DECISIONS.md; Cap 9 ADR-019 draft in chat
-      (chat draft frozen; append + Accepted+anchor with first Cap 9
-      work commit)
+- ADR-001 … ADR-019: docs/DECISIONS.md (ADR-019 Cap 9 Live / clearPlaybackPool)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
