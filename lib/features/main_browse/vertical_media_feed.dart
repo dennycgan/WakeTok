@@ -340,23 +340,30 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   @override
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Leaving current must always pause — even when generation/asset props
+    // change in the same update (parent clears assignedDisplayGeneration when
+    // isCurrent becomes false). Otherwise video→still / video→iCloud never
+    // pause because _startLoad runs and skips the isCurrent-only branch.
+    final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
+    if (leftCurrent) {
+      unawaited(ref.read(playbackRepositoryProvider).pause());
+      if (_media?.kind == FeedPageMediaKind.video) {
+        setState(() {
+          _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
+          _surfaceReady = false;
+        });
+      }
+    }
+
     if (oldWidget.assetIdentifier != widget.assetIdentifier ||
         oldWidget.feedIndex != widget.feedIndex ||
         oldWidget.sourceKind != widget.sourceKind ||
         oldWidget.assignedDisplayGeneration !=
             widget.assignedDisplayGeneration) {
       _startLoad();
-    } else if (oldWidget.isCurrent != widget.isCurrent) {
-      if (oldWidget.isCurrent && !widget.isCurrent) {
-        unawaited(ref.read(playbackRepositoryProvider).pause());
-        // Drop ownership of the shared player; keep a pending placeholder.
-        if (_media?.kind == FeedPageMediaKind.video) {
-          setState(() {
-            _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
-            _surfaceReady = false;
-          });
-        }
-      } else if (widget.isCurrent) {
+    } else if (!leftCurrent && oldWidget.isCurrent != widget.isCurrent) {
+      // Became current without identity/generation change (rare).
+      if (widget.isCurrent) {
         if (_media?.kind == FeedPageMediaKind.pendingVideo ||
             _media?.kind == FeedPageMediaKind.video) {
           _startLoad();

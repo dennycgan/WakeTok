@@ -336,6 +336,65 @@ void main() {
     expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
   });
 
+  testWidgets(
+      'W-F8b leave video for still pauses playback (no audio leak)',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    // All: unsupportedMedia → video path for v1; still is a normal image.
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'still']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+
+    playback.calls.clear();
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mainBrowseFeedStill_still')), findsOneWidget);
+    expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+  });
+
+  testWidgets(
+      'W-F8c leave video for iCloud-only pauses playback (no audio leak)',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    display.displayErrorById['cloud'] = 'iCloudDownloadRequired';
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['v1', 'cloud']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+
+    playback.calls.clear();
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mainBrowseFeedPageICloud')), findsOneWidget);
+    expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+  });
+
   test('U-1 Videos source skips display and goes playable', () async {
     final display = FakeMediaDisplayRepository();
     final gate = FeedMediaRequestGate();

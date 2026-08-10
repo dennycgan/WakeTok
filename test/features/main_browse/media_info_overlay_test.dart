@@ -68,6 +68,43 @@ void main() {
     expect(find.text('Auckland'), findsOneWidget);
   });
 
+  testWidgets(
+      'W-O-prog progressive basics then size keep Overlay height stable',
+      (tester) async {
+    await tester.pumpWidget(harness(null));
+    final h0 = tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+
+    await tester.pumpWidget(
+      harness(
+        PresentationOverlaySnapshot(
+          assetIdentifier: 'a',
+          createdAt: DateTime(2024, 6, 10, 12),
+          mediaKind: PresentationMediaKind.image,
+        ),
+      ),
+    );
+    final hBasics =
+        tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+    expect(hBasics, h0);
+
+    await tester.pumpWidget(
+      harness(
+        PresentationOverlaySnapshot(
+          assetIdentifier: 'a',
+          createdAt: DateTime(2024, 6, 10, 12),
+          mediaKind: PresentationMediaKind.image,
+          fileSizeBytes: 2_886_627,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      ),
+    );
+    final hSized =
+        tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+    expect(hSized, h0);
+    expect(h0, MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount);
+    expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+  });
+
   testWidgets('W-Loc1 whitespace-only locationLabel collapses row 4',
       (tester) async {
     await tester.pumpWidget(
