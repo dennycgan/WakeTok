@@ -1500,6 +1500,149 @@ void main() {
     );
     expect(live.calls, contains('startPlayback'));
   });
+
+  testWidgets('L-M1 default unmuted: setMute:false before startPlayback',
+      (tester) async {
+    final live = FakeLivePhotoRepository(autoReady: true);
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await pumpAsyncWork(tester);
+
+    final muteAt = live.calls.indexOf('setMute:false');
+    final startAt = live.calls.indexOf('startPlayback');
+    expect(muteAt, isNonNegative, reason: 'explicit setMute(false) required');
+    expect(startAt, isNonNegative);
+    expect(muteAt, lessThan(startAt));
+  });
+
+  testWidgets('L-M2 muted pref: setMute:true before startPlayback',
+      (tester) async {
+    final live = FakeLivePhotoRepository(autoReady: true);
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        mediaDisplay: display,
+        livePhoto: live,
+        sharedMuteInitiallyMuted: true,
+      ),
+    );
+    await pumpAsyncWork(tester);
+
+    final muteAt = live.calls.indexOf('setMute:true');
+    final startAt = live.calls.indexOf('startPlayback');
+    expect(muteAt, isNonNegative);
+    expect(startAt, isNonNegative);
+    expect(muteAt, lessThan(startAt));
+    expect(live.calls.contains('setMute:false'), isFalse);
+  });
+
+  testWidgets(
+      'L-M3 after Live clear → video: setMute before play (index order)',
+      (tester) async {
+    final live = FakeLivePhotoRepository(autoReady: true);
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    // All: unsupportedMedia → video path for v1.
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['live-1', 'v1']),
+        mediaDisplay: display,
+        playback: playback,
+        livePhoto: live,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(playback.calls, contains('clearPlaybackPool'));
+
+    playback.calls.clear();
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
+
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    final muteAt = playback.calls.indexOf('setMute:false');
+    final playAt = playback.calls.indexOf('play');
+    expect(muteAt, isNonNegative);
+    expect(playAt, isNonNegative);
+    expect(muteAt, lessThan(playAt));
+  });
+
+  testWidgets(
+      'L-M4 video→Live→video: second video setMute before play',
+      (tester) async {
+    final live = FakeLivePhotoRepository(autoReady: true);
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['v1', 'live-1']),
+        mediaDisplay: display,
+        playback: playback,
+        livePhoto: live,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    expect(playback.calls.indexOf('setMute:false'),
+        lessThan(playback.calls.indexOf('play')));
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
+    expect(playback.calls, contains('clearPlaybackPool'));
+
+    playback.calls.clear();
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await pumpAsyncWork(tester);
+
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    final muteAt = playback.calls.indexOf('setMute:false');
+    final playAt = playback.calls.indexOf('play');
+    expect(muteAt, isNonNegative);
+    expect(playAt, isNonNegative);
+    expect(muteAt, lessThan(playAt));
+  });
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

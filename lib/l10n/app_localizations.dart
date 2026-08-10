@@ -578,6 +578,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{live} · {size}'**
   String mediaInfoCharacteristicsJoined(String live, String size);
+
+  /// Cap 9.6 library_smoke section for shared Mute preference toggle
+  ///
+  /// In en, this message translates to:
+  /// **'Shared mute (debug)'**
+  String get sharedMuteDebugSectionTitle;
+
+  /// Cap 9.6 debug switch label; true = muted (no Live/video audio)
+  ///
+  /// In en, this message translates to:
+  /// **'Muted'**
+  String get sharedMuteDebugSwitchLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -363,5 +363,13 @@
       "live": {"type": "String"},
       "size": {"type": "String"}
     }
+  },
+  "sharedMuteDebugSectionTitle": "Shared mute (debug)",
+  "@sharedMuteDebugSectionTitle": {
+    "description": "Cap 9.6 library_smoke section for shared Mute preference toggle"
+  },
+  "sharedMuteDebugSwitchLabel": "Muted",
+  "@sharedMuteDebugSwitchLabel": {
+    "description": "Cap 9.6 debug switch label; true = muted (no Live/video audio)"
   }
 }

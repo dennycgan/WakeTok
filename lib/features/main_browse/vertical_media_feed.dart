@@ -14,6 +14,7 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
+import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
@@ -144,6 +145,14 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
     final browseActive = destination == MainBrowseDestination.browse;
+
+    // Cap 9.6: video host has no persisted mute — push preference on change.
+    ref.listen<bool>(sharedMuteProvider, (previous, next) {
+      if (previous == next) {
+        return;
+      }
+      unawaited(ref.read(playbackRepositoryProvider).setMute(next));
+    });
 
     ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
       if (prev != next) {
@@ -613,15 +622,49 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       return;
     }
     _liveStartIssued = true;
-    final live = _liveRepo;
-    if (live == null) {
-      return;
-    }
-    try {
-      await live.startPlayback();
-    } catch (_) {
-      // Keep still; do not skip.
-    }
+    // Cap 9.6 / F4: setMute + startPlayback share LiveHostOpSerial with
+    // cancel/request — do not call Live setMute outside this chain.
+    await _enqueueLiveOp(() async {
+      if (!mounted ||
+          !_liveMotionGate.isCurrent(generation) ||
+          !_livePhotoReady ||
+          !_liveSurfaceReady) {
+        return;
+      }
+      final LivePhotoRepository live =
+          _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+      _liveRepo = live;
+      final muted = ref.read(sharedMuteProvider);
+      try {
+        await live.setMute(muted);
+        if (!mounted || !_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        await live.startPlayback();
+      } catch (_) {
+        // Keep still; do not skip.
+      }
+    });
+  }
+
+  /// Cap 9.6: preference change while this Live page is current → enqueue.
+  void _listenSharedMuteForLive() {
+    ref.listen<bool>(sharedMuteProvider, (previous, next) {
+      if (previous == next) {
+        return;
+      }
+      if (!widget.isCurrent || !_isLiveStillMedia(_media)) {
+        return;
+      }
+      final LivePhotoRepository live =
+          _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+      _liveRepo = live;
+      unawaited(_enqueueLiveOp(() async {
+        try {
+          await live.setMute(next);
+        } catch (_) {}
+      }));
+    });
   }
 
   Future<void> _unloadLiveMotionSurface() async {
@@ -745,12 +788,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       return;
     }
     if (widget.isCurrent && _surfaceReady) {
-      await ref.read(playbackRepositoryProvider).play();
+      final playback = ref.read(playbackRepositoryProvider);
+      // Cap 9.6 G3=A: re-apply shared mute before play (pool rebuild / clear).
+      await playback.setMute(ref.read(sharedMuteProvider));
+      await playback.play();
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    _listenSharedMuteForLive();
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
 

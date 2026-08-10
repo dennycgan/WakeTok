@@ -12,6 +12,7 @@ import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
+import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
@@ -56,6 +57,7 @@ Widget permissionUiHarness({
   FakePlaybackRepository? playback,
   FakePresentationMetadataRepository? presentationMetadata,
   LivePhotoRepository? livePhoto,
+  bool sharedMuteInitiallyMuted = false,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -78,6 +80,8 @@ Widget permissionUiHarness({
       ),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
+      if (sharedMuteInitiallyMuted)
+        sharedMuteProvider.overrideWith(_HarnessMutedTrueSharedMute.new),
     ],
     child: MaterialApp(
       locale: locale,
@@ -89,4 +93,9 @@ Widget permissionUiHarness({
       home: const PhotosAccessGate(),
     ),
   );
+}
+
+class _HarnessMutedTrueSharedMute extends SharedMuteNotifier {
+  @override
+  bool build() => true;
 }

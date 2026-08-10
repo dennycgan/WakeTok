@@ -13,6 +13,7 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/builtin_quantile.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/playback_pipeline_probe.dart';
+import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Post-authorization landing shell (Cap 5.3 / 5.4 + Cap 6.4 smoke).
@@ -407,12 +408,53 @@ class _LibraryTotalsShellPageState
                       style: bodyStyle,
                     ),
                   ),
+                const _SharedMuteDebugSection(),
                 const PlaybackPipelineProbeSection(),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Cap 9.6 G2=B: toggles [sharedMuteProvider] only — Feed applies Live setMute
+/// via LiveHostOpSerial; does not call LivePhotoApi from smoke.
+class _SharedMuteDebugSection extends ConsumerWidget {
+  const _SharedMuteDebugSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final muted = ref.watch(sharedMuteProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(
+            l10n.sharedMuteDebugSectionTitle,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: tokens.onSurface,
+                ),
+          ),
+        ),
+        SwitchListTile(
+          key: const Key('sharedMuteDebugSwitch'),
+          title: Text(
+            l10n.sharedMuteDebugSwitchLabel,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: tokens.onSurface,
+                ),
+          ),
+          value: muted,
+          onChanged: (value) {
+            ref.read(sharedMuteProvider.notifier).setMuted(value);
+          },
+        ),
+      ],
     );
   }
 }

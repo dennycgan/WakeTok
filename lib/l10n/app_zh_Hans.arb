@@ -80,5 +80,7 @@
   "mediaInfoFileSizeKb": "{count} KB",
   "mediaInfoFileSizeMb": "{count} MB",
   "mediaInfoFileSizeGb": "{count} GB",
-  "mediaInfoCharacteristicsJoined": "{live} · {size}"
+  "mediaInfoCharacteristicsJoined": "{live} · {size}",
+  "sharedMuteDebugSectionTitle": "共享静音（调试）",
+  "sharedMuteDebugSwitchLabel": "已静音"
 }

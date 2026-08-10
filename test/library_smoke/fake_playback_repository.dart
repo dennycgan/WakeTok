@@ -48,7 +48,7 @@ class FakePlaybackRepository implements PlaybackRepository {
 
   @override
   Future<void> setMute(bool muted) async {
-    calls.add('setMute');
+    calls.add('setMute:$muted');
   }
 
   @override

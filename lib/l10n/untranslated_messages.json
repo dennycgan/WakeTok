@@ -61,6 +61,8 @@
     "mediaInfoFileSizeKb",
     "mediaInfoFileSizeMb",
     "mediaInfoFileSizeGb",
-    "mediaInfoCharacteristicsJoined"
+    "mediaInfoCharacteristicsJoined",
+    "sharedMuteDebugSectionTitle",
+    "sharedMuteDebugSwitchLabel"
   ]
 }

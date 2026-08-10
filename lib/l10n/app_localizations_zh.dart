@@ -290,6 +290,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String mediaInfoCharacteristicsJoined(String live, String size) {
     return '$live · $size';
   }
+
+  @override
+  String get sharedMuteDebugSectionTitle => 'Shared mute (debug)';
+
+  @override
+  String get sharedMuteDebugSwitchLabel => 'Muted';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -569,4 +575,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String mediaInfoCharacteristicsJoined(String live, String size) {
     return '$live · $size';
   }
+
+  @override
+  String get sharedMuteDebugSectionTitle => '共享静音（调试）';
+
+  @override
+  String get sharedMuteDebugSwitchLabel => '已静音';
 }

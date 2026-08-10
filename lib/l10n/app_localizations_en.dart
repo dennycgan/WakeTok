@@ -293,4 +293,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String mediaInfoCharacteristicsJoined(String live, String size) {
     return '$live · $size';
   }
+
+  @override
+  String get sharedMuteDebugSectionTitle => 'Shared mute (debug)';
+
+  @override
+  String get sharedMuteDebugSwitchLabel => 'Muted';
 }

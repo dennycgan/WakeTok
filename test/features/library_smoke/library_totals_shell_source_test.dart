@@ -64,16 +64,18 @@ void main() {
     expect(find.text(l10n.libraryRowPhotos), findsWidgets);
     expect(find.text(l10n.libraryRowVideos), findsWidgets);
 
+    // estimatedCount is near the top; assert before scrolling the long ListView
+    // (Cap 9.6 shared-mute section + probe push off-screen items out of cache).
+    await tester.tap(find.text(l10n.libraryRowPhotos).last);
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.sourceEstimatedCount(1)), findsOneWidget);
+
     await tester.scrollUntilVisible(
       find.text(l10n.sourceProbeIllegalPairButton),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text(l10n.sourceProbeIllegalPairButton), findsOneWidget);
-
-    await tester.tap(find.text(l10n.libraryRowPhotos).last);
-    await tester.pumpAndSettle();
-    expect(find.text(l10n.sourceEstimatedCount(1)), findsOneWidget);
   });
 
   testWidgets('W-S2 resolve shows length and match vs totals', (tester) async {
