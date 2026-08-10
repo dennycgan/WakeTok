@@ -139,8 +139,11 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       cancel/stop main-sync; no motion spinner (intentional interim —
       Q4=A spinner in 9.5, not Known debt)
       — work `c86dd6e`
-- [ ] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
-      no auto-skip (not Waiting for Media product surface)
+- [x] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
+      no auto-skip (not Waiting for Media product surface); badge-adjacent
+      preparing spinner; all `_livePreparing` writes via `gatedFlagUpdate`
+      (L-S6 defensive seam `debugSetLivePreparing`)
+      — work `042c59d`
 - [ ] 9.6 Mute preference binding (default unmuted) + Playback Style
       matrix (POC-08 #4 / #7); re-apply shared mute after video pool
       rebuild (ADR-019 Consequences reminder)
@@ -153,9 +156,9 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.5 iCloud / failure spinner-only + static fallback
-- Sub-steps done: 9.1–9.4 (Feed Live play-once `c86dd6e`)
-- Next step: owner design-first OK for 9.5
+- Goal (one line): Cap 9.6 Live mute preference + Playback Style matrix
+- Sub-steps done: 9.1–9.5 (preparing spinner / gated writes `042c59d`)
+- Next step: owner design-first OK for 9.6
 - Related decisions: ADR-019; mute-after-clear → 9.6; Known debt unchanged
 
 ## Contract pointers (don't memorize, go read the source)
@@ -180,7 +183,8 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   LivePhotoFlutterApi (Cap 9.2); Dart domain
   `lib/domain/live_photo/` + `LivePhotoGateway` +
   `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed play-once +
-  `LiveHostOpSerial` (Cap 9.4 `c86dd6e` / ADR-019)
+  `LiveHostOpSerial` (Cap 9.4 `c86dd6e`); preparing spinner +
+  `gatedFlagUpdate` (Cap 9.5 `042c59d` / ADR-019)
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
   requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
