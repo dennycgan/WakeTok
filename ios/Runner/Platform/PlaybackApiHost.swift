@@ -27,6 +27,9 @@ final class PlaybackApiHost: PlaybackApi {
   /// Asset ids with an in-flight prepareActive, so a second request for the
   /// same asset does not build a duplicate player that pauses the first one.
   private var preparingAssetIds = Set<String>()
+  /// Cap 9 / ADR-019: bumped on each [clearPlaybackPool]. In-flight prepare /
+  /// warm callbacks must drop results when their captured epoch is stale.
+  private var clearEpoch: UInt64 = 0
 
   private weak var surfaceView: PlaybackSurfaceView?
 
@@ -165,6 +168,23 @@ final class PlaybackApiHost: PlaybackApi {
     // Stub until Production Background Audio (ADR-002).
   }
 
+  func clearPlaybackPool() throws {
+    // Dart awaits this Future before LivePhotoApi.requestLivePhoto (ADR-019).
+    // Must finish pool teardown before returning so the await window is real.
+    //
+    // Background ∩ clear: handleDidEnterBackground only detaches/pauses; it
+    // does not bump clearEpoch. clearPlaybackPool still invalidates in-flight
+    // prepare/warm via epoch — stale callbacks must no-op after clear.
+    let work = { [weak self] in
+      self?.performClearPlaybackPool()
+    }
+    if Thread.isMainThread {
+      work()
+    } else {
+      DispatchQueue.main.sync(execute: work)
+    }
+  }
+
   // MARK: - Surface / pool
 
   func bindSurface(_ view: PlaybackSurfaceView) {
@@ -179,6 +199,20 @@ final class PlaybackApiHost: PlaybackApi {
       view.attach(player: nil)
       surfaceView = nil
     }
+  }
+
+  private func performClearPlaybackPool() {
+    clearEpoch &+= 1
+    pendingPlay = false
+    preparingAssetIds.removeAll()
+    clearWarming()
+    activePlayer?.pause()
+    activePlayer = nil
+    activeAssetId = nil
+    plan = nil
+    currentAssetIdentifier = nil
+    currentFeedIndex = 0
+    surfaceView?.attach(player: nil)
   }
 
   private func handleDidEnterBackground() {
@@ -235,11 +269,13 @@ final class PlaybackApiHost: PlaybackApi {
     preparingAssetIds.insert(assetId)
 
     let token = assetId
+    let epoch = clearEpoch
     prepareQueue.async { [weak self] in
       let player = Self.makePlayer(assetId: token)
       DispatchQueue.main.async {
         guard let self else { return }
         self.preparingAssetIds.remove(token)
+        guard self.clearEpoch == epoch else { return }
         guard self.currentAssetIdentifier == token || self.activeAssetId == token
           || self.currentAssetIdentifier == nil
         else { return }
@@ -293,10 +329,12 @@ final class PlaybackApiHost: PlaybackApi {
     }
     clearWarming()
     let token = nextId
+    let epoch = clearEpoch
     prepareQueue.async { [weak self] in
       let player = Self.makePlayer(assetId: token)
       DispatchQueue.main.async {
         guard let self else { return }
+        guard self.clearEpoch == epoch else { return }
         // Still the intended warming target?
         let expectedNext = Int(self.currentFeedIndex) + 1
         guard let plan = self.plan,
@@ -348,6 +386,7 @@ final class PlaybackApiHost: PlaybackApi {
   var poolCountsForTests: (active: Bool, warming: Bool) {
     (activePlayer != nil, warmingPlayer != nil)
   }
+  var clearEpochForTests: UInt64 { clearEpoch }
   #endif
 }
 

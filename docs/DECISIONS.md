@@ -1340,3 +1340,109 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     formatting — do not use third-party gallery UIs as size ground truth.
   - ADR-015 Status line records this narrow Decision 5 supersession.
   - Accepted date/anchor = implementing work `4f4c825` (2026-08-10).
+
+---
+
+## ADR-019: Cap 9 Live Photo motion surface + PlaybackApi.clearPlaybackPool
+
+- Status: Accepted (2026-08-10)
+- Commit/PR anchor: 98fe191
+- Plain summary (owner reads this):
+  Live Photos in Manual browse play motion once through a dedicated native
+  surface, then return to the still image (unload in a later Cap 9 phase).
+  Entering a Live item releases the video player pool first (awaited), so Live
+  decode does not stack on a paused video player. Mute stays a shared
+  preference (default unmuted). Pigeon channels for LivePhotoApi and
+  clearPlaybackPool land in Cap 9.2; Dart domain/gateway wiring is Cap 9.3.
+  This Cap does not clear any Known debt table rows.
+- Context / what problem forced this:
+  Cap 7 (ADR-014) shipped Live as static still + LIVE badge only. Cap 8
+  (ADR-015) added Overlay Live copy and still-only size (ADR-018) but left
+  PHLivePhoto motion to this capability + POC-08. Kickoff ADR-S / MVP Scope
+  require play-once, end on key still, iCloud static-first + failure fallback,
+  and mute respect — without Auto-play, Background Audio, Lookahead, 2×, or
+  clip export for Live. ADR-006’s video 1+1 pool and single playback surface
+  must not be overloaded to own Live. Production feed uses single-item video
+  plans today (adjacent-page warming is effectively idle); the real contention
+  is a paused leftover AVPlayer after video→Live. ADR-006 already needed
+  restore-guard discipline against attach/release races (SIGABRT risk).
+  STATE Phase Roadmap lists “9.2 Native / 9.3 Pigeon”; Cap 9.2 lands the
+  minimal Pigeon channels with the native hosts so HostApi methods exist —
+  9.3 remains domain/gateway/composition-root wiring only (not a scope
+  overrun).
+- Decision (what was chosen):
+  1. **LivePhotoApi + independent Platform View** (`waketok/live_photo_surface`;
+     not AVPlayer / not video PlaybackPlan). Swift owns PHLivePhoto request,
+     PHLivePhotoView, end/fail, mute apply, cancel. Dart owns current-page
+     orchestration and UI (from Cap 9.3/9.4).
+  2. **Visible surface exclusivity:** at most one visible PV — video
+     `playback_surface` or Live viewType — for the current Browse page.
+  3. **PlaybackApi.clearPlaybackPool():** new ADR-006 extension. Clears plan /
+     active+warming AVPlayers, detaches video surface, clears pool-local
+     pending/preparing state; does **not** reset mute preference. Idempotent.
+     Empty `setPlaybackPlan` is **not** the release contract. Host uses a
+     `clearEpoch` so in-flight prepare/warm callbacks no-op after clear; Dart
+     **awaits** clear before LivePhotoApi.requestLivePhoto (no parallel).
+  4. **Who calls clear:** Dart Feed orchestration via PlaybackRepository —
+     LivePhotoApi must not call PlaybackApi.
+  5. **When to clear:** when a **Live** item becomes current (covers
+     video→Live and video→still→Live with a leftover pool). **video→ordinary
+     still** stays pause-only (no clear). Rationale: free decode headroom for
+     PHLivePhoto only.
+  6. **Failure split (for 9.3 gateway):** Sync-detectable failures (missing
+     asset, not `.photoLive`, …) → throw `PlatformException` with
+     `ErrorCode` member name. Async `PHLivePhoto` request failures (incl.
+     iCloud after network allowed) → `LivePhotoFlutterApi.onLivePhotoFailed`
+     only. Same request must not both throw and emit failed.
+  7. **Reuse ErrorCode.iCloudDownloadFailed** (not a new enum member): aligns
+     with ADR-008 R2 (network allowed / transfer attempted, non-cancel
+     failure). Distinct from `iCloudDownloadRequired` (local-only / no
+     host-initiated download). Exhaustive ErrorCode switches unchanged in
+     count.
+  8. **Play-once lifecycle (ADR-S):** ready → Dart calls startPlayback once →
+     later phases unload Live PV → still Image.file (Q7=A). Leave stops;
+     re-enter may auto-play once; **no** gesture/tap replay. **Hard gate:**
+     disable `PHLivePhotoView.playbackGestureRecognizer` (D3 / Q6=A).
+  9. **Mute interim:** shared preference default **unmuted**; apply to video
+     setMute path and Live surface; Mute UI Cap later.
+  10. **Playback Style:** system PHLivePhotoView default once; variants probed
+      in POC-08; no editing UX (Do Not Build #19).
+  11. **Out of Cap 9 / Known debt:** no clearing of any STATE Known debt
+      table row. Q7 switch jump, if unacceptable on device, may add a **new**
+      debt row — must not merge into “Video page swipe flash”. No Mute/Share/
+      Fit·Fill·Crop/2× rail; no Auto/Background/Lookahead; no Waiting for
+      Media product surface; no multi-item video plan / adjacent warming work.
+  12. **POC-08** runs inside this Cap; item #5 records observed iCloud
+      download state changes in 9.7 notes (spinner-only UI, Q4=A); item #8
+      records plugin vs native rationale (no first-party PHLivePhotoView
+      plugin; photo_manager-class DIY VideoPlayer ≠ Photos-parity lifecycle).
+- Rejected alternatives (why not B):
+  - Extend PlaybackApi / AVPlayer to play Live — rejected (Live ≠ Video; ADR-S).
+  - Empty setPlaybackPlan as release — rejected (host early-return today; muddy).
+  - clear on all video→non-video — rejected (Cap scope; still decode cheap).
+  - Keep Live PV mounted after end (Q7=B) — rejected for later phases
+    (simpler surface model; accept 9.7 jump gate).
+  - Parallel clear + Live request — rejected (defeats “free resources” window).
+  - Default muted / force-silent Live — rejected (Q1=A; ADR-S mute follow).
+  - Flutter plugin as default Live path — rejected; self-built Pigeon + PV
+    (POC-08 #8).
+  - Cap 9 pays Release hang / video flash Known debt — rejected (picker-up
+    unchanged).
+  - New ErrorCode for Live iCloud failure — rejected; reuse
+    `iCloudDownloadFailed` (ADR-008 R2).
+- Consequences / constraints accepted:
+  - ADR-006 remains video ownership truth; this ADR narrow-extends pool release
+    + allows a second viewType for Live only.
+  - ADR-014/015 Live-motion deferral is paid across Cap 9 phases; ADR-018 size
+    semantics unchanged.
+  - ADR-009/010/012 continue to bind layers, composition root, ARB/tokens.
+  - Cap 9.2 delivers native hosts + Pigeon channels; Cap 9.3 wires Dart
+    domain/gateway/composition root; Feed play-once orchestration is Cap 9.4.
+  - **Mute after clear (Cap 9.6 reminder, not a Cap 9.2 defect):** Video host
+    `setMute` only sets `activePlayer?.isMuted` — there is no host-persisted mute
+    flag. `clearPlaybackPool` correctly does not invent one. After clear (or any
+    new AVPlayer), the new player starts at AVFoundation default until Dart
+    calls `setMute` again. That re-apply window is pre-existing for every pool
+    rebuild, not introduced by Cap 9; Cap 9.6 (mute preference binding) must
+    document/ensure Dart re-applies the shared preference after video reactivation.
+  - Accepted date/anchor = implementing work `98fe191` (2026-08-10).

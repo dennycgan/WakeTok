@@ -1326,8 +1326,10 @@ class PhotoLibraryApi {
 
   /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
   ///
-  /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
-  /// bytes and null semantics (not an error). Missing asset →
+  /// Network access disallowed. Live Photo uses Tier 4 still-only
+  /// ([FileSizeSemantics.currentImageRepresentation], ADR-018) — same path as
+  /// ordinary images; does not sum paired video. Ambiguous / unavailable →
+  /// null bytes and null semantics (not an error). Missing asset →
   /// [ErrorCode.assetUnavailable].
   Future<PresentationFileSizeDto> requestPresentationFileSize(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationFileSize$pigeonVar_messageChannelSuffix';
@@ -1620,6 +1622,27 @@ class PlaybackApi {
     )
     ;
   }
+
+  /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
+  /// Completes only after the pool is safe for the caller (Dart awaits before
+  /// LivePhotoApi). Idempotent. Does not reset mute preference.
+  Future<void> clearPlaybackPool() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.clearPlaybackPool$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).
@@ -1690,6 +1713,221 @@ abstract class PlaybackFlutterApi {
           final String arg_assetIdentifier = args[1]! as String;
           try {
             api.onPlaybackPlanEnded(arg_feedIndex, arg_assetIdentifier);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+  }
+}
+
+/// Cap 9 Live Photo motion (ADR-019 / POC-08). Independent of [PlaybackApi]
+/// video pool. Dart awaits [PlaybackApi.clearPlaybackPool] before calling
+/// [requestLivePhoto] when a Live item becomes current.
+///
+/// Failure split (9.3 gateway must mirror):
+/// - Sync-detectable (missing asset, not photoLive, …) → throw; code =
+///   [ErrorCode] member name.
+/// - Async request failure (incl. iCloud after network allowed) →
+///   [LivePhotoFlutterApi.onLivePhotoFailed] only; do not also throw.
+class LivePhotoApi {
+  /// Constructor for [LivePhotoApi]. The [binaryMessenger] named argument is
+  /// available for dependency injection. If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  LivePhotoApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Starts a PHLivePhoto request (network allowed). Sync failures throw.
+  Future<void> requestLivePhoto(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.LivePhotoApi.requestLivePhoto$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Cancels an in-flight request for [assetIdentifier] (or no-ops).
+  Future<void> cancel(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.LivePhotoApi.cancel$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Full motion once; Dart calls after [LivePhotoFlutterApi.onLivePhotoReady]
+  /// and surface ready (D2=A).
+  Future<void> startPlayback() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.LivePhotoApi.startPlayback$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> stopPlayback() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.LivePhotoApi.stopPlayback$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  Future<void> setMute(bool muted) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.LivePhotoApi.setMute$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[muted]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Live Platform View created; host binds PHLivePhoto when ready.
+  Future<void> notifyLiveSurfaceReady(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.LivePhotoApi.notifyLiveSurfaceReady$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+}
+
+/// Native → Dart Live Photo events (Cap 9).
+abstract class LivePhotoFlutterApi {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  void onLivePhotoReady(String assetIdentifier);
+
+  void onLivePhotoFailed(String assetIdentifier, ErrorCode errorCode);
+
+  void onLivePhotoPlaybackEnded(String assetIdentifier);
+
+  static void setUp(LivePhotoFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoReady$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final String arg_assetIdentifier = args[0]! as String;
+          try {
+            api.onLivePhotoReady(arg_assetIdentifier);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoFailed$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final String arg_assetIdentifier = args[0]! as String;
+          final ErrorCode arg_errorCode = args[1]! as ErrorCode;
+          try {
+            api.onLivePhotoFailed(arg_assetIdentifier, arg_errorCode);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoPlaybackEnded$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final String arg_assetIdentifier = args[0]! as String;
+          try {
+            api.onLivePhotoPlaybackEnded(arg_assetIdentifier);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

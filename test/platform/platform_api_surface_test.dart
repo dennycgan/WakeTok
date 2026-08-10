@@ -22,12 +22,28 @@ void main() {
     'syncPlanPosition',
     'notifyDisplaySurfaceReady',
     'updateNowPlayingMetadata',
+    'clearPlaybackPool',
   };
 
   const expectedPlaybackFlutterMethods = <String>{
     'onPlaybackRuntimeEvent',
     'onPlaybackRestoreRequired',
     'onPlaybackPlanEnded',
+  };
+
+  const expectedLivePhotoHostMethods = <String>{
+    'requestLivePhoto',
+    'cancel',
+    'startPlayback',
+    'stopPlayback',
+    'setMute',
+    'notifyLiveSurfaceReady',
+  };
+
+  const expectedLivePhotoFlutterMethods = <String>{
+    'onLivePhotoReady',
+    'onLivePhotoFailed',
+    'onLivePhotoPlaybackEnded',
   };
 
   const expectedPhotoLibraryHostMethods = <String>{
@@ -69,6 +85,9 @@ void main() {
   String playbackChannel(String method) =>
       'dev.flutter.pigeon.waketok.PlaybackApi.$method';
 
+  String livePhotoChannel(String method) =>
+      'dev.flutter.pigeon.waketok.LivePhotoApi.$method';
+
   tearDown(() {
     for (final m in expectedPhotoLibraryHostMethods) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -84,15 +103,23 @@ void main() {
         null,
       );
     }
+    for (final m in expectedLivePhotoHostMethods) {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockDecodedMessageHandler<Object?>(
+        BasicMessageChannel<Object?>(livePhotoChannel(m), codec),
+        null,
+      );
+    }
   });
 
-  test('T7 method-name sets cover §5.1 + ADR-006 vocabulary', () {
+  test('T7 method-name sets cover §5.1 + ADR-006 + Cap 9 Live vocabulary', () {
     expect(
       expectedPlaybackHostMethods,
       containsAll(<String>[
         'setPlaybackPlan',
         'syncPlanPosition',
         'notifyDisplaySurfaceReady',
+        'clearPlaybackPool',
       ]),
     );
     expect(
@@ -101,6 +128,22 @@ void main() {
         'onPlaybackRestoreRequired',
         'onPlaybackPlanEnded',
         'onPlaybackRuntimeEvent',
+      ]),
+    );
+    expect(
+      expectedLivePhotoHostMethods,
+      containsAll(<String>[
+        'requestLivePhoto',
+        'notifyLiveSurfaceReady',
+        'startPlayback',
+      ]),
+    );
+    expect(
+      expectedLivePhotoFlutterMethods,
+      containsAll(<String>[
+        'onLivePhotoReady',
+        'onLivePhotoFailed',
+        'onLivePhotoPlaybackEnded',
       ]),
     );
     expect(
@@ -118,6 +161,13 @@ void main() {
     PlaybackFlutterApi.setUp(api);
     expect(api, isA<PlaybackFlutterApi>());
     PlaybackFlutterApi.setUp(null);
+  });
+
+  test('T7 FlutterApi implementer compiles Cap 9 Live callbacks', () {
+    final api = _RecordingLivePhotoFlutterApi();
+    LivePhotoFlutterApi.setUp(api);
+    expect(api, isA<LivePhotoFlutterApi>());
+    LivePhotoFlutterApi.setUp(null);
   });
 
   test('T7 PhotoLibrary read/command paths succeed under mock', () async {
@@ -302,6 +352,21 @@ void main() {
     await api.syncPlanPosition('a', 0);
     await api.notifyDisplaySurfaceReady('a');
     await api.updateNowPlayingMetadata();
+    await api.clearPlaybackPool();
+  });
+
+  test('T7 LivePhoto Host methods succeed under mock (no-op path)', () async {
+    final api = LivePhotoApi();
+    for (final method in expectedLivePhotoHostMethods) {
+      mockSuccess(livePhotoChannel(method), null);
+    }
+
+    await api.requestLivePhoto('live-1');
+    await api.cancel('live-1');
+    await api.notifyLiveSurfaceReady('live-1');
+    await api.startPlayback();
+    await api.stopPlayback();
+    await api.setMute(false);
   });
 }
 
@@ -314,4 +379,15 @@ final class _RecordingPlaybackFlutterApi implements PlaybackFlutterApi {
 
   @override
   void onPlaybackPlanEnded(int feedIndex, String assetIdentifier) {}
+}
+
+final class _RecordingLivePhotoFlutterApi implements LivePhotoFlutterApi {
+  @override
+  void onLivePhotoReady(String assetIdentifier) {}
+
+  @override
+  void onLivePhotoFailed(String assetIdentifier, ErrorCode errorCode) {}
+
+  @override
+  void onLivePhotoPlaybackEnded(String assetIdentifier) {}
 }

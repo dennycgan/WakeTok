@@ -1,7 +1,8 @@
-/// Production Pigeon baseline (App Foundation 4.3).
+/// Production Pigeon baseline (App Foundation 4.3+).
 ///
-/// PhotoLibraryApi + PlaybackApi only. ClipExportApi is deferred.
-/// Spike contracts under pigeon/spikes/ are reference-only — never copy here.
+/// PhotoLibraryApi + PlaybackApi + LivePhotoApi (Cap 9). ClipExportApi is
+/// deferred. Spike contracts under pigeon/spikes/ are reference-only — never
+/// copy here.
 library;
 
 import 'package:pigeon/pigeon.dart';
@@ -422,6 +423,11 @@ abstract class PlaybackApi {
 
   /// Stub until Production Background Audio (ADR-002).
   void updateNowPlayingMetadata();
+
+  /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
+  /// Completes only after the pool is safe for the caller (Dart awaits before
+  /// LivePhotoApi). Idempotent. Does not reset mute preference.
+  void clearPlaybackPool();
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).
@@ -432,4 +438,43 @@ abstract class PlaybackFlutterApi {
   void onPlaybackRestoreRequired(int feedIndex, String assetIdentifier);
 
   void onPlaybackPlanEnded(int feedIndex, String assetIdentifier);
+}
+
+/// Cap 9 Live Photo motion (ADR-019 / POC-08). Independent of [PlaybackApi]
+/// video pool. Dart awaits [PlaybackApi.clearPlaybackPool] before calling
+/// [requestLivePhoto] when a Live item becomes current.
+///
+/// Failure split (9.3 gateway must mirror):
+/// - Sync-detectable (missing asset, not photoLive, …) → throw; code =
+///   [ErrorCode] member name.
+/// - Async request failure (incl. iCloud after network allowed) →
+///   [LivePhotoFlutterApi.onLivePhotoFailed] only; do not also throw.
+@HostApi()
+abstract class LivePhotoApi {
+  /// Starts a PHLivePhoto request (network allowed). Sync failures throw.
+  void requestLivePhoto(String assetIdentifier);
+
+  /// Cancels an in-flight request for [assetIdentifier] (or no-ops).
+  void cancel(String assetIdentifier);
+
+  /// Full motion once; Dart calls after [LivePhotoFlutterApi.onLivePhotoReady]
+  /// and surface ready (D2=A).
+  void startPlayback();
+
+  void stopPlayback();
+
+  void setMute(bool muted);
+
+  /// Live Platform View created; host binds PHLivePhoto when ready.
+  void notifyLiveSurfaceReady(String assetIdentifier);
+}
+
+/// Native → Dart Live Photo events (Cap 9).
+@FlutterApi()
+abstract class LivePhotoFlutterApi {
+  void onLivePhotoReady(String assetIdentifier);
+
+  void onLivePhotoFailed(String assetIdentifier, ErrorCode errorCode);
+
+  void onLivePhotoPlaybackEnded(String assetIdentifier);
 }

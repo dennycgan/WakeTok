@@ -1128,8 +1128,10 @@ protocol PhotoLibraryApi {
   func requestPresentationMetadata(assetIdentifier: String, completion: @escaping (Result<PresentationMetadataDto, Error>) -> Void)
   /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
   ///
-  /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
-  /// bytes and null semantics (not an error). Missing asset →
+  /// Network access disallowed. Live Photo uses Tier 4 still-only
+  /// ([FileSizeSemantics.currentImageRepresentation], ADR-018) — same path as
+  /// ordinary images; does not sum paired video. Ambiguous / unavailable →
+  /// null bytes and null semantics (not an error). Missing asset →
   /// [ErrorCode.assetUnavailable].
   func requestPresentationFileSize(assetIdentifier: String, completion: @escaping (Result<PresentationFileSizeDto, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.albumUnavailable].
@@ -1328,8 +1330,10 @@ class PhotoLibraryApiSetup {
     }
     /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
     ///
-    /// Network access disallowed. Ambiguous / Live Photo / unavailable → null
-    /// bytes and null semantics (not an error). Missing asset →
+    /// Network access disallowed. Live Photo uses Tier 4 still-only
+    /// ([FileSizeSemantics.currentImageRepresentation], ADR-018) — same path as
+    /// ordinary images; does not sum paired video. Ambiguous / unavailable →
+    /// null bytes and null semantics (not an error). Missing asset →
     /// [ErrorCode.assetUnavailable].
     let requestPresentationFileSizeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationFileSize\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
@@ -1438,6 +1442,10 @@ protocol PlaybackApi {
   func notifyDisplaySurfaceReady(assetIdentifier: String) throws
   /// Stub until Production Background Audio (ADR-002).
   func updateNowPlayingMetadata() throws
+  /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
+  /// Completes only after the pool is safe for the caller (Dart awaits before
+  /// LivePhotoApi). Idempotent. Does not reset mute preference.
+  func clearPlaybackPool() throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1595,6 +1603,22 @@ class PlaybackApiSetup {
     } else {
       updateNowPlayingMetadataChannel.setMessageHandler(nil)
     }
+    /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
+    /// Completes only after the pool is safe for the caller (Dart awaits before
+    /// LivePhotoApi). Idempotent. Does not reset mute preference.
+    let clearPlaybackPoolChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.clearPlaybackPool\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      clearPlaybackPoolChannel.setMessageHandler { _, reply in
+        do {
+          try api.clearPlaybackPool()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      clearPlaybackPoolChannel.setMessageHandler(nil)
+    }
   }
 }
 
@@ -1656,6 +1680,204 @@ class PlaybackFlutterApi: PlaybackFlutterApiProtocol {
     let channelName: String = "dev.flutter.pigeon.waketok.PlaybackFlutterApi.onPlaybackPlanEnded\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([feedIndexArg, assetIdentifierArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+}
+/// Cap 9 Live Photo motion (ADR-019 / POC-08). Independent of [PlaybackApi]
+/// video pool. Dart awaits [PlaybackApi.clearPlaybackPool] before calling
+/// [requestLivePhoto] when a Live item becomes current.
+///
+/// Failure split (9.3 gateway must mirror):
+/// - Sync-detectable (missing asset, not photoLive, …) → throw; code =
+///   [ErrorCode] member name.
+/// - Async request failure (incl. iCloud after network allowed) →
+///   [LivePhotoFlutterApi.onLivePhotoFailed] only; do not also throw.
+///
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol LivePhotoApi {
+  /// Starts a PHLivePhoto request (network allowed). Sync failures throw.
+  func requestLivePhoto(assetIdentifier: String) throws
+  /// Cancels an in-flight request for [assetIdentifier] (or no-ops).
+  func cancel(assetIdentifier: String) throws
+  /// Full motion once; Dart calls after [LivePhotoFlutterApi.onLivePhotoReady]
+  /// and surface ready (D2=A).
+  func startPlayback() throws
+  func stopPlayback() throws
+  func setMute(muted: Bool) throws
+  /// Live Platform View created; host binds PHLivePhoto when ready.
+  func notifyLiveSurfaceReady(assetIdentifier: String) throws
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class LivePhotoApiSetup {
+  static var codec: FlutterStandardMessageCodec { WaketokPlatformApisPigeonCodec.shared }
+  /// Sets up an instance of `LivePhotoApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: LivePhotoApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Starts a PHLivePhoto request (network allowed). Sync failures throw.
+    let requestLivePhotoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.LivePhotoApi.requestLivePhoto\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestLivePhotoChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.requestLivePhoto(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      requestLivePhotoChannel.setMessageHandler(nil)
+    }
+    /// Cancels an in-flight request for [assetIdentifier] (or no-ops).
+    let cancelChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.LivePhotoApi.cancel\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.cancel(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelChannel.setMessageHandler(nil)
+    }
+    /// Full motion once; Dart calls after [LivePhotoFlutterApi.onLivePhotoReady]
+    /// and surface ready (D2=A).
+    let startPlaybackChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.LivePhotoApi.startPlayback\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      startPlaybackChannel.setMessageHandler { _, reply in
+        do {
+          try api.startPlayback()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      startPlaybackChannel.setMessageHandler(nil)
+    }
+    let stopPlaybackChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.LivePhotoApi.stopPlayback\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      stopPlaybackChannel.setMessageHandler { _, reply in
+        do {
+          try api.stopPlayback()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      stopPlaybackChannel.setMessageHandler(nil)
+    }
+    let setMuteChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.LivePhotoApi.setMute\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setMuteChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let mutedArg = args[0] as! Bool
+        do {
+          try api.setMute(muted: mutedArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setMuteChannel.setMessageHandler(nil)
+    }
+    /// Live Platform View created; host binds PHLivePhoto when ready.
+    let notifyLiveSurfaceReadyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.LivePhotoApi.notifyLiveSurfaceReady\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      notifyLiveSurfaceReadyChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.notifyLiveSurfaceReady(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      notifyLiveSurfaceReadyChannel.setMessageHandler(nil)
+    }
+  }
+}
+
+/// Native → Dart Live Photo events (Cap 9).
+///
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol LivePhotoFlutterApiProtocol {
+  func onLivePhotoReady(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onLivePhotoFailed(assetIdentifier assetIdentifierArg: String, errorCode errorCodeArg: ErrorCode, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  func onLivePhotoPlaybackEnded(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+}
+class LivePhotoFlutterApi: LivePhotoFlutterApiProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: WaketokPlatformApisPigeonCodec {
+    return WaketokPlatformApisPigeonCodec.shared
+  }
+  func onLivePhotoReady(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoReady\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([assetIdentifierArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  func onLivePhotoFailed(assetIdentifier assetIdentifierArg: String, errorCode errorCodeArg: ErrorCode, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoFailed\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([assetIdentifierArg, errorCodeArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  func onLivePhotoPlaybackEnded(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoPlaybackEnded\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([assetIdentifierArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

@@ -22,12 +22,24 @@ import UIKit
       binaryMessenger: messenger,
       api: playbackHost
     )
+    let livePhotoHost = LivePhotoApiHost(binaryMessenger: messenger)
+    LivePhotoApiSetup.setUp(
+      binaryMessenger: messenger,
+      api: livePhotoHost
+    )
     let registrar = engineBridge.pluginRegistry.registrar(
       forPlugin: "WakeTokPlaybackSurface"
     )
     registrar?.register(
       PlaybackPlatformViewFactory(host: playbackHost),
       withId: PlaybackApiHost.viewType
+    )
+    let liveRegistrar = engineBridge.pluginRegistry.registrar(
+      forPlugin: "WakeTokLivePhotoSurface"
+    )
+    liveRegistrar?.register(
+      LivePhotoPlatformViewFactory(host: livePhotoHost),
+      withId: LivePhotoApiHost.viewType
     )
   }
 }
