@@ -144,9 +144,13 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       preparing spinner; all `_livePreparing` writes via `gatedFlagUpdate`
       (L-S6 defensive seam `debugSetLivePreparing`)
       — work `042c59d`
-- [ ] 9.6 Mute preference binding (default unmuted) + Playback Style
+- [x] 9.6 Mute preference binding (default unmuted) + Playback Style
       matrix (POC-08 #4 / #7); re-apply shared mute after video pool
-      rebuild (ADR-019 Consequences reminder)
+      rebuild (ADR-019 Consequences reminder); `sharedMuteProvider`;
+      Live `setMute`+`startPlayback` in one `LiveHostOpSerial` op;
+      video `setMute` before `play`; library_smoke debug toggle;
+      Style observation template for 9.7
+      — work `8c0f4ca`
 - [ ] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
       local + iCloud + weak net; Q7 switch feel; item #5: note observed
       iCloud download state changes during motion prepare; items 1–8
@@ -156,10 +160,10 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.6 Live mute preference + Playback Style matrix
-- Sub-steps done: 9.1–9.5 (preparing spinner / gated writes `042c59d`)
-- Next step: owner design-first OK for 9.6
-- Related decisions: ADR-019; mute-after-clear → 9.6; Known debt unchanged
+- Goal (one line): Cap 9.7 Device POC-08 acceptance (Profile + notes)
+- Sub-steps done: 9.1–9.6 (shared mute binding `8c0f4ca`)
+- Next step: owner device gate on iPhone 13/17; fill Style matrix + POC notes
+- Related decisions: ADR-019 close after 9.7; Known debt unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -184,7 +188,8 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   `lib/domain/live_photo/` + `LivePhotoGateway` +
   `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed play-once +
   `LiveHostOpSerial` (Cap 9.4 `c86dd6e`); preparing spinner +
-  `gatedFlagUpdate` (Cap 9.5 `042c59d` / ADR-019)
+  `gatedFlagUpdate` (Cap 9.5 `042c59d`); `sharedMuteProvider` + mute
+  re-apply (Cap 9.6 `8c0f4ca` / ADR-019)
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
   requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
@@ -209,6 +214,8 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   docs/acceptance/cap8-8.4-poc10-notes.md
 - Acceptance notes (Cap 8.8 Overlay / size / hitch / A1 audio):
   docs/acceptance/cap8-8.8-notes.md
+- Cap 9.6 Playback Style observation matrix (fill in 9.7):
+  docs/acceptance/cap9-9.6-playback-style-matrix.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
