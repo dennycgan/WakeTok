@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/presentation/file_size_semantics.dart';
 import 'package:waketok/domain/presentation/presentation_media_kind.dart';
@@ -21,11 +23,11 @@ import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
+import '../../library_smoke/fake_live_photo_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../../library_smoke/fake_playback_repository.dart';
 import '../../library_smoke/fake_presentation_metadata_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
-
 void main() {
   testWidgets('W-F1 full lands on VerticalMediaFeed not placeholder',
       (tester) async {
@@ -836,6 +838,371 @@ void main() {
     expect(find.text(exact), findsOneWidget);
     expect(find.text(sizeCopy), findsOneWidget);
     expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+  });
+
+  testWidgets(
+      'L-F1 Live current: clearPlaybackPool before requestLivePhoto',
+      (tester) async {
+    final live = FakeLivePhotoRepository();
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        mediaDisplay: display,
+        playback: playback,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+    expect(playback.calls, contains('clearPlaybackPool'));
+    expect(live.calls, contains('requestLivePhoto:live-1'));
+    final clearAt = playback.calls.indexOf('clearPlaybackPool');
+    final requestAt = live.calls.indexOf('requestLivePhoto:live-1');
+    expect(clearAt, lessThan(requestAt));
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('L-F2 leave current Live cancels and stops', (tester) async {
+    final live = FakeLivePhotoRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    display.displaysById['still-2'] = const DisplayAsset(
+      assetIdentifier: 'still-2',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/still-2.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['live-1', 'still-2']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(live.calls, contains('requestLivePhoto:live-1'));
+    live.calls.clear();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+
+    expect(live.calls, contains('cancel:live-1'));
+    expect(live.calls, contains('stopPlayback'));
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('L-F3 playbackEnded unloads Live motion surface (Q7)',
+      (tester) async {
+    final live = FakeLivePhotoRepository(autoReady: true);
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsOneWidget,
+    );
+    expect(live.calls, contains('startPlayback'));
+
+    live.endedController.add(
+      const LivePhotoPlaybackEndedEvent(assetIdentifier: 'live-1'),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+  });
+
+  testWidgets('L-F4 sync request failure keeps still + badge (no skip)',
+      (tester) async {
+    final live = FakeLivePhotoRepository(throwOnRequestCode: 'unsupportedMedia');
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('L-F5 failedEvents unloads motion; still remains', (tester) async {
+    final live = FakeLivePhotoRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsOneWidget,
+    );
+
+    live.failedController.add(
+      const LivePhotoFailedEvent(
+        assetIdentifier: 'live-1',
+        error: AppError.iCloudDownloadFailed,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
+  });
+
+  testWidgets(
+      'L-F6 stale ready after leave does not startPlayback on re-enter race',
+      (tester) async {
+    final live = FakeLivePhotoRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    display.displaysById['still-2'] = const DisplayAsset(
+      assetIdentifier: 'still-2',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/still-2.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['live-1', 'still-2']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+
+    // Stale ready from first activation — must be ignored (F4 token).
+    live.readyController.add(
+      const LivePhotoReadyEvent(assetIdentifier: 'live-1'),
+    );
+    await tester.pumpAndSettle();
+    expect(live.calls.where((c) => c == 'startPlayback'), isEmpty);
+
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await tester.pumpAndSettle();
+    final startsBefore = live.calls.where((c) => c == 'startPlayback').length;
+
+    live.readyController.add(
+      const LivePhotoReadyEvent(assetIdentifier: 'live-1'),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      live.calls.where((c) => c == 'startPlayback').length,
+      greaterThan(startsBefore),
+    );
+  });
+
+  testWidgets('L-F7 re-enter Live requests again (Q6 play-once)', (tester) async {
+    final live = FakeLivePhotoRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    display.displaysById['still-2'] = const DisplayAsset(
+      assetIdentifier: 'still-2',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/still-2.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['live-1', 'still-2']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      live.calls.where((c) => c == 'requestLivePhoto:live-1').length,
+      1,
+    );
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await tester.pumpAndSettle();
+
+    expect(
+      live.calls.where((c) => c == 'requestLivePhoto:live-1').length,
+      2,
+    );
+  });
+
+  testWidgets(
+      'L-F8 leave→return while cancel held: second request after cancel/stop',
+      (tester) async {
+    // F4 lock: if feed-scoped `LiveHostOpSerial.enqueue` is bypassed and
+    // cancel/request race freely, the mid-hold assertion (no request while
+    // cancel held) fails.
+    // Note: still-2 may cancel/stop interleaved in the shared call log;
+    // assertions use a mid-hold snapshot so that noise is excluded.
+    final live = FakeLivePhotoRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['live-1'] = const DisplayAsset(
+      assetIdentifier: 'live-1',
+      mediaKind: PlaybackMediaKind.livePhoto,
+      localFilePath: '/tmp/live-1.jpg',
+    );
+    display.displaysById['still-2'] = const DisplayAsset(
+      assetIdentifier: 'still-2',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/still-2.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources:
+            FakeAssetSourceRepository(allIds: const ['live-1', 'still-2']),
+        mediaDisplay: display,
+        livePhoto: live,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      live.calls.where((c) => c == 'requestLivePhoto:live-1').length,
+      1,
+    );
+
+    live.calls.clear();
+    final cancelHold = Completer<void>();
+    live.cancelHold = cancelHold;
+    live.cancelHoldAssetId = 'live-1';
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pump();
+    await tester.idle();
+    await tester.pump();
+    expect(
+      live.calls,
+      contains('cancel:live-1'),
+      reason: 'leave must invoke cancel(live-1); calls=${live.calls}',
+    );
+
+    // Return while cancel still held — live-1 chain must not request yet.
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await tester.pump();
+    await tester.idle();
+    await tester.pump();
+    final midHoldCalls = List<String>.from(live.calls);
+    expect(
+      midHoldCalls.where((c) => c == 'requestLivePhoto:live-1'),
+      isEmpty,
+      reason: 're-enter request must wait for leave cancel/stop '
+          '(LiveHostOpSerial); mid=$midHoldCalls',
+    );
+
+    cancelHold.complete();
+    await tester.pumpAndSettle();
+
+    final afterHold = live.calls.skip(midHoldCalls.length).toList();
+    expect(
+      afterHold,
+      contains('stopPlayback'),
+      reason: 'leave stop must run after cancelHold; after=$afterHold '
+          'full=${live.calls}',
+    );
+    expect(
+      afterHold,
+      contains('requestLivePhoto:live-1'),
+      reason: 're-enter request must run after cancelHold; after=$afterHold '
+          'full=${live.calls}',
+    );
+    expect(
+      afterHold.indexOf('stopPlayback'),
+      lessThan(afterHold.indexOf('requestLivePhoto:live-1')),
+      reason: 'stop before request in post-hold suffix; after=$afterHold',
+    );
   });
 }
 

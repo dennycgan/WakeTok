@@ -7,9 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
+import 'package:waketok/domain/playback/playback_repository.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
@@ -34,6 +37,9 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   List<String> _ids = const [];
 
   final FeedActivationCoordinator _activation = FeedActivationCoordinator();
+  /// Cap 9.4 / F4: feed-scoped mutex for Live Host cancel/request (not per-page —
+  /// PageView may recreate page State across leave/re-enter).
+  final LiveHostOpSerial liveHostSerial = LiveHostOpSerial();
   final Map<String, PresentationOverlaySnapshot> _overlayCache =
       <String, PresentationOverlaySnapshot>{};
 
@@ -232,6 +238,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                     feedIndex: index,
                     sourceKind: source.kind,
                     isCurrent: isCurrent,
+                    liveHostSerial: liveHostSerial,
                     currentDisplayGate:
                         isCurrent ? _activation.currentDisplayGate : null,
                     assignedDisplayGeneration:
@@ -298,6 +305,21 @@ class _BrowseStatusPanel extends StatelessWidget {
   }
 }
 
+/// Feed-scoped serial queue for Live Host API calls (Cap 9.4 / F4).
+///
+/// Host `cancel` / `requestLivePhoto` have no independent mutex — Feed must
+/// not invoke them concurrently. Scoped at the feed (not page) so leave on
+/// one [MediaFeedPage] State cannot race request on a re-created State.
+class LiveHostOpSerial {
+  Future<void> _chain = Future<void>.value();
+
+  Future<void> enqueue(Future<void> Function() op) {
+    final next = _chain.then((_) => op());
+    _chain = next.catchError((_) {});
+    return next;
+  }
+}
+
 /// One PageView child: still / video / error with generation-gated loads.
 class MediaFeedPage extends ConsumerStatefulWidget {
   const MediaFeedPage({
@@ -306,6 +328,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.feedIndex,
     required this.sourceKind,
     required this.isCurrent,
+    required this.liveHostSerial,
     this.currentDisplayGate,
     this.assignedDisplayGeneration,
   });
@@ -314,12 +337,14 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   final int feedIndex;
   final AssetSourceKind sourceKind;
   final bool isCurrent;
+  final LiveHostOpSerial liveHostSerial;
 
   /// When current: feed-owned gate already begun in [_activateCurrentItem].
   final FeedMediaRequestGate? currentDisplayGate;
   final int? assignedDisplayGeneration;
 
   static const String playbackViewType = 'waketok/playback_surface';
+  static const String livePhotoViewType = 'waketok/live_photo_surface';
 
   @override
   ConsumerState<MediaFeedPage> createState() => _MediaFeedPageState();
@@ -327,14 +352,35 @@ class MediaFeedPage extends ConsumerStatefulWidget {
 
 class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   final FeedMediaRequestGate _localGate = FeedMediaRequestGate();
+  /// Cap 9.4 / F4: per Live activation token (not assetId alone).
+  final FeedMediaRequestGate _liveMotionGate = FeedMediaRequestGate();
   FeedPageMedia? _media;
   bool _loading = true;
   bool _surfaceReady = false;
+
+  bool _liveMotionMounted = false;
+  bool _livePhotoReady = false;
+  bool _liveSurfaceReady = false;
+  bool _liveStartIssued = false;
+  StreamSubscription<LivePhotoReadyEvent>? _liveReadySub;
+  StreamSubscription<LivePhotoFailedEvent>? _liveFailedSub;
+  StreamSubscription<LivePhotoPlaybackEndedEvent>? _liveEndedSub;
+
+  /// Cached for async teardown / dispose (Riverpod ref is unsafe after unmount).
+  LivePhotoRepository? _liveRepo;
+  PlaybackRepository? _playbackRepo;
 
   @override
   void initState() {
     super.initState();
     _startLoad();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _liveRepo ??= ref.read(livePhotoRepositoryProvider);
+    _playbackRepo ??= ref.read(playbackRepositoryProvider);
   }
 
   @override
@@ -353,6 +399,29 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
           _surfaceReady = false;
         });
       }
+      // Capture repo before async gaps; leave cancel must not depend on
+      // `_liveRepo` having been cached (didChangeDependencies ordering).
+      final live = ref.read(livePhotoRepositoryProvider);
+      _liveRepo = live;
+      final id = widget.assetIdentifier;
+      final shouldCancelHost =
+          _liveMotionMounted || _isLiveStillMedia(_media);
+      _liveMotionGate.begin();
+      unawaited(_cancelLiveSubscriptions());
+      _livePhotoReady = false;
+      _liveSurfaceReady = false;
+      _liveStartIssued = false;
+      if (_liveMotionMounted) {
+        setState(() => _liveMotionMounted = false);
+      }
+      if (shouldCancelHost) {
+        unawaited(_enqueueLiveOp(() async {
+          try {
+            await live.cancel(id);
+            await live.stopPlayback();
+          } catch (_) {}
+        }));
+      }
     }
 
     if (oldWidget.assetIdentifier != widget.assetIdentifier ||
@@ -369,6 +438,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
           _startLoad();
         } else {
           unawaited(_syncPlaybackActive());
+          unawaited(_maybeBeginLiveMotion());
         }
       }
     }
@@ -377,10 +447,188 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   @override
   void dispose() {
     _localGate.begin(); // invalidate in-flight local loads
-    if (_media?.kind == FeedPageMediaKind.video && widget.isCurrent) {
-      unawaited(ref.read(playbackRepositoryProvider).pause());
+    _liveMotionGate.begin(); // invalidate Live activation
+    unawaited(_cancelLiveSubscriptions());
+    final playback = _playbackRepo;
+    if (_media?.kind == FeedPageMediaKind.video &&
+        widget.isCurrent &&
+        playback != null) {
+      unawaited(playback.pause());
+    }
+    final live = _liveRepo;
+    if (widget.isCurrent && _isLiveStillMedia(_media) && live != null) {
+      // Best-effort host teardown; dispose cannot await.
+      final id = widget.assetIdentifier;
+      unawaited(live.cancel(id));
+      unawaited(live.stopPlayback());
     }
     super.dispose();
+  }
+
+  bool _isLiveStillMedia(FeedPageMedia? media) {
+    return media?.kind == FeedPageMediaKind.still &&
+        media?.display?.mediaKind == PlaybackMediaKind.livePhoto;
+  }
+
+  Future<void> _cancelLiveSubscriptions() async {
+    await _liveReadySub?.cancel();
+    await _liveFailedSub?.cancel();
+    await _liveEndedSub?.cancel();
+    _liveReadySub = null;
+    _liveFailedSub = null;
+    _liveEndedSub = null;
+  }
+
+  Future<void> _enqueueLiveOp(Future<void> Function() op) {
+    // Cap 9.4 / F4: sole cancel↔request mutex (feed-scoped [LiveHostOpSerial]).
+    // Host has no independent lock (see LivePhotoApiHost doc comment). Do not
+    // call LivePhotoRepository cancel/request/stop outside this chain from
+    // Feed paths — if a future path bypasses it, re-evaluate host mutex.
+    return widget.liveHostSerial.enqueue(op);
+  }
+
+  /// Cap 9.4 Live play-once. No motion spinner here (F2=A intentional
+  /// interim — Q4=A spinner lands in Cap 9.5; not a Known debt omission).
+  Future<void> _maybeBeginLiveMotion() async {
+    if (!widget.isCurrent || !_isLiveStillMedia(_media)) {
+      return;
+    }
+    final assetId = widget.assetIdentifier;
+    final LivePhotoRepository live =
+        _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+    final PlaybackRepository playback =
+        _playbackRepo ?? ref.read(playbackRepositoryProvider);
+    _liveRepo = live;
+    _playbackRepo = playback;
+
+    await _enqueueLiveOp(() async {
+      if (!mounted || !widget.isCurrent || !_isLiveStillMedia(_media)) {
+        return;
+      }
+      final generation = _liveMotionGate.begin();
+      await _cancelLiveSubscriptions();
+      _livePhotoReady = false;
+      _liveSurfaceReady = false;
+      _liveStartIssued = false;
+      if (_liveMotionMounted) {
+        setState(() => _liveMotionMounted = false);
+      }
+
+      _liveReadySub = live.readyEvents.listen((event) {
+        if (!_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        if (event.assetIdentifier != assetId) {
+          return;
+        }
+        _livePhotoReady = true;
+        unawaited(_tryStartLivePlayback(generation));
+      });
+      _liveFailedSub = live.failedEvents.listen((event) {
+        if (!_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        if (event.assetIdentifier != assetId) {
+          return;
+        }
+        unawaited(_unloadLiveMotionSurface());
+      });
+      _liveEndedSub = live.playbackEndedEvents.listen((event) {
+        if (!_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        if (event.assetIdentifier != assetId) {
+          return;
+        }
+        // Q7=A: unload PV → still Image.file.
+        unawaited(_unloadLiveMotionSurface());
+      });
+
+      try {
+        await playback.clearPlaybackPool();
+        if (!mounted ||
+            !_liveMotionGate.isCurrent(generation) ||
+            !widget.isCurrent) {
+          return;
+        }
+        await live.requestLivePhoto(assetId);
+        if (!mounted ||
+            !_liveMotionGate.isCurrent(generation) ||
+            !widget.isCurrent) {
+          return;
+        }
+        setState(() => _liveMotionMounted = true);
+      } catch (_) {
+        // Sync failure → keep still; no skip (Cap 9.4 / 9.5 static fallback).
+        if (mounted && _liveMotionGate.isCurrent(generation)) {
+          setState(() => _liveMotionMounted = false);
+        }
+      }
+    });
+  }
+
+  Future<void> _tryStartLivePlayback(int generation) async {
+    if (!_liveMotionGate.isCurrent(generation) ||
+        !_livePhotoReady ||
+        !_liveSurfaceReady ||
+        _liveStartIssued) {
+      return;
+    }
+    _liveStartIssued = true;
+    final live = _liveRepo;
+    if (live == null) {
+      return;
+    }
+    try {
+      await live.startPlayback();
+    } catch (_) {
+      // Keep still; do not skip.
+    }
+  }
+
+  Future<void> _unloadLiveMotionSurface() async {
+    if (!mounted) {
+      return;
+    }
+    if (_liveMotionMounted || _livePhotoReady || _liveSurfaceReady) {
+      setState(() {
+        _liveMotionMounted = false;
+        _livePhotoReady = false;
+        _liveSurfaceReady = false;
+        _liveStartIssued = false;
+      });
+    }
+  }
+
+  /// F4 leave path: invalidate token first, then await host cancel/stop.
+  Future<void> _teardownLiveMotion({required bool cancelHost}) async {
+    _liveMotionGate.begin();
+    await _cancelLiveSubscriptions();
+    _livePhotoReady = false;
+    _liveSurfaceReady = false;
+    _liveStartIssued = false;
+    final wasMounted = _liveMotionMounted;
+    if (mounted && wasMounted) {
+      setState(() => _liveMotionMounted = false);
+    }
+    if (!cancelHost) {
+      return;
+    }
+    final live = _liveRepo ??
+        (mounted ? ref.read(livePhotoRepositoryProvider) : null);
+    if (live == null) {
+      return;
+    }
+    _liveRepo = live;
+    final id = widget.assetIdentifier;
+    await _enqueueLiveOp(() async {
+      try {
+        await live.cancel(id);
+        await live.stopPlayback();
+      } catch (_) {
+        // Best-effort leave teardown.
+      }
+    });
   }
 
   Future<void> _startLoad() async {
@@ -395,6 +643,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
           _loading = true;
           _media = null;
           _surfaceReady = false;
+          _liveMotionMounted = false;
         });
         return;
       }
@@ -404,10 +653,21 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       gate = _localGate;
       generation = _localGate.begin();
     }
+    // Await teardown so cancel cannot race a later request (F4 / ADR-006).
+    // Off-current pages must still cancelHost when this page had Live motion /
+    // a Live still — leave must not rely solely on unawaited leftCurrent.
+    final cancelHost = widget.isCurrent ||
+        _liveMotionMounted ||
+        _isLiveStillMedia(_media);
+    await _teardownLiveMotion(cancelHost: cancelHost);
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _loading = true;
       _media = null;
       _surfaceReady = false;
+      _liveMotionMounted = false;
     });
     final result = await loadFeedPageMedia(
       gate: gate,
@@ -427,6 +687,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       _loading = false;
     });
     await _syncPlaybackActive();
+    await _maybeBeginLiveMotion();
   }
 
   /// Play when this page is current + surface ready. Never pause from here.
@@ -461,6 +722,23 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       FeedPageMediaKind.still => _StillPage(
           display: media.display!,
           liveLabel: l10n.mainBrowseLiveBadge,
+          liveMotionOverlay: _liveMotionMounted
+              ? _LiveMotionSurface(
+                  assetIdentifier: widget.assetIdentifier,
+                  onSurfaceReady: () async {
+                    if (!mounted) {
+                      return;
+                    }
+                    final generation = _liveMotionGate.generation;
+                    setState(() => _liveSurfaceReady = true);
+                    final live = _liveRepo;
+                    if (live != null) {
+                      await live.notifyLiveSurfaceReady(widget.assetIdentifier);
+                    }
+                    await _tryStartLivePlayback(generation);
+                  },
+                )
+              : null,
         ),
       FeedPageMediaKind.pendingVideo => ColoredBox(
           key: Key('mainBrowseFeedVideoPending_${widget.assetIdentifier}'),
@@ -503,10 +781,14 @@ class _StillPage extends StatelessWidget {
   const _StillPage({
     required this.display,
     required this.liveLabel,
+    this.liveMotionOverlay,
   });
 
   final DisplayAsset display;
   final String liveLabel;
+
+  /// Cap 9.4 F1=A: motion-phase Live PV only (null when idle / after Q7 unload).
+  final Widget? liveMotionOverlay;
 
   @override
   Widget build(BuildContext context) {
@@ -528,7 +810,51 @@ class _StillPage extends StatelessWidget {
             left: 12,
             child: _LiveBadge(label: liveLabel),
           ),
+        if (liveMotionOverlay != null) liveMotionOverlay!,
       ],
+    );
+  }
+}
+
+class _LiveMotionSurface extends StatefulWidget {
+  const _LiveMotionSurface({
+    required this.assetIdentifier,
+    required this.onSurfaceReady,
+  });
+
+  final String assetIdentifier;
+  final Future<void> Function() onSurfaceReady;
+
+  @override
+  State<_LiveMotionSurface> createState() => _LiveMotionSurfaceState();
+}
+
+class _LiveMotionSurfaceState extends State<_LiveMotionSurface> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(widget.onSurfaceReady());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    return ColoredBox(
+      key: Key('mainBrowseFeedLiveMotion_${widget.assetIdentifier}'),
+      color: tokens.feedBackground.withValues(alpha: 0),
+      child: defaultTargetPlatform == TargetPlatform.iOS
+          ? IgnorePointer(
+              child: UiKitView(
+                viewType: MediaFeedPage.livePhotoViewType,
+                creationParams: widget.assetIdentifier,
+                creationParamsCodec: const StandardMessageCodec(),
+                gestureRecognizers:
+                    const <Factory<OneSequenceGestureRecognizer>>{},
+              ),
+            )
+          : const SizedBox.expand(),
     );
   }
 }

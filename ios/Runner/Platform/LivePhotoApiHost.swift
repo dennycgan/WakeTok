@@ -10,6 +10,14 @@ import UIKit
 /// Independent of [PlaybackApiHost] video pool — Dart awaits
 /// `clearPlaybackPool` before [requestLivePhoto] when Live becomes current.
 ///
+/// Cap 9.4 / F4 — known single-layer mutex: there is **no** host-side lock
+/// between [cancel] and [requestLivePhoto]. `requestGeneration` only drops
+/// stale PH callbacks; it does not serialize cancel↔request against each
+/// other. Feed must call Host only via Dart `LiveHostOpSerial` /
+/// `_enqueueLiveOp` (feed-scoped, not per-page). If a future path
+/// (e.g. Cap 9.5/9.6) invokes Host APIs outside that chain, re-evaluate
+/// host mutual exclusion before shipping.
+///
 /// Failure split:
 /// - Sync-detectable → throw PigeonError (ErrorCode member name).
 /// - Async request failure → [LivePhotoFlutterApi.onLivePhotoFailed] only.
@@ -37,6 +45,8 @@ final class LivePhotoApiHost: NSObject, LivePhotoApi {
   // MARK: - LivePhotoApi
 
   func requestLivePhoto(assetIdentifier: String) throws {
+    // Not runOnMainSync: identity/generation updates here are not mutually
+    // exclusive with [cancel] at the host layer (see type-level F4 note).
     let fetch = PHAsset.fetchAssets(withLocalIdentifiers: [assetIdentifier], options: nil)
     guard let asset = fetch.firstObject else {
       throw fail(.assetUnavailable, message: "No PHAsset for \(assetIdentifier)")
@@ -97,14 +107,20 @@ final class LivePhotoApiHost: NSObject, LivePhotoApi {
     guard currentAssetId == assetIdentifier || currentAssetId == nil else {
       return
     }
-    cancelInFlightRequest()
-    requestGeneration &+= 1
-    pendingLivePhoto = nil
-    currentAssetId = nil
-    DispatchQueue.main.async { [weak self] in
-      self?.surfaceView?.setLivePhoto(nil)
-      self?.surfaceView?.stopPlayback()
+    // Cap 9.4 / F4: Dart awaits cancel — must finish teardown before reply
+    // (same shape as PlaybackApiHost.clearPlaybackPool).
+    // Order on main: bump requestGeneration first so in-flight PH callbacks
+    // drop, then clear pending state and stop/unload the surface.
+    let work = { [weak self] in
+      guard let self else { return }
+      self.cancelInFlightRequest()
+      self.requestGeneration &+= 1
+      self.pendingLivePhoto = nil
+      self.currentAssetId = nil
+      self.surfaceView?.stopPlayback()
+      self.surfaceView?.setLivePhoto(nil)
     }
+    runOnMainSync(work)
   }
 
   func startPlayback() throws {
@@ -116,9 +132,11 @@ final class LivePhotoApiHost: NSObject, LivePhotoApi {
   }
 
   func stopPlayback() throws {
-    DispatchQueue.main.async { [weak self] in
+    // Cap 9.4 / F4: Dart awaits stop — surface must be stopped before reply.
+    let work = { [weak self] in
       self?.surfaceView?.stopPlayback()
     }
+    runOnMainSync(work)
   }
 
   func setMute(muted: Bool) throws {
@@ -161,6 +179,14 @@ final class LivePhotoApiHost: NSObject, LivePhotoApi {
     guard let livePhoto = pendingLivePhoto, let surfaceView else { return }
     surfaceView.setLivePhoto(livePhoto)
     surfaceView.setMuted(muted)
+  }
+
+  private func runOnMainSync(_ work: () -> Void) {
+    if Thread.isMainThread {
+      work()
+    } else {
+      DispatchQueue.main.sync(execute: work)
+    }
   }
 
   private func cancelInFlightRequest() {
