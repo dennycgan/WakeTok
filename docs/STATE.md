@@ -47,8 +47,9 @@
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
       (ADR-015…018; 8.8 notes; Location + cross-source playhead debts)
-- [ ] <-- YOU ARE HERE: next capability TBD, see Phase Roadmap placeholder
-- [ ] Live Photo rendering and static fallback (POC-08)
+- [~] <-- YOU ARE HERE: Live Photo rendering and static fallback (POC-08)
+      (ADR-019 draft in chat; Accepted after first Cap 9 work commit;
+      does not clear any Known debt table row)
 - [ ] Asset Source and Source Pool Definition domain models
 - [ ] Live Resolution, Asset Source Availability,
       Identity Coalescing, and Resolved Pool Snapshot
@@ -101,8 +102,7 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: TBD (next Cap not locked — see Capability Roadmap
-YOU ARE HERE)
+Active capability: Live Photo rendering and static fallback (POC-08)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -112,19 +112,43 @@ YOU ARE HERE)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-Awaiting owner-approved phases for the next capability (TBD).
-Cap 8 Capability Roadmap closed in this docs commit; do not invent numbered
-phases here. Full kickoff alignment / Cap planning review happens in a later
-conversation before this placeholder is replaced — including whether the next
-Cap is Live Photo / POC-08, a reorder, or an inserted Cap.
+- [~] 9.1 Contract freeze: Q1–Q7; LivePhotoApi + viewType; visible PV
+      exclusivity; `PlaybackApi.clearPlaybackPool()` (Dart await before
+      LivePhotoApi; host race guards; Live-activation-only clear — stills
+      stay pause-only); Q7 unload PV→still; Known debt table rows not
+      cleared; POC-08 Success Criteria locked (items 1–8; #5 observe
+      iCloud download state changes in 9.7 notes without progress-copy
+      UI; #8 plugin vs native — recorded rationale: no first-party
+      PHLivePhotoView plugin; photo_manager-class packages expose
+      still+paired video files for DIY VideoPlayer, not Photos-parity
+      PHLivePhotoView lifecycle/mute/styles — self-built Pigeon+PV);
+      draft ADR-019 (Accepted on first Cap 9 work commit)
+- [ ] 9.2 Native host: PHLivePhoto request + PHLivePhotoView factory;
+      `clearPlaybackPool` + clear-in-flight guards; cancel/failure
+- [ ] 9.3 Pigeon + gateway + domain (current-page only); composition root
+- [ ] 9.4 Feed integration: Live current → await clear → play-once →
+      Q7 still; leave/re-enter; Overlay/badge coexistence
+- [ ] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
+      no auto-skip (not Waiting for Media product surface)
+- [ ] 9.6 Mute preference binding (default unmuted) + Playback Style
+      matrix (POC-08 #4 / #7)
+- [ ] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
+      local + iCloud + weak net; Q7 switch feel; item #5: note observed
+      iCloud download state changes during motion prepare; items 1–8
+      gate); notes under docs/acceptance/; POC Result/Decision →
+      ADR-019 close
+- [ ] 9.8 Cap 9 close-out: STATE Cap `[x]` + YOU ARE HERE + PHASE_HISTORY;
+      Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Next Cap scope / Phase Roadmap (placeholder — not started)
-- Sub-steps done: Cap 8 closed (8.1–8.9); PHASE_HISTORY appended
-- Next step: owner kickoff review + approve next Cap identity and Phase
-      Roadmap; then replace placeholder (and point YOU ARE HERE at that Cap)
-- Related decisions: ADR-001 … ADR-018; Location Known debt; cross-source
-      playhead Known debt; file-size disclaimer; Portfolio scan owner-only
+- Goal (one line): Cap 9.1 contract freeze (Live Photo / POC-08) + ADR-019 draft
+- Sub-steps done: Cap identity locked; Q1–Q7=A; Q2 clearPlaybackPool +
+      await/race; POC-08 #5/#8 Success Criteria gaps closed in STATE;
+      Phase Roadmap 9.1–9.8 written
+- Next step: owner OK on STATE diff → 9.1 docs commit (STATE only);
+      ADR-019 append+Accepted with first Cap 9 work commit (9.2)
+- Related decisions: ADR-001, ADR-006 (narrow extend), ADR-014/015
+      (Live motion deferred here), ADR-018 (size unchanged); ADR-019 draft
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -151,7 +175,9 @@ Cap is Live Photo / POC-08, a reorder, or an inserted Cap.
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-018: docs/DECISIONS.md
+- ADR-001 … ADR-018: docs/DECISIONS.md; Cap 9 ADR-019 draft in chat
+      (chat draft frozen; append + Accepted+anchor with first Cap 9
+      work commit)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
