@@ -43,10 +43,11 @@
 - [x] Main Browse Screen and vertical Media Feed
       (ADR-014; Cap 7.7a Profile V-hard PASS; accent/brandGold freeze
       `0e3eec2`; Release hang Known debt separate)
-- [ ] Media Info Overlay, loading states, empty states,
+- [x] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
-      <-- YOU ARE HERE
+      (ADR-015…018; 8.8 notes; Location + cross-source playhead debts)
+- [ ] <-- YOU ARE HERE: next capability TBD, see Phase Roadmap placeholder
 - [ ] Live Photo rendering and static fallback (POC-08)
 - [ ] Asset Source and Source Pool Definition domain models
 - [ ] Live Resolution, Asset Source Availability,
@@ -100,77 +101,30 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Media Info Overlay, loading states, empty states,
-POC-10 file-size semantics, optional best-effort Location Label
-(not release-blocking)
-
-> Owner-approved Cap 8 design lock (Q1=B Location deferred — Overlay row 4
-> hidden when empty / no geocode this Cap; Q2=B forced-dark = Browse pane +
-> shared bottom bar when destination is non-Settings; Settings follows
-> Appearance; Q3=A Tier 1 unavailable → Tier 3/4 only; Q4=A Live Photo label
-> from mediaKind; Q5=A current page only). Field-progressive Presentation
-> Metadata (per-field nullable, render on arrival). Location “current Item
-> only” remains a hard rule independent of any future ±1 metadata prefetch.
-> Cap 7.8 debts paid in 8.2 (do not merge those rows when scheduling).
-> Live still-only file size: ADR-018 (supersedes ADR-015 Live dual-nil).
+Active capability: TBD (next Cap not locked — see Capability Roadmap
+YOU ARE HERE)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
 > new capability's phases and move YOU ARE HERE above.
 > Phase Roadmap is set by the owner before work begins on each capability.
 > When YOU ARE HERE moves, do not generate Phase Roadmap content without
-> explicit owner approval of the phases.
+> explicit owner approval of the phases. An explicit awaiting-scope placeholder
+> is allowed at Cap close-out (see state-decisions-maintenance).
 
-- [x] 8.1 Contract freeze: Overlay four-row contract (row 4 omitted this
-      Cap); POC-10 Tier policy (Tier 1 Unavailable; Tier 2 slot; enable
-      3/4); immersive chrome scope Q2=B; progressive field updates;
-      ADR-015 wide draft approved in chat (Accepted at 8.2 work `a721bdc`)
-- [x] 8.2 Immersive Browse chrome: forced-dark for Browse/Clips/Auto
-      destinations; shared bottom bar always dark (even on Settings);
-      Settings *pane* follows Appearance. Initial work `a721bdc`
-      (ADR-015). Revision `5fb93de` (ADR-016): transparent top + compact
-      custom bar. Fix `60f3283` (ADR-017): bar always dark on Settings.
-      Pays forced-dark + opaque-top Known debts.
-- [x] 8.3 Presentation Metadata: Pigeon + gateway + domain; current-page
-      only; two HostApi calls (`requestPresentationMetadata` then
-      `requestPresentationFileSize`) for progressive fields
-      (`creationDateMs?`, required `mediaKind` on success,
-      `fileSizeBytes?`, `fileSizeSemantics?`); host Tier 3/4
-      implemented. Work `c0c04e1`. Feature-layer FeedMediaRequestGate
-      staleness discard + Overlay consumer landed in 8.5 (`4f4c825`).
-- [x] 8.4 POC-10: device-confirm safe Tier 3/4 paths already in `c0c04e1`;
-      M1–M6 PASS; M7 N/A (no RAW+JPEG in owner library); Browse hitch
-      qualitative OK. Notes: docs/acceptance/cap8-8.4-poc10-notes.md
-      (2026-08-09; M2/M3 follow-ups + ADR-018). Temporary debug probe
-      discarded (never on `main`). No host fix at 8.4 close-out.
-- [x] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 hidden when
-      `locationLabel` empty (no geocode); progressive paint; ARB; Live
-      label + still size (ADR-018 Tier 4); dual-gate sync via
-      `FeedActivationCoordinator`; session Overlay cache + background
-      refresh. Work `4f4c825`; docs ADR-018 `2bdd207`; session-cache
-      regression `W-O-cache` with this close-out.
-- [x] 8.6 Loading / Empty product polish: shared `_BrowseStatusPanel`;
-      resolve vs per-page Keys; per-page loading spinner-only (D1);
-      W-L1–W-L6 (Overlay independence on per-page iCloud/failed). Work
-      `dbc0cfd`. No Waiting for Media / Source Availability surfaces;
-      no new ADR.
-- [x] 8.7 Location deferral close-out: W-Loc1 (whitespace trim) + W-Loc2
-      (feed Row2 exact + Row3 size fixture land; no Row4). Work `95f2037`.
-      No geocode; Known debt unchanged; no formal device notes; no new ADR.
-- [x] 8.8 Real-device acceptance: H1/S1–S4/C1/S3-format PASS; A1 leave-video
-      audio leak fixed (`df83633`) + device retest PASS; W-O-prog. Notes:
-      docs/acceptance/cap8-8.8-notes.md. Not a Cap 7.7a re-gate; no new ADR.
-- [ ] 8.9 Cap 8 close-out: STATE + PHASE_HISTORY; Location debt remains
-      (forced-dark / opaque-top cleared at 8.2 docs)
+Awaiting owner-approved phases for the next capability (TBD).
+Cap 8 Capability Roadmap closed in this docs commit; do not invent numbered
+phases here. Full kickoff alignment / Cap planning review happens in a later
+conversation before this placeholder is replaced — including whether the next
+Cap is Live Photo / POC-08, a reorder, or an inserted Cap.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.9 Cap 8 close-out (STATE + PHASE_HISTORY)
-- Sub-steps done: 8.1–8.8 closed
-- Next step: append Cap 8 Phase Roadmap snapshot to PHASE_HISTORY; mark
-      Capability Roadmap Cap 8 `[x]`; replace Phase Roadmap with next Cap
+- Goal (one line): Next Cap scope / Phase Roadmap (placeholder — not started)
+- Sub-steps done: Cap 8 closed (8.1–8.9); PHASE_HISTORY appended
+- Next step: owner kickoff review + approve next Cap identity and Phase
+      Roadmap; then replace placeholder (and point YOU ARE HERE at that Cap)
 - Related decisions: ADR-001 … ADR-018; Location Known debt; cross-source
-      playhead pending Session Continuity revisit; file-size disclaimer
-      copy Known debt; Portfolio scan remains owner-only; M7 still N/A
+      playhead Known debt; file-size disclaimer; Portfolio scan owner-only
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -225,6 +179,7 @@ POC-10 file-size semantics, optional best-effort Location Label
 |---|---|---|---|---|
 | Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
 | Media Info Overlay | Location Label (reverse geocode) not implemented | Owner Cap 8 Q1=B: Overlay row 4 hidden when empty this Cap (kickoff ADR-X best-effort deferral; no geocode). Current-Item-only geocode hard rule unchanged when a later Cap picks this up | Later Cap (or reopen when Owner schedules) | kickoff ADR-X |
+| Media Info Overlay | Same-asset playhead shared across built-in sources (All ↔ Videos) | First observed Cap 8.8: `PlaybackApiHost` keys the app-scoped player by `assetIdentifier` (ADR-006), so the same Photos id under All vs Videos reuses position / ended-on-last-frame. ADR-014 Decision 4 only resets **feed index** on tab switch — not playhead continuity. Owner preliminary (not final): likely acceptable and may help Session Continuity; **revisit when that capability is designed**. No Cap 8 fix. | Session Continuity (when scheduled) | ADR-006 / ADR-014; `docs/acceptance/cap8-8.8-notes.md` |
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |

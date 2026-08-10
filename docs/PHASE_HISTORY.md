@@ -294,3 +294,58 @@ Related ADRs: ADR-001, ADR-006, ADR-009, ADR-010, ADR-012, ADR-014.
 Known debt carried: Release hang → Final hardening; Browse forced-dark +
 opaque top bar → Media Info Overlay; Portfolio Private→Public scan
 owner-only (eligibility met).
+
+## Media Info Overlay, loading states, empty states,
+POC-10 file-size semantics, optional best-effort Location Label
+— completed 2026-08-10
+
+- [x] 8.1 Contract freeze: Overlay four-row contract (row 4 omitted this
+      Cap); POC-10 Tier policy (Tier 1 Unavailable; Tier 2 slot; enable
+      3/4); immersive chrome scope Q2=B; progressive field updates;
+      ADR-015 wide draft approved in chat (Accepted at 8.2 work `a721bdc`)
+- [x] 8.2 Immersive Browse chrome: forced-dark for Browse/Clips/Auto
+      destinations; shared bottom bar always dark (even on Settings);
+      Settings *pane* follows Appearance. Initial work `a721bdc`
+      (ADR-015). Revision `5fb93de` (ADR-016): transparent top + compact
+      custom bar. Fix `60f3283` (ADR-017): bar always dark on Settings.
+      Pays forced-dark + opaque-top Known debts.
+- [x] 8.3 Presentation Metadata: Pigeon + gateway + domain; current-page
+      only; two HostApi calls (`requestPresentationMetadata` then
+      `requestPresentationFileSize`) for progressive fields
+      (`creationDateMs?`, required `mediaKind` on success,
+      `fileSizeBytes?`, `fileSizeSemantics?`); host Tier 3/4
+      implemented. Work `c0c04e1`. Feature-layer FeedMediaRequestGate
+      staleness discard + Overlay consumer landed in 8.5 (`4f4c825`).
+- [x] 8.4 POC-10: device-confirm safe Tier 3/4 paths already in `c0c04e1`;
+      M1–M6 PASS; M7 N/A (no RAW+JPEG in owner library); Browse hitch
+      qualitative OK. Notes: docs/acceptance/cap8-8.4-poc10-notes.md
+      (2026-08-09; M2/M3 follow-ups + ADR-018). Temporary debug probe
+      discarded (never on `main`). No host fix at 8.4 close-out.
+- [x] 8.5 Media Info Overlay UI: fixed-height rows 1–3; row 4 hidden when
+      `locationLabel` empty (no geocode); progressive paint; ARB; Live
+      label + still size (ADR-018 Tier 4); dual-gate sync via
+      `FeedActivationCoordinator`; session Overlay cache + background
+      refresh. Work `4f4c825`; docs ADR-018 `2bdd207`; session-cache
+      regression `W-O-cache` with this close-out.
+- [x] 8.6 Loading / Empty product polish: shared `_BrowseStatusPanel`;
+      resolve vs per-page Keys; per-page loading spinner-only (D1);
+      W-L1–W-L6 (Overlay independence on per-page iCloud/failed). Work
+      `dbc0cfd`. No Waiting for Media / Source Availability surfaces;
+      no new ADR.
+- [x] 8.7 Location deferral close-out: W-Loc1 (whitespace trim) + W-Loc2
+      (feed Row2 exact + Row3 size fixture land; no Row4). Work `95f2037`.
+      No geocode; Known debt unchanged; no formal device notes; no new ADR.
+- [x] 8.8 Real-device acceptance: H1/S1–S4/C1/S3-format PASS; A1 leave-video
+      audio leak fixed (`df83633`) + device retest PASS; W-O-prog. Notes:
+      docs/acceptance/cap8-8.8-notes.md. Not a Cap 7.7a re-gate; no new ADR.
+- [x] 8.9 Cap 8 close-out: STATE + PHASE_HISTORY; Location Known debt
+      remains; forced-dark / opaque-top cleared at 8.2; cross-source
+      playhead Known debt recorded (Session Continuity revisit).
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-015, ADR-016, ADR-017, ADR-018 (Live still size narrow-
+supersedes ADR-015 Live dual-nil). Known debt carried: Location Label
+(geocode deferred); same-asset cross-source playhead (Session Continuity);
+file-size disclaimer copy. Forced-dark + opaque-top debts paid in 8.2.
