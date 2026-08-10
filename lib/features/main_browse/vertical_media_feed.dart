@@ -347,10 +347,11 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   static const String livePhotoViewType = 'waketok/live_photo_surface';
 
   @override
-  ConsumerState<MediaFeedPage> createState() => _MediaFeedPageState();
+  ConsumerState<MediaFeedPage> createState() => MediaFeedPageState();
 }
 
-class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
+/// Public for Cap 9.5 L-S6 `@visibleForTesting` seam ([debugSetLivePreparing]).
+class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   final FeedMediaRequestGate _localGate = FeedMediaRequestGate();
   /// Cap 9.4 / F4: per Live activation token (not assetId alone).
   final FeedMediaRequestGate _liveMotionGate = FeedMediaRequestGate();
@@ -362,6 +363,8 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   bool _livePhotoReady = false;
   bool _liveSurfaceReady = false;
   bool _liveStartIssued = false;
+  /// Cap 9.5 Q4=A: motion prepare spinner (generation-gated writes).
+  bool _livePreparing = false;
   StreamSubscription<LivePhotoReadyEvent>? _liveReadySub;
   StreamSubscription<LivePhotoFailedEvent>? _liveFailedSub;
   StreamSubscription<LivePhotoPlaybackEndedEvent>? _liveEndedSub;
@@ -406,7 +409,8 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       final id = widget.assetIdentifier;
       final shouldCancelHost =
           _liveMotionMounted || _isLiveStillMedia(_media);
-      _liveMotionGate.begin();
+      // Leave invalidates generation first, then clears preparing (Cap 9.5).
+      final leaveGeneration = _liveMotionGate.begin();
       unawaited(_cancelLiveSubscriptions());
       _livePhotoReady = false;
       _liveSurfaceReady = false;
@@ -414,6 +418,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       if (_liveMotionMounted) {
         setState(() => _liveMotionMounted = false);
       }
+      _setLivePreparing(leaveGeneration, false);
       if (shouldCancelHost) {
         unawaited(_enqueueLiveOp(() async {
           try {
@@ -487,8 +492,37 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     return widget.liveHostSerial.enqueue(op);
   }
 
-  /// Cap 9.4 Live play-once. No motion spinner here (F2=A intentional
-  /// interim — Q4=A spinner lands in Cap 9.5; not a Known debt omission).
+  /// Cap 9.5: every `_livePreparing` write is generation-gated (L-S6).
+  void _setLivePreparing(int generation, bool value) {
+    if (!mounted) {
+      return;
+    }
+    final next = gatedFlagUpdate(
+      gate: _liveMotionGate,
+      generation: generation,
+      current: _livePreparing,
+      next: value,
+    );
+    if (next == _livePreparing) {
+      return;
+    }
+    setState(() => _livePreparing = next);
+  }
+
+  /// L-S6 test seam only: route a preparing write through [_setLivePreparing].
+  ///
+  /// Simulates a **defensive** "write carrying a stale generation" — not a race
+  /// reproducible under today's stream subscription lifecycle. Leave tears down
+  /// ready/failed/ended listeners before return re-subscribes (serialized by
+  /// [LiveHostOpSerial]), so a late ready event cannot reach a current
+  /// listener. This hook locks [gatedFlagUpdate] so a future change that breaks
+  /// cancel-before-resubscribe cannot silently drop that last line of defense.
+  @visibleForTesting
+  void debugSetLivePreparing(int generation, bool value) {
+    _setLivePreparing(generation, value);
+  }
+
+  /// Cap 9.4 Live play-once + Cap 9.5 Q4=A spinner-only while preparing.
   Future<void> _maybeBeginLiveMotion() async {
     if (!widget.isCurrent || !_isLiveStillMedia(_media)) {
       return;
@@ -513,6 +547,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       if (_liveMotionMounted) {
         setState(() => _liveMotionMounted = false);
       }
+      _setLivePreparing(generation, true);
 
       _liveReadySub = live.readyEvents.listen((event) {
         if (!_liveMotionGate.isCurrent(generation)) {
@@ -521,6 +556,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
         if (event.assetIdentifier != assetId) {
           return;
         }
+        _setLivePreparing(generation, false);
         _livePhotoReady = true;
         unawaited(_tryStartLivePlayback(generation));
       });
@@ -531,6 +567,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
         if (event.assetIdentifier != assetId) {
           return;
         }
+        _setLivePreparing(generation, false);
         unawaited(_unloadLiveMotionSurface());
       });
       _liveEndedSub = live.playbackEndedEvents.listen((event) {
@@ -559,7 +596,8 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
         }
         setState(() => _liveMotionMounted = true);
       } catch (_) {
-        // Sync failure → keep still; no skip (Cap 9.4 / 9.5 static fallback).
+        // Sync failure → keep still; no skip (Cap 9.5 static fallback).
+        _setLivePreparing(generation, false);
         if (mounted && _liveMotionGate.isCurrent(generation)) {
           setState(() => _liveMotionMounted = false);
         }
@@ -590,7 +628,11 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     if (!mounted) {
       return;
     }
-    if (_liveMotionMounted || _livePhotoReady || _liveSurfaceReady) {
+    final generation = _liveMotionGate.begin();
+    if (_liveMotionMounted ||
+        _livePhotoReady ||
+        _liveSurfaceReady ||
+        _liveStartIssued) {
       setState(() {
         _liveMotionMounted = false;
         _livePhotoReady = false;
@@ -598,11 +640,12 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
         _liveStartIssued = false;
       });
     }
+    _setLivePreparing(generation, false);
   }
 
   /// F4 leave path: invalidate token first, then await host cancel/stop.
   Future<void> _teardownLiveMotion({required bool cancelHost}) async {
-    _liveMotionGate.begin();
+    final generation = _liveMotionGate.begin();
     await _cancelLiveSubscriptions();
     _livePhotoReady = false;
     _liveSurfaceReady = false;
@@ -611,6 +654,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     if (mounted && wasMounted) {
       setState(() => _liveMotionMounted = false);
     }
+    _setLivePreparing(generation, false);
     if (!cancelHost) {
       return;
     }
@@ -639,12 +683,14 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       final assigned = widget.assignedDisplayGeneration;
       if (shared == null || assigned == null) {
         // Parent activation not ready yet — keep spinner; reload on assign.
+        final liveGeneration = _liveMotionGate.begin();
         setState(() {
           _loading = true;
           _media = null;
           _surfaceReady = false;
           _liveMotionMounted = false;
         });
+        _setLivePreparing(liveGeneration, false);
         return;
       }
       gate = shared;
@@ -656,6 +702,8 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     // Await teardown so cancel cannot race a later request (F4 / ADR-006).
     // Off-current pages must still cancelHost when this page had Live motion /
     // a Live still — leave must not rely solely on unawaited leftCurrent.
+    // Teardown already begin()s the live gate and clears preparing via
+    // [_setLivePreparing] — do not bump again here.
     final cancelHost = widget.isCurrent ||
         _liveMotionMounted ||
         _isLiveStillMedia(_media);
@@ -722,6 +770,7 @@ class _MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       FeedPageMediaKind.still => _StillPage(
           display: media.display!,
           liveLabel: l10n.mainBrowseLiveBadge,
+          livePreparing: _livePreparing,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
                   assetIdentifier: widget.assetIdentifier,
@@ -781,11 +830,15 @@ class _StillPage extends StatelessWidget {
   const _StillPage({
     required this.display,
     required this.liveLabel,
+    this.livePreparing = false,
     this.liveMotionOverlay,
   });
 
   final DisplayAsset display;
   final String liveLabel;
+
+  /// Cap 9.5 Q4=A: spinner-only beside LIVE badge while motion prepares.
+  final bool livePreparing;
 
   /// Cap 9.4 F1=A: motion-phase Live PV only (null when idle / after Q7 unload).
   final Widget? liveMotionOverlay;
@@ -808,7 +861,26 @@ class _StillPage extends StatelessWidget {
           Positioned(
             top: 12,
             left: 12,
-            child: _LiveBadge(label: liveLabel),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LiveBadge(label: liveLabel),
+                if (livePreparing) ...[
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    key: Key(
+                      'mainBrowseFeedLivePreparing_${display.assetIdentifier}',
+                    ),
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: tokens.brandGold,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         if (liveMotionOverlay != null) liveMotionOverlay!,
       ],
