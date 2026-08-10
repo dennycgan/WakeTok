@@ -133,8 +133,12 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       (channels already in 9.2; Dart LivePhotoRepository + LivePhotoGateway
       + clearPlaybackPool on PlaybackRepository; no Feed wiring)
       — work `afd3181`
-- [ ] 9.4 Feed integration: Live current → await clear → play-once →
-      Q7 still; leave/re-enter; Overlay/badge coexistence
+- [x] 9.4 Feed integration: Live current → await clear → play-once →
+      Q7 still; leave/re-enter; Overlay/badge coexistence; F4
+      feed-scoped `LiveHostOpSerial` + activation generation; host
+      cancel/stop main-sync; no motion spinner (intentional interim —
+      Q4=A spinner in 9.5, not Known debt)
+      — work `c86dd6e`
 - [ ] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
       no auto-skip (not Waiting for Media product surface)
 - [ ] 9.6 Mute preference binding (default unmuted) + Playback Style
@@ -149,9 +153,9 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.4 Feed Live play-once + Q7 still (design not started)
-- Sub-steps done: 9.1–9.3 (native + Dart wiring `afd3181`)
-- Next step: owner design-first OK for 9.4 Feed integration
+- Goal (one line): Cap 9.5 iCloud / failure spinner-only + static fallback
+- Sub-steps done: 9.1–9.4 (Feed Live play-once `c86dd6e`)
+- Next step: owner design-first OK for 9.5
 - Related decisions: ADR-019; mute-after-clear → 9.6; Known debt unchanged
 
 ## Contract pointers (don't memorize, go read the source)
@@ -175,7 +179,8 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   (viewType `waketok/live_photo_surface`); Pigeon LivePhotoApi /
   LivePhotoFlutterApi (Cap 9.2); Dart domain
   `lib/domain/live_photo/` + `LivePhotoGateway` +
-  `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed → Cap 9.4
+  `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed play-once +
+  `LiveHostOpSerial` (Cap 9.4 `c86dd6e` / ADR-019)
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
   requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
