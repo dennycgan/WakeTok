@@ -157,19 +157,20 @@ POC-10 file-size semantics, optional best-effort Location Label
 - [x] 8.7 Location deferral close-out: W-Loc1 (whitespace trim) + W-Loc2
       (feed Row2 exact + Row3 size fixture land; no Row4). Work `95f2037`.
       No geocode; Known debt unchanged; no formal device notes; no new ADR.
-- [ ] 8.8 Real-device acceptance: overlay height stability; file-size
-      sample semantics; coarse hitch sanity (not a Cap 7.7a re-gate)
+- [x] 8.8 Real-device acceptance: H1/S1–S4/C1/S3-format PASS; A1 leave-video
+      audio leak fixed (`df83633`) + device retest PASS; W-O-prog. Notes:
+      docs/acceptance/cap8-8.8-notes.md. Not a Cap 7.7a re-gate; no new ADR.
 - [ ] 8.9 Cap 8 close-out: STATE + PHASE_HISTORY; Location debt remains
       (forced-dark / opaque-top cleared at 8.2 docs)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 8.8 Real-device acceptance (Overlay / size / hitch)
-- Sub-steps done: 8.1–8.7 closed
-- Next step: device checks — overlay height stability; file-size sample
-      semantics; coarse hitch sanity (not Cap 7.7a re-gate)
-- Related decisions: ADR-001 … ADR-018; Location Known debt; file-size
-      disclaimer copy Known debt; Portfolio scan remains owner-only;
-      M7 RAW+JPEG size path still unverified on owner library
+- Goal (one line): Cap 8.9 Cap 8 close-out (STATE + PHASE_HISTORY)
+- Sub-steps done: 8.1–8.8 closed
+- Next step: append Cap 8 Phase Roadmap snapshot to PHASE_HISTORY; mark
+      Capability Roadmap Cap 8 `[x]`; replace Phase Roadmap with next Cap
+- Related decisions: ADR-001 … ADR-018; Location Known debt; cross-source
+      playhead pending Session Continuity revisit; file-size disclaimer
+      copy Known debt; Portfolio scan remains owner-only; M7 still N/A
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -209,6 +210,8 @@ POC-10 file-size semantics, optional best-effort Location Label
   docs/acceptance/cap7-7.7b-hang-diagnosis-notes.md
 - Acceptance notes (Cap 8.4 POC-10 device confirm):
   docs/acceptance/cap8-8.4-poc10-notes.md
+- Acceptance notes (Cap 8.8 Overlay / size / hitch / A1 audio):
+  docs/acceptance/cap8-8.8-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
