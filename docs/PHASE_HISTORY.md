@@ -411,3 +411,29 @@ Known debt carried: UX-1 (brief visible spin-then-fail on offline/weak-net
 iCloud Live prepare); UX-2 (LIVE badge + spinner → bottom-right). No Cap 9
 table-row clears. Prior debts (Location, playhead, file-size disclaimer,
 Release hang, Portfolio scan, etc.) unchanged.
+
+## Asset Source and Source Pool Definition domain models
+— completed 2026-08-11
+
+- [x] 10.1 Contract freeze: D1–D9 / F1–F2; ADR-020 Proposed;
+      GLOSSARY Cap 10 note; Out-of-scope locked
+      — docs `519564b`
+- [x] 10.2 Domain kinds + SourceReference: album/smartAlbum;
+      built-in pairs kept; exhaustiveness arms; mapper untouched
+      — work `8c99d46`; ADR-020 Accepted docs `c0b0d47`
+- [x] 10.3 SourcePoolDefinition + PersistencePolicy + ADR-P
+      (30 validate / 10 constant); Q1–Q3=A
+      — work `6aa35dc`; docs `21a5407`
+- [x] 10.4 ItemOrderingPolicy.forKind (creationDateDescending /
+      unspecified); ORD unit tests + architecture green
+      — work `954d7e0`; docs `f7a36de`
+- [x] 10.5 Cap close-out: STATE Cap `[x]` + YOU ARE HERE +
+      PHASE_HISTORY; Phase Roadmap → Live Resolution placeholder
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-020 (Accepted, anchor `8c99d46`).
+Known debt: no Cap 10 table-row adds or clears. Prior debts unchanged
+(Location, playhead, file-size disclaimer, Release hang, UX-1/UX-2,
+Portfolio scan, etc.).

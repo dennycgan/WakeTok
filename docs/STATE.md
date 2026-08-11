@@ -50,9 +50,10 @@
 - [x] Live Photo rendering and static fallback (POC-08)
       (ADR-019; POC-08 PASS Cap 9.7; mute persist `4aa93b0`;
       UX-1/UX-2 Known debt; notes `cap9-9.7-poc08-notes.md`)
-- [ ] <-- YOU ARE HERE: Asset Source and Source Pool Definition
+- [x] Asset Source and Source Pool Definition
       domain models
-- [ ] Live Resolution, Asset Source Availability,
+      (ADR-020; kinds `8c99d46`; SPD `6aa35dc`; ordering `954d7e0`)
+- [ ] <-- YOU ARE HERE: Live Resolution, Asset Source Availability,
       Identity Coalescing, and Resolved Pool Snapshot
 - [ ] Session Queue, Default Session Profile,
       and stable Item Ordering Semantics
@@ -103,7 +104,9 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Asset Source and Source Pool Definition domain models
+Active capability: Live Resolution, Asset Source Availability,
+Identity Coalescing, and Resolved Pool Snapshot
+(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -113,32 +116,20 @@ Active capability: Asset Source and Source Pool Definition domain models
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-- [x] 10.1 Contract freeze: owner Cap 10 review (D1–D9 / F1–F2);
-      ADR-020 Proposed (no Accepted / no fake anchor); GLOSSARY cross-ref;
-      Out-of-scope locked (no Live Resolve / UI / persistence / Generated
-      Clip specialization types; gateway mapper untouched)
-- [x] 10.2 Domain kinds + SourceReference generalization: add `album` /
-      `smartAlbum` to domain `AssetSourceKind` (`other` stays wire-only);
-      keep Cap 6 built-in three legal pairs; exhaustiveness-only call-site
-      arms allowed; no Host/Pigeon/schema change; mapper still throws
-      — work `8c99d46`
-- [x] 10.3 SourcePoolDefinition + PersistencePolicy + ADR-P capacity:
-      max 30 sources/pool validated now; max 10 saved presets as constant
-      only (CRUD in Saved Pool Cap); `saved` constructible, no repository
-      — work `6aa35dc`
-- [x] 10.4 Invariant unit tests + architecture guards (if `lib/` touched);
-      ItemOrderingPolicy.forKind slot (built-ins = creationDateDesc;
-      album/smartAlbum = unspecified)
-      — work `954d7e0`
-- [ ] 10.5 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
-      Live Resolution / Availability / Identity Coalescing / Snapshot Cap
+Awaiting owner-approved phases for Live Resolution, Asset Source
+Availability, Identity Coalescing, and Resolved Pool Snapshot. Cap 10
+Capability Roadmap closed in this docs commit; do not invent numbered
+phases here. Kickoff alignment / Cap planning review happens in a later
+conversation before this placeholder is replaced.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 10.4 closed; next = 10.5 Cap close-out
-- Sub-steps done: 10.4 work `954d7e0` (ItemOrderingPolicy.forKind)
-- Next step: Cap 10 close-out — Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
-      Live Resolution Cap; Phase Roadmap placeholder or next Cap phases
-- Related decisions: ADR-020 (Accepted, anchor `8c99d46`)
+- Goal (one line): Cap 10 closed; next Cap scope / Phase Roadmap
+      (Live Resolution placeholder)
+- Sub-steps done: Cap 10 phases 10.1–10.5; PHASE_HISTORY appended
+- Next step: owner kickoff review + approve Live Resolution Phase Roadmap;
+      then replace placeholder
+- Related decisions: ADR-020; Known debt unchanged (no Cap 10 row
+      adds/clears)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -153,9 +144,12 @@ Active capability: Asset Source and Source Pool Definition domain models
   Cap 8.2 immersive content + always-dark bottom bar `60f3283` / ADR-017;
   transparent top + compact bar `5fb93de` / ADR-016)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
-- Source Pool Definition (Cap 10): `SourcePoolDefinition` /
-  `PersistencePolicy` / `PoolCapacity` under lib/domain/source/ (ADR-020;
-  work `6aa35dc`); `ItemOrderingPolicy.forKind` (work `954d7e0`)
+- Source Pool Definition (Cap 10 / ADR-020):
+  `lib/domain/source/source_pool_definition.dart`,
+  `persistence_policy.dart`, `pool_capacity.dart`,
+  `item_ordering_policy.dart`; `SourceReference` + `AssetSourceKind`
+  (album/smartAlbum); gateway mapper still Cap-6 throw (D7=A);
+  work kinds `8c99d46` / SPD `6aa35dc` / ordering `954d7e0`
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
