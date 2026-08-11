@@ -1467,9 +1467,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-020: Cap 10 Asset Source + Source Pool Definition domain models
 
-- Status: Proposed
-- Commit/PR anchor: (none while Proposed — Accepted will use the first Cap
-  10.2 work commit sha; F1=A)
+- Status: Accepted (2026-08-11)
+- Commit/PR anchor: 8c99d46
 - Plain summary (owner reads this):
   Cap 10 adds Dart-only domain types for Source Pool recipes (ordered Asset
   Source references, ephemeral/saved persistence policy, capacity constants)
@@ -1564,4 +1563,5 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     truth; Cap 10 only refuses to freeze implementation fields early.
   - Architecture guards must stay green on any `lib/` touch
     (ADR-009/010/012).
-  - While Status is Proposed: no Accepted date and no Commit/PR anchor.
+  - Accepted date/anchor = first Cap 10.2 work `8c99d46` (2026-08-11),
+    per F1=A (not Cap 10 close-out; not inside the work commit).

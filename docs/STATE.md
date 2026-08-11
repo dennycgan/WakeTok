@@ -117,10 +117,11 @@ Active capability: Asset Source and Source Pool Definition domain models
       ADR-020 Proposed (no Accepted / no fake anchor); GLOSSARY cross-ref;
       Out-of-scope locked (no Live Resolve / UI / persistence / Generated
       Clip specialization types; gateway mapper untouched)
-- [ ] 10.2 Domain kinds + SourceReference generalization: add `album` /
+- [x] 10.2 Domain kinds + SourceReference generalization: add `album` /
       `smartAlbum` to domain `AssetSourceKind` (`other` stays wire-only);
       keep Cap 6 built-in three legal pairs; exhaustiveness-only call-site
       arms allowed; no Host/Pigeon/schema change; mapper still throws
+      — work `8c99d46`
 - [ ] 10.3 SourcePoolDefinition + PersistencePolicy + ADR-P capacity:
       max 30 sources/pool validated now; max 10 saved presets as constant
       only (CRUD in Saved Pool Cap); `saved` constructible, no repository
@@ -131,11 +132,11 @@ Active capability: Asset Source and Source Pool Definition domain models
       Live Resolution / Availability / Identity Coalescing / Snapshot Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 10.1 docs freeze complete; next = 10.2 domain kinds
-- Sub-steps done: Phase Roadmap approved; ADR-020 Proposed; GLOSSARY note
-- Next step: owner OK 10.1 docs commit → start 10.2 (first work sha =
-      ADR-020 Accepted anchor per F1=A)
-- Related decisions: ADR-020 (Proposed); Cap 9 ADR-019 / UX debts unchanged
+- Goal (one line): Cap 10.2 closed; next = 10.3 SPD (design approved, await go)
+- Sub-steps done: 10.2 work `8c99d46`; ADR-020 Accepted (this docs commit)
+- Next step: owner OK this docs commit/push → confirm 10.3 comments +
+      STATE 10.3 `[~]` → implement SourcePoolDefinition
+- Related decisions: ADR-020 (Accepted, anchor `8c99d46`)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -173,7 +174,7 @@ Active capability: Asset Source and Source Pool Definition domain models
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
 - ADR-001 … ADR-020: docs/DECISIONS.md (ADR-019 Cap 9 Live; ADR-020 Cap 10
-  Source Pool Definition models — Proposed until first 10.2 work sha)
+  Source Pool Definition models — Accepted, anchor `8c99d46`)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
