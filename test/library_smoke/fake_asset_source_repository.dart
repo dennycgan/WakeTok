@@ -69,6 +69,11 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
       AssetSourceKind.entireLibrary => allIds,
       AssetSourceKind.mediaTypePhotos => photosIds,
       AssetSourceKind.mediaTypeVideos => videosIds,
+      AssetSourceKind.album || AssetSourceKind.smartAlbum =>
+        throw StateError(
+          'FakeAssetSourceRepository.resolve: album/smartAlbum unreachable '
+          'after isLegalBuiltInPair guard',
+        ),
     };
     return ResolvedSource(
       sourceId: reference.id,

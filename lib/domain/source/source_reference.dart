@@ -1,9 +1,16 @@
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 
-/// Reference passed to [AssetSourceRepository.resolve] (ADR-013 Option A).
+/// Reference to an Asset Source (kind + identifier).
 ///
-/// Wire mapping: `sourceType` = [kind].name, `sourceIdentifier` = [id].
+/// Cap 6/ADR-013: built-in pairs use frozen short ids (`all` / `photos` /
+/// `videos`) for `listAssetSources` / `resolveSource` round-trips.
+/// Cap 10/ADR-020: also constructs [AssetSourceKind.album] /
+/// [AssetSourceKind.smartAlbum] references (id = Photos collection
+/// `localIdentifier`). Resolve of non-built-in kinds is not Cap 10 work.
+///
+/// Wire mapping (when used): `sourceType` = [kind].name,
+/// `sourceIdentifier` = [id].
 class SourceReference {
   const SourceReference({required this.kind, required this.id});
 
@@ -30,11 +37,14 @@ class SourceReference {
   final String id;
 
   /// Whether this is one of the three Cap 6 legal built-in pairs.
+  ///
+  /// Album / Smart Album references are never built-in pairs.
   bool get isLegalBuiltInPair {
     return switch (kind) {
       AssetSourceKind.entireLibrary => id == 'all',
       AssetSourceKind.mediaTypePhotos => id == 'photos',
       AssetSourceKind.mediaTypeVideos => id == 'videos',
+      AssetSourceKind.album || AssetSourceKind.smartAlbum => false,
     };
   }
 

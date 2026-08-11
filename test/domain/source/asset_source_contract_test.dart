@@ -33,7 +33,23 @@ void main() {
     expect(AssetSourceKind.entireLibrary.name, 'entireLibrary');
     expect(AssetSourceKind.mediaTypePhotos.name, 'mediaTypePhotos');
     expect(AssetSourceKind.mediaTypeVideos.name, 'mediaTypeVideos');
-    expect(AssetSourceKind.values, hasLength(3));
+    expect(AssetSourceKind.album.name, 'album');
+    expect(AssetSourceKind.smartAlbum.name, 'smartAlbum');
+    expect(AssetSourceKind.values, hasLength(5));
+    expect(
+      AssetSourceKind.values,
+      containsAll(<AssetSourceKind>[
+        AssetSourceKind.entireLibrary,
+        AssetSourceKind.mediaTypePhotos,
+        AssetSourceKind.mediaTypeVideos,
+        AssetSourceKind.album,
+        AssetSourceKind.smartAlbum,
+      ]),
+    );
+    expect(
+      AssetSourceKind.values.map((k) => k.name),
+      isNot(contains('other')),
+    );
   });
 
   test('D-S1 SourceReference.fromAssetSource round-trips frozen ids', () {
@@ -63,6 +79,31 @@ void main() {
         id: 'all',
       ).isLegalBuiltInPair,
       isFalse,
+    );
+  });
+
+  test('D-S1 album/smartAlbum refs construct; never legal built-in pairs', () {
+    const album = SourceReference(
+      kind: AssetSourceKind.album,
+      id: 'collection/local-id-1',
+    );
+    const smart = SourceReference(
+      kind: AssetSourceKind.smartAlbum,
+      id: 'smart/local-id-2',
+    );
+    expect(album.isLegalBuiltInPair, isFalse);
+    expect(smart.isLegalBuiltInPair, isFalse);
+    expect(album, isNot(smart));
+    expect(
+      album,
+      const SourceReference(
+        kind: AssetSourceKind.album,
+        id: 'collection/local-id-1',
+      ),
+    );
+    expect(
+      album.hashCode,
+      Object.hash(AssetSourceKind.album, 'collection/local-id-1'),
     );
   });
 }

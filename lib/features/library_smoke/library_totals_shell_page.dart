@@ -47,6 +47,8 @@ class _LibraryTotalsShellPageState
       AssetSourceKind.entireLibrary => totals.all,
       AssetSourceKind.mediaTypePhotos => totals.photos,
       AssetSourceKind.mediaTypeVideos => totals.videos,
+      // Smoke UI only lists built-ins; album/smartAlbum have no totals row.
+      AssetSourceKind.album || AssetSourceKind.smartAlbum => null,
     };
   }
 

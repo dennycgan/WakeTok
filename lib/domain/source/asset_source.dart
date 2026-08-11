@@ -1,7 +1,11 @@
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 
-/// One listable Asset Source (Cap 6 built-ins only).
+/// One listable Asset Source.
+///
+/// Cap 6 built-ins use frozen short ids and exact [estimatedCount].
+/// Cap 10 may construct Album / Smart Album kinds on recipe references;
+/// list/resolve of those kinds remains a later capability.
 ///
 /// No [displayName] — product copy comes from ARB in UI (ADR-012 / ADR-013).
 class AssetSource {
