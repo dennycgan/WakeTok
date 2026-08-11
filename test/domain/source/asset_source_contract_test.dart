@@ -9,6 +9,7 @@ void main() {
     AssetSource(
       kind: AssetSourceKind.entireLibrary,
       id: 'all',
+      displayName: '',
       estimatedCount: 1,
       availability: AssetSourceAvailability.available,
       canAddContent: false,
@@ -16,6 +17,7 @@ void main() {
     AssetSource(
       kind: AssetSourceKind.mediaTypePhotos,
       id: 'photos',
+      displayName: '',
       estimatedCount: 1,
       availability: AssetSourceAvailability.available,
       canAddContent: false,
@@ -23,6 +25,7 @@ void main() {
     AssetSource(
       kind: AssetSourceKind.mediaTypeVideos,
       id: 'videos',
+      displayName: '',
       estimatedCount: 1,
       availability: AssetSourceAvailability.available,
       canAddContent: false,
@@ -104,6 +107,24 @@ void main() {
     expect(
       album.hashCode,
       Object.hash(AssetSourceKind.album, 'collection/local-id-1'),
+    );
+  });
+
+  test('D-11.2-1 AssetSource carries album displayName and nullable count', () {
+    const album = AssetSource(
+      kind: AssetSourceKind.album,
+      id: 'album-local-id',
+      displayName: 'Trip',
+      estimatedCount: null,
+      availability: AssetSourceAvailability.available,
+      canAddContent: false,
+    );
+    expect(album.displayName, 'Trip');
+    expect(album.estimatedCount, isNull);
+    expect(album.availability, AssetSourceAvailability.available);
+    expect(
+      SourceReference.fromAssetSource(album).isLegalBuiltInPair,
+      isFalse,
     );
   });
 }

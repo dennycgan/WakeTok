@@ -52,6 +52,59 @@ class _LibraryTotalsShellPageState
     };
   }
 
+  /// Cap 11.2 E1: list diagnostic for Limited notes (counts + smart names).
+  List<Widget> _listDiagnostics(
+    AppLocalizations l10n,
+    WakeTokTokens tokens,
+    List<AssetSource> sources,
+  ) {
+    var builtIn = 0;
+    var userAlbum = 0;
+    final smartNames = <String>[];
+    for (final s in sources) {
+      switch (s.kind) {
+        case AssetSourceKind.entireLibrary:
+        case AssetSourceKind.mediaTypePhotos:
+        case AssetSourceKind.mediaTypeVideos:
+          builtIn += 1;
+        case AssetSourceKind.album:
+          userAlbum += 1;
+        case AssetSourceKind.smartAlbum:
+          smartNames.add(
+            s.displayName.isEmpty ? l10n.sourceListDiagnosticUntitled : s.displayName,
+          );
+      }
+    }
+    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: tokens.onSurface,
+        );
+    final namesLabel = smartNames.isEmpty
+        ? l10n.sourceListDiagnosticSmartNamesNone
+        : l10n.sourceListDiagnosticSmartNames(smartNames.join(', '));
+    return [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        child: Text(
+          l10n.sourceListDiagnosticTitle,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: tokens.onSurface,
+              ),
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+        child: Text(
+          l10n.sourceListDiagnosticCounts(builtIn, userAlbum, smartNames.length),
+          style: bodyStyle,
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Text(namesLabel, style: bodyStyle),
+      ),
+    ];
+  }
+
   Future<void> _resolveSelected() async {
     final l10n = AppLocalizations.of(context)!;
     setState(() {
@@ -196,7 +249,7 @@ class _LibraryTotalsShellPageState
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final asyncTotals = ref.watch(libraryTotalsProvider);
-    final asyncSources = ref.watch(builtInAssetSourcesProvider);
+    final asyncSources = ref.watch(assetSourcesProvider);
 
     final LibraryTotals? totals = asyncTotals.asData?.value;
     final String allValue;
@@ -270,6 +323,7 @@ class _LibraryTotalsShellPageState
                         ),
                   ),
                 ),
+                if (sources != null) ..._listDiagnostics(l10n, tokens, sources),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: SegmentedButton<SourceReference>(
@@ -305,7 +359,11 @@ class _LibraryTotalsShellPageState
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                     child: Text(
-                      l10n.sourceEstimatedCount(selectedSource.estimatedCount),
+                      selectedSource.estimatedCount == null
+                          ? l10n.sourceEstimatedCountUnknown
+                          : l10n.sourceEstimatedCount(
+                              selectedSource.estimatedCount!,
+                            ),
                       style: bodyStyle,
                     ),
                   ),

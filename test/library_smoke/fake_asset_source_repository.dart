@@ -7,29 +7,34 @@ import 'package:waketok/domain/source/asset_source_repository.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 
-/// Test double for [AssetSourceRepository] (Cap 6.4 widget / provider tests).
+/// Test double for [AssetSourceRepository] (Cap 6.4 / Cap 11.2 tests).
 class FakeAssetSourceRepository implements AssetSourceRepository {
   FakeAssetSourceRepository({
     this.allIds = const <String>[],
     this.photosIds = const <String>[],
     this.videosIds = const <String>[],
+    this.extraSources = const <AssetSource>[],
   });
 
   List<String> allIds;
   List<String> photosIds;
   List<String> videosIds;
+
+  /// Appended after the three built-ins (Cap 11.2 list diagnostic tests).
+  List<AssetSource> extraSources;
   int listCalls = 0;
   int resolveCalls = 0;
   SourceReference? lastResolve;
   final List<SourceReference> resolveHistory = <SourceReference>[];
 
   @override
-  Future<List<AssetSource>> listBuiltInSources() async {
+  Future<List<AssetSource>> listAssetSources() async {
     listCalls += 1;
     return [
       AssetSource(
         kind: AssetSourceKind.entireLibrary,
         id: 'all',
+        displayName: '',
         estimatedCount: allIds.length,
         availability: allIds.isEmpty
             ? AssetSourceAvailability.empty
@@ -39,6 +44,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
       AssetSource(
         kind: AssetSourceKind.mediaTypePhotos,
         id: 'photos',
+        displayName: '',
         estimatedCount: photosIds.length,
         availability: photosIds.isEmpty
             ? AssetSourceAvailability.empty
@@ -48,12 +54,14 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
       AssetSource(
         kind: AssetSourceKind.mediaTypeVideos,
         id: 'videos',
+        displayName: '',
         estimatedCount: videosIds.length,
         availability: videosIds.isEmpty
             ? AssetSourceAvailability.empty
             : AssetSourceAvailability.available,
         canAddContent: false,
       ),
+      ...extraSources,
     ];
   }
 

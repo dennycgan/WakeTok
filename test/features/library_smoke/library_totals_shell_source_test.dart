@@ -8,6 +8,9 @@ import 'package:waketok/domain/library/library_asset.dart';
 import 'package:waketok/domain/library/library_media_kind.dart';
 import 'package:waketok/domain/library/library_page.dart';
 import 'package:waketok/domain/library/library_totals.dart';
+import 'package:waketok/domain/source/asset_source.dart';
+import 'package:waketok/domain/source/asset_source_availability.dart';
+import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
@@ -76,6 +79,50 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text(l10n.sourceProbeIllegalPairButton), findsOneWidget);
+  });
+
+  testWidgets('W-11.2-1 list diagnostic shows album count and smart names',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a1'],
+      photosIds: const ['p1'],
+      videosIds: const ['v1'],
+      extraSources: const [
+        AssetSource(
+          kind: AssetSourceKind.album,
+          id: 'u1',
+          displayName: 'Trip',
+          estimatedCount: 2,
+          availability: AssetSourceAvailability.available,
+          canAddContent: false,
+        ),
+        AssetSource(
+          kind: AssetSourceKind.smartAlbum,
+          id: 's1',
+          displayName: 'Favorites',
+          estimatedCount: 1,
+          availability: AssetSourceAvailability.available,
+          canAddContent: false,
+        ),
+      ],
+    );
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 1, photos: 1, videos: 1),
+    );
+
+    await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.sourceListDiagnosticTitle), findsOneWidget);
+    expect(
+      find.text(l10n.sourceListDiagnosticCounts(3, 1, 1)),
+      findsOneWidget,
+    );
+    expect(
+      find.text(l10n.sourceListDiagnosticSmartNames('Favorites')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('W-S2 resolve shows length and match vs totals', (tester) async {
@@ -150,6 +197,12 @@ void main() {
     await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
     await tester.pumpAndSettle();
 
+    await tester.dragUntilVisible(
+      find.text(l10n.sourceQuantileRunButton),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text(l10n.sourceQuantileRunButton));
     await tester.pumpAndSettle();
 

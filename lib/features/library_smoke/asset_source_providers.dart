@@ -12,8 +12,9 @@ final assetSourceRepositoryProvider = Provider<AssetSourceRepository>((ref) {
   );
 });
 
-final builtInAssetSourcesProvider = FutureProvider<List<AssetSource>>((ref) {
-  return ref.watch(assetSourceRepositoryProvider).listBuiltInSources();
+/// Cap 11.2: full `listAssetSources` (built-ins + albums when Full Access).
+final assetSourcesProvider = FutureProvider<List<AssetSource>>((ref) {
+  return ref.watch(assetSourceRepositoryProvider).listAssetSources();
 });
 
 /// Resolves a built-in source to the full ordered id list (D1=A / ~40k ok).

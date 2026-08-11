@@ -71,6 +71,28 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get sourceEstimatedCountUnknown => 'estimatedCount: unknown';
+
+  @override
+  String get sourceListDiagnosticTitle => 'List diagnostic (debug)';
+
+  @override
+  String sourceListDiagnosticCounts(int builtIn, int album, int smart) {
+    return 'built-in=$builtIn, userAlbum=$album, smartAlbum=$smart';
+  }
+
+  @override
+  String sourceListDiagnosticSmartNames(String names) {
+    return 'Smart albums: $names';
+  }
+
+  @override
+  String get sourceListDiagnosticSmartNamesNone => 'Smart albums: (none)';
+
+  @override
+  String get sourceListDiagnosticUntitled => '(untitled)';
+
+  @override
   String sourceResolvedLength(int count) {
     return 'resolved length: $count';
   }

@@ -45,7 +45,7 @@ void main() {
     }
   });
 
-  test('G-S1 gateway listBuiltInSources maps three built-ins', () async {
+  test('G-S1 gateway listAssetSources maps three built-ins', () async {
     final gateway = PhotoLibraryGateway();
     mockSuccess(photoChannel('listAssetSources'), <Object?>[
       pigeon.AssetSourceDto(
@@ -74,10 +74,11 @@ void main() {
       ),
     ]);
 
-    final sources = await gateway.listBuiltInSources();
+    final sources = await gateway.listAssetSources();
     expect(sources, hasLength(3));
     expect(sources[0].kind, AssetSourceKind.entireLibrary);
     expect(sources[0].id, 'all');
+    expect(sources[0].displayName, '');
     expect(sources[0].estimatedCount, 3);
     expect(sources[0].availability, AssetSourceAvailability.available);
     expect(sources[0].canAddContent, isFalse);
@@ -85,23 +86,79 @@ void main() {
     expect(sources[2].availability, AssetSourceAvailability.empty);
   });
 
-  test(
-    'G-S1 assetSourceKindFromPigeon throws for non-built-in wire kinds',
-    () {
-      expect(
-        () => assetSourceKindFromPigeon(pigeon.AssetSourceKind.album),
-        throwsStateError,
-      );
-      expect(
-        () => assetSourceKindFromPigeon(pigeon.AssetSourceKind.smartAlbum),
-        throwsStateError,
-      );
-      expect(
-        () => assetSourceKindFromPigeon(pigeon.AssetSourceKind.other),
-        throwsStateError,
-      );
-    },
-  );
+  test('G-11.2-1 assetSourceKindFromPigeon opens album/smartAlbum; other throws',
+      () {
+    expect(
+      assetSourceKindFromPigeon(pigeon.AssetSourceKind.album),
+      AssetSourceKind.album,
+    );
+    expect(
+      assetSourceKindFromPigeon(pigeon.AssetSourceKind.smartAlbum),
+      AssetSourceKind.smartAlbum,
+    );
+    expect(
+      () => assetSourceKindFromPigeon(pigeon.AssetSourceKind.other),
+      throwsStateError,
+    );
+  });
+
+  test('G-11.2-2 gateway listAssetSources maps album and smartAlbum DTOs',
+      () async {
+    final gateway = PhotoLibraryGateway();
+    mockSuccess(photoChannel('listAssetSources'), <Object?>[
+      pigeon.AssetSourceDto(
+        sourceIdentifier: 'all',
+        displayName: '',
+        kind: pigeon.AssetSourceKind.entireLibrary,
+        estimatedCount: 1,
+        availability: pigeon.AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+      pigeon.AssetSourceDto(
+        sourceIdentifier: 'photos',
+        displayName: '',
+        kind: pigeon.AssetSourceKind.mediaTypePhotos,
+        estimatedCount: 1,
+        availability: pigeon.AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+      pigeon.AssetSourceDto(
+        sourceIdentifier: 'videos',
+        displayName: '',
+        kind: pigeon.AssetSourceKind.mediaTypeVideos,
+        estimatedCount: 0,
+        availability: pigeon.AssetSourceAvailabilityDto.empty,
+        canAddContent: false,
+      ),
+      pigeon.AssetSourceDto(
+        sourceIdentifier: 'user-album-1',
+        displayName: 'Trip',
+        kind: pigeon.AssetSourceKind.album,
+        estimatedCount: 12,
+        availability: pigeon.AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+      pigeon.AssetSourceDto(
+        sourceIdentifier: 'smart-1',
+        displayName: 'Favorites',
+        kind: pigeon.AssetSourceKind.smartAlbum,
+        estimatedCount: null,
+        availability: pigeon.AssetSourceAvailabilityDto.available,
+        canAddContent: false,
+      ),
+    ]);
+
+    final sources = await gateway.listAssetSources();
+    expect(sources, hasLength(5));
+    expect(sources[3].kind, AssetSourceKind.album);
+    expect(sources[3].id, 'user-album-1');
+    expect(sources[3].displayName, 'Trip');
+    expect(sources[3].estimatedCount, 12);
+    expect(sources[4].kind, AssetSourceKind.smartAlbum);
+    expect(sources[4].displayName, 'Favorites');
+    expect(sources[4].estimatedCount, isNull);
+    expect(sources[4].availability, AssetSourceAvailability.available);
+  });
 
   test('G-S2 gateway resolve maps ordered asset identifiers', () async {
     final gateway = PhotoLibraryGateway();
@@ -121,9 +178,6 @@ void main() {
   test(
     'G-S3 gateway propagates assetUnavailable from resolve channel error',
     () async {
-      // Only covers Dart-side error propagation through the gateway.
-      // Swift-side pair validation (builtinSource(from:)) is verified in
-      // Cap 6.4 negative-path smoke — this mock does not exercise the host.
       final gateway = PhotoLibraryGateway();
       mockError(photoChannel('resolveSource'), 'assetUnavailable');
 

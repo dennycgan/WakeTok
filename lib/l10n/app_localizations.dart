@@ -213,6 +213,42 @@ abstract class AppLocalizations {
   /// **'estimatedCount: {count}'**
   String sourceEstimatedCount(int count);
 
+  /// Shown when album estimatedCount is null (PhotoKit NSNotFound)
+  ///
+  /// In en, this message translates to:
+  /// **'estimatedCount: unknown'**
+  String get sourceEstimatedCountUnknown;
+
+  /// Cap 11.2 E1 section title for listAssetSources kind counts
+  ///
+  /// In en, this message translates to:
+  /// **'List diagnostic (debug)'**
+  String get sourceListDiagnosticTitle;
+
+  /// Cap 11.2 E1 counts from listAssetSources by kind
+  ///
+  /// In en, this message translates to:
+  /// **'built-in={builtIn}, userAlbum={album}, smartAlbum={smart}'**
+  String sourceListDiagnosticCounts(int builtIn, int album, int smart);
+
+  /// Cap 11.2 E1 lists smart album displayName values for Limited notes
+  ///
+  /// In en, this message translates to:
+  /// **'Smart albums: {names}'**
+  String sourceListDiagnosticSmartNames(String names);
+
+  /// Cap 11.2 E1 when list has zero smart albums (e.g. Limited)
+  ///
+  /// In en, this message translates to:
+  /// **'Smart albums: (none)'**
+  String get sourceListDiagnosticSmartNamesNone;
+
+  /// Placeholder when a smart album displayName is empty
+  ///
+  /// In en, this message translates to:
+  /// **'(untitled)'**
+  String get sourceListDiagnosticUntitled;
+
   /// Shows ResolvedSource.assetIdentifiers length after resolve
   ///
   /// In en, this message translates to:

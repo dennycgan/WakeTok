@@ -79,6 +79,38 @@
       "count": {"type": "int"}
     }
   },
+  "sourceEstimatedCountUnknown": "estimatedCount: unknown",
+  "@sourceEstimatedCountUnknown": {
+    "description": "Shown when album estimatedCount is null (PhotoKit NSNotFound)"
+  },
+  "sourceListDiagnosticTitle": "List diagnostic (debug)",
+  "@sourceListDiagnosticTitle": {
+    "description": "Cap 11.2 E1 section title for listAssetSources kind counts"
+  },
+  "sourceListDiagnosticCounts": "built-in={builtIn}, userAlbum={album}, smartAlbum={smart}",
+  "@sourceListDiagnosticCounts": {
+    "description": "Cap 11.2 E1 counts from listAssetSources by kind",
+    "placeholders": {
+      "builtIn": {"type": "int"},
+      "album": {"type": "int"},
+      "smart": {"type": "int"}
+    }
+  },
+  "sourceListDiagnosticSmartNames": "Smart albums: {names}",
+  "@sourceListDiagnosticSmartNames": {
+    "description": "Cap 11.2 E1 lists smart album displayName values for Limited notes",
+    "placeholders": {
+      "names": {"type": "String"}
+    }
+  },
+  "sourceListDiagnosticSmartNamesNone": "Smart albums: (none)",
+  "@sourceListDiagnosticSmartNamesNone": {
+    "description": "Cap 11.2 E1 when list has zero smart albums (e.g. Limited)"
+  },
+  "sourceListDiagnosticUntitled": "(untitled)",
+  "@sourceListDiagnosticUntitled": {
+    "description": "Placeholder when a smart album displayName is empty"
+  },
   "sourceResolvedLength": "resolved length: {count}",
   "@sourceResolvedLength": {
     "description": "Shows ResolvedSource.assetIdentifiers length after resolve",

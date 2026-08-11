@@ -179,6 +179,95 @@ final class PhotoLibraryService: PhotoLibraryApi {
     )
   }
 
+  /// Cap 11.2 / ADR-021: map PhotoKit estimatedAssetCount without treating
+  /// `NSNotFound` as zero (must not mark empty when count is unknown).
+  private func albumListCountAndAvailability(
+    _ collection: PHAssetCollection
+  ) -> (Int64?, AssetSourceAvailabilityDto) {
+    let raw = collection.estimatedAssetCount
+    if raw == NSNotFound {
+      return (nil, .available)
+    }
+    let count = Int64(raw)
+    if count > 0 {
+      return (count, .available)
+    }
+    return (count, .empty)
+  }
+
+  private func makeAlbumSourceDto(
+    _ collection: PHAssetCollection,
+    kind: AssetSourceKind
+  ) -> AssetSourceDto {
+    let (count, availability) = albumListCountAndAvailability(collection)
+    return AssetSourceDto(
+      sourceIdentifier: collection.localIdentifier,
+      displayName: collection.localizedTitle ?? "",
+      kind: kind,
+      estimatedCount: count,
+      availability: availability,
+      canAddContent: false
+    )
+  }
+
+  /// Title ascending; empty titles last (deterministic Cap 11.2 D1=A).
+  private func sortedByDisplayName(
+    _ sources: [AssetSourceDto]
+  ) -> [AssetSourceDto] {
+    sources.sorted { lhs, rhs in
+      let leftEmpty = lhs.displayName.isEmpty
+      let rightEmpty = rhs.displayName.isEmpty
+      if leftEmpty != rightEmpty {
+        return !leftEmpty
+      }
+      return lhs.displayName.localizedCaseInsensitiveCompare(rhs.displayName)
+        == .orderedAscending
+    }
+  }
+
+  /// User albums: `albumRegular` only (Cap 11.2 D2=A).
+  private func listUserAlbumSources() -> [AssetSourceDto] {
+    let result = PHAssetCollection.fetchAssetCollections(
+      with: .album,
+      subtype: .albumRegular,
+      options: nil
+    )
+    var albums: [AssetSourceDto] = []
+    albums.reserveCapacity(result.count)
+    result.enumerateObjects { collection, _, _ in
+      albums.append(self.makeAlbumSourceDto(collection, kind: .album))
+    }
+    return sortedByDisplayName(albums)
+  }
+
+  /// Smart albums excluding Hidden / Recently Deleted (Cap 11.2 D3=A).
+  ///
+  /// PhotoKit has no public `smartAlbumRecentlyDeleted` member. Recently
+  /// Deleted appears as smartAlbum with undocumented rawValue `1000000201`
+  /// (stable across observed iOS versions; title matching is locale-fragile).
+  private static let smartAlbumRecentlyDeletedRawValue: Int = 1_000_000_201
+
+  private func listSmartAlbumSources() -> [AssetSourceDto] {
+    let result = PHAssetCollection.fetchAssetCollections(
+      with: .smartAlbum,
+      subtype: .any,
+      options: nil
+    )
+    var albums: [AssetSourceDto] = []
+    albums.reserveCapacity(result.count)
+    result.enumerateObjects { collection, _, _ in
+      let subtype = collection.assetCollectionSubtype
+      if subtype == .smartAlbumAllHidden {
+        return
+      }
+      if subtype.rawValue == Self.smartAlbumRecentlyDeletedRawValue {
+        return
+      }
+      albums.append(self.makeAlbumSourceDto(collection, kind: .smartAlbum))
+    }
+    return sortedByDisplayName(albums)
+  }
+
   private func collectLocalIdentifiers(
     from result: PHFetchResult<PHAsset>
   ) -> [String] {
@@ -384,11 +473,18 @@ final class PhotoLibraryService: PhotoLibraryApi {
     let photosCount = photosFetchResult().count
     let videosCount = videosFetchResult().count
     let allCount = photosCount + videosCount
-    return [
+    var sources: [AssetSourceDto] = [
       makeBuiltinSourceDto(.entireLibrary, count: allCount),
       makeBuiltinSourceDto(.mediaTypePhotos, count: photosCount),
       makeBuiltinSourceDto(.mediaTypeVideos, count: videosCount),
     ]
+    // Cap 11.2 / ADR-021 / ADR-K: Limited omits Album/Smart entirely
+    // (do not emit unauthorized rows). Full Access appends User then Smart.
+    if currentPhotoKitStatus() == .authorized {
+      sources.append(contentsOf: listUserAlbumSources())
+      sources.append(contentsOf: listSmartAlbumSources())
+    }
+    return sources
   }
 
   func resolveSource(

@@ -4,14 +4,17 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 /// One listable Asset Source.
 ///
 /// Cap 6 built-ins use frozen short ids and exact [estimatedCount].
-/// Cap 10 may construct Album / Smart Album kinds on recipe references;
-/// list/resolve of those kinds remains a later capability.
+/// Cap 11.2 lists User / Smart Albums: [id] is Photos
+/// `localIdentifier`; [displayName] is the Photos title (built-ins keep
+/// `""` — product labels stay in ARB).
 ///
-/// No [displayName] — product copy comes from ARB in UI (ADR-012 / ADR-013).
+/// [estimatedCount] may be null for albums when PhotoKit reports
+/// `NSNotFound` (unknown — must not be treated as empty).
 class AssetSource {
   const AssetSource({
     required this.kind,
     required this.id,
+    required this.displayName,
     required this.estimatedCount,
     required this.availability,
     required this.canAddContent,
@@ -19,14 +22,17 @@ class AssetSource {
 
   final AssetSourceKind kind;
 
-  /// Frozen short id: `all` / `photos` / `videos`.
+  /// Built-ins: `all` / `photos` / `videos`. Albums: collection local id.
   final String id;
 
-  /// For built-ins: exact count matching the corresponding library totals.
-  final int estimatedCount;
+  /// Photos `localizedTitle` for albums; empty for built-ins (ARB in UI).
+  final String displayName;
+
+  /// Built-ins: exact count. Albums: approximate, or null if unknown.
+  final int? estimatedCount;
 
   final AssetSourceAvailability availability;
 
-  /// Built-ins are never writable album targets.
+  /// Built-ins and Cap 11.2 albums: false (Add to Album Cap later).
   final bool canAddContent;
 }

@@ -121,7 +121,8 @@ AssetAvailability assetAvailabilityFromPigeon(
   }
 }
 
-/// Cap 6 domain kinds only — non-built-in wire kinds must not be coerced.
+/// Maps Pigeon wire kinds into domain — Cap 11.2 opens album / smartAlbum.
+/// Wire [pigeon.AssetSourceKind.other] still throws (no domain meaning).
 AssetSourceKind assetSourceKindFromPigeon(pigeon.AssetSourceKind kind) {
   switch (kind) {
     case pigeon.AssetSourceKind.entireLibrary:
@@ -131,10 +132,12 @@ AssetSourceKind assetSourceKindFromPigeon(pigeon.AssetSourceKind kind) {
     case pigeon.AssetSourceKind.mediaTypeVideos:
       return AssetSourceKind.mediaTypeVideos;
     case pigeon.AssetSourceKind.album:
+      return AssetSourceKind.album;
     case pigeon.AssetSourceKind.smartAlbum:
+      return AssetSourceKind.smartAlbum;
     case pigeon.AssetSourceKind.other:
       throw StateError(
-        'Unsupported AssetSourceKind for Cap 6 domain mapping: $kind',
+        'Unsupported AssetSourceKind for domain mapping: $kind',
       );
   }
 }
@@ -155,15 +158,20 @@ AssetSourceAvailability assetSourceAvailabilityFromPigeon(
 }
 
 AssetSource assetSourceFromDto(pigeon.AssetSourceDto dto) {
+  final kind = assetSourceKindFromPigeon(dto.kind);
   final count = dto.estimatedCount;
-  if (count == null) {
+  final isBuiltIn = kind == AssetSourceKind.entireLibrary ||
+      kind == AssetSourceKind.mediaTypePhotos ||
+      kind == AssetSourceKind.mediaTypeVideos;
+  if (isBuiltIn && count == null) {
     throw StateError(
       'Built-in AssetSourceDto.estimatedCount must be present (ADR-013)',
     );
   }
   return AssetSource(
-    kind: assetSourceKindFromPigeon(dto.kind),
+    kind: kind,
     id: dto.sourceIdentifier,
+    displayName: dto.displayName,
     estimatedCount: count,
     availability: assetSourceAvailabilityFromPigeon(dto.availability),
     canAddContent: dto.canAddContent,
@@ -249,7 +257,7 @@ class PhotoLibraryGateway
   }
 
   @override
-  Future<List<AssetSource>> listBuiltInSources() async {
+  Future<List<AssetSource>> listAssetSources() async {
     final dtos = await _api.listAssetSources();
     return dtos.map(assetSourceFromDto).toList(growable: false);
   }
