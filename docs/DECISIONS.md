@@ -12,8 +12,11 @@
 > **Accepted date** = `git log -1 --format=%cs <anchor-sha>` (the day the
 > implementing commit lands on `main`), not the design-discussion day.
 >
-> Status values: Accepted | Superseded by ADR-xxx (date) | Deprecated (no
-> replacement) | Reverted-in-code (implementation rolled back; see note)
+> Status values: Proposed | Accepted | Superseded by ADR-xxx (date) |
+> Deprecated (no replacement) | Reverted-in-code (implementation rolled back;
+> see note). Proposed = design locked in docs before the implementing work
+> commit; flip to Accepted with real anchor after that work lands (no fake
+> anchors while Proposed).
 >
 > Revert reconciliation: if a code revert crosses the implementation point of an
 > Accepted ADR, do NOT silently leave the log stale. Either (a) write a new ADR
@@ -1459,3 +1462,106 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   spin-then-fail on offline iCloud prepare) and UX-2 (badge+spinner →
   bottom-right). No Q7 jump debt. Status remains **Accepted**; POC-08 closed
   PASS.
+
+---
+
+## ADR-020: Cap 10 Asset Source + Source Pool Definition domain models
+
+- Status: Proposed
+- Commit/PR anchor: (none while Proposed — Accepted will use the first Cap
+  10.2 work commit sha; F1=A)
+- Plain summary (owner reads this):
+  Cap 10 adds Dart-only domain types for Source Pool recipes (ordered Asset
+  Source references, ephemeral/saved persistence policy, capacity constants)
+  and expands domain source kinds to include Album / Smart Album references.
+  It does not list or resolve albums, build Pool UI, save presets to disk,
+  or model Generated Clip specialization — those stay later capabilities.
+- Context / what problem forced this:
+  Cap 6 / ADR-013 delivered three built-in sources only; Cap 7 / ADR-014
+  drives Main Browse from a single `SourceReference.resolve` with no
+  SourcePoolDefinition. Kickoff Glossary and ADR-E/G/H/L/P require Pool
+  Definitions composed solely of Asset Source references (Live Binding
+  recipes, not Media Item snapshots), with MVP kinds including Album and
+  Smart Album. STATE schedules Cap 10 as domain models only, then Cap 11
+  Live Resolution / Availability / Identity Coalescing / Resolved Pool
+  Snapshot, later Build-a-Pool UI and Saved Pool persistence. Without a
+  Cap-scoped contract, Cap 10 risks: opening Pigeon/Host album list early;
+  inventing Generated Clip binding fields before the Physical Clip /
+  backing Album capability; wiring Main Browse to SPD before Snapshot
+  exists; or silently changing Cap 6 gateway mapping.
+- Decision (what was chosen):
+  1. **Scope = Dart domain + unit tests only (D1=A / D7=A).** No Pigeon
+     schema change, no Host change, no
+     `lib/platform/photo_library_gateway.dart` mapper change. Mapper
+     continues to `throw` for wire `album` / `smartAlbum` / `other`.
+  2. **No Generated Clip specialization types in Cap 10 (D2 cut).** Pool
+     may later hold backing-album identity only via ordinary `album`
+     `SourceReference`. Field shapes for Generated Clip Source wait for
+     the dedicated Photos import / Clip Descriptor / Generated Clip
+     Source capability. ADR Out of scope only — no Dart types that tests
+     could freeze.
+  3. **Generalize existing `SourceReference` (D3=A).** Do not invent a
+     parallel `AssetSourceReference` type. Cap 6 built-in three legal
+     pairs and `isLegalBuiltInPair` remain.
+  4. **Domain `AssetSourceKind` adds `album` and `smartAlbum` (D8=A).**
+     Wire `other` stays out of domain; mapper still throws on `other`.
+  5. **Main Browse / Cap 7 feed: zero wiring (D4=A).** No ephemeral
+     single-source SPD factory consumption; no change to
+     `resolve(SourceReference)` call path for All / Photos / Videos.
+  6. **Exhaustiveness-only call-site updates allowed.** Expanding
+     `AssetSourceKind` may require reject/unreachable switch arms and
+     updates to `asset_source_contract_test.dart` value-count assertions,
+     `fake_asset_source_repository`, and smoke UI switches. **Forbidden:**
+     changing All / Photos / Videos behavior; touching gateway mapper
+     logic.
+  7. **`SourcePoolDefinition` + `PersistencePolicy` (D6=A).** Shape:
+     `id`, optional `displayName`, `persistencePolicy` (`ephemeral` |
+     `saved`), `orderedSourceReferences[]`. `saved` is constructible at
+     the type level; Cap 10 ships no repository / persistence consumer
+     (Saved Pool CRUD = later Cap).
+  8. **Capacity (kickoff ADR-P):** validate max **30** Asset Source
+     references per Definition now; expose max **10** Saved Pool Presets
+     as a named constant only (enforcement / count logic = Saved Pool Cap).
+  9. **`ItemOrderingPolicy` slot (D5=A / D9=A):** standalone enum +
+     `forKind(AssetSourceKind)` helper — built-ins map to creation-date
+     descending (ADR-013); `album` / `smartAlbum` map to `unspecified`
+     (ADR-M Album ordering Open Question remains open). Not stored on
+     Definition or Reference fields.
+  10. **Acceptance:** unit tests + docs/ADR only; no device PoC.
+  11. **Docs workflow (E2 / F1=A / F2=A):** Cap 10.1 docs commit appends
+      this entry as **Proposed** (no Accepted date, no fake anchor) and
+      adds the GLOSSARY Generated Clip Cap 10 cross-ref. After the first
+      Cap **10.2** work commit exists, a later docs commit flips Status to
+      Accepted with that work sha as anchor (not inside the work commit;
+      not deferred to Cap 10 close-out).
+- Rejected alternatives (why not B):
+  - Cap 10 opens album list/resolve Host or gateway mapper (D7=B) —
+    rejected; no observable Host album payloads yet; Cap 11 owns live
+    mapping.
+  - Model `GeneratedClipSourceBinding` / `generatedClip` kind now —
+    rejected; specialization lands with Photos import / Clip Descriptor
+    Cap; early field freeze risks rewrite.
+  - Parallel `AssetSourceReference` type — rejected; generalize
+    `SourceReference`.
+  - Wire Main Browse through SPD in Cap 10 — rejected; Snapshot layer
+    not present; ADR-014 path stays until a later Cap migrates.
+  - Close ADR-M Album ordering in Cap 10 — rejected; needs verified
+    collection order PoC / later Ordering Cap.
+  - Domain includes wire `other` — rejected (D8=A); reserved until a
+    product meaning exists.
+  - Forbid constructing `persistencePolicy: saved` until Saved Cap —
+    rejected; type allows `saved`, persistence consumer deferred.
+  - Put ADR Accepted inside the 10.2 work commit — rejected; two-commit
+    discipline (F1=A).
+- Consequences / constraints accepted:
+  - Cap 10 does **not** pay any Known debt table row.
+  - Identity Coalescing, Resolved Pool Snapshot, Asset Source
+    Availability runtime, Session Queue / Default Profile, Build-a-Pool
+    UI, Saved Pool persistence remain later STATE capabilities.
+  - POC-02 Query Source stays out of MVP; Date Range / Query kinds are
+    not instantiated.
+  - Kickoff ADR-J Generated Clip = Album specialization remains product
+    truth; Cap 10 only refuses to freeze implementation fields early.
+  - Architecture guards must stay green on any `lib/` touch
+    (ADR-009/010/012).
+  - While Status is Proposed: no Accepted date and no Commit/PR anchor.

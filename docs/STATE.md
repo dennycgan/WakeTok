@@ -104,7 +104,6 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Asset Source and Source Pool Definition domain models
-(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -114,18 +113,29 @@ Active capability: Asset Source and Source Pool Definition domain models
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-Awaiting owner-approved phases for Asset Source and Source Pool Definition
-domain models. Cap 9 Capability Roadmap closed in this docs commit; do not
-invent numbered phases here. Kickoff alignment / Cap planning review happens
-in a later conversation before this placeholder is replaced.
+- [x] 10.1 Contract freeze: owner Cap 10 review (D1–D9 / F1–F2);
+      ADR-020 Proposed (no Accepted / no fake anchor); GLOSSARY cross-ref;
+      Out-of-scope locked (no Live Resolve / UI / persistence / Generated
+      Clip specialization types; gateway mapper untouched)
+- [ ] 10.2 Domain kinds + SourceReference generalization: add `album` /
+      `smartAlbum` to domain `AssetSourceKind` (`other` stays wire-only);
+      keep Cap 6 built-in three legal pairs; exhaustiveness-only call-site
+      arms allowed; no Host/Pigeon/schema change; mapper still throws
+- [ ] 10.3 SourcePoolDefinition + PersistencePolicy + ADR-P capacity:
+      max 30 sources/pool validated now; max 10 saved presets as constant
+      only (CRUD in Saved Pool Cap); `saved` constructible, no repository
+- [ ] 10.4 Invariant unit tests + architecture guards (if `lib/` touched);
+      ItemOrderingPolicy.forKind slot (built-ins = creationDateDesc;
+      album/smartAlbum = unspecified)
+- [ ] 10.5 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
+      Live Resolution / Availability / Identity Coalescing / Snapshot Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Next Cap scope / Phase Roadmap (Asset Source placeholder)
-- Sub-steps done: Cap 9 closed (9.1–9.8); PHASE_HISTORY appended
-- Next step: owner kickoff review + approve Asset Source Phase Roadmap;
-      then replace placeholder
-- Related decisions: ADR-019; UX-1/UX-2 Known debt; Location / playhead /
-      file-size disclaimer / Portfolio scan unchanged
+- Goal (one line): Cap 10.1 docs freeze complete; next = 10.2 domain kinds
+- Sub-steps done: Phase Roadmap approved; ADR-020 Proposed; GLOSSARY note
+- Next step: owner OK 10.1 docs commit → start 10.2 (first work sha =
+      ADR-020 Accepted anchor per F1=A)
+- Related decisions: ADR-020 (Proposed); Cap 9 ADR-019 / UX debts unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -162,7 +172,8 @@ in a later conversation before this placeholder is replaced.
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-019: docs/DECISIONS.md (ADR-019 Cap 9 Live / clearPlaybackPool)
+- ADR-001 … ADR-020: docs/DECISIONS.md (ADR-019 Cap 9 Live; ADR-020 Cap 10
+  Source Pool Definition models — Proposed until first 10.2 work sha)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
