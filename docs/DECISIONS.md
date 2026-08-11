@@ -1570,9 +1570,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-021: Cap 11 Live Resolution, Availability, Identity Coalescing, Snapshot
 
-- Status: Proposed
-- Commit/PR anchor: (none while Proposed — Accepted will use the first Cap
-  11 implementing work commit sha after 11.1 docs)
+- Status: Accepted (2026-08-11)
+- Commit/PR anchor: `95779ef` (Cap 11.2 work — first Cap 11 implementing
+  commit; list albums + open album/smartAlbum gateway mapping)
 - Plain summary (owner reads this):
   Cap 11 resolves a Source Pool Definition into a runtime Resolved Pool
   Snapshot: list/resolve User and Smart Albums, report per-source
@@ -1598,11 +1598,12 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      smartAlbum fetches. **Implementation status:** this is a Cap 11
      contract decision only at 11.1. `ItemOrderingPolicy.forKind` still
      returns `unspecified` for album/smartAlbum until the implementing
-     work (11.3/11.4) lands the mapping change in code; this Proposed
-     docs entry does **not** claim that enum mapping is already updated.
+     work (11.3/11.4) lands the mapping change in code; Cap 11.2 list work
+     does **not** update that enum mapping.
   2. **`listAssetSources` includes User Albums + Smart Albums + the three
      built-ins (D2=A).** Utilities UI sections are not sources. Approximate
      `estimatedCount` allowed for albums (ADR-013 reserved semantics).
+     Cap 11.2 implements listing; album/smartAlbum resolve remains 11.3.
   3. **Limited Access list behavior (ADR-K aligned):** Under Limited,
      `listAssetSources` returns **only** the three built-ins (accessible
      subset). User Album and Smart Album entries are **omitted entirely**
@@ -1653,11 +1654,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
       Shuffle; Build-a-Pool UI; Saved Pool CRUD; Generated Clip
       specialization; Query Source; concurrent resolve; Photos
       collection-order PoC.
-  11. **Docs workflow:** Cap 11.1 docs commit appends this entry as
-      **Proposed**. Flip to Accepted with first implementing work sha
-      (expected 11.2 or 11.3) in a later docs commit — not inside the
-      work commit. No Accepted date and no Commit/PR anchor while
-      Status is Proposed (F1=A / E2).
+  11. **Docs workflow:** Cap 11.1 docs commit appended this entry as
+      **Proposed**. This docs commit flips Status to **Accepted** with
+      Cap 11.2 work sha `95779ef` as anchor (F1=A / E2; not inside the
+      work commit). Accepted date from
+      `git log -1 --format=%cs 95779ef` → 2026-08-11.
 - Rejected alternatives (why not B):
   - Album ordering via Photos collection order / ascending — not chosen
     for Cap 11; Cap 11 reuses the already-verified creationDateDescending
@@ -1682,4 +1683,6 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - ~40k id lists remain an accepted cost per source (ADR-013); Snapshot
     may approach union size after coalescing.
   - Cap 12+ consumes Snapshot; Cap 14 builds Pool UI on listAssetSources.
-  - While Status is Proposed: no Accepted date and no Commit/PR anchor.
+  - Cap 11.2 landed list + mapper (`95779ef`); album/smartAlbum resolve,
+    Snapshot, and coalesce remain later Cap 11 phases.
+  - Accepted date/anchor = Cap 11.2 work `95779ef` (2026-08-11), per F1=A.

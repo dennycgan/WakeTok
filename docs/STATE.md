@@ -118,10 +118,11 @@ Identity Coalescing, and Resolved Pool Snapshot
 - [x] 11.1 Contract freeze: owner Cap 11 review (D1–D6); ADR-021 Proposed
       (Limited list omits Album/Smart; sequential multi-source resolve;
       Album ordering = creationDateDescending); Out-of-scope locked
-- [~] 11.2 Host list: User Album + Smart Album + Availability;
+- [x] 11.2 Host list: User Album + Smart Album + Availability;
       open domain↔wire album/smartAlbum mapping; Limited: albums absent
       from list (ADR-K); `other` still throws
-- [ ] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
+      (work `95779ef`; device notes `cap11-11.2-notes.md`)
+- [~] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
       Availability on resolve; Limited resolve → unauthorized
 - [ ] 11.4 Domain: ResolvedPoolSnapshot + Identity Coalescing
       (first appearance) + sequential resolvePool(SPD); partial-source
@@ -134,12 +135,12 @@ Identity Coalescing, and Resolved Pool Snapshot
       Session Queue / Default Profile Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 11.2 Host list albums/smartAlbums + open mapper
-- Sub-steps done: 11.1 contract freeze; ADR-021 Proposed in this docs commit
-- Next step: implement Host listAssetSources User/Smart Albums; Limited
-      omit albums; open domain↔wire album/smartAlbum mapping
-- Related decisions: ADR-021 (Proposed; Accepted after first Cap 11 work);
-      ADR-020 Accepted unchanged
+- Goal (one line): Cap 11.3 Host resolve album/smartAlbum
+- Sub-steps done: 11.2 list + mapper; device Full/Limited PASS; ADR-021
+      Accepted (anchor `95779ef`)
+- Next step: Host resolveSource for album/smartAlbum
+      (creationDateDescending); Limited → unauthorized
+- Related decisions: ADR-021 Accepted; ADR-020 Accepted unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -154,12 +155,16 @@ Identity Coalescing, and Resolved Pool Snapshot
   Cap 8.2 immersive content + always-dark bottom bar `60f3283` / ADR-017;
   transparent top + compact bar `5fb93de` / ADR-016)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
+- Cap 11.2 list albums: Host `listAssetSources` Full = built-ins +
+  albumRegular + smart (Hidden/RD excluded); Limited = built-ins only;
+  domain `AssetSource.displayName` + nullable `estimatedCount`;
+  gateway maps album/smartAlbum (`other` still throws); work `95779ef`;
+  notes `docs/acceptance/cap11-11.2-notes.md`
 - Source Pool Definition (Cap 10 / ADR-020):
   `lib/domain/source/source_pool_definition.dart`,
   `persistence_policy.dart`, `pool_capacity.dart`,
   `item_ordering_policy.dart`; `SourceReference` + `AssetSourceKind`
-  (album/smartAlbum); gateway mapper still Cap-6 throw (D7=A);
-  work kinds `8c99d46` / SPD `6aa35dc` / ordering `954d7e0`
+  (album/smartAlbum); work kinds `8c99d46` / SPD `6aa35dc` / ordering `954d7e0`
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
@@ -182,10 +187,12 @@ Identity Coalescing, and Resolved Pool Snapshot
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-021: docs/DECISIONS.md (ADR-020 Cap 10 models Accepted;
-  ADR-021 Cap 11 Live Resolution — Proposed until first implementing work)
+- ADR-001 … ADR-021: docs/DECISIONS.md (ADR-021 Cap 11 Live Resolution —
+  Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
+- Acceptance notes (Cap 11.2 list / Limited omit):
+  docs/acceptance/cap11-11.2-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
   docs/acceptance/cap7-7.7-notes.md
 - Acceptance notes (Cap 7.7a Profile retest):
