@@ -1565,3 +1565,121 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     (ADR-009/010/012).
   - Accepted date/anchor = first Cap 10.2 work `8c99d46` (2026-08-11),
     per F1=A (not Cap 10 close-out; not inside the work commit).
+
+---
+
+## ADR-021: Cap 11 Live Resolution, Availability, Identity Coalescing, Snapshot
+
+- Status: Proposed
+- Commit/PR anchor: (none while Proposed — Accepted will use the first Cap
+  11 implementing work commit sha after 11.1 docs)
+- Plain summary (owner reads this):
+  Cap 11 resolves a Source Pool Definition into a runtime Resolved Pool
+  Snapshot: list/resolve User and Smart Albums, report per-source
+  Availability, coalesce duplicate PHAssets by first appearance, and keep
+  Main Browse on its Cap 7 single-source path. Limited Access never lists
+  albums; multi-source resolve runs sequentially in Dart.
+- Context / what problem forced this:
+  Cap 10 (ADR-020) delivered SourcePoolDefinition and album/smartAlbum
+  domain kinds but left gateway mapping throwing and Host list/resolve
+  built-in-only (ADR-013). Kickoff ADR-E/H/K/M and Glossary §7–8/§16
+  require Live Binding resolution, Identity Coalescing, and Availability
+  before Session Queue work. Album Item Ordering was still `unspecified`
+  (ADR-020 / ADR-M). Cap 11 must lock list/resolve behavior, coalescing,
+  and orchestration without Build-a-Pool UI or Main Browse migration.
+- Decision (what was chosen):
+  1. **Album / Smart Album ordering = creationDateDescending (D1=A).**
+     **Reason:** reuse the Cap 6 / ADR-013 built-in path already verified
+     on the owner's ~40k library (creation-date descending Host sort) —
+     not a shortcut that skips album-order validation. Photos *collection*
+     order remains an open product question (ADR-M); Cap 11 deliberately
+     does not open a separate collection-order PoC because the chosen
+     mechanism is the same already-proven pipeline, applied to album /
+     smartAlbum fetches. **Implementation status:** this is a Cap 11
+     contract decision only at 11.1. `ItemOrderingPolicy.forKind` still
+     returns `unspecified` for album/smartAlbum until the implementing
+     work (11.3/11.4) lands the mapping change in code; this Proposed
+     docs entry does **not** claim that enum mapping is already updated.
+  2. **`listAssetSources` includes User Albums + Smart Albums + the three
+     built-ins (D2=A).** Utilities UI sections are not sources. Approximate
+     `estimatedCount` allowed for albums (ADR-013 reserved semantics).
+  3. **Limited Access list behavior (ADR-K aligned):** Under Limited,
+     `listAssetSources` returns **only** the three built-ins (accessible
+     subset). User Album and Smart Album entries are **omitted entirely**
+     — they do **not** appear with `availability: unauthorized`. Resolve of
+     an album/smartAlbum reference under Limited (e.g. stale Full-Access
+     Saved ref) returns **unauthorized** and does not enumerate members
+     (ADR-K: do not list or resolve Album/Smart Album).
+  4. **Pool orchestration in Dart (D3=A), sequential only.**
+     `resolvePool(SourcePoolDefinition)` calls existing `resolveSource`
+     **one source at a time** in Definition order. Identity Coalescing
+     runs **incrementally** after each source: merge that source's ids
+     into a growing accumulator + seen-id set, then **discard** that
+     source's full `assetIdentifiers` list before the next
+     `resolveSource`. **No concurrent** multi-source resolve in Cap 11.
+     Peak memory: at most **one** in-flight full id list + the growing
+     coalesced accumulator + seen-id set — not N full lists held
+     simultaneously. Accepts repeated bridge cost vs ADR-013
+     single-source cost multiplied by source count. A native
+     `resolvePool` HostApi is out of Cap 11 scope.
+  5. **Identity Coalescing = first appearance (kickoff ADR-M §6).** Same
+     `PHAsset.localIdentifier` kept at the earliest Source Reference
+     position; later duplicates dropped. No visual-similarity dedupe.
+  6. **ResolvedPoolSnapshot** holds the **coalesced** ordered asset ids
+     + per-source Availability (and related light metadata as needed —
+     e.g. counts / status, not raw per-source id arrays). **Must not**
+     retain fields such as `perSourceRawIds` / per-source full identifier
+     lists after coalesce (peak-memory and contract: Snapshot is the
+     coalesced view). No Media Item count hard cap (ADR-P). Not
+     user-saveable (ADR-H).
+  7. **Partial source failure — confirmation of Glossary §16 (D5), not a
+     new Cap 11 product fork:** Glossary §16 already states that as long
+     as the Resolved Pool Snapshot has ≥1 Media Item, browsing may start;
+     when some Sources are Empty / Unavailable / Unauthorized, the App
+     shows source-level **non-blocking** hints and does **not** invalidate
+     the whole pool for one failed Source. Cap 11 **confirms** that text
+     for Live Resolution / Snapshot construction. Option B ("fail the
+     entire pool if any source is Empty/Unavailable/Unauthorized") was
+     never a viable Glossary reading — §16 excludes it — so D5 is
+     confirmation, not a fresh A/B choice. All-empty / all-failed still
+     yields a structured empty / availability outcome for UI (product
+     copy may land later).
+  8. **Main Browse unchanged (D4=A).** Cap 7 single-source resolve path
+     stays. Cap 11 exposes resolvePool + list albums via domain /
+     smoke-debug only.
+  9. **Gateway mapper:** Map pigeon `album` / `smartAlbum` into domain;
+     wire `other` still throws. Opens ADR-020 D7 Cap-11 handoff.
+  10. **Out of scope:** Session Queue / Default Profile / Eligibility /
+      Shuffle; Build-a-Pool UI; Saved Pool CRUD; Generated Clip
+      specialization; Query Source; concurrent resolve; Photos
+      collection-order PoC.
+  11. **Docs workflow:** Cap 11.1 docs commit appends this entry as
+      **Proposed**. Flip to Accepted with first implementing work sha
+      (expected 11.2 or 11.3) in a later docs commit — not inside the
+      work commit. No Accepted date and no Commit/PR anchor while
+      Status is Proposed (F1=A / E2).
+- Rejected alternatives (why not B):
+  - Album ordering via Photos collection order / ascending — not chosen
+    for Cap 11; Cap 11 reuses the already-verified creationDateDescending
+    Host path (ADR-013) rather than opening a new collection-order PoC.
+  - List albums only in Cap 14 — rejected; Cap 11 title requires live
+    album resolution and Availability.
+  - List albums under Limited as `unauthorized` rows — rejected; ADR-K
+    "不列出或解析" means omit from list.
+  - Concurrent Dart `resolveSource` fan-out — rejected; peak memory
+    would be ~N full id lists; sequential bounds peak to one list +
+    coalesced accumulator + seen-id set.
+  - Snapshot keeps per-source full id lists after coalesce — rejected;
+    Snapshot is coalesced ids + Availability only.
+  - New Pigeon `resolvePool` in Cap 11 — rejected; reuse resolveSource.
+  - Wire Main Browse through SPD/Snapshot now — rejected (D4=A).
+  - Fail entire pool if any source Empty/Unavailable/Unauthorized —
+    not a Glossary §16 option (D5 confirmation; B excluded a priori).
+  - Amend ADR-020 in place — rejected; append ADR-021.
+- Consequences / constraints accepted:
+  - Cap 11 does **not** pay any Known debt table row.
+  - Multi-source resolve wall-clock ≈ sum of per-source resolve times.
+  - ~40k id lists remain an accepted cost per source (ADR-013); Snapshot
+    may approach union size after coalescing.
+  - Cap 12+ consumes Snapshot; Cap 14 builds Pool UI on listAssetSources.
+  - While Status is Proposed: no Accepted date and no Commit/PR anchor.

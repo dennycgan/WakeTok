@@ -106,7 +106,6 @@
 ## Phase Roadmap (active capability only)
 Active capability: Live Resolution, Asset Source Availability,
 Identity Coalescing, and Resolved Pool Snapshot
-(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -116,20 +115,31 @@ Identity Coalescing, and Resolved Pool Snapshot
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-Awaiting owner-approved phases for Live Resolution, Asset Source
-Availability, Identity Coalescing, and Resolved Pool Snapshot. Cap 10
-Capability Roadmap closed in this docs commit; do not invent numbered
-phases here. Kickoff alignment / Cap planning review happens in a later
-conversation before this placeholder is replaced.
+- [x] 11.1 Contract freeze: owner Cap 11 review (D1–D6); ADR-021 Proposed
+      (Limited list omits Album/Smart; sequential multi-source resolve;
+      Album ordering = creationDateDescending); Out-of-scope locked
+- [~] 11.2 Host list: User Album + Smart Album + Availability;
+      open domain↔wire album/smartAlbum mapping; Limited: albums absent
+      from list (ADR-K); `other` still throws
+- [ ] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
+      Availability on resolve; Limited resolve → unauthorized
+- [ ] 11.4 Domain: ResolvedPoolSnapshot + Identity Coalescing
+      (first appearance) + sequential resolvePool(SPD); partial-source
+      failure non-blocking (Glossary §16)
+- [ ] 11.5 Composition / smoke-debug wiring (Main Browse unchanged, D4=A);
+      architecture green
+- [ ] 11.6 Acceptance: unit tests + device multi-source coalesce
+      (iPhone 13 floor + 17); notes if needed
+- [ ] 11.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
+      Session Queue / Default Profile Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 10 closed; next Cap scope / Phase Roadmap
-      (Live Resolution placeholder)
-- Sub-steps done: Cap 10 phases 10.1–10.5; PHASE_HISTORY appended
-- Next step: owner kickoff review + approve Live Resolution Phase Roadmap;
-      then replace placeholder
-- Related decisions: ADR-020; Known debt unchanged (no Cap 10 row
-      adds/clears)
+- Goal (one line): Cap 11.2 Host list albums/smartAlbums + open mapper
+- Sub-steps done: 11.1 contract freeze; ADR-021 Proposed in this docs commit
+- Next step: implement Host listAssetSources User/Smart Albums; Limited
+      omit albums; open domain↔wire album/smartAlbum mapping
+- Related decisions: ADR-021 (Proposed; Accepted after first Cap 11 work);
+      ADR-020 Accepted unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -172,8 +182,8 @@ conversation before this placeholder is replaced.
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-020: docs/DECISIONS.md (ADR-019 Cap 9 Live; ADR-020 Cap 10
-  Source Pool Definition models — Accepted, anchor `8c99d46`)
+- ADR-001 … ADR-021: docs/DECISIONS.md (ADR-020 Cap 10 models Accepted;
+  ADR-021 Cap 11 Live Resolution — Proposed until first implementing work)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
