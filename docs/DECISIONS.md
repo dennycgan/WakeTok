@@ -1446,3 +1446,16 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     rebuild, not introduced by Cap 9; Cap 9.6 (mute preference binding) must
     document/ensure Dart re-applies the shared preference after video reactivation.
   - Accepted date/anchor = implementing work `98fe191` (2026-08-10).
+- POC-08 Result (Cap 9.7, 2026-08-11):
+  **PASS** on available samples (notes
+  `docs/acceptance/cap9-9.7-poc08-notes.md`; Style matrix
+  `docs/acceptance/cap9-9.6-playback-style-matrix.md`). iPhone 13 Pro: items
+  1–8 exercised (S1–S5 PASS; Q7 jump OK; offline iCloud static fallback PASS;
+  rapid leave/return stress PASS). iPhone 17: P1–P4 + stress PASS; P5–P7 /
+  Style **N/A** (no iCloud library photos / insufficient Live edit materials).
+  Mid-gate: Mute ON → Videos lost mute until host-persisted `muted` + re-apply
+  on `pendingPlay` / new AVPlayer — work `4aa93b0` (extends Cap 9.6 Dart
+  re-apply; Dart-only was insufficient). New Known debt UX-1 (visible
+  spin-then-fail on offline iCloud prepare) and UX-2 (badge+spinner →
+  bottom-right). No Q7 jump debt. Status remains **Accepted**; POC-08 closed
+  PASS.

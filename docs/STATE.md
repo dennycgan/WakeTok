@@ -151,19 +151,21 @@ Active capability: Live Photo rendering and static fallback (POC-08)
       video `setMute` before `play`; library_smoke debug toggle;
       Style observation template for 9.7
       — work `8c0f4ca`
-- [ ] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
+- [x] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
       local + iCloud + weak net; Q7 switch feel; item #5: note observed
       iCloud download state changes during motion prepare; items 1–8
       gate); notes under docs/acceptance/; POC Result/Decision →
       ADR-019 close
+      — notes `docs/acceptance/cap9-9.7-poc08-notes.md`; mute host
+      persist mid-gate `4aa93b0`; Style matrix filled; 17 P5–P7 N/A
 - [ ] 9.8 Cap 9 close-out: STATE Cap `[x]` + YOU ARE HERE + PHASE_HISTORY;
       Known debt: no table-row clears; new rows only if 9.7 requires
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.7 Device POC-08 acceptance (Profile + notes)
-- Sub-steps done: 9.1–9.6 (shared mute binding `8c0f4ca`)
-- Next step: owner device gate on iPhone 13/17; fill Style matrix + POC notes
-- Related decisions: ADR-019 close after 9.7; Known debt unchanged
+- Goal (one line): Cap 9.8 Cap 9 close-out (PHASE_HISTORY + Cap `[x]`)
+- Sub-steps done: 9.1–9.7 (POC-08 device PASS; mute fix `4aa93b0`)
+- Next step: owner OK for 9.8 docs close-out
+- Related decisions: ADR-019 POC-08 Result appended; UX-1/UX-2 Known debt
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -189,7 +191,8 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed play-once +
   `LiveHostOpSerial` (Cap 9.4 `c86dd6e`); preparing spinner +
   `gatedFlagUpdate` (Cap 9.5 `042c59d`); `sharedMuteProvider` + mute
-  re-apply (Cap 9.6 `8c0f4ca` / ADR-019)
+  re-apply (Cap 9.6 `8c0f4ca`); video host mute persist (Cap 9.7
+  `4aa93b0` / ADR-019)
 - Presentation Metadata: lib/domain/presentation/,
   PhotoLibraryApi.requestPresentationMetadata /
   requestPresentationFileSize (Cap 8.3 `c0c04e1` / ADR-015; Live still
@@ -214,8 +217,10 @@ Active capability: Live Photo rendering and static fallback (POC-08)
   docs/acceptance/cap8-8.4-poc10-notes.md
 - Acceptance notes (Cap 8.8 Overlay / size / hitch / A1 audio):
   docs/acceptance/cap8-8.8-notes.md
-- Cap 9.6 Playback Style observation matrix (fill in 9.7):
+- Cap 9.6 Playback Style observation matrix (filled in 9.7):
   docs/acceptance/cap9-9.6-playback-style-matrix.md
+- Acceptance notes (Cap 9.7 POC-08 device):
+  docs/acceptance/cap9-9.7-poc08-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
@@ -245,3 +250,5 @@ Active capability: Live Photo rendering and static fallback (POC-08)
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
 | Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`) | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
+| Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
+| Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | Cap 9.7 layout observation; move badge+spinner to bottom-right | Main Browse / Live chrome polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
