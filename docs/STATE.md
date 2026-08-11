@@ -122,9 +122,10 @@ Active capability: Asset Source and Source Pool Definition domain models
       keep Cap 6 built-in three legal pairs; exhaustiveness-only call-site
       arms allowed; no Host/Pigeon/schema change; mapper still throws
       — work `8c99d46`
-- [ ] 10.3 SourcePoolDefinition + PersistencePolicy + ADR-P capacity:
+- [x] 10.3 SourcePoolDefinition + PersistencePolicy + ADR-P capacity:
       max 30 sources/pool validated now; max 10 saved presets as constant
       only (CRUD in Saved Pool Cap); `saved` constructible, no repository
+      — work `6aa35dc`
 - [ ] 10.4 Invariant unit tests + architecture guards (if `lib/` touched);
       ItemOrderingPolicy.forKind slot (built-ins = creationDateDesc;
       album/smartAlbum = unspecified)
@@ -132,10 +133,9 @@ Active capability: Asset Source and Source Pool Definition domain models
       Live Resolution / Availability / Identity Coalescing / Snapshot Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 10.2 closed; next = 10.3 SPD (design approved, await go)
-- Sub-steps done: 10.2 work `8c99d46`; ADR-020 Accepted (this docs commit)
-- Next step: owner OK this docs commit/push → confirm 10.3 comments +
-      STATE 10.3 `[~]` → implement SourcePoolDefinition
+- Goal (one line): Cap 10.3 closed; next = 10.4 ItemOrderingPolicy + invariants
+- Sub-steps done: 10.3 work `6aa35dc` (SPD / PersistencePolicy / capacity)
+- Next step: owner kickoff 10.4 design → implement ItemOrderingPolicy.forKind
 - Related decisions: ADR-020 (Accepted, anchor `8c99d46`)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -151,6 +151,9 @@ Active capability: Asset Source and Source Pool Definition domain models
   Cap 8.2 immersive content + always-dark bottom bar `60f3283` / ADR-017;
   transparent top + compact bar `5fb93de` / ADR-016)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
+- Source Pool Definition (Cap 10): `SourcePoolDefinition` /
+  `PersistencePolicy` / `PoolCapacity` under lib/domain/source/ (ADR-020;
+  work `6aa35dc`)
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
