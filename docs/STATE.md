@@ -126,16 +126,18 @@ Active capability: Asset Source and Source Pool Definition domain models
       max 30 sources/pool validated now; max 10 saved presets as constant
       only (CRUD in Saved Pool Cap); `saved` constructible, no repository
       — work `6aa35dc`
-- [ ] 10.4 Invariant unit tests + architecture guards (if `lib/` touched);
+- [x] 10.4 Invariant unit tests + architecture guards (if `lib/` touched);
       ItemOrderingPolicy.forKind slot (built-ins = creationDateDesc;
       album/smartAlbum = unspecified)
+      — work `954d7e0`
 - [ ] 10.5 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
       Live Resolution / Availability / Identity Coalescing / Snapshot Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 10.3 closed; next = 10.4 ItemOrderingPolicy + invariants
-- Sub-steps done: 10.3 work `6aa35dc` (SPD / PersistencePolicy / capacity)
-- Next step: owner kickoff 10.4 design → implement ItemOrderingPolicy.forKind
+- Goal (one line): Cap 10.4 closed; next = 10.5 Cap close-out
+- Sub-steps done: 10.4 work `954d7e0` (ItemOrderingPolicy.forKind)
+- Next step: Cap 10 close-out — Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
+      Live Resolution Cap; Phase Roadmap placeholder or next Cap phases
 - Related decisions: ADR-020 (Accepted, anchor `8c99d46`)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -153,7 +155,7 @@ Active capability: Asset Source and Source Pool Definition domain models
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Source Pool Definition (Cap 10): `SourcePoolDefinition` /
   `PersistencePolicy` / `PoolCapacity` under lib/domain/source/ (ADR-020;
-  work `6aa35dc`)
+  work `6aa35dc`); `ItemOrderingPolicy.forKind` (work `954d7e0`)
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
