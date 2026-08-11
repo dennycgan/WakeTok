@@ -133,8 +133,11 @@ final class LivePhotoApiHost: NSObject, LivePhotoApi {
 
   func stopPlayback() throws {
     // Cap 9.4 / F4: Dart awaits stop — surface must be stopped before reply.
+    // Multi-statement body (not single-expression optional-chain) so the
+    // closure is () -> Void, not () -> Void? — required by runOnMainSync.
     let work = { [weak self] in
-      self?.surfaceView?.stopPlayback()
+      guard let self else { return }
+      self.surfaceView?.stopPlayback()
     }
     runOnMainSync(work)
   }

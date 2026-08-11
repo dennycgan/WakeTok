@@ -24,6 +24,12 @@ final class PlaybackApiHost: PlaybackApi {
   /// Play intent that arrived while the active player was still preparing.
   /// Without this, an early Dart play() is silently dropped (frozen first frame).
   private var pendingPlay = false
+  /// Cap 9.6 / ADR-019: shared mute preference mirrored on the host.
+  /// `setMute` must survive nil `activePlayer` and later `pendingPlay` /
+  /// `prepareActive` completion — applying only to `activePlayer?.isMuted`
+  /// loses mute when Dart setMute races before the AVPlayer exists.
+  /// `clearPlaybackPool` does **not** reset this (preference stays).
+  private var muted = false
   /// Asset ids with an in-flight prepareActive, so a second request for the
   /// same asset does not build a duplicate player that pauses the first one.
   private var preparingAssetIds = Set<String>()
@@ -88,6 +94,7 @@ final class PlaybackApiHost: PlaybackApi {
         self.activeAssetId == self.currentAssetIdentifier
       {
         self.pendingPlay = false
+        self.applyMuteToPlayers()
         player.play()
       } else {
         self.pendingPlay = true
@@ -116,8 +123,9 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   func setMute(muted: Bool) throws {
+    self.muted = muted
     DispatchQueue.main.async { [weak self] in
-      self?.activePlayer?.isMuted = muted
+      self?.applyMuteToPlayers()
     }
   }
 
@@ -201,6 +209,12 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  /// Applies persisted [muted] to active + warming players (Cap 9.6).
+  private func applyMuteToPlayers() {
+    activePlayer?.isMuted = muted
+    warmingPlayer?.isMuted = muted
+  }
+
   private func performClearPlaybackPool() {
     clearEpoch &+= 1
     pendingPlay = false
@@ -213,6 +227,7 @@ final class PlaybackApiHost: PlaybackApi {
     currentAssetIdentifier = nil
     currentFeedIndex = 0
     surfaceView?.attach(player: nil)
+    // Do not reset `muted` — Dart preference remains; next player re-applies.
   }
 
   private func handleDidEnterBackground() {
@@ -253,6 +268,7 @@ final class PlaybackApiHost: PlaybackApi {
       activeAssetId = assetId
       warmingPlayer = nil
       warmingAssetId = nil
+      applyMuteToPlayers()
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
         self.surfaceView?.attach(player: self.activePlayer)
@@ -292,6 +308,7 @@ final class PlaybackApiHost: PlaybackApi {
         self.activePlayer?.pause()
         self.activePlayer = player
         self.activeAssetId = token
+        self.applyMuteToPlayers()
         self.surfaceView?.attach(player: player)
         self.consumePendingPlayIfNeeded()
       }
@@ -306,6 +323,7 @@ final class PlaybackApiHost: PlaybackApi {
       activeAssetId == currentAssetIdentifier
     else { return }
     pendingPlay = false
+    applyMuteToPlayers()
     player.play()
   }
 
@@ -343,6 +361,7 @@ final class PlaybackApiHost: PlaybackApi {
         else { return }
         self.warmingPlayer = player
         self.warmingAssetId = token
+        self.applyMuteToPlayers()
       }
     }
   }
