@@ -349,3 +349,65 @@ Related ADR: ADR-015, ADR-016, ADR-017, ADR-018 (Live still size narrow-
 supersedes ADR-015 Live dual-nil). Known debt carried: Location Label
 (geocode deferred); same-asset cross-source playhead (Session Continuity);
 file-size disclaimer copy. Forced-dark + opaque-top debts paid in 8.2.
+
+## Live Photo rendering and static fallback (POC-08)
+— completed 2026-08-11
+
+- [x] 9.1 Contract freeze: Q1–Q7; LivePhotoApi + viewType; visible PV
+      exclusivity; `PlaybackApi.clearPlaybackPool()` (Dart await before
+      LivePhotoApi; host race guards; Live-activation-only clear — stills
+      stay pause-only); Q7 unload PV→still; Known debt table rows not
+      cleared; POC-08 Success Criteria locked (items 1–8; #5 observe
+      iCloud download state changes in 9.7 notes without progress-copy
+      UI; #8 plugin vs native — recorded rationale: no first-party
+      PHLivePhotoView plugin; photo_manager-class packages expose
+      still+paired video files for DIY VideoPlayer, not Photos-parity
+      PHLivePhotoView lifecycle/mute/styles — self-built Pigeon+PV);
+      ADR-019 drafted in chat; Accepted at Cap 9.2 work
+      — docs `b4c1061` (roadmap) / work `94358be`
+- [x] 9.2 Native host: PHLivePhoto request + PHLivePhotoView factory;
+      `clearPlaybackPool` + clear-in-flight guards; cancel/failure;
+      Pigeon LivePhotoApi + clearPlaybackPool channels (D1=A);
+      D3 gesture recognizer disabled; ADR-019 appended
+      — work `94358be` (ADR anchor `98fe191`)
+- [x] 9.3 Pigeon + gateway + domain (current-page only); composition root
+      (channels already in 9.2; Dart LivePhotoRepository + LivePhotoGateway
+      + clearPlaybackPool on PlaybackRepository; no Feed wiring)
+      — work `afd3181`
+- [x] 9.4 Feed integration: Live current → await clear → play-once →
+      Q7 still; leave/re-enter; Overlay/badge coexistence; F4
+      feed-scoped `LiveHostOpSerial` + activation generation; host
+      cancel/stop main-sync; no motion spinner (intentional interim —
+      Q4=A spinner in 9.5, not Known debt)
+      — work `c86dd6e`
+- [x] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
+      no auto-skip (not Waiting for Media product surface); badge-adjacent
+      preparing spinner; all `_livePreparing` writes via `gatedFlagUpdate`
+      (L-S6 defensive seam `debugSetLivePreparing`)
+      — work `042c59d`
+- [x] 9.6 Mute preference binding (default unmuted) + Playback Style
+      matrix (POC-08 #4 / #7); re-apply shared mute after video pool
+      rebuild (ADR-019 Consequences reminder); `sharedMuteProvider`;
+      Live `setMute`+`startPlayback` in one `LiveHostOpSerial` op;
+      video `setMute` before `play`; library_smoke debug toggle;
+      Style observation template for 9.7
+      — work `8c0f4ca`
+- [x] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
+      local + iCloud + weak net; Q7 switch feel; item #5: note observed
+      iCloud download state changes during motion prepare; items 1–8
+      gate); notes under docs/acceptance/; POC Result/Decision →
+      ADR-019 close
+      — notes `docs/acceptance/cap9-9.7-poc08-notes.md`; mute host
+      persist mid-gate `4aa93b0`; Style matrix filled; 17 P5–P7 N/A
+      — docs `970c110`
+- [x] 9.8 Cap 9 close-out: STATE Cap `[x]` + YOU ARE HERE + PHASE_HISTORY;
+      Known debt: no table-row clears; UX-1/UX-2 from 9.7 retained
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-019 (Live Photo / clearPlaybackPool / POC-08 Result).
+Known debt carried: UX-1 (brief visible spin-then-fail on offline/weak-net
+iCloud Live prepare); UX-2 (LIVE badge + spinner → bottom-right). No Cap 9
+table-row clears. Prior debts (Location, playhead, file-size disclaimer,
+Release hang, Portfolio scan, etc.) unchanged.

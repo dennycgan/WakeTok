@@ -47,10 +47,11 @@
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
       (ADR-015…018; 8.8 notes; Location + cross-source playhead debts)
-- [~] <-- YOU ARE HERE: Live Photo rendering and static fallback (POC-08)
-      (ADR-019 Accepted at Cap 9.2 work `94358be` / anchor `98fe191`;
-      does not clear any Known debt table row)
-- [ ] Asset Source and Source Pool Definition domain models
+- [x] Live Photo rendering and static fallback (POC-08)
+      (ADR-019; POC-08 PASS Cap 9.7; mute persist `4aa93b0`;
+      UX-1/UX-2 Known debt; notes `cap9-9.7-poc08-notes.md`)
+- [ ] <-- YOU ARE HERE: Asset Source and Source Pool Definition
+      domain models
 - [ ] Live Resolution, Asset Source Availability,
       Identity Coalescing, and Resolved Pool Snapshot
 - [ ] Session Queue, Default Session Profile,
@@ -102,7 +103,8 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Live Photo rendering and static fallback (POC-08)
+Active capability: Asset Source and Source Pool Definition domain models
+(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -112,60 +114,18 @@ Active capability: Live Photo rendering and static fallback (POC-08)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-- [x] 9.1 Contract freeze: Q1–Q7; LivePhotoApi + viewType; visible PV
-      exclusivity; `PlaybackApi.clearPlaybackPool()` (Dart await before
-      LivePhotoApi; host race guards; Live-activation-only clear — stills
-      stay pause-only); Q7 unload PV→still; Known debt table rows not
-      cleared; POC-08 Success Criteria locked (items 1–8; #5 observe
-      iCloud download state changes in 9.7 notes without progress-copy
-      UI; #8 plugin vs native — recorded rationale: no first-party
-      PHLivePhotoView plugin; photo_manager-class packages expose
-      still+paired video files for DIY VideoPlayer, not Photos-parity
-      PHLivePhotoView lifecycle/mute/styles — self-built Pigeon+PV);
-      ADR-019 drafted in chat; Accepted at Cap 9.2 work
-      — docs `b4c1061` (roadmap) / work `94358be`
-- [x] 9.2 Native host: PHLivePhoto request + PHLivePhotoView factory;
-      `clearPlaybackPool` + clear-in-flight guards; cancel/failure;
-      Pigeon LivePhotoApi + clearPlaybackPool channels (D1=A);
-      D3 gesture recognizer disabled; ADR-019 appended
-      — work `94358be` (ADR anchor `98fe191`)
-- [x] 9.3 Pigeon + gateway + domain (current-page only); composition root
-      (channels already in 9.2; Dart LivePhotoRepository + LivePhotoGateway
-      + clearPlaybackPool on PlaybackRepository; no Feed wiring)
-      — work `afd3181`
-- [x] 9.4 Feed integration: Live current → await clear → play-once →
-      Q7 still; leave/re-enter; Overlay/badge coexistence; F4
-      feed-scoped `LiveHostOpSerial` + activation generation; host
-      cancel/stop main-sync; no motion spinner (intentional interim —
-      Q4=A spinner in 9.5, not Known debt)
-      — work `c86dd6e`
-- [x] 9.5 iCloud / failure: static-first + spinner-only; static fallback;
-      no auto-skip (not Waiting for Media product surface); badge-adjacent
-      preparing spinner; all `_livePreparing` writes via `gatedFlagUpdate`
-      (L-S6 defensive seam `debugSetLivePreparing`)
-      — work `042c59d`
-- [x] 9.6 Mute preference binding (default unmuted) + Playback Style
-      matrix (POC-08 #4 / #7); re-apply shared mute after video pool
-      rebuild (ADR-019 Consequences reminder); `sharedMuteProvider`;
-      Live `setMute`+`startPlayback` in one `LiveHostOpSerial` op;
-      video `setMute` before `play`; library_smoke debug toggle;
-      Style observation template for 9.7
-      — work `8c0f4ca`
-- [x] 9.7 Device POC-08 acceptance (iPhone 13 floor + 17 compat; Profile;
-      local + iCloud + weak net; Q7 switch feel; item #5: note observed
-      iCloud download state changes during motion prepare; items 1–8
-      gate); notes under docs/acceptance/; POC Result/Decision →
-      ADR-019 close
-      — notes `docs/acceptance/cap9-9.7-poc08-notes.md`; mute host
-      persist mid-gate `4aa93b0`; Style matrix filled; 17 P5–P7 N/A
-- [ ] 9.8 Cap 9 close-out: STATE Cap `[x]` + YOU ARE HERE + PHASE_HISTORY;
-      Known debt: no table-row clears; new rows only if 9.7 requires
+Awaiting owner-approved phases for Asset Source and Source Pool Definition
+domain models. Cap 9 Capability Roadmap closed in this docs commit; do not
+invent numbered phases here. Kickoff alignment / Cap planning review happens
+in a later conversation before this placeholder is replaced.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 9.8 Cap 9 close-out (PHASE_HISTORY + Cap `[x]`)
-- Sub-steps done: 9.1–9.7 (POC-08 device PASS; mute fix `4aa93b0`)
-- Next step: owner OK for 9.8 docs close-out
-- Related decisions: ADR-019 POC-08 Result appended; UX-1/UX-2 Known debt
+- Goal (one line): Next Cap scope / Phase Roadmap (Asset Source placeholder)
+- Sub-steps done: Cap 9 closed (9.1–9.8); PHASE_HISTORY appended
+- Next step: owner kickoff review + approve Asset Source Phase Roadmap;
+      then replace placeholder
+- Related decisions: ADR-019; UX-1/UX-2 Known debt; Location / playhead /
+      file-size disclaimer / Portfolio scan unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
