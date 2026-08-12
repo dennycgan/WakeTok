@@ -140,6 +140,40 @@ void main() {
           '${violations.join('\n')}',
     );
   });
+
+  test(
+      'architecture: main_browse must not import build_session_queue '
+      '(ADR-022 D1=A)',
+      () {
+    final browseDir = Directory('${libRoot.path}/features/main_browse');
+    final violations = <String>[];
+    if (browseDir.existsSync()) {
+      for (final file in _dartFilesUnder(browseDir)) {
+        final rel = _posixRel(packageRoot, file);
+        final source = file.readAsStringSync();
+        for (final directive in _importOrExportUris(source)) {
+          final target = _resolveWakatokTarget(
+            packageRoot: packageRoot,
+            fromFile: file,
+            uri: directive.uri,
+          );
+          if (target == 'lib/domain/session/build_session_queue.dart') {
+            violations.add(
+              '$rel:${directive.line}: main_browse must not import '
+              'build_session_queue.dart (ADR-022 D1=A)',
+            );
+          }
+        }
+      }
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'ADR-022 D1=A main_browse build_session_queue imports:\n'
+          '${violations.join('\n')}',
+    );
+  });
 }
 
 // --- path helpers -----------------------------------------------------------
