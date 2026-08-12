@@ -123,8 +123,9 @@ and stable Item Ordering Semantics
 - [x] 12.2 Domain: OrderPolicy / AdvanceMode / RepeatPolicy +
       SessionConfiguration
       — work `f53d455`
-- [ ] 12.3 Default Session Profile derivation
+- [x] 12.3 Default Session Profile derivation
       (current pools always General/Mixed; Pure Clip reserved)
+      — work `ba81abc`
 - [ ] 12.4 Sequential Session Queue builder + ADR-M Sequential
       contract unit tests; shuffle branch documented refuse;
       acceptance: Mixed `deriveDefaultSessionProfile` output fed
@@ -138,11 +139,11 @@ and stable Item Ordering Semantics
       Phase Roadmap → Endless Shuffle placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 12.2 closed; next = 12.3 Default Profile
-- Sub-steps done: 12.2 work `f53d455`; ADR-022 Accepted (this docs
-      commit)
-- Next step: owner OK this docs commit/push → design/go for 12.3
-      deriveDefaultSessionProfile
+- Goal (one line): Cap 12.3 closed; next = 12.4 Session Queue builder
+- Sub-steps done: 12.3 work `ba81abc` (classify/derive + DPR-1…7)
+- Next step: owner OK this docs commit/push → design/go for 12.4
+      Sequential SessionQueue + shuffle refusal + Mixed derive→builder
+      combo acceptance
 - Related decisions: ADR-022 (Accepted, anchor `f53d455`); Known debt
       unchanged (no Cap 12 row adds/clears; playhead stays Cap 13)
 
@@ -207,8 +208,9 @@ and stable Item Ordering Semantics
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
 - Cap 12 Session Configuration: `lib/domain/session/` —
-  OrderPolicy / AdvanceMode / RepeatPolicy + SessionConfiguration;
-  work `f53d455` (CFG-1…5); derive / SessionQueue later 12.3–12.4
+  OrderPolicy / AdvanceMode / RepeatPolicy + SessionConfiguration
+  (`f53d455`); DefaultSessionProfile + classify/derive (`ba81abc`,
+  DPR-1…7; Cap 12 always generalMixed); SessionQueue later 12.4
 - Cap 12.1 contract: ADR-022 Accepted (D1–D6=A) — Sequential Session
   Queue + Default Profile domain; derive ≠ apply (ADR-014 still
   binds Browse); segmentIndex = Generated Clip resolve-time (D5);
