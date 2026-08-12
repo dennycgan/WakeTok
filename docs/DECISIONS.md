@@ -1595,11 +1595,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      order remains an open product question (ADR-M); Cap 11 deliberately
      does not open a separate collection-order PoC because the chosen
      mechanism is the same already-proven pipeline, applied to album /
-     smartAlbum fetches. **Implementation status:** this is a Cap 11
-     contract decision only at 11.1. `ItemOrderingPolicy.forKind` still
-     returns `unspecified` for album/smartAlbum until the implementing
-     work (11.3/11.4) lands the mapping change in code; Cap 11.2 list work
-     does **not** update that enum mapping.
+     smartAlbum fetches. **Implementation status:** Cap 11.3 work
+     `2cf26a6` updates `ItemOrderingPolicy.forKind` so album/smartAlbum
+     map to `creationDateDescending` (Host fetch uses the same sort).
   2. **`listAssetSources` includes User Albums + Smart Albums + the three
      built-ins (D2=A).** Utilities UI sections are not sources. Approximate
      `estimatedCount` allowed for albums (ADR-013 reserved semantics).
@@ -1683,6 +1681,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - ~40k id lists remain an accepted cost per source (ADR-013); Snapshot
     may approach union size after coalescing.
   - Cap 12+ consumes Snapshot; Cap 14 builds Pool UI on listAssetSources.
-  - Cap 11.2 landed list + mapper (`95779ef`); album/smartAlbum resolve,
-    Snapshot, and coalesce remain later Cap 11 phases.
-  - Accepted date/anchor = Cap 11.2 work `95779ef` (2026-08-11), per F1=A.
+  - Cap 11.2 landed list + mapper (`95779ef`); Cap 11.3 landed
+    album/smartAlbum resolve (`2cf26a6`). Snapshot and coalesce remain
+    later Cap 11 phases.
+  - Accepted date/anchor = Cap 11.2 work `95779ef` (2026-08-11), per F1=A
+    (unchanged; 11.3 is a later implementing commit, not a new ADR).

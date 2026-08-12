@@ -122,9 +122,10 @@ Identity Coalescing, and Resolved Pool Snapshot
       open domain↔wire album/smartAlbum mapping; Limited: albums absent
       from list (ADR-K); `other` still throws
       (work `95779ef`; device notes `cap11-11.2-notes.md`)
-- [~] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
+- [x] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
       Availability on resolve; Limited resolve → unauthorized
-- [ ] 11.4 Domain: ResolvedPoolSnapshot + Identity Coalescing
+      (work `2cf26a6`; device notes `cap11-11.3-notes.md`)
+- [~] 11.4 Domain: ResolvedPoolSnapshot + Identity Coalescing
       (first appearance) + sequential resolvePool(SPD); partial-source
       failure non-blocking (Glossary §16)
 - [ ] 11.5 Composition / smoke-debug wiring (Main Browse unchanged, D4=A);
@@ -135,11 +136,11 @@ Identity Coalescing, and Resolved Pool Snapshot
       Session Queue / Default Profile Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 11.3 Host resolve album/smartAlbum
-- Sub-steps done: 11.2 list + mapper; device Full/Limited PASS; ADR-021
-      Accepted (anchor `95779ef`)
-- Next step: Host resolveSource for album/smartAlbum
-      (creationDateDescending); Limited → unauthorized
+- Goal (one line): Cap 11.4 ResolvedPoolSnapshot + Identity Coalescing
+- Sub-steps done: 11.3 Host album/smartAlbum resolve; device Full/Limited
+      / empty / Hidden PASS; ADR-021 Accepted (anchor `95779ef`)
+- Next step: domain Snapshot + sequential resolvePool(SPD) + first-appearance
+      coalesce (no perSourceRawIds)
 - Related decisions: ADR-021 Accepted; ADR-020 Accepted unchanged
 
 ## Contract pointers (don't memorize, go read the source)
@@ -160,6 +161,11 @@ Identity Coalescing, and Resolved Pool Snapshot
   domain `AssetSource.displayName` + nullable `estimatedCount`;
   gateway maps album/smartAlbum (`other` still throws); work `95779ef`;
   notes `docs/acceptance/cap11-11.2-notes.md`
+- Cap 11.3 resolve albums: Host `resolveSource` album/smartAlbum
+  (creationDateDescending, image|video); Limited → unauthorized;
+  missing collection → albumUnavailable; empty list = Empty;
+  `ItemOrderingPolicy.forKind` aligned; debug probe cache `2cf26a6`;
+  notes `docs/acceptance/cap11-11.3-notes.md`
 - Source Pool Definition (Cap 10 / ADR-020):
   `lib/domain/source/source_pool_definition.dart`,
   `persistence_policy.dart`, `pool_capacity.dart`,
@@ -193,6 +199,8 @@ Identity Coalescing, and Resolved Pool Snapshot
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
   docs/acceptance/cap11-11.2-notes.md
+- Acceptance notes (Cap 11.3 album resolve / Limited unauthorized):
+  docs/acceptance/cap11-11.3-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
   docs/acceptance/cap7-7.7-notes.md
 - Acceptance notes (Cap 7.7a Profile retest):
