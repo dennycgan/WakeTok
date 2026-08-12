@@ -478,3 +478,47 @@ Known debt: no Cap 11 table-row adds or clears. Dual User Album overlap
 deferred to Cap 14 (not a Known debt row). Prior debts unchanged
 (Location, playhead, file-size disclaimer, Release hang, UX-1/UX-2,
 Portfolio scan, etc.).
+
+## Session Queue, Default Session Profile,
+and stable Item Ordering Semantics
+— completed 2026-08-12
+
+- [x] 12.1 Contract freeze: owner review D1–D6=A; ADR-022 Proposed
+      (derive ≠ apply; segmentIndex = resolve-time; OrderPolicy
+      includes shuffle, builder refuses it); Out-of-scope locked
+      — docs `7f84599`
+- [x] 12.2 Domain: OrderPolicy / AdvanceMode / RepeatPolicy +
+      SessionConfiguration
+      — work `f53d455`; ADR-022 Accepted docs `55d4586`
+- [x] 12.3 Default Session Profile derivation
+      (current pools always General/Mixed; Pure Clip reserved)
+      — work `ba81abc`; docs `a081856`
+- [x] 12.4 Sequential Session Queue builder + ADR-M Sequential
+      contract unit tests; shuffle branch documented refuse;
+      acceptance: Mixed `deriveDefaultSessionProfile` output fed
+      directly into `buildSessionQueue` must hit the documented
+      refusal path (not covered by testing the two functions alone)
+      — work `77571a9`; docs `d51c7d8`
+- [x] 12.5 Composition / smoke-debug only (Main Browse unchanged,
+      D1=A); architecture guard main_browse ↛ build_session_queue;
+      architecture green
+      — work `a14d748` (guard only; no smoke); docs `6127b44`
+- [x] 12.6 Acceptance: unit tests (no device PoC; D1=A);
+      docs-only; verified at HEAD `6127b44`; full `flutter test`
+      PASS (+247); session CFG/DPR/SQ + architecture green;
+      ADR-022 D1–D6 contract checklist PASS; no
+      `docs/acceptance/cap12-12.6-notes.md` (unit-only — acceptance
+      notes files are for device/manual evidence, not pure unit gates);
+      Known debt unchanged
+      — docs `2e167bf`
+- [x] 12.7 Cap close-out: STATE Cap `[x]` + YOU ARE HERE +
+      PHASE_HISTORY; Phase Roadmap → Endless Shuffle placeholder
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-022 (Accepted, anchor `f53d455`).
+Known debt: no Cap 12 table-row adds or clears. Same-asset playhead
+All↔Videos remains Cap 13 (not paid here). Prior debts unchanged
+(Location, playhead, file-size disclaimer, Release hang, UX-1/UX-2,
+Portfolio scan, etc.).

@@ -57,9 +57,12 @@
       Identity Coalescing, and Resolved Pool Snapshot
       (ADR-021; list `95779ef`; album resolve `2cf26a6`;
       Snapshot `44b783e`; smoke `8e37b64`; notes 11.2/11.3/11.6)
-- [ ] <-- YOU ARE HERE: Session Queue, Default Session Profile,
+- [x] Session Queue, Default Session Profile,
       and stable Item Ordering Semantics
-- [ ] Endless Shuffle, Queue Stability, and Session Continuity
+      (ADR-022; CFG `f53d455`; derive `ba81abc`;
+      Queue `77571a9`; guard `a14d748`; accept `2e167bf`)
+- [ ] <-- YOU ARE HERE: Endless Shuffle, Queue Stability,
+      and Session Continuity
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
 - [ ] Auto-play Presets and Mode Eligibility Rule
@@ -106,8 +109,8 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Session Queue, Default Session Profile,
-and stable Item Ordering Semantics
+Active capability: Endless Shuffle, Queue Stability, and Session Continuity
+(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -117,44 +120,20 @@ and stable Item Ordering Semantics
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-- [x] 12.1 Contract freeze: owner review D1–D6=A; ADR-022 Proposed
-      (derive ≠ apply; segmentIndex = resolve-time; OrderPolicy
-      includes shuffle, builder refuses it); Out-of-scope locked
-- [x] 12.2 Domain: OrderPolicy / AdvanceMode / RepeatPolicy +
-      SessionConfiguration
-      — work `f53d455`
-- [x] 12.3 Default Session Profile derivation
-      (current pools always General/Mixed; Pure Clip reserved)
-      — work `ba81abc`
-- [x] 12.4 Sequential Session Queue builder + ADR-M Sequential
-      contract unit tests; shuffle branch documented refuse;
-      acceptance: Mixed `deriveDefaultSessionProfile` output fed
-      directly into `buildSessionQueue` must hit the documented
-      refusal path (not covered by testing the two functions alone)
-      — work `77571a9`
-- [x] 12.5 Composition / smoke-debug only (Main Browse unchanged,
-      D1=A); architecture guard main_browse ↛ build_session_queue;
-      architecture green
-      — work `a14d748` (guard only; no smoke)
-- [x] 12.6 Acceptance: unit tests (no device PoC; D1=A);
-      docs-only; verified at HEAD `6127b44`; full `flutter test`
-      PASS (+247); session CFG/DPR/SQ + architecture green;
-      ADR-022 D1–D6 contract checklist PASS; no
-      `docs/acceptance/cap12-12.6-notes.md` (unit-only — acceptance
-      notes files are for device/manual evidence, not pure unit gates);
-      Known debt unchanged
-- [ ] 12.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
-      Phase Roadmap → Endless Shuffle placeholder
+Awaiting owner-approved phases for Endless Shuffle, Queue Stability,
+and Session Continuity. Cap 12 Capability Roadmap closed in this docs
+commit; do not invent numbered phases here. Kickoff alignment / Cap
+planning review happens in a later conversation before this placeholder
+is replaced.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 12.6 closed; next = 12.7 Cap close-out
-- Sub-steps done: 12.6 acceptance — full `flutter test` PASS
-      (+247) at HEAD `6127b44`; D1–D6 checklist PASS; no device
-      PoC / no acceptance notes file
-- Next step: owner OK this docs commit/push → design/go for 12.7
-      (Cap `[x]` + PHASE_HISTORY + Endless Shuffle placeholder)
-- Related decisions: ADR-022 (Accepted, anchor `f53d455`); Known debt
-      unchanged (no Cap 12 row adds/clears; playhead stays Cap 13)
+- Goal (one line): Cap 12 closed; next Cap scope / Phase Roadmap
+      (Endless Shuffle placeholder)
+- Sub-steps done: Cap 12 phases 12.1–12.7; PHASE_HISTORY appended
+- Next step: owner kickoff review + approve Endless Shuffle Phase
+      Roadmap; then replace placeholder
+- Related decisions: ADR-022; Known debt unchanged (no Cap 12 row
+      adds/clears; playhead remains Cap 13)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
