@@ -66,13 +66,26 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ///
   /// Used by totals, paging, built-in list, and resolve so inclusion / sort
   /// cannot drift. Default PhotoKit semantics (Hidden + Recently Deleted
-  /// excluded). Sort: creationDate descending; nil dates sort last under
-  /// Cocoa descending NSSortDescriptor. No device-local filter.
+  /// excluded — `includeHiddenAssets` remains false). Sort: creationDate
+  /// descending; nil dates sort last under Cocoa descending
+  /// NSSortDescriptor. No device-local filter.
   private func makeLibraryFetchOptions() -> PHFetchOptions {
     let options = PHFetchOptions()
     options.sortDescriptors = [
       NSSortDescriptor(key: "creationDate", ascending: false),
     ]
+    return options
+  }
+
+  /// Cap 11.3 album/smartAlbum resolve: same sort + Hidden default as
+  /// [makeLibraryFetchOptions], plus image|video predicate (All universe).
+  private func makeAlbumAssetFetchOptions() -> PHFetchOptions {
+    let options = makeLibraryFetchOptions()
+    options.predicate = NSPredicate(
+      format: "mediaType == %d OR mediaType == %d",
+      PHAssetMediaType.image.rawValue,
+      PHAssetMediaType.video.rawValue
+    )
     return options
   }
 
@@ -493,27 +506,113 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     do {
       try requireLibraryAccess()
-      guard let source = builtinSource(from: sourceReference) else {
+      if let builtin = builtinSource(from: sourceReference) {
+        let shortId = builtin.sourceIdentifier
+        DispatchQueue.global(qos: .userInitiated).async {
+          let result = self.fetchResult(for: builtin)
+          let ids = self.collectLocalIdentifiers(from: result)
+          DispatchQueue.main.async {
+            completion(
+              .success(
+                ResolvedSourceDto(
+                  sourceIdentifier: shortId,
+                  assetIdentifiers: ids
+                )
+              )
+            )
+          }
+        }
+        return
+      }
+
+      let sourceType = sourceReference.sourceType
+      let isAlbum = sourceType == "album"
+      let isSmartAlbum = sourceType == "smartAlbum"
+      guard isAlbum || isSmartAlbum else {
         completion(
           .failure(
             fail(
               .assetUnavailable,
-              message: "Invalid built-in source reference pair"
+              message: "Unsupported source reference type: \(sourceType)"
             )
           )
         )
         return
       }
-      let shortId = source.sourceIdentifier
+
+      // Cap 11.3 / ADR-021 / ADR-K: Limited must not resolve Album/Smart.
+      if currentPhotoKitStatus() == .limited {
+        completion(
+          .failure(
+            fail(
+              .unauthorized,
+              message: "Album/Smart Album resolve requires Full Access"
+            )
+          )
+        )
+        return
+      }
+
+      let collectionId = sourceReference.sourceIdentifier
+      guard !collectionId.isEmpty else {
+        completion(
+          .failure(
+            fail(.albumUnavailable, message: "Empty album sourceIdentifier")
+          )
+        )
+        return
+      }
+
       DispatchQueue.global(qos: .userInitiated).async {
-        let result = self.fetchResult(for: source)
-        let ids = self.collectLocalIdentifiers(from: result)
-        // BinaryMessenger replies must run on the platform (main) thread.
+        let fetch = PHAssetCollection.fetchAssetCollections(
+          withLocalIdentifiers: [collectionId],
+          options: nil
+        )
+        guard let collection = fetch.firstObject else {
+          DispatchQueue.main.async {
+            completion(
+              .failure(
+                self.fail(
+                  .albumUnavailable,
+                  message: "Album not found: \(collectionId)"
+                )
+              )
+            )
+          }
+          return
+        }
+
+        let typeOk: Bool
+        if isAlbum {
+          typeOk = collection.assetCollectionType == .album
+        } else {
+          typeOk = collection.assetCollectionType == .smartAlbum
+        }
+        if !typeOk {
+          DispatchQueue.main.async {
+            completion(
+              .failure(
+                self.fail(
+                  .albumUnavailable,
+                  message:
+                    "Source kind mismatch for collection: \(collectionId)"
+                )
+              )
+            )
+          }
+          return
+        }
+
+        let assets = PHAsset.fetchAssets(
+          in: collection,
+          options: self.makeAlbumAssetFetchOptions()
+        )
+        let ids = self.collectLocalIdentifiers(from: assets)
         DispatchQueue.main.async {
           completion(
             .success(
               ResolvedSourceDto(
-                sourceIdentifier: shortId,
+                sourceIdentifier: collectionId,
                 assetIdentifiers: ids
               )
             )

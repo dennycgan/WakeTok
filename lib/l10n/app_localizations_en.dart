@@ -93,6 +93,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceListDiagnosticUntitled => '(untitled)';
 
   @override
+  String get sourceAlbumResolveSectionTitle => 'Album / Smart resolve (debug)';
+
+  @override
+  String get sourceResolveFirstUserAlbum => 'Resolve first User Album';
+
+  @override
+  String get sourceResolveFirstSmartAlbum => 'Resolve first Smart Album';
+
+  @override
+  String get sourceProbeCachedAlbumResolve => 'Probe cached album resolve';
+
+  @override
+  String get sourceAlbumResolveNoUserAlbum =>
+      'No User Album in list (Full Access required).';
+
+  @override
+  String get sourceAlbumResolveNoSmartAlbum =>
+      'No Smart Album in list (Full Access required).';
+
+  @override
+  String get sourceAlbumResolveNoCache =>
+      'Resolve a User Album under Full Access first.';
+
+  @override
+  String sourceAlbumResolvedLength(int count, String name) {
+    return 'album resolved length: $count ($name)';
+  }
+
+  @override
+  String get sourceAlbumResolveUnauthorized =>
+      'Expected unauthorized (Limited / Album).';
+
+  @override
+  String sourceAlbumResolveCacheLoaded(String name) {
+    return 'Cached User Album for Limited probe: $name';
+  }
+
+  @override
+  String get sourceAlbumResolveFailed => 'Album / Smart resolve probe failed.';
+
+  @override
   String sourceResolvedLength(int count) {
     return 'resolved length: $count';
   }

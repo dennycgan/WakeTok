@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
@@ -46,6 +47,9 @@ Widget _harness({
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  SharedPreferences.setMockInitialValues({});
+
   testWidgets('W-S1 segmented labels come from AppLocalizations',
       (tester) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
@@ -123,6 +127,55 @@ void main() {
       find.text(l10n.sourceListDiagnosticSmartNames('Favorites')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('W-11.3-1 resolve first User Album shows length and caches',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a1'],
+      photosIds: const ['p1'],
+      videosIds: const ['v1'],
+      extraSources: const [
+        AssetSource(
+          kind: AssetSourceKind.album,
+          id: 'u1',
+          displayName: 'Trip',
+          estimatedCount: 2,
+          availability: AssetSourceAvailability.available,
+          canAddContent: false,
+        ),
+      ],
+      albumResolveIds: const {
+        'u1': ['x', 'y'],
+      },
+    );
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 1, photos: 1, videos: 1),
+    );
+
+    await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text(l10n.sourceResolveFirstUserAlbum),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.sourceResolveFirstUserAlbum));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text(l10n.sourceAlbumResolvedLength(2, 'Trip')),
+      findsOneWidget,
+    );
+    expect(sources.lastResolve?.id, 'u1');
+
+    sources.albumResolveUnauthorized = true;
+    await tester.tap(find.text(l10n.sourceProbeCachedAlbumResolve));
+    await tester.pumpAndSettle();
+    expect(find.text(l10n.sourceAlbumResolveUnauthorized), findsOneWidget);
   });
 
   testWidgets('W-S2 resolve shows length and match vs totals', (tester) async {

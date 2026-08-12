@@ -7,13 +7,15 @@ import 'package:waketok/domain/source/asset_source_repository.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 
-/// Test double for [AssetSourceRepository] (Cap 6.4 / Cap 11.2 tests).
+/// Test double for [AssetSourceRepository] (Cap 6.4 / Cap 11.2–11.3 tests).
 class FakeAssetSourceRepository implements AssetSourceRepository {
   FakeAssetSourceRepository({
     this.allIds = const <String>[],
     this.photosIds = const <String>[],
     this.videosIds = const <String>[],
     this.extraSources = const <AssetSource>[],
+    this.albumResolveIds = const <String, List<String>>{},
+    this.albumResolveUnauthorized = false,
   });
 
   List<String> allIds;
@@ -22,6 +24,13 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
 
   /// Appended after the three built-ins (Cap 11.2 list diagnostic tests).
   List<AssetSource> extraSources;
+
+  /// Cap 11.3: id → ordered asset ids for album/smartAlbum resolve.
+  Map<String, List<String>> albumResolveIds;
+
+  /// When true, album/smartAlbum resolve throws [AppError.unauthorized].
+  bool albumResolveUnauthorized;
+
   int listCalls = 0;
   int resolveCalls = 0;
   SourceReference? lastResolve;
@@ -70,6 +79,19 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     resolveCalls += 1;
     lastResolve = reference;
     resolveHistory.add(reference);
+
+    if (reference.kind == AssetSourceKind.album ||
+        reference.kind == AssetSourceKind.smartAlbum) {
+      if (albumResolveUnauthorized) {
+        throw PlatformException(code: AppError.unauthorized.name);
+      }
+      final ids = albumResolveIds[reference.id] ?? const <String>[];
+      return ResolvedSource(
+        sourceId: reference.id,
+        assetIdentifiers: List<String>.unmodifiable(ids),
+      );
+    }
+
     if (!reference.isLegalBuiltInPair) {
       throw PlatformException(code: AppError.assetUnavailable.name);
     }
@@ -78,10 +100,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
       AssetSourceKind.mediaTypePhotos => photosIds,
       AssetSourceKind.mediaTypeVideos => videosIds,
       AssetSourceKind.album || AssetSourceKind.smartAlbum =>
-        throw StateError(
-          'FakeAssetSourceRepository.resolve: album/smartAlbum unreachable '
-          'after isLegalBuiltInPair guard',
-        ),
+        throw StateError('unreachable after album branch'),
     };
     return ResolvedSource(
       sourceId: reference.id,

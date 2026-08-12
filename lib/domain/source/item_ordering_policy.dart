@@ -1,26 +1,26 @@
 import 'package:waketok/domain/source/asset_source_kind.dart';
 
-/// Default item ordering for an Asset Source kind (kickoff ADR-M / ADR-020).
+/// Default item ordering for an Asset Source kind (kickoff ADR-M / ADR-021).
 ///
-/// Slot only in Cap 10 — not stored on SourcePoolDefinition or
-/// SourceReference. Album / Smart Album stay [unspecified] until a later
-/// capability closes the ADR-M Open Question.
+/// Slot only — not stored on SourcePoolDefinition or SourceReference.
+/// Cap 11.3: Album / Smart Album use the same creation-date descending
+/// policy as Cap 6 built-ins (ADR-021 D1=A).
 enum ItemOrderingPolicy {
-  /// Locked for Entire Library + Media Type Sources (ADR-013).
+  /// Locked for Entire Library, Media Type, Album, and Smart Album Sources.
   creationDateDescending,
 
-  /// Deferred for Album / Smart Album (ADR-M Open Question).
+  /// Reserved for kinds without a locked Host ordering yet.
   unspecified;
 
-  /// Maps [kind] to the Cap 10 default ordering policy (D9=A).
+  /// Maps [kind] to the default ordering policy (ADR-020 D9 / ADR-021 D1).
   static ItemOrderingPolicy forKind(AssetSourceKind kind) {
     return switch (kind) {
       AssetSourceKind.entireLibrary ||
       AssetSourceKind.mediaTypePhotos ||
-      AssetSourceKind.mediaTypeVideos =>
+      AssetSourceKind.mediaTypeVideos ||
+      AssetSourceKind.album ||
+      AssetSourceKind.smartAlbum =>
         ItemOrderingPolicy.creationDateDescending,
-      AssetSourceKind.album || AssetSourceKind.smartAlbum =>
-        ItemOrderingPolicy.unspecified,
     };
   }
 }

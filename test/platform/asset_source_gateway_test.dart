@@ -194,4 +194,49 @@ void main() {
       }
     },
   );
+
+  test('G-11.3-1 gateway resolve maps album asset identifiers', () async {
+    final gateway = PhotoLibraryGateway();
+    mockSuccess(
+      photoChannel('resolveSource'),
+      pigeon.ResolvedSourceDto(
+        sourceIdentifier: 'user-album-1',
+        assetIdentifiers: <String>['x', 'y'],
+      ),
+    );
+
+    final resolved = await gateway.resolve(
+      const SourceReference(kind: AssetSourceKind.album, id: 'user-album-1'),
+    );
+    expect(resolved.sourceId, 'user-album-1');
+    expect(resolved.assetIdentifiers, ['x', 'y']);
+  });
+
+  test('G-11.3-2 gateway propagates unauthorized from album resolve', () async {
+    final gateway = PhotoLibraryGateway();
+    mockError(photoChannel('resolveSource'), 'unauthorized');
+
+    try {
+      await gateway.resolve(
+        const SourceReference(kind: AssetSourceKind.album, id: 'stale'),
+      );
+      fail('expected PlatformException');
+    } on PlatformException catch (e) {
+      expect(appErrorFromPlatformException(e), AppError.unauthorized);
+    }
+  });
+
+  test('G-11.3-3 gateway propagates albumUnavailable', () async {
+    final gateway = PhotoLibraryGateway();
+    mockError(photoChannel('resolveSource'), 'albumUnavailable');
+
+    try {
+      await gateway.resolve(
+        const SourceReference(kind: AssetSourceKind.smartAlbum, id: 'gone'),
+      );
+      fail('expected PlatformException');
+    } on PlatformException catch (e) {
+      expect(appErrorFromPlatformException(e), AppError.albumUnavailable);
+    }
+  });
 }

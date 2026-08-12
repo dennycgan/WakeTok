@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +11,7 @@ import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/authorization/limited_access_banner.dart';
+import 'package:waketok/features/library_smoke/album_resolve_probe_cache.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/builtin_quantile.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
@@ -38,6 +41,34 @@ class _LibraryTotalsShellPageState
   String? _pairProbeMessage;
   List<_QuantileRowData>? _quantileRows;
   String? _yearSpanLabel;
+
+  /// Last Full-Access User Album ref for Limited unauthorized probe (Cap 11.3).
+  /// Loaded from [AlbumResolveProbeCache] so SIGKILL on permission change
+  /// does not lose the probe target.
+  SourceReference? _cachedUserAlbumRef;
+  String? _cachedUserAlbumName;
+  String? _albumProbeMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _restoreAlbumProbeCache();
+  }
+
+  Future<void> _restoreAlbumProbeCache() async {
+    try {
+      final cached = await AlbumResolveProbeCache.load();
+      if (!mounted || cached == null) {
+        return;
+      }
+      setState(() {
+        _cachedUserAlbumRef = cached.ref;
+        _cachedUserAlbumName = cached.name;
+      });
+    } catch (_) {
+      // Debug probe only; ignore SharedPreferences failures.
+    }
+  }
 
   int? _totalsComponent(LibraryTotals? totals, AssetSourceKind kind) {
     if (totals == null) {
@@ -110,6 +141,7 @@ class _LibraryTotalsShellPageState
     setState(() {
       _busy = true;
       _pairProbeMessage = null;
+      _albumProbeMessage = null;
     });
     try {
       final resolved =
@@ -127,6 +159,158 @@ class _LibraryTotalsShellPageState
       setState(() {
         _resolvedLength = null;
         _pairProbeMessage = l10n.sourceSmokeOperationFailed;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  AssetSource? _firstOfKind(List<AssetSource> sources, AssetSourceKind kind) {
+    for (final s in sources) {
+      if (s.kind == kind) {
+        return s;
+      }
+    }
+    return null;
+  }
+
+  AssetSource? _preferredSmartAlbum(List<AssetSource> sources) {
+    AssetSource? first;
+    for (final s in sources) {
+      if (s.kind != AssetSourceKind.smartAlbum) {
+        continue;
+      }
+      first ??= s;
+      if (s.displayName.toLowerCase() == 'favorites') {
+        return s;
+      }
+    }
+    return first;
+  }
+
+  Future<void> _resolveAlbumSource(
+    AssetSource source, {
+    required bool cacheAsUserAlbum,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final name =
+        source.displayName.isEmpty ? l10n.sourceListDiagnosticUntitled : source.displayName;
+    setState(() {
+      _busy = true;
+      _albumProbeMessage = null;
+      _pairProbeMessage = null;
+    });
+    try {
+      final sourceRef = SourceReference.fromAssetSource(source);
+      final resolved =
+          await ref.read(assetSourceRepositoryProvider).resolve(sourceRef);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (cacheAsUserAlbum) {
+          _cachedUserAlbumRef = sourceRef;
+          _cachedUserAlbumName = name;
+          AlbumResolveProbeCache.save(sourceRef, name).ignore();
+        }
+        _albumProbeMessage = l10n.sourceAlbumResolvedLength(
+          resolved.assetIdentifiers.length,
+          name,
+        );
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _albumProbeMessage = e.code == AppError.unauthorized.name
+            ? l10n.sourceAlbumResolveUnauthorized
+            : l10n.sourceAlbumResolveFailed;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _albumProbeMessage = l10n.sourceAlbumResolveFailed;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _resolveFirstUserAlbum(List<AssetSource>? sources) async {
+    final l10n = AppLocalizations.of(context)!;
+    final album = sources == null
+        ? null
+        : _firstOfKind(sources, AssetSourceKind.album);
+    if (album == null) {
+      setState(() {
+        _albumProbeMessage = l10n.sourceAlbumResolveNoUserAlbum;
+      });
+      return;
+    }
+    await _resolveAlbumSource(album, cacheAsUserAlbum: true);
+  }
+
+  Future<void> _resolveFirstSmartAlbum(List<AssetSource>? sources) async {
+    final l10n = AppLocalizations.of(context)!;
+    final smart = sources == null ? null : _preferredSmartAlbum(sources);
+    if (smart == null) {
+      setState(() {
+        _albumProbeMessage = l10n.sourceAlbumResolveNoSmartAlbum;
+      });
+      return;
+    }
+    await _resolveAlbumSource(smart, cacheAsUserAlbum: false);
+  }
+
+  Future<void> _probeCachedAlbumResolve() async {
+    final l10n = AppLocalizations.of(context)!;
+    final cached = _cachedUserAlbumRef;
+    if (cached == null) {
+      setState(() {
+        _albumProbeMessage = l10n.sourceAlbumResolveNoCache;
+      });
+      return;
+    }
+    final name = _cachedUserAlbumName ?? l10n.sourceListDiagnosticUntitled;
+    setState(() {
+      _busy = true;
+      _albumProbeMessage = null;
+      _pairProbeMessage = null;
+    });
+    try {
+      final resolved =
+          await ref.read(assetSourceRepositoryProvider).resolve(cached);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _albumProbeMessage = l10n.sourceAlbumResolvedLength(
+          resolved.assetIdentifiers.length,
+          name,
+        );
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _albumProbeMessage = e.code == AppError.unauthorized.name
+            ? l10n.sourceAlbumResolveUnauthorized
+            : l10n.sourceAlbumResolveFailed;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _albumProbeMessage = l10n.sourceAlbumResolveFailed;
       });
     } finally {
       if (mounted) {
@@ -388,6 +572,63 @@ class _LibraryTotalsShellPageState
                     ),
                   ),
                 ),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Text(
+                    l10n.sourceAlbumResolveSectionTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: tokens.onSurface,
+                        ),
+                  ),
+                ),
+                if (_cachedUserAlbumRef != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      l10n.sourceAlbumResolveCacheLoaded(
+                        (_cachedUserAlbumName == null ||
+                                _cachedUserAlbumName!.isEmpty)
+                            ? l10n.sourceListDiagnosticUntitled
+                            : _cachedUserAlbumName!,
+                      ),
+                      style: bodyStyle,
+                    ),
+                  ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: FilledButton(
+                    onPressed: _busy
+                        ? null
+                        : () => _resolveFirstUserAlbum(sources),
+                    child: Text(l10n.sourceResolveFirstUserAlbum),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: FilledButton(
+                    onPressed: _busy
+                        ? null
+                        : () => _resolveFirstSmartAlbum(sources),
+                    child: Text(l10n.sourceResolveFirstSmartAlbum),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: OutlinedButton(
+                    onPressed: _busy ? null : _probeCachedAlbumResolve,
+                    child: Text(l10n.sourceProbeCachedAlbumResolve),
+                  ),
+                ),
+                if (_albumProbeMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      _albumProbeMessage!,
+                      key: const Key('albumProbeMessage'),
+                      style: bodyStyle,
+                    ),
+                  ),
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

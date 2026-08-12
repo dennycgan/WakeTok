@@ -5,7 +5,7 @@ class ResolvedSource {
     required this.assetIdentifiers,
   });
 
-  /// Echo of the resolved short id (`all` / `photos` / `videos`).
+  /// Echo of the resolved source id (built-in short id or album local id).
   final String sourceId;
 
   /// Full ordered list (creationDate descending on host). May be large (~40k).

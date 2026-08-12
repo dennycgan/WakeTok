@@ -111,6 +111,57 @@
   "@sourceListDiagnosticUntitled": {
     "description": "Placeholder when a smart album displayName is empty"
   },
+  "sourceAlbumResolveSectionTitle": "Album / Smart resolve (debug)",
+  "@sourceAlbumResolveSectionTitle": {
+    "description": "Cap 11.3 smoke section for album and smartAlbum resolve probes"
+  },
+  "sourceResolveFirstUserAlbum": "Resolve first User Album",
+  "@sourceResolveFirstUserAlbum": {
+    "description": "Resolves the first kind=album entry from listAssetSources"
+  },
+  "sourceResolveFirstSmartAlbum": "Resolve first Smart Album",
+  "@sourceResolveFirstSmartAlbum": {
+    "description": "Resolves Favorites if present, else the first smartAlbum"
+  },
+  "sourceProbeCachedAlbumResolve": "Probe cached album resolve",
+  "@sourceProbeCachedAlbumResolve": {
+    "description": "Re-resolves the last Full-Access user album id (Limited → unauthorized)"
+  },
+  "sourceAlbumResolveNoUserAlbum": "No User Album in list (Full Access required).",
+  "@sourceAlbumResolveNoUserAlbum": {
+    "description": "Shown when list has zero album kinds"
+  },
+  "sourceAlbumResolveNoSmartAlbum": "No Smart Album in list (Full Access required).",
+  "@sourceAlbumResolveNoSmartAlbum": {
+    "description": "Shown when list has zero smartAlbum kinds"
+  },
+  "sourceAlbumResolveNoCache": "Resolve a User Album under Full Access first.",
+  "@sourceAlbumResolveNoCache": {
+    "description": "Cached Limited probe has no prior album id"
+  },
+  "sourceAlbumResolvedLength": "album resolved length: {count} ({name})",
+  "@sourceAlbumResolvedLength": {
+    "description": "Success line after album/smartAlbum resolve",
+    "placeholders": {
+      "count": {"type": "int"},
+      "name": {"type": "String"}
+    }
+  },
+  "sourceAlbumResolveUnauthorized": "Expected unauthorized (Limited / Album).",
+  "@sourceAlbumResolveUnauthorized": {
+    "description": "Cached album resolve correctly returned unauthorized"
+  },
+  "sourceAlbumResolveCacheLoaded": "Cached User Album for Limited probe: {name}",
+  "@sourceAlbumResolveCacheLoaded": {
+    "description": "Shown when debug SharedPreferences restored a User Album id after relaunch",
+    "placeholders": {
+      "name": {"type": "String"}
+    }
+  },
+  "sourceAlbumResolveFailed": "Album / Smart resolve probe failed.",
+  "@sourceAlbumResolveFailed": {
+    "description": "Generic ARB fallback when album resolve throws unexpectedly"
+  },
   "sourceResolvedLength": "resolved length: {count}",
   "@sourceResolvedLength": {
     "description": "Shows ResolvedSource.assetIdentifiers length after resolve",

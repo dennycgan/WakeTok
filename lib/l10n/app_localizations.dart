@@ -249,6 +249,72 @@ abstract class AppLocalizations {
   /// **'(untitled)'**
   String get sourceListDiagnosticUntitled;
 
+  /// Cap 11.3 smoke section for album and smartAlbum resolve probes
+  ///
+  /// In en, this message translates to:
+  /// **'Album / Smart resolve (debug)'**
+  String get sourceAlbumResolveSectionTitle;
+
+  /// Resolves the first kind=album entry from listAssetSources
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve first User Album'**
+  String get sourceResolveFirstUserAlbum;
+
+  /// Resolves Favorites if present, else the first smartAlbum
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve first Smart Album'**
+  String get sourceResolveFirstSmartAlbum;
+
+  /// Re-resolves the last Full-Access user album id (Limited → unauthorized)
+  ///
+  /// In en, this message translates to:
+  /// **'Probe cached album resolve'**
+  String get sourceProbeCachedAlbumResolve;
+
+  /// Shown when list has zero album kinds
+  ///
+  /// In en, this message translates to:
+  /// **'No User Album in list (Full Access required).'**
+  String get sourceAlbumResolveNoUserAlbum;
+
+  /// Shown when list has zero smartAlbum kinds
+  ///
+  /// In en, this message translates to:
+  /// **'No Smart Album in list (Full Access required).'**
+  String get sourceAlbumResolveNoSmartAlbum;
+
+  /// Cached Limited probe has no prior album id
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve a User Album under Full Access first.'**
+  String get sourceAlbumResolveNoCache;
+
+  /// Success line after album/smartAlbum resolve
+  ///
+  /// In en, this message translates to:
+  /// **'album resolved length: {count} ({name})'**
+  String sourceAlbumResolvedLength(int count, String name);
+
+  /// Cached album resolve correctly returned unauthorized
+  ///
+  /// In en, this message translates to:
+  /// **'Expected unauthorized (Limited / Album).'**
+  String get sourceAlbumResolveUnauthorized;
+
+  /// Shown when debug SharedPreferences restored a User Album id after relaunch
+  ///
+  /// In en, this message translates to:
+  /// **'Cached User Album for Limited probe: {name}'**
+  String sourceAlbumResolveCacheLoaded(String name);
+
+  /// Generic ARB fallback when album resolve throws unexpectedly
+  ///
+  /// In en, this message translates to:
+  /// **'Album / Smart resolve probe failed.'**
+  String get sourceAlbumResolveFailed;
+
   /// Shows ResolvedSource.assetIdentifiers length after resolve
   ///
   /// In en, this message translates to:

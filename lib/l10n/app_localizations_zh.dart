@@ -90,6 +90,47 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sourceListDiagnosticUntitled => '(untitled)';
 
   @override
+  String get sourceAlbumResolveSectionTitle => 'Album / Smart resolve (debug)';
+
+  @override
+  String get sourceResolveFirstUserAlbum => 'Resolve first User Album';
+
+  @override
+  String get sourceResolveFirstSmartAlbum => 'Resolve first Smart Album';
+
+  @override
+  String get sourceProbeCachedAlbumResolve => 'Probe cached album resolve';
+
+  @override
+  String get sourceAlbumResolveNoUserAlbum =>
+      'No User Album in list (Full Access required).';
+
+  @override
+  String get sourceAlbumResolveNoSmartAlbum =>
+      'No Smart Album in list (Full Access required).';
+
+  @override
+  String get sourceAlbumResolveNoCache =>
+      'Resolve a User Album under Full Access first.';
+
+  @override
+  String sourceAlbumResolvedLength(int count, String name) {
+    return 'album resolved length: $count ($name)';
+  }
+
+  @override
+  String get sourceAlbumResolveUnauthorized =>
+      'Expected unauthorized (Limited / Album).';
+
+  @override
+  String sourceAlbumResolveCacheLoaded(String name) {
+    return 'Cached User Album for Limited probe: $name';
+  }
+
+  @override
+  String get sourceAlbumResolveFailed => 'Album / Smart resolve probe failed.';
+
+  @override
   String sourceResolvedLength(int count) {
     return 'resolved length: $count';
   }
@@ -404,6 +445,44 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get sourceListDiagnosticUntitled => '（无标题）';
+
+  @override
+  String get sourceAlbumResolveSectionTitle => '相册 / Smart 解析（调试）';
+
+  @override
+  String get sourceResolveFirstUserAlbum => '解析首个 User Album';
+
+  @override
+  String get sourceResolveFirstSmartAlbum => '解析首个 Smart Album';
+
+  @override
+  String get sourceProbeCachedAlbumResolve => '探测缓存相册解析';
+
+  @override
+  String get sourceAlbumResolveNoUserAlbum => '列表中无 User Album（需要完全访问权限）。';
+
+  @override
+  String get sourceAlbumResolveNoSmartAlbum => '列表中无 Smart Album（需要完全访问权限）。';
+
+  @override
+  String get sourceAlbumResolveNoCache => '请先在完全访问下解析一次 User Album。';
+
+  @override
+  String sourceAlbumResolvedLength(int count, String name) {
+    return '相册解析长度：$count（$name）';
+  }
+
+  @override
+  String get sourceAlbumResolveUnauthorized =>
+      '符合预期：unauthorized（Limited / Album）。';
+
+  @override
+  String sourceAlbumResolveCacheLoaded(String name) {
+    return '已加载 Limited 探针缓存 User Album：$name';
+  }
+
+  @override
+  String get sourceAlbumResolveFailed => '相册 / Smart 解析探针失败。';
 
   @override
   String sourceResolvedLength(int count) {

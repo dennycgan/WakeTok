@@ -27,14 +27,14 @@ void main() {
     );
   });
 
-  test('ORD-3 album/smartAlbum map to unspecified', () {
+  test('ORD-3 album/smartAlbum map to creationDateDescending (Cap 11.3)', () {
     expect(
       ItemOrderingPolicy.forKind(AssetSourceKind.album),
-      ItemOrderingPolicy.unspecified,
+      ItemOrderingPolicy.creationDateDescending,
     );
     expect(
       ItemOrderingPolicy.forKind(AssetSourceKind.smartAlbum),
-      ItemOrderingPolicy.unspecified,
+      ItemOrderingPolicy.creationDateDescending,
     );
   });
 
