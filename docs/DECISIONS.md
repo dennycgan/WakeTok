@@ -1843,3 +1843,173 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     guard lands when that file exists (12.4/12.5).
   - Accepted date/anchor = first Cap 12.2 work `f53d455` (2026-08-12),
     per F1=A (not Cap 12 close-out; not inside the work commit).
+
+---
+
+## ADR-023: Cap 13 Endless Shuffle + Queue Stability + in-session Continuity lock
+
+- Status: Proposed
+- Commit/PR anchor: (none — Proposed; set on first Cap 13 work commit)
+- Plain summary (owner reads this):
+  Cap 13 makes kickoff General/Mixed default Shuffle the real Main Browse
+  experience (Endless Shuffle rounds), adds in-session Queue Stability /
+  Continuity for Order/Repeat changes on the same Snapshot, and accepts
+  same-asset playhead sharing across All↔Videos as intentional Host
+  behaviour — not a bug fix. Auto-play Eligibility, Background Audio,
+  and SessionCheckpoint stay later capabilities.
+- Context / what problem forced this:
+  Cap 12 (ADR-022) shipped Session Configuration + Sequential
+  `buildSessionQueue` and a Mixed→Shuffle derivation that is not wired
+  to Browse; shuffle construction throws a documented `UnsupportedError`.
+  ADR-014 still binds Main Browse to Sequential + Manual and structurally
+  deferred kickoff Shuffle to this capability. Kickoff MVP Scope §7 and
+  ADR-N require General/Mixed → Shuffle + Manual + Repeat All with Endless
+  Shuffle round semantics (ADR-M §7–8). Without a Cap-scoped lock, Cap 13
+  risks: delivering domain-only shuffle without product apply (re-deferring
+  ADR-014); pulling Auto-play Eligibility / Checkpoint SQLite / Background
+  Audio early; treating All↔Videos shared playhead as a Host bug fix when
+  Continuity is defined on one Snapshot; or dropping the Cap 7.7a Profile
+  hitch hard gate when Shuffle reopens the production feed surface.
+- Decision (what was chosen):
+  1. **Main Browse product apply — Mixed → Shuffle (D1=A).** Cap 13
+     wires Main Browse built-in tabs (All / Photos / Videos as
+     General/Mixed pools per ADR-014 / ADR-N) so
+     `deriveDefaultSessionProfile` + Endless Shuffle `buildSessionQueue`
+     become the **effective** product default. This **supersedes
+     ADR-014 Decisions 2–3** (Sequential product default / deferred
+     Shuffle) for that surface when Cap 13 wiring lands. Kickoff MVP
+     Scope §7: General/Mixed default is Shuffle, Manual, Repeat All —
+     not an optional mode. Cap 13 title delivers the Shuffle
+     **experience**, not only domain scaffolding. Cap 12 ADR-022
+     shuffle refusal is removed when 13.2 lands.
+  2. **Slim in-memory `ConsumptionSession` (D2=A).** Cap 13 introduces
+     a slim session type holding at least: Resolved Pool Snapshot,
+     Session Queue, Session Configuration, current item / queue index,
+     and optional playback-position reference as needed for Continuity
+     mapping. **Excluded:** `runtimePresentationState`, `playbackState`,
+     `audioRoute` (kickoff ties these to foreground/lock-screen —
+     Background Audio Cap). Cap 13 Continuity **subset** = Order /
+     Repeat changes on the **same** Snapshot (kickoff Continuity
+     bullets for Manual↔Auto and lock/unlock stay later Caps).
+     Browse-history field: include only if 13.3 mapping needs it;
+     otherwise defer without inventing Runtime Presentation fields.
+  3. **Zero SessionCheckpoint / SQLite (D3=A).** No
+     `saveSessionCheckpoint`, no new persistence tables. Kickoff Rule H
+     *allows* caching Snapshot for recovery; it does not require Cap 13
+     to persist across process death. Rule I / Continuity examples are
+     in-session. SessionCheckpoint remains its own Capability Roadmap
+     row.
+  4. **Manual Shuffle = full Snapshot; no Eligibility (D4=A).** Shuffle
+     permutes all coalesced Snapshot ids. Mode Eligibility stays the
+     Auto-play Cap (kickoff N §6+; Shuffle Queue examples mix photos and
+     clips with no audio-track filter). Aligns Cap 12 ADR-022 “Manual
+     Queue = full Snapshot”.
+  5. **Injectable `Random` + finite first≠last retry (D5=A).**
+     Fisher–Yates with injectable `Random` (tests may pass a seeded
+     instance; production uses a non-deterministic source). When
+     `n > 1`, finite retries so the new round’s first id ≠ previous
+     round’s last id (kickoff / Glossary: 应尽量避免 — mechanism
+     required, not docs-only). Round is stable mid-play; reshuffle only
+     at round boundary under Repeat All.
+  6. **Playhead Known debt = reclassification Accepted, not a bug fix
+     (D6=A).** `PlaybackApiHost` continues to key the app-scoped player
+     by `assetIdentifier` (ADR-006). Same Photos id under All vs Videos
+     may share playhead / ended-on-last-frame. **Handling = reword the
+     Known debt row from “pending fix at Session Continuity” to
+     “Accepted behaviour”.** Explicit: this is **not** a behaviour
+     fix and **not** cross-tab Continuity. Constrained by D8=A
+     (tab switch = new Session). Continues owner Cap 8.8 preliminary
+     view (`cap8-8.8-notes.md`). **No `PlaybackApiHost` code change in
+     Cap 13 for this debt.**
+  7. **Queue Stability = domain contract + unit tests (D7=A).** ADR-I
+     §§1–3 are passive outcomes (Snapshot/Queue do not auto-mutate on
+     library change; unchanged config ⇒ stable queue). Cap 11/12
+     already produce a one-shot Snapshot and derive Queue from it —
+     Cap 13 does **not** install a Photos observer solely to no-op.
+     Rebuild + Continuity mapping when Order/Repeat change (ADR-I §4
+     without Eligibility variants).
+  8. **Tab switch = new Session (D8=A).** Changing All / Photos /
+     Videos starts a new Consumption Session (feed index 0). Continuity
+     applies only within the same tab / same Snapshot Session (e.g.
+     Order/Repeat rebuild). Kickoff Continuity is anchored on one
+     Resolved Pool Snapshot; built-in tabs are distinct Asset Sources
+     (ADR-013) with distinct resolve results. Aligns ADR-014 Decision 4
+     (tab reset to queue head). No cross-tab Continuity in Cap 13.
+  9. **Architecture guards — composition seam (D9=A, depends on D1=A).**
+     Cap 13 replaces the Cap 12 `main_browse` ↛ `build_session_queue`
+     (and, if needed for the chosen wiring path, `main_browse` ↛
+     `resolve_pool`) ban with an ADR-010 composition-root seam:
+     features must not construct gateways or hold platform concrete
+     types; wiring happens at `lib/main.dart` / `lib/app/**` (or an
+     owner-approved provider seam). D9 is an explicit owner decision —
+     not implied solely by D1.
+  10. **Acceptance hard gate when Browse is wired (13.6).** Instruments
+      **Profile** Hang retest on **iPhone 13 Pro (Kafka)**, UDID
+      `00008110-001114420AEA801E`, same V-hard rules as ADR-014 Cap
+      **7.7a**: mean hitch **< 25 ms/s** AND **zero** Severe Hang on
+      production chrome with Shuffle-driven feed; **not** Conditional
+      Pass. Does **not** clear the Release hang Known debt row (same
+      split as 7.7a). No new PoC gate; no Checkpoint recovery test.
+  11. **Out of scope:** Auto-play Presets / Mode Eligibility (N §6+);
+      ADR-O iCloud Fallback; Background Audio / lock-screen / Now
+      Playing; SessionCheckpoint persistence; Build-a-Pool / Saved Pool
+      CRUD; Generated Clip / Pure Sequential product path; Eligibility
+      filter types; Photos library observer for Stability; cross-tab
+      Continuity; releasing Cap 7 Release hang debt.
+  12. **Docs workflow:** Cap 13.1 appends this entry as **Proposed**.
+      After the first Cap **13.2** work commit, a later docs commit
+      flips Status to Accepted with that work sha as anchor. When
+      Accepted, ADR-014 Decisions 2–3 are recorded superseded for
+      Browse Mixed default (ADR-014 Status line: flip only if owner
+      chooses full-entry supersession; otherwise Consequences here
+      remain the authoritative partial supersession). Playhead Known
+      debt row rewrite lands in phase **13.5** docs (not 13.1).
+- Rejected alternatives (why not B):
+  - Domain-only Shuffle without Browse apply (D1=B) — rejected;
+    re-defers ADR-014’s structural deferral; contradicts MVP Scope §7
+    and this capability’s title.
+  - Sequential SessionQueue wire first, Shuffle later in Cap (D1=C) —
+    rejected; unnecessary second product flip inside one Cap.
+  - Full Glossary ConsumptionSession including Runtime Presentation
+    (D2=C) — rejected; pulls Background Audio fields early.
+  - Providers/helpers only, no session type (D2=B) — rejected; Continuity
+    mapping needs an explicit in-memory session seam for Cap 13.
+  - Minimal SessionCheckpoint in Cap 13 (D3=B) — rejected; conflicts
+    with STATE’s separate Checkpoint Cap and kickoff in-session Continuity
+    examples.
+  - Eligibility enums with Manual all-pass (D4=B) — rejected; freezes
+    Auto-play Cap shapes early (Cap 12 D7 discipline).
+  - Docs-only first≠last (D5=B) — rejected; Glossary requires a
+    mechanism (“应尽量避免”), not prose alone.
+  - Deterministic production seed (D5=C) — rejected; undermines
+    user-perceived randomness of Shuffle.
+  - Split Host key `(sourceId, assetId)` (D6=B) — rejected; high Host
+    risk, low product gain given Cap 8.8 preliminary accept and D8=A.
+  - Leave playhead debt open (D6=C) — rejected; ADR-022 already pointed
+    Cap 13 as the revisit.
+  - Cross-tab Continuity (D6=D / D8=B) — rejected; kickoff Continuity is
+    same-Snapshot; tabs are different sources.
+  - Photos observer no-op for Stability (D7=B) — rejected; over-engineering
+    vs ADR-I passive wording.
+  - Keep both architecture bans while wiring Browse (D9=B) — rejected;
+    incompatible with D1=A without an approved composition seam.
+- Consequences / constraints accepted:
+  - **Product default flips:** After 13.4 wiring + ADR Accepted, Main
+    Browse Mixed pools use Shuffle + Manual + Repeat All. ADR-014
+    Decisions 2–3 no longer describe the effective Browse default.
+    ADR-014 Decision 4 (tab → index 0) remains and aligns with D8=A.
+  - **Playhead debt handling = reclassification, not fix:** ADR-023 /
+    Cap 13.5 rewrite the Known debt row to Accepted behaviour under
+    D8=A; readers must not treat Cap 13 as having “fixed” All↔Videos
+    playhead sharing.
+  - Cap 12 SQ-4 / SQ-7 tests that expect shuffle `UnsupportedError` are
+    rewritten in 13.2 when construction lands.
+  - Architecture suite must stay green; guard tests update with D9 seam
+    in 13.4.
+  - 13.6 Profile V-hard is **must-pass** to close Cap 13 when D1=A;
+    hitch regression blocks close-out.
+  - Release hang Known debt stays on Final performance Cap.
+  - No Cap 13 Known debt **adds**; playhead row is **reclassified** in
+    13.5 (not deleted without replacement wording).
+  - Accepted date/anchor = first Cap 13.2 work commit (when it lands),
+    not Cap 13.1 docs and not Cap close-out.

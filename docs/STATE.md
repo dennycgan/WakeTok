@@ -110,7 +110,6 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Endless Shuffle, Queue Stability, and Session Continuity
-(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -120,20 +119,44 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-Awaiting owner-approved phases for Endless Shuffle, Queue Stability,
-and Session Continuity. Cap 12 Capability Roadmap closed in this docs
-commit; do not invent numbered phases here. Kickoff alignment / Cap
-planning review happens in a later conversation before this placeholder
-is replaced.
+- [x] 13.1 Contract freeze: owner review D1–D9=A; ADR-023 Proposed
+      (Browse Shuffle product apply; slim ConsumptionSession;
+      zero Checkpoint/SQLite; Manual Shuffle = full Snapshot;
+      injectable Random + first≠last retry; playhead debt
+      reclassified Accepted not bug-fix; tab = new Session;
+      composition-seam guard update); Out-of-scope locked
+- [ ] 13.2 Domain: Endless Shuffle in buildSessionQueue
+      (Fisher–Yates + round reshuffle + first≠last best-effort;
+      injectable Random; Cap 12 UnsupportedError removed)
+- [ ] 13.3 Domain: Queue Stability + in-session Continuity
+      (rebuild mapping; slim ConsumptionSession; no
+      SessionCheckpoint persistence)
+- [ ] 13.4 Product apply: Main Browse Mixed → derive + Shuffle
+      Queue; supersede ADR-014 Sequential product default via
+      ADR-023; composition / guard update (D9=A)
+- [ ] 13.5 Playhead debt reclassification (D6=A): Known debt row
+      reworded Accepted behaviour — not a bug fix (D8=A: tab =
+      new Session; cross-tab Continuity not in Cap 13); no
+      PlaybackApiHost code change
+- [ ] 13.6 Acceptance: unit SHUF/CONT/STAB + architecture green;
+      Instruments Profile Hang retest on iPhone 13 Pro (Kafka,
+      UDID `00008110-001114420AEA801E`) — same V-hard as
+      ADR-014 Cap 7.7a (mean hitch < 25 ms/s AND zero Severe
+      Hang on production chrome with Shuffle-driven feed; not
+      Conditional Pass); does not clear Release hang Known debt;
+      no new PoC gate; no Checkpoint recovery test
+- [ ] 13.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
+      Phase Roadmap → Auto-play Presets placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 12 closed; next Cap scope / Phase Roadmap
-      (Endless Shuffle placeholder)
-- Sub-steps done: Cap 12 phases 12.1–12.7; PHASE_HISTORY appended
-- Next step: owner kickoff review + approve Endless Shuffle Phase
-      Roadmap; then replace placeholder
-- Related decisions: ADR-022; Known debt unchanged (no Cap 12 row
-      adds/clears; playhead remains Cap 13)
+- Goal (one line): Cap 13.1 contract freeze (ADR-023 Proposed)
+- Sub-steps done: D1–D9 locked (=A); Phase Roadmap written;
+      ADR-023 Proposed appended
+- Next step: owner OK commit/push 13.1 docs; then OK start 13.2
+      coding (Endless Shuffle builder)
+- Related decisions: ADR-023 Proposed; Known debt unchanged until
+      13.5 (playhead reclassification); Release hang stays Final
+      performance Cap
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -208,9 +231,18 @@ is replaced.
   unchanged; guard `main_browse` ↛ `build_session_queue` landed 12.5
 - Cap 12.6 acceptance: unit-only (no device PoC); full `flutter test`
   PASS (+247) at HEAD `6127b44`; no `docs/acceptance/cap12-12.6-notes.md`
-- ADR-001 … ADR-022: docs/DECISIONS.md (ADR-022 Cap 12 Session Queue —
-  Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted,
-  anchor `95779ef`; ADR-020 Cap 10 models Accepted)
+- Cap 13.1 contract: ADR-023 Proposed (D1–D9=A) — Endless Shuffle +
+  Queue Stability + in-session Continuity; Main Browse Mixed →
+  Shuffle product apply (supersedes ADR-014 Sequential default);
+  slim ConsumptionSession (no Runtime Presentation / Checkpoint);
+  Manual Shuffle = full Snapshot; playhead debt reclassified
+  Accepted (not bug-fix); tab switch = new Session; composition
+  seam replaces main_browse ↛ build_session_queue; 13.6 Profile
+  V-hard on iPhone 13 Pro (Kafka)
+- ADR-001 … ADR-023: docs/DECISIONS.md (ADR-023 Cap 13 Endless
+  Shuffle — Proposed, no anchor; ADR-022 Cap 12 Session Queue
+  Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
+  Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
