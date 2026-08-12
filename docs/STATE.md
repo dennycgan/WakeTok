@@ -126,11 +126,12 @@ and stable Item Ordering Semantics
 - [x] 12.3 Default Session Profile derivation
       (current pools always General/Mixed; Pure Clip reserved)
       — work `ba81abc`
-- [ ] 12.4 Sequential Session Queue builder + ADR-M Sequential
+- [x] 12.4 Sequential Session Queue builder + ADR-M Sequential
       contract unit tests; shuffle branch documented refuse;
       acceptance: Mixed `deriveDefaultSessionProfile` output fed
       directly into `buildSessionQueue` must hit the documented
       refusal path (not covered by testing the two functions alone)
+      — work `77571a9`
 - [ ] 12.5 Composition / smoke-debug only (Main Browse unchanged,
       D1=A); architecture guard main_browse ↛ build_session_queue;
       architecture green
@@ -139,11 +140,11 @@ and stable Item Ordering Semantics
       Phase Roadmap → Endless Shuffle placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 12.3 closed; next = 12.4 Session Queue builder
-- Sub-steps done: 12.3 work `ba81abc` (classify/derive + DPR-1…7)
-- Next step: owner OK this docs commit/push → design/go for 12.4
-      Sequential SessionQueue + shuffle refusal + Mixed derive→builder
-      combo acceptance
+- Goal (one line): Cap 12.4 closed; next = 12.5 composition / guard
+- Sub-steps done: 12.4 work `77571a9` (SessionQueue + builder;
+      SQ-1…7 including Mixed derive→builder refusal)
+- Next step: owner OK this docs commit/push → design/go for 12.5
+      (smoke-debug optional; main_browse ↛ build_session_queue guard)
 - Related decisions: ADR-022 (Accepted, anchor `f53d455`); Known debt
       unchanged (no Cap 12 row adds/clears; playhead stays Cap 13)
 
@@ -210,12 +211,14 @@ and stable Item Ordering Semantics
 - Cap 12 Session Configuration: `lib/domain/session/` —
   OrderPolicy / AdvanceMode / RepeatPolicy + SessionConfiguration
   (`f53d455`); DefaultSessionProfile + classify/derive (`ba81abc`,
-  DPR-1…7; Cap 12 always generalMixed); SessionQueue later 12.4
+  DPR-1…7; Cap 12 always generalMixed); SessionQueue +
+  buildSessionQueue (`77571a9`, SQ-1…7; shuffle → UnsupportedError);
+  main_browse ↛ build_session_queue guard lands 12.5
 - Cap 12.1 contract: ADR-022 Accepted (D1–D6=A) — Sequential Session
   Queue + Default Profile domain; derive ≠ apply (ADR-014 still
   binds Browse); segmentIndex = Generated Clip resolve-time (D5);
   OrderPolicy includes shuffle, builder refuses it (D6); Main Browse
-  unchanged; guard `main_browse` ↛ `build_session_queue` lands 12.4/12.5
+  unchanged; guard `main_browse` ↛ `build_session_queue` lands 12.5
 - ADR-001 … ADR-022: docs/DECISIONS.md (ADR-022 Cap 12 Session Queue —
   Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted,
   anchor `95779ef`; ADR-020 Cap 10 models Accepted)
