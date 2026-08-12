@@ -136,16 +136,23 @@ and stable Item Ordering Semantics
       D1=A); architecture guard main_browse ↛ build_session_queue;
       architecture green
       — work `a14d748` (guard only; no smoke)
-- [ ] 12.6 Acceptance: unit tests (no device PoC; D1=A)
+- [x] 12.6 Acceptance: unit tests (no device PoC; D1=A);
+      docs-only; verified at HEAD `6127b44`; full `flutter test`
+      PASS (+247); session CFG/DPR/SQ + architecture green;
+      ADR-022 D1–D6 contract checklist PASS; no
+      `docs/acceptance/cap12-12.6-notes.md` (unit-only — acceptance
+      notes files are for device/manual evidence, not pure unit gates);
+      Known debt unchanged
 - [ ] 12.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
       Phase Roadmap → Endless Shuffle placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 12.5 closed; next = 12.6 acceptance
-- Sub-steps done: 12.5 work `a14d748` (main_browse ↛
-      build_session_queue guard; no smoke)
-- Next step: owner OK this docs commit/push → design/go for 12.6
-      (unit / architecture acceptance; no device PoC)
+- Goal (one line): Cap 12.6 closed; next = 12.7 Cap close-out
+- Sub-steps done: 12.6 acceptance — full `flutter test` PASS
+      (+247) at HEAD `6127b44`; D1–D6 checklist PASS; no device
+      PoC / no acceptance notes file
+- Next step: owner OK this docs commit/push → design/go for 12.7
+      (Cap `[x]` + PHASE_HISTORY + Endless Shuffle placeholder)
 - Related decisions: ADR-022 (Accepted, anchor `f53d455`); Known debt
       unchanged (no Cap 12 row adds/clears; playhead stays Cap 13)
 
@@ -220,6 +227,8 @@ and stable Item Ordering Semantics
   binds Browse); segmentIndex = Generated Clip resolve-time (D5);
   OrderPolicy includes shuffle, builder refuses it (D6); Main Browse
   unchanged; guard `main_browse` ↛ `build_session_queue` landed 12.5
+- Cap 12.6 acceptance: unit-only (no device PoC); full `flutter test`
+  PASS (+247) at HEAD `6127b44`; no `docs/acceptance/cap12-12.6-notes.md`
 - ADR-001 … ADR-022: docs/DECISIONS.md (ADR-022 Cap 12 Session Queue —
   Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted,
   anchor `95779ef`; ADR-020 Cap 10 models Accepted)
