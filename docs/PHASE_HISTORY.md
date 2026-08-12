@@ -437,3 +437,44 @@ Related ADR: ADR-020 (Accepted, anchor `8c99d46`).
 Known debt: no Cap 10 table-row adds or clears. Prior debts unchanged
 (Location, playhead, file-size disclaimer, Release hang, UX-1/UX-2,
 Portfolio scan, etc.).
+
+## Live Resolution, Asset Source Availability,
+Identity Coalescing, and Resolved Pool Snapshot
+— completed 2026-08-12
+
+- [x] 11.1 Contract freeze: owner Cap 11 review (D1–D6); ADR-021 Proposed
+      (Limited list omits Album/Smart; sequential multi-source resolve;
+      Album ordering = creationDateDescending); Out-of-scope locked
+      — docs `2490c1d`
+- [x] 11.2 Host list: User Album + Smart Album + Availability;
+      open domain↔wire album/smartAlbum mapping; Limited: albums absent
+      from list (ADR-K); `other` still throws
+      — work `95779ef`; device notes `cap11-11.2-notes.md`;
+        ADR-021 Accepted docs `e4133cb`
+- [x] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
+      Availability on resolve; Limited resolve → unauthorized
+      — work `2cf26a6`; device notes `cap11-11.3-notes.md`;
+        docs `0f30ba2`
+- [x] 11.4 Domain: ResolvedPoolSnapshot + Identity Coalescing
+      (first appearance) + sequential resolvePool(SPD); partial-source
+      failure non-blocking (Glossary §16)
+      — work `44b783e`; unit tests SNAP-1…12; docs `7240d7d`
+- [x] 11.5 Composition / smoke-debug wiring (Main Browse unchanged, D4=A);
+      architecture green
+      — work `8e37b64`; Photos+All smoke probe; main_browse ↛
+        `resolve_pool.dart`; docs `36b868f`
+- [x] 11.6 Acceptance: unit tests + device multi-source coalesce
+      (iPhone 13 floor + 17)
+      — work `8e37b64`; HEAD `36b868f`; notes `cap11-11.6-notes.md`;
+        docs `ec3ce21`
+- [x] 11.7 Cap close-out: STATE Cap `[x]` + YOU ARE HERE +
+      PHASE_HISTORY; Phase Roadmap → Session Queue placeholder
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-021 (Accepted, anchor `95779ef`).
+Known debt: no Cap 11 table-row adds or clears. Dual User Album overlap
+deferred to Cap 14 (not a Known debt row). Prior debts unchanged
+(Location, playhead, file-size disclaimer, Release hang, UX-1/UX-2,
+Portfolio scan, etc.).

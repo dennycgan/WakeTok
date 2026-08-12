@@ -53,9 +53,11 @@
 - [x] Asset Source and Source Pool Definition
       domain models
       (ADR-020; kinds `8c99d46`; SPD `6aa35dc`; ordering `954d7e0`)
-- [ ] <-- YOU ARE HERE: Live Resolution, Asset Source Availability,
+- [x] Live Resolution, Asset Source Availability,
       Identity Coalescing, and Resolved Pool Snapshot
-- [ ] Session Queue, Default Session Profile,
+      (ADR-021; list `95779ef`; album resolve `2cf26a6`;
+      Snapshot `44b783e`; smoke `8e37b64`; notes 11.2/11.3/11.6)
+- [ ] <-- YOU ARE HERE: Session Queue, Default Session Profile,
       and stable Item Ordering Semantics
 - [ ] Endless Shuffle, Queue Stability, and Session Continuity
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
@@ -104,8 +106,9 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Live Resolution, Asset Source Availability,
-Identity Coalescing, and Resolved Pool Snapshot
+Active capability: Session Queue, Default Session Profile,
+and stable Item Ordering Semantics
+(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -115,37 +118,20 @@ Identity Coalescing, and Resolved Pool Snapshot
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-- [x] 11.1 Contract freeze: owner Cap 11 review (D1–D6); ADR-021 Proposed
-      (Limited list omits Album/Smart; sequential multi-source resolve;
-      Album ordering = creationDateDescending); Out-of-scope locked
-- [x] 11.2 Host list: User Album + Smart Album + Availability;
-      open domain↔wire album/smartAlbum mapping; Limited: albums absent
-      from list (ADR-K); `other` still throws
-      (work `95779ef`; device notes `cap11-11.2-notes.md`)
-- [x] 11.3 Host resolve: album/smartAlbum with creationDateDescending;
-      Availability on resolve; Limited resolve → unauthorized
-      (work `2cf26a6`; device notes `cap11-11.3-notes.md`)
-- [x] 11.4 Domain: ResolvedPoolSnapshot + Identity Coalescing
-      (first appearance) + sequential resolvePool(SPD); partial-source
-      failure non-blocking (Glossary §16)
-      (work `44b783e`; unit tests SNAP-1…12; no device notes)
-- [x] 11.5 Composition / smoke-debug wiring (Main Browse unchanged, D4=A);
-      architecture green
-      (work `8e37b64`; Photos+All smoke probe; main_browse ↛
-      `resolve_pool.dart`; no device notes)
-- [x] 11.6 Acceptance: unit tests + device multi-source coalesce
-      (iPhone 13 floor + 17); notes if needed
-      (work `8e37b64`; HEAD `36b868f`; notes `cap11-11.6-notes.md`)
-- [~] 11.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
-      Session Queue / Default Profile Cap
+Awaiting owner-approved phases for Session Queue, Default Session
+Profile, and stable Item Ordering Semantics. Cap 11 Capability Roadmap
+closed in this docs commit; do not invent numbered phases here. Kickoff
+alignment / Cap planning review happens in a later conversation before
+this placeholder is replaced.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 11.7 close-out (PHASE_HISTORY + next Cap placeholder)
-- Sub-steps done: 11.6 device Photos+All coalesce PASS (Kafka Full/Limited +
-      iPhone 17 Full); ADR-021 Accepted (anchor `95779ef`)
-- Next step: append PHASE_HISTORY; mark Capability Roadmap Cap 11 `[x]`;
-      YOU ARE HERE → Session Queue / Default Profile (phases TBD)
-- Related decisions: ADR-021 Accepted; ADR-020 Accepted unchanged
+- Goal (one line): Cap 11 closed; next Cap scope / Phase Roadmap
+      (Session Queue placeholder)
+- Sub-steps done: Cap 11 phases 11.1–11.7; PHASE_HISTORY appended
+- Next step: owner kickoff review + approve Session Queue Phase Roadmap;
+      then replace placeholder
+- Related decisions: ADR-021; Known debt unchanged (no Cap 11 row
+      adds/clears)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
