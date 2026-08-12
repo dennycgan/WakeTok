@@ -108,7 +108,6 @@
 ## Phase Roadmap (active capability only)
 Active capability: Session Queue, Default Session Profile,
 and stable Item Ordering Semantics
-(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -118,20 +117,33 @@ and stable Item Ordering Semantics
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 
-Awaiting owner-approved phases for Session Queue, Default Session
-Profile, and stable Item Ordering Semantics. Cap 11 Capability Roadmap
-closed in this docs commit; do not invent numbered phases here. Kickoff
-alignment / Cap planning review happens in a later conversation before
-this placeholder is replaced.
+- [x] 12.1 Contract freeze: owner review D1–D6=A; ADR-022 Proposed
+      (derive ≠ apply; segmentIndex = resolve-time; OrderPolicy
+      includes shuffle, builder refuses it); Out-of-scope locked
+- [ ] 12.2 Domain: OrderPolicy / AdvanceMode / RepeatPolicy +
+      SessionConfiguration
+- [ ] 12.3 Default Session Profile derivation
+      (current pools always General/Mixed; Pure Clip reserved)
+- [ ] 12.4 Sequential Session Queue builder + ADR-M Sequential
+      contract unit tests; shuffle branch documented refuse;
+      acceptance: Mixed `deriveDefaultSessionProfile` output fed
+      directly into `buildSessionQueue` must hit the documented
+      refusal path (not covered by testing the two functions alone)
+- [ ] 12.5 Composition / smoke-debug only (Main Browse unchanged,
+      D1=A); architecture guard main_browse ↛ build_session_queue;
+      architecture green
+- [ ] 12.6 Acceptance: unit tests (no device PoC; D1=A)
+- [ ] 12.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
+      Phase Roadmap → Endless Shuffle placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 11 closed; next Cap scope / Phase Roadmap
-      (Session Queue placeholder)
-- Sub-steps done: Cap 11 phases 11.1–11.7; PHASE_HISTORY appended
-- Next step: owner kickoff review + approve Session Queue Phase Roadmap;
-      then replace placeholder
-- Related decisions: ADR-021; Known debt unchanged (no Cap 11 row
-      adds/clears)
+- Goal (one line): Cap 12.1 contract freeze (ADR-022 Proposed)
+- Sub-steps done: D1–D6 locked; Phase Roadmap written; ADR-022
+      Proposed appended
+- Next step: owner OK commit/push 12.1 docs; then OK start 12.2
+      coding (Session Configuration types)
+- Related decisions: ADR-022 Proposed; Known debt unchanged
+      (no Cap 12 row adds/clears; playhead stays Cap 13)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -193,8 +205,14 @@ this placeholder is replaced.
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- ADR-001 … ADR-021: docs/DECISIONS.md (ADR-021 Cap 11 Live Resolution —
-  Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
+- Cap 12.1 contract: ADR-022 Proposed (D1–D6=A) — Sequential Session
+  Queue + Default Profile domain; derive ≠ apply (ADR-014 still
+  binds Browse); segmentIndex = Generated Clip resolve-time (D5);
+  OrderPolicy includes shuffle, builder refuses it (D6); Main Browse
+  unchanged; guard `main_browse` ↛ `build_session_queue` lands 12.4/12.5
+- ADR-001 … ADR-022: docs/DECISIONS.md (ADR-022 Cap 12 Session Queue —
+  Proposed, no anchor; ADR-021 Cap 11 Live Resolution Accepted,
+  anchor `95779ef`; ADR-020 Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):

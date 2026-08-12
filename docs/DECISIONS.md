@@ -1690,3 +1690,157 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Accepted date/anchor = Cap 11.2 work `95779ef` (2026-08-11), per F1=A
     (unchanged; 11.3–11.7 are later implementing / acceptance / close-out
     commits, not a new ADR).
+
+---
+
+## ADR-022: Cap 12 Session Queue + Default Profile + Sequential Item Ordering lock
+
+- Status: Proposed
+- Commit/PR anchor: (none — Proposed; set on first Cap 12 work commit)
+- Plain summary (owner reads this):
+  Cap 12 adds Dart-only Session Configuration and a Sequential Session
+  Queue builder on top of Cap 11's Snapshot. Default Profile derivation
+  returns kickoff values (Mixed → Shuffle) but is not wired to Main
+  Browse — ADR-014 Sequential remains the effective product default
+  until Cap 13. Item ordering for current source kinds is locked to
+  creation-date descending. Shuffle queue construction and Session
+  Continuity stay later capabilities.
+- Context / what problem forced this:
+  Cap 11 (ADR-021) delivers a coalesced Resolved Pool Snapshot and
+  leaves Session Queue / Default Profile / Eligibility / Shuffle out of
+  scope. Kickoff ADR-M/N and Glossary §9/§11 require: a finite Session
+  Queue derived from Snapshot + Session Configuration; Default Profile
+  (Pure Clip vs General/Mixed); Sequential concat by Source Reference
+  order plus within-clip `segmentIndex` order. STATE splits this from
+  Endless Shuffle / Queue Stability / Session Continuity (Cap 13) and
+  from Auto-play Eligibility (later). ADR-014 still binds Main Browse to
+  Sequential + Manual and deferred kickoff Shuffle. Without a Cap-scoped
+  contract, Cap 12 risks: wiring Shuffle into the production feed;
+  implementing Queue-layer `segmentIndex` sort that ADR-021's flat
+  Snapshot cannot support; omitting `OrderPolicy.shuffle` while the
+  derivation function must return Shuffle; or inventing Consumption
+  Session / Clip Descriptor types early.
+- Decision (what was chosen):
+  1. **Scope = Dart domain + unit tests; Main Browse zero wiring
+     (D1=A).** No Pigeon / Host change. No Main Browse migration onto
+     SPD / Snapshot / Session Queue. Optional `library_smoke` probe
+     only. Architecture guard (lands with the builder file):
+     `main_browse` ↛ `build_session_queue` — same shape as ADR-021's
+     `main_browse` ↛ `resolve_pool` test.
+  2. **Default Profile derivation ≠ product default (D2=A).**
+     `deriveDefaultSessionProfile` returns kickoff ADR-N values:
+     General/Mixed → Shuffle + Manual + Repeat All; Pure Generated
+     Clip → Sequential + Manual + Repeat All. **This cap introduces a
+     derivation function whose output is not wired to any product
+     surface; ADR-014 remains the effective default until Cap 13
+     supersedes it.** Without Clip Descriptor / `generatedClip` kind,
+     every constructible pool classifies as General/Mixed; Pure is
+     reserved / unreachable (same discipline as ADR-020: no Generated
+     Clip specialization types).
+  3. **No `ConsumptionSession` type (D3=A).** Cap 12 ships
+     `SessionConfiguration` + `SessionQueue` only. Continuity,
+     Checkpoint, Runtime Presentation State, and current-item mapping
+     stay Cap 13 / later.
+  4. **ADR-M §5 closed for instantiated kinds (D4=A).** Sequential
+     Item Ordering for Entire Library, Media Type, Album, and Smart
+     Album remains `creationDateDescending` (ADR-013 / ADR-021). Photos
+     Collection Order is not adopted. No new ordering PoC. Sequential
+     Session Queue for these kinds = `snapshot.coalescedAssetIds`
+     (Source Reference concat already done at resolvePool).
+  5. **`segmentIndex` step executes at Generated Clip resolve-time,
+     not as a Queue-layer sort (D5).** Sequential ordering's
+     `segmentIndex` step is deferred to the Generated Clip source's
+     resolve-time policy, not implemented as a Queue-layer sort —
+     this reinterprets where Glossary §11's two-step algorithm
+     executes. Product-visible order is unchanged (Source Reference
+     concat, then `segmentIndex` ascending within each Generated Clip
+     Source). **Why the execution site must move:** ADR-021 Snapshot
+     is a flat coalesced id list with no per-source raw ids; Queue
+     cannot regroup-and-sort by `segmentIndex` without reopening that
+     contract or taking Clip Descriptor + source membership as Queue
+     inputs (out of Cap 12). Cap 12 Sequential builder does not read
+     Clip Descriptors. Generated Clip Cap owns the resolve-time
+     policy, including how non-descriptor members of a backing album
+     are ordered relative to clips (ADR-J §5). Do not add
+     `segmentIndexAscending` to `ItemOrderingPolicy` until that kind
+     exists.
+  6. **`OrderPolicy` is a two-value enum including `shuffle`;
+     `buildSessionQueue` refuses shuffle (D6=A / option a).**
+     `OrderPolicy` = `{ sequential, shuffle }` so
+     `deriveDefaultSessionProfile` can return a type-correct Mixed
+     default. Cap 12 `buildSessionQueue` implements Sequential only
+     (finite list; Repeat Policy is not expanded). Passing
+     `OrderPolicy.shuffle` is a **documented domain refusal** (not
+     `UnimplementedError`, which reads as unfinished work). Exact
+     error type is a 12.4 implementation detail (`UnsupportedError` /
+     `ArgumentError` acceptable) with a message that cites Cap 13 /
+     this ADR. Cap 13 implements shuffle construction.
+  7. **Manual Queue = full Snapshot (no Eligibility type).** Mode
+     Eligibility stays the later Auto-play Cap. Cap 12 does not
+     introduce eligibility enums or filter interfaces.
+  8. **Out of scope:** Endless Shuffle algorithm / round-boundary
+     rules (ADR-M §7–8); Queue Stability / Continuity (ADR-I);
+     Auto-play Presets and lock-screen / Background Audio (ADR-N
+     §6–8, ADR-O); SessionCheckpoint; Build-a-Pool UI; Saved Pool
+     CRUD; Generated Clip types / `segmentIndex` implementation;
+     Main Browse wiring; Pigeon; Known debt rows (playhead remains
+     Cap 13).
+  9. **Docs workflow:** This Cap 12.1 docs commit appends this entry
+     as **Proposed** (no Accepted date, no fake anchor). After the
+     first Cap **12.2** work commit exists, a later docs commit flips
+     Status to Accepted with that work sha as anchor (not inside the
+     work commit; not deferred to Cap 12 close-out).
+- Rejected alternatives (why not B):
+  - Wire Main Browse through Sequential Session Queue in Cap 12
+    (D1=B) — rejected; production feed / hitch surface; ADR-014 path
+    stays until a later Cap migrates.
+  - Apply kickoff Shuffle as the product default now (D2=B) —
+    rejected; would supersede ADR-014 D2/D3 and pull Cap 13 early.
+  - Built-in tabs permanently Sequential; Shuffle only for user-built
+    Pools (D2=C) — rejected; product fork not requested; kickoff
+    Mixed default remains the long-term rule for Cap 13.
+  - Slim `ConsumptionSession` in Cap 12 (D3=B) — rejected; Continuity
+    is Cap 13; extra type freezes a session shape early.
+  - Leave ADR-M §5 open until Generated Clip (D4=B) — rejected; all
+    instantiated kinds already have verified
+    `creationDateDescending`; capability title requires the lock.
+  - Open a Photos Collection Order PoC (D4=C) — rejected; Cap 11
+    already declined that path.
+  - Keep Glossary §11's two-step as a Queue-layer sort (D5 inverse)
+    — rejected; impossible against ADR-021 Snapshot without
+    reopening per-source id lists.
+  - `OrderPolicy` is Sequential-only until Cap 13 (D6 option b) —
+    rejected; contradicts D2=A: derivation must return Shuffle and
+    the type must be able to hold it.
+  - `buildSessionQueue` throws `UnimplementedError` on shuffle —
+    rejected as the named contract; that type means "author forgot";
+    refusal must read as "not this Cap".
+  - Implement shuffle construction in Cap 12 but leave it unwired —
+    rejected; STATE schedules Endless Shuffle as Cap 13.
+  - Eligibility filter interface now, identity/all-pass default —
+    rejected; avoid freezing Cap 16 shapes (ADR-020 D2 discipline).
+  - Amend ADR-014 or ADR-021 in place — rejected; append ADR-022.
+- Consequences / constraints accepted:
+  - **Derive ≠ apply (product):** This cap introduces a derivation
+    function whose output is not wired to any product surface;
+    ADR-014 remains the effective default until Cap 13 supersedes it.
+    Readers must not treat Mixed→Shuffle in the derivation function
+    as "Shuffle shipped".
+  - **Derive ≠ apply (domain):** Even a direct call
+    `buildSessionQueue(snapshot, deriveDefaultSessionProfile(...))`
+    refuses today, because Mixed derivation yields shuffle. Sequential
+    tests pass an explicit Sequential configuration. This is the
+    domain seam for Cap 13, not a broken pipeline.
+  - Glossary §11 product text (two-step Sequential algorithm) is
+    **not rewritten**; only the engineering execution site of step 2
+    is recorded here and in a GLOSSARY Cap 12 note. Observable order
+    for a future Pure / multi-clip Sequential queue remains Source
+    order then `segmentIndex` within each clip source.
+  - Cap 12 does **not** pay any Known debt table row. Same-asset
+    playhead across All↔Videos stays Session Continuity (Cap 13).
+  - Architecture guards must stay green on any `lib/` touch
+    (ADR-009/010/012). The `main_browse` ↛ `build_session_queue`
+    guard lands when that file exists (12.4/12.5).
+  - Accepted date/anchor = first Cap 12.2 work sha after it exists,
+    per F1=A (not this Proposed docs commit; not Cap 12 close-out;
+    not inside the work commit).
