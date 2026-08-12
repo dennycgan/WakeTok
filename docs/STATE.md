@@ -120,8 +120,9 @@ and stable Item Ordering Semantics
 - [x] 12.1 Contract freeze: owner review D1–D6=A; ADR-022 Proposed
       (derive ≠ apply; segmentIndex = resolve-time; OrderPolicy
       includes shuffle, builder refuses it); Out-of-scope locked
-- [ ] 12.2 Domain: OrderPolicy / AdvanceMode / RepeatPolicy +
+- [x] 12.2 Domain: OrderPolicy / AdvanceMode / RepeatPolicy +
       SessionConfiguration
+      — work `f53d455`
 - [ ] 12.3 Default Session Profile derivation
       (current pools always General/Mixed; Pure Clip reserved)
 - [ ] 12.4 Sequential Session Queue builder + ADR-M Sequential
@@ -137,13 +138,13 @@ and stable Item Ordering Semantics
       Phase Roadmap → Endless Shuffle placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 12.1 contract freeze (ADR-022 Proposed)
-- Sub-steps done: D1–D6 locked; Phase Roadmap written; ADR-022
-      Proposed appended
-- Next step: owner OK commit/push 12.1 docs; then OK start 12.2
-      coding (Session Configuration types)
-- Related decisions: ADR-022 Proposed; Known debt unchanged
-      (no Cap 12 row adds/clears; playhead stays Cap 13)
+- Goal (one line): Cap 12.2 closed; next = 12.3 Default Profile
+- Sub-steps done: 12.2 work `f53d455`; ADR-022 Accepted (this docs
+      commit)
+- Next step: owner OK this docs commit/push → design/go for 12.3
+      deriveDefaultSessionProfile
+- Related decisions: ADR-022 (Accepted, anchor `f53d455`); Known debt
+      unchanged (no Cap 12 row adds/clears; playhead stays Cap 13)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -205,13 +206,16 @@ and stable Item Ordering Semantics
   lib/features/library_smoke/presentation_providers.dart
 - Errors / Result: lib/core/errors/, lib/core/result/ (ADR-008); ErrorCode mapping in lib/platform/error_code_mapping.dart
 - Architecture boundaries: ADR-009 + ADR-010 + ADR-012 + test/architecture/ guard tests
-- Cap 12.1 contract: ADR-022 Proposed (D1–D6=A) — Sequential Session
+- Cap 12 Session Configuration: `lib/domain/session/` —
+  OrderPolicy / AdvanceMode / RepeatPolicy + SessionConfiguration;
+  work `f53d455` (CFG-1…5); derive / SessionQueue later 12.3–12.4
+- Cap 12.1 contract: ADR-022 Accepted (D1–D6=A) — Sequential Session
   Queue + Default Profile domain; derive ≠ apply (ADR-014 still
   binds Browse); segmentIndex = Generated Clip resolve-time (D5);
   OrderPolicy includes shuffle, builder refuses it (D6); Main Browse
   unchanged; guard `main_browse` ↛ `build_session_queue` lands 12.4/12.5
 - ADR-001 … ADR-022: docs/DECISIONS.md (ADR-022 Cap 12 Session Queue —
-  Proposed, no anchor; ADR-021 Cap 11 Live Resolution Accepted,
+  Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted,
   anchor `95779ef`; ADR-020 Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md

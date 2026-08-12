@@ -1695,8 +1695,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-022: Cap 12 Session Queue + Default Profile + Sequential Item Ordering lock
 
-- Status: Proposed
-- Commit/PR anchor: (none — Proposed; set on first Cap 12 work commit)
+- Status: Accepted (2026-08-12)
+- Commit/PR anchor: f53d455
 - Plain summary (owner reads this):
   Cap 12 adds Dart-only Session Configuration and a Sequential Session
   Queue builder on top of Cap 11's Snapshot. Default Profile derivation
@@ -1841,6 +1841,5 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Architecture guards must stay green on any `lib/` touch
     (ADR-009/010/012). The `main_browse` ↛ `build_session_queue`
     guard lands when that file exists (12.4/12.5).
-  - Accepted date/anchor = first Cap 12.2 work sha after it exists,
-    per F1=A (not this Proposed docs commit; not Cap 12 close-out;
-    not inside the work commit).
+  - Accepted date/anchor = first Cap 12.2 work `f53d455` (2026-08-12),
+    per F1=A (not Cap 12 close-out; not inside the work commit).
