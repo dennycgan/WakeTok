@@ -133,16 +133,18 @@ Identity Coalescing, and Resolved Pool Snapshot
       architecture green
       (work `8e37b64`; Photos+All smoke probe; main_browse ↛
       `resolve_pool.dart`; no device notes)
-- [~] 11.6 Acceptance: unit tests + device multi-source coalesce
+- [x] 11.6 Acceptance: unit tests + device multi-source coalesce
       (iPhone 13 floor + 17); notes if needed
-- [ ] 11.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
+      (work `8e37b64`; HEAD `36b868f`; notes `cap11-11.6-notes.md`)
+- [~] 11.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
       Session Queue / Default Profile Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 11.6 accept resolvePool (unit + device coalesce)
-- Sub-steps done: 11.5 smoke wiring + D4=A architecture guard (`8e37b64`);
-      ADR-021 Accepted (anchor `95779ef`)
-- Next step: device Photos+All coalesce on iPhone 13 floor + 17; notes if needed
+- Goal (one line): Cap 11.7 close-out (PHASE_HISTORY + next Cap placeholder)
+- Sub-steps done: 11.6 device Photos+All coalesce PASS (Kafka Full/Limited +
+      iPhone 17 Full); ADR-021 Accepted (anchor `95779ef`)
+- Next step: append PHASE_HISTORY; mark Capability Roadmap Cap 11 `[x]`;
+      YOU ARE HERE → Session Queue / Default Profile (phases TBD)
 - Related decisions: ADR-021 Accepted; ADR-020 Accepted unchanged
 
 ## Contract pointers (don't memorize, go read the source)
@@ -175,6 +177,9 @@ Identity Coalescing, and Resolved Pool Snapshot
 - Cap 11.5 composition: `source_resolve_attempt_mapping.dart` +
   library_smoke Photos+All `resolvePool` probe; Main Browse unchanged;
   architecture guard `main_browse` ↛ `resolve_pool.dart`; work `8e37b64`
+- Cap 11.6 device coalesce: Photos+All `C=A`, All `contrib=V`; Kafka
+  Full/Limited + iPhone 17 Full PASS; notes
+  `docs/acceptance/cap11-11.6-notes.md`
 - Source Pool Definition (Cap 10 / ADR-020):
   `lib/domain/source/source_pool_definition.dart`,
   `persistence_policy.dart`, `pool_capacity.dart`,
@@ -210,6 +215,8 @@ Identity Coalescing, and Resolved Pool Snapshot
   docs/acceptance/cap11-11.2-notes.md
 - Acceptance notes (Cap 11.3 album resolve / Limited unauthorized):
   docs/acceptance/cap11-11.3-notes.md
+- Acceptance notes (Cap 11.6 Photos+All coalesce / 13+17):
+  docs/acceptance/cap11-11.6-notes.md
 - Acceptance notes (Cap 7.7 Release forensic + Errata):
   docs/acceptance/cap7-7.7-notes.md
 - Acceptance notes (Cap 7.7a Profile retest):
