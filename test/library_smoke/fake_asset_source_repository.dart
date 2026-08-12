@@ -16,6 +16,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     this.extraSources = const <AssetSource>[],
     this.albumResolveIds = const <String, List<String>>{},
     this.albumResolveUnauthorized = false,
+    this.resolveException,
   });
 
   List<String> allIds;
@@ -30,6 +31,9 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
 
   /// When true, album/smartAlbum resolve throws [AppError.unauthorized].
   bool albumResolveUnauthorized;
+
+  /// When set, [resolve] throws after recording history (Cap 11.5 W-P3).
+  Exception? resolveException;
 
   int listCalls = 0;
   int resolveCalls = 0;
@@ -79,6 +83,11 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     resolveCalls += 1;
     lastResolve = reference;
     resolveHistory.add(reference);
+
+    final thrown = resolveException;
+    if (thrown != null) {
+      throw thrown;
+    }
 
     if (reference.kind == AssetSourceKind.album ||
         reference.kind == AssetSourceKind.smartAlbum) {

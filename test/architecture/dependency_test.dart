@@ -107,6 +107,39 @@ void main() {
       reason: 'ADR-009 architecture violations:\n${violations.join('\n')}',
     );
   });
+
+  test(
+      'architecture: main_browse must not import resolve_pool (ADR-021 D4=A)',
+      () {
+    final browseDir = Directory('${libRoot.path}/features/main_browse');
+    final violations = <String>[];
+    if (browseDir.existsSync()) {
+      for (final file in _dartFilesUnder(browseDir)) {
+        final rel = _posixRel(packageRoot, file);
+        final source = file.readAsStringSync();
+        for (final directive in _importOrExportUris(source)) {
+          final target = _resolveWakatokTarget(
+            packageRoot: packageRoot,
+            fromFile: file,
+            uri: directive.uri,
+          );
+          if (target == 'lib/domain/source/resolve_pool.dart') {
+            violations.add(
+              '$rel:${directive.line}: main_browse must not import '
+              'resolve_pool.dart (ADR-021 D4=A)',
+            );
+          }
+        }
+      }
+    }
+
+    expect(
+      violations,
+      isEmpty,
+      reason: 'ADR-021 D4=A main_browse resolve_pool imports:\n'
+          '${violations.join('\n')}',
+    );
+  });
 }
 
 // --- path helpers -----------------------------------------------------------

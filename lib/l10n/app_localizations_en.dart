@@ -134,6 +134,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sourceAlbumResolveFailed => 'Album / Smart resolve probe failed.';
 
   @override
+  String get sourcePoolProbeSectionTitle => 'Pool resolve (debug)';
+
+  @override
+  String get sourcePoolProbeButton => 'Resolve pool (Photos + All)';
+
+  @override
+  String sourcePoolProbeCoalesced(int count) {
+    return 'coalesced=$count';
+  }
+
+  @override
+  String sourcePoolProbeStatus(
+    String kind,
+    String id,
+    String availability,
+    int raw,
+    int contrib,
+  ) {
+    return '$kind:$id $availability raw=$raw contrib=$contrib';
+  }
+
+  @override
   String sourceResolvedLength(int count) {
     return 'resolved length: $count';
   }

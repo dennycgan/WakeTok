@@ -315,6 +315,36 @@ abstract class AppLocalizations {
   /// **'Album / Smart resolve probe failed.'**
   String get sourceAlbumResolveFailed;
 
+  /// Cap 11.5 smoke section for sequential resolvePool (Photos+All)
+  ///
+  /// In en, this message translates to:
+  /// **'Pool resolve (debug)'**
+  String get sourcePoolProbeSectionTitle;
+
+  /// Runs resolvePool on a fixed ephemeral SPD: Photos then All
+  ///
+  /// In en, this message translates to:
+  /// **'Resolve pool (Photos + All)'**
+  String get sourcePoolProbeButton;
+
+  /// ResolvedPoolSnapshot coalescedAssetIds length after resolvePool
+  ///
+  /// In en, this message translates to:
+  /// **'coalesced={count}'**
+  String sourcePoolProbeCoalesced(int count);
+
+  /// One SourceResolveStatus row from the snapshot (debug)
+  ///
+  /// In en, this message translates to:
+  /// **'{kind}:{id} {availability} raw={raw} contrib={contrib}'**
+  String sourcePoolProbeStatus(
+    String kind,
+    String id,
+    String availability,
+    int raw,
+    int contrib,
+  );
+
   /// Shows ResolvedSource.assetIdentifiers length after resolve
   ///
   /// In en, this message translates to:

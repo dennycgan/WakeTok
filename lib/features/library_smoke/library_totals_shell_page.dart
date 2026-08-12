@@ -9,7 +9,11 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
+import 'package:waketok/domain/source/persistence_policy.dart';
+import 'package:waketok/domain/source/resolve_pool.dart';
+import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/domain/source/source_resolve_status.dart';
 import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/library_smoke/album_resolve_probe_cache.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
@@ -17,6 +21,7 @@ import 'package:waketok/features/library_smoke/builtin_quantile.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/playback_pipeline_probe.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
+import 'package:waketok/features/library_smoke/source_resolve_attempt_mapping.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Post-authorization landing shell (Cap 5.3 / 5.4 + Cap 6.4 smoke).
@@ -48,6 +53,8 @@ class _LibraryTotalsShellPageState
   SourceReference? _cachedUserAlbumRef;
   String? _cachedUserAlbumName;
   String? _albumProbeMessage;
+  String? _poolProbeMessage;
+  List<SourceResolveStatus>? _poolStatuses;
 
   @override
   void initState() {
@@ -142,6 +149,8 @@ class _LibraryTotalsShellPageState
       _busy = true;
       _pairProbeMessage = null;
       _albumProbeMessage = null;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
     });
     try {
       final resolved =
@@ -201,6 +210,8 @@ class _LibraryTotalsShellPageState
       _busy = true;
       _albumProbeMessage = null;
       _pairProbeMessage = null;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
     });
     try {
       final sourceRef = SourceReference.fromAssetSource(source);
@@ -283,6 +294,8 @@ class _LibraryTotalsShellPageState
       _busy = true;
       _albumProbeMessage = null;
       _pairProbeMessage = null;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
     });
     try {
       final resolved =
@@ -319,6 +332,53 @@ class _LibraryTotalsShellPageState
     }
   }
 
+  Future<void> _runPoolProbe() async {
+    final l10n = AppLocalizations.of(context)!;
+    setState(() {
+      _busy = true;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
+      _pairProbeMessage = null;
+      _albumProbeMessage = null;
+    });
+    final definition = SourcePoolDefinition(
+      id: 'debug-photos-all',
+      persistencePolicy: PersistencePolicy.ephemeral,
+      orderedSourceReferences: const [
+        SourceReference.photos,
+        SourceReference.all,
+      ],
+    );
+    try {
+      final repository = ref.read(assetSourceRepositoryProvider);
+      final snapshot = await resolvePool(
+        definition: definition,
+        resolveOne: (sourceRef) =>
+            resolveOneFromRepository(repository, sourceRef),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _poolProbeMessage =
+            l10n.sourcePoolProbeCoalesced(snapshot.coalescedAssetIds.length);
+        _poolStatuses = snapshot.sourceStatuses;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _poolProbeMessage = l10n.sourceSmokeOperationFailed;
+        _poolStatuses = null;
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
   Future<void> _runQuantile() async {
     if (_selected.kind != AssetSourceKind.entireLibrary) {
       return;
@@ -329,6 +389,8 @@ class _LibraryTotalsShellPageState
       _quantileRows = null;
       _yearSpanLabel = null;
       _pairProbeMessage = null;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
     });
     try {
       final repo = ref.read(assetSourceRepositoryProvider);
@@ -391,6 +453,8 @@ class _LibraryTotalsShellPageState
     setState(() {
       _busy = true;
       _pairProbeMessage = null;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
     });
     const illegal = SourceReference(
       kind: AssetSourceKind.entireLibrary,
@@ -535,6 +599,8 @@ class _LibraryTotalsShellPageState
                               _quantileRows = null;
                               _yearSpanLabel = null;
                               _pairProbeMessage = null;
+                              _poolProbeMessage = null;
+                              _poolStatuses = null;
                             });
                           },
                   ),
@@ -629,6 +695,48 @@ class _LibraryTotalsShellPageState
                       style: bodyStyle,
                     ),
                   ),
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Text(
+                    l10n.sourcePoolProbeSectionTitle,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: tokens.onSurface,
+                        ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: FilledButton(
+                    onPressed: _busy ? null : _runPoolProbe,
+                    child: Text(l10n.sourcePoolProbeButton),
+                  ),
+                ),
+                if (_poolProbeMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Text(
+                      _poolProbeMessage!,
+                      key: const Key('poolProbeMessage'),
+                      style: bodyStyle,
+                    ),
+                  ),
+                if (_poolStatuses != null)
+                  ..._poolStatuses!.map((status) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        l10n.sourcePoolProbeStatus(
+                          status.reference.kind.name,
+                          status.reference.id,
+                          status.availability.name,
+                          status.rawCount,
+                          status.contributedCount,
+                        ),
+                        style: bodyStyle,
+                      ),
+                    );
+                  }),
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

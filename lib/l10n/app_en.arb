@@ -162,6 +162,32 @@
   "@sourceAlbumResolveFailed": {
     "description": "Generic ARB fallback when album resolve throws unexpectedly"
   },
+  "sourcePoolProbeSectionTitle": "Pool resolve (debug)",
+  "@sourcePoolProbeSectionTitle": {
+    "description": "Cap 11.5 smoke section for sequential resolvePool (Photos+All)"
+  },
+  "sourcePoolProbeButton": "Resolve pool (Photos + All)",
+  "@sourcePoolProbeButton": {
+    "description": "Runs resolvePool on a fixed ephemeral SPD: Photos then All"
+  },
+  "sourcePoolProbeCoalesced": "coalesced={count}",
+  "@sourcePoolProbeCoalesced": {
+    "description": "ResolvedPoolSnapshot coalescedAssetIds length after resolvePool",
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+  "sourcePoolProbeStatus": "{kind}:{id} {availability} raw={raw} contrib={contrib}",
+  "@sourcePoolProbeStatus": {
+    "description": "One SourceResolveStatus row from the snapshot (debug)",
+    "placeholders": {
+      "kind": {"type": "String"},
+      "id": {"type": "String"},
+      "availability": {"type": "String"},
+      "raw": {"type": "int"},
+      "contrib": {"type": "int"}
+    }
+  },
   "sourceResolvedLength": "resolved length: {count}",
   "@sourceResolvedLength": {
     "description": "Shows ResolvedSource.assetIdentifiers length after resolve",

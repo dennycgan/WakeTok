@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
@@ -12,6 +14,7 @@ import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
+import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
@@ -261,5 +264,116 @@ void main() {
 
     expect(find.textContaining(l10n.sourceQuantileAlignOk), findsWidgets);
     expect(find.textContaining(l10n.sourceQuantileAlignFail), findsNothing);
+  });
+
+  testWidgets('W-P1 pool probe coalesces Photos then All in order',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final sources = FakeAssetSourceRepository(
+      photosIds: const ['a', 'b'],
+      allIds: const ['a', 'b', 'c'],
+      videosIds: const ['c'],
+    );
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 3, photos: 2, videos: 1),
+    );
+
+    await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text(l10n.sourcePoolProbeButton),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.sourcePoolProbeButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.sourcePoolProbeCoalesced(3)), findsOneWidget);
+    expect(
+      find.text(
+        l10n.sourcePoolProbeStatus(
+          'mediaTypePhotos',
+          'photos',
+          'available',
+          2,
+          2,
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text(
+        l10n.sourcePoolProbeStatus(
+          'entireLibrary',
+          'all',
+          'available',
+          3,
+          1,
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(sources.resolveHistory, [
+      SourceReference.photos,
+      SourceReference.all,
+    ]);
+  });
+
+  testWidgets('W-P2 pool probe section copy comes from AppLocalizations',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a1'],
+      photosIds: const ['p1'],
+      videosIds: const ['v1'],
+    );
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 1, photos: 1, videos: 1),
+    );
+
+    await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text(l10n.sourcePoolProbeButton),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.sourcePoolProbeSectionTitle), findsOneWidget);
+    expect(find.text(l10n.sourcePoolProbeButton), findsOneWidget);
+  });
+
+  testWidgets(
+      'W-P3 pool probe unexpected throw shows sourceSmokeOperationFailed',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final sources = FakeAssetSourceRepository(
+      photosIds: const ['a'],
+      allIds: const ['a', 'b'],
+      resolveException: PlatformException(code: AppError.unknown.name),
+    );
+    final catalog = FakeLibraryCatalogRepository(
+      totalsValue: const LibraryTotals(all: 2, photos: 1, videos: 1),
+    );
+
+    await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
+    await tester.pumpAndSettle();
+
+    await tester.dragUntilVisible(
+      find.text(l10n.sourcePoolProbeButton),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.sourcePoolProbeButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('poolProbeMessage')), findsOneWidget);
+    expect(find.text(l10n.sourceSmokeOperationFailed), findsOneWidget);
+    expect(sources.resolveHistory, [SourceReference.photos]);
   });
 }
