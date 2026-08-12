@@ -129,19 +129,20 @@ Identity Coalescing, and Resolved Pool Snapshot
       (first appearance) + sequential resolvePool(SPD); partial-source
       failure non-blocking (Glossary §16)
       (work `44b783e`; unit tests SNAP-1…12; no device notes)
-- [~] 11.5 Composition / smoke-debug wiring (Main Browse unchanged, D4=A);
+- [x] 11.5 Composition / smoke-debug wiring (Main Browse unchanged, D4=A);
       architecture green
-- [ ] 11.6 Acceptance: unit tests + device multi-source coalesce
+      (work `8e37b64`; Photos+All smoke probe; main_browse ↛
+      `resolve_pool.dart`; no device notes)
+- [~] 11.6 Acceptance: unit tests + device multi-source coalesce
       (iPhone 13 floor + 17); notes if needed
 - [ ] 11.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY + YOU ARE HERE →
       Session Queue / Default Profile Cap
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 11.5 wire resolvePool + smoke-debug (no Main Browse)
-- Sub-steps done: 11.4 domain Snapshot + sequential coalesce (`44b783e`);
+- Goal (one line): Cap 11.6 accept resolvePool (unit + device coalesce)
+- Sub-steps done: 11.5 smoke wiring + D4=A architecture guard (`8e37b64`);
       ADR-021 Accepted (anchor `95779ef`)
-- Next step: map repository.resolve → SourceResolveAttempt at composition;
-      smoke probe for multi-source coalesce
+- Next step: device Photos+All coalesce on iPhone 13 floor + 17; notes if needed
 - Related decisions: ADR-021 Accepted; ADR-020 Accepted unchanged
 
 ## Contract pointers (don't memorize, go read the source)
@@ -171,6 +172,9 @@ Identity Coalescing, and Resolved Pool Snapshot
   `resolved_pool_snapshot.dart`, `source_resolve_attempt.dart`,
   `source_resolve_status.dart`; sequential first-appearance coalesce;
   work `44b783e`
+- Cap 11.5 composition: `source_resolve_attempt_mapping.dart` +
+  library_smoke Photos+All `resolvePool` probe; Main Browse unchanged;
+  architecture guard `main_browse` ↛ `resolve_pool.dart`; work `8e37b64`
 - Source Pool Definition (Cap 10 / ADR-020):
   `lib/domain/source/source_pool_definition.dart`,
   `persistence_policy.dart`, `pool_capacity.dart`,
