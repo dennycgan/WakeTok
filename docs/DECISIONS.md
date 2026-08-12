@@ -1682,7 +1682,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     may approach union size after coalescing.
   - Cap 12+ consumes Snapshot; Cap 14 builds Pool UI on listAssetSources.
   - Cap 11.2 landed list + mapper (`95779ef`); Cap 11.3 landed
-    album/smartAlbum resolve (`2cf26a6`). Snapshot and coalesce remain
-    later Cap 11 phases.
+    album/smartAlbum resolve (`2cf26a6`); Cap 11.4 landed sequential
+    `resolvePool` + coalesced Snapshot (`44b783e`). Composition / smoke
+    remain Cap 11.5.
   - Accepted date/anchor = Cap 11.2 work `95779ef` (2026-08-11), per F1=A
-    (unchanged; 11.3 is a later implementing commit, not a new ADR).
+    (unchanged; 11.3/11.4 are later implementing commits, not a new ADR).
