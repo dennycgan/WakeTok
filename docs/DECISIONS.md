@@ -907,7 +907,14 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-014: Cap 7 slim Main Browse feed model (Sequential + Manual)
 
-- Status: Accepted (2026-08-03)
+- Status: Accepted (2026-08-03); Decisions 2–3 (Sequential product
+  default / deferred Shuffle for Browse Mixed) are superseded by
+  ADR-023 (2026-08-13; Cap 13.4 work `10a5735`) — Main Browse Mixed
+  tabs use Shuffle + Manual + Repeat All via derive + Session Queue;
+  Decision 4 outcome (tab switch → feed index 0) remains binding, with
+  rationale re-grounded by ADR-023 D8 (tab = new Consumption Session)
+  rather than “no Session Queue model yet”; Decisions 1 and 5–7 and
+  the Cap 7 Profile V-hard / Release hang split remain binding
 - Commit/PR anchor: 5ef2e8a
 - Plain summary (owner reads this):
   Cap 7 Main Browse drives a vertical feed from Cap 6 built-in

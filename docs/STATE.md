@@ -133,31 +133,36 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       (rebuild mapping; slim ConsumptionSession; no
       SessionCheckpoint persistence)
       — work `78f6d9d`
-- [ ] 13.4 Product apply: Main Browse Mixed → derive + Shuffle
+- [x] 13.4 Product apply: Main Browse Mixed → derive + Shuffle
       Queue; supersede ADR-014 Sequential product default via
       ADR-023; composition / guard update (D9=A)
+      — work `10a5735`
 - [ ] 13.5 Playhead debt reclassification (D6=A): Known debt row
       reworded Accepted behaviour — not a bug fix (D8=A: tab =
       new Session; cross-tab Continuity not in Cap 13); no
       PlaybackApiHost code change
-- [ ] 13.6 Acceptance: unit SHUF/CONT/STAB + architecture green;
-      Instruments Profile Hang retest on iPhone 13 Pro (Kafka,
-      UDID `00008110-001114420AEA801E`) — same V-hard as
-      ADR-014 Cap 7.7a (mean hitch < 25 ms/s AND zero Severe
-      Hang on production chrome with Shuffle-driven feed; not
-      Conditional Pass); does not clear Release hang Known debt;
-      no new PoC gate; no Checkpoint recovery test
+- [ ] 13.6 Acceptance: unit SHUF/CONT/STAB/ROUND + APP/W-SHUF/W-END
+      + architecture green; Instruments Profile Hang retest on
+      iPhone 13 Pro (Kafka, UDID `00008110-001114420AEA801E`) —
+      same V-hard as ADR-014 Cap 7.7a (mean hitch < 25 ms/s AND
+      zero Severe Hang on production chrome with Shuffle-driven
+      feed **including Manual Endless: swipe past last item to
+      start next Shuffle round**; not Conditional Pass); does not
+      clear Release hang Known debt; no new PoC gate; no
+      Checkpoint recovery test
 - [ ] 13.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
       Phase Roadmap → Auto-play Presets placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.3 closed; next = 13.4 Browse product apply
-- Sub-steps done: 13.3 work `78f6d9d` (slim ConsumptionSession;
-      Order-only rebuild + asset-id remap; SESS/STAB/CONT)
-- Next step: owner OK this docs commit/push → design/go for 13.4
-- Related decisions: ADR-023 (Accepted, anchor `f0187b4`); Known
-      debt unchanged until 13.5 (playhead reclassification); Release
-      hang stays Final performance Cap
+- Goal (one line): Cap 13.4 closed; next = 13.5 playhead debt reclass
+- Sub-steps done: 13.4 work `10a5735` (lib/app browse seam; Mixed
+      derive + Shuffle Session; Endless round; D9 guards)
+- Next step: owner OK this docs commit/push → 13.5 Known debt reword
+- Related decisions: ADR-023 (Accepted, anchor `f0187b4`); ADR-014
+      Status: Decisions 2–3 superseded by ADR-023 at Cap 13.4;
+      Decision 4 outcome still binding (D8 re-ground); Known debt
+      playhead row unchanged until 13.5; Release hang stays Final
+      performance Cap; 13.6 Profile must include Endless round gesture
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -170,7 +175,9 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 - Library catalog: lib/domain/library/, PhotoLibraryApi.libraryTotals / fetchLibraryPage (ADR-011); debug totals shell: lib/features/library_smoke/
 - Main Browse shell: lib/features/main_browse/ (Cap 7.4–7.6 feed;
   Cap 8.2 immersive content + always-dark bottom bar `60f3283` / ADR-017;
-  transparent top + compact bar `5fb93de` / ADR-016)
+  transparent top + compact bar `5fb93de` / ADR-016);
+  Cap 13.4 Shuffle Session wiring: `lib/app/browse/browse_session_providers.dart`
+  (`10a5735` / ADR-023)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Cap 11.2 list albums: Host `listAssetSources` Full = built-ins +
   albumRegular + smart (Hidden/RD excluded); Limited = built-ins only;
@@ -227,16 +234,17 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
   (`f0187b4`, SHUF-1…7; Cap 12 UnsupportedError removed);
   architecture guard main_browse ↛ build_session_queue (`a14d748`)
 - Cap 12.1 contract: ADR-022 Accepted (D1–D6=A) — Sequential Session
-  Queue + Default Profile domain; derive ≠ apply (ADR-014 still
-  binds Browse until Cap 13.4); segmentIndex = Generated Clip
+  Queue + Default Profile domain; derive ≠ apply was Cap 12; Cap 13.4
+  (`10a5735`) applied Mixed → Shuffle on Main Browse (ADR-023 /
+  ADR-014 Decisions 2–3 superseded); segmentIndex = Generated Clip
   resolve-time (D5); OrderPolicy includes shuffle (Cap 13.2
-  implements construction); Main Browse unchanged until 13.4;
-  guard `main_browse` ↛ `build_session_queue` landed 12.5
+  implements construction); D9 seam: `main_browse` still ↛
+  `build_session_queue` / `resolve_pool` (wiring in `lib/app/browse/`)
 - Cap 12.6 acceptance: unit-only (no device PoC); full `flutter test`
   PASS (+247) at HEAD `6127b44`; no `docs/acceptance/cap12-12.6-notes.md`
 - Cap 13.1 contract: ADR-023 Accepted (D1–D9=A, anchor `f0187b4`) —
   Endless Shuffle + Queue Stability + in-session Continuity; Main
-  Browse Mixed → Shuffle product apply in 13.4; slim
+  Browse Mixed → Shuffle product apply landed 13.4 (`10a5735`); slim
   ConsumptionSession; Manual Shuffle = full Snapshot; playhead debt
   reclassified in 13.5 (not bug-fix); tab = new Session; 13.6
   Profile V-hard on iPhone 13 Pro (Kafka)
