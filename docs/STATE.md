@@ -125,9 +125,10 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       injectable Random + first≠last retry; playhead debt
       reclassified Accepted not bug-fix; tab = new Session;
       composition-seam guard update); Out-of-scope locked
-- [ ] 13.2 Domain: Endless Shuffle in buildSessionQueue
+- [x] 13.2 Domain: Endless Shuffle in buildSessionQueue
       (Fisher–Yates + round reshuffle + first≠last best-effort;
       injectable Random; Cap 12 UnsupportedError removed)
+      — work `f0187b4`
 - [ ] 13.3 Domain: Queue Stability + in-session Continuity
       (rebuild mapping; slim ConsumptionSession; no
       SessionCheckpoint persistence)
@@ -149,14 +150,13 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       Phase Roadmap → Auto-play Presets placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.1 contract freeze (ADR-023 Proposed)
-- Sub-steps done: D1–D9 locked (=A); Phase Roadmap written;
-      ADR-023 Proposed appended
-- Next step: owner OK commit/push 13.1 docs; then OK start 13.2
-      coding (Endless Shuffle builder)
-- Related decisions: ADR-023 Proposed; Known debt unchanged until
-      13.5 (playhead reclassification); Release hang stays Final
-      performance Cap
+- Goal (one line): Cap 13.2 closed; next = 13.3 Continuity domain
+- Sub-steps done: 13.2 work `f0187b4` (Endless Shuffle builder;
+      SHUF-1…7; Cap 12 UnsupportedError removed); ADR-023 Accepted
+- Next step: owner OK this docs commit/push → design/go for 13.3
+- Related decisions: ADR-023 (Accepted, anchor `f0187b4`); Known
+      debt unchanged until 13.5 (playhead reclassification); Release
+      hang stays Final performance Cap
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -222,25 +222,28 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
   OrderPolicy / AdvanceMode / RepeatPolicy + SessionConfiguration
   (`f53d455`); DefaultSessionProfile + classify/derive (`ba81abc`,
   DPR-1…7; Cap 12 always generalMixed); SessionQueue +
-  buildSessionQueue (`77571a9`, SQ-1…7; shuffle → UnsupportedError);
+  buildSessionQueue Sequential (`77571a9`); Cap 13.2 Shuffle
+  (`f0187b4`, SHUF-1…7; Cap 12 UnsupportedError removed);
   architecture guard main_browse ↛ build_session_queue (`a14d748`)
 - Cap 12.1 contract: ADR-022 Accepted (D1–D6=A) — Sequential Session
   Queue + Default Profile domain; derive ≠ apply (ADR-014 still
-  binds Browse); segmentIndex = Generated Clip resolve-time (D5);
-  OrderPolicy includes shuffle, builder refuses it (D6); Main Browse
-  unchanged; guard `main_browse` ↛ `build_session_queue` landed 12.5
+  binds Browse until Cap 13.4); segmentIndex = Generated Clip
+  resolve-time (D5); OrderPolicy includes shuffle (Cap 13.2
+  implements construction); Main Browse unchanged until 13.4;
+  guard `main_browse` ↛ `build_session_queue` landed 12.5
 - Cap 12.6 acceptance: unit-only (no device PoC); full `flutter test`
   PASS (+247) at HEAD `6127b44`; no `docs/acceptance/cap12-12.6-notes.md`
-- Cap 13.1 contract: ADR-023 Proposed (D1–D9=A) — Endless Shuffle +
-  Queue Stability + in-session Continuity; Main Browse Mixed →
-  Shuffle product apply (supersedes ADR-014 Sequential default);
-  slim ConsumptionSession (no Runtime Presentation / Checkpoint);
-  Manual Shuffle = full Snapshot; playhead debt reclassified
-  Accepted (not bug-fix); tab switch = new Session; composition
-  seam replaces main_browse ↛ build_session_queue; 13.6 Profile
-  V-hard on iPhone 13 Pro (Kafka)
+- Cap 13.1 contract: ADR-023 Accepted (D1–D9=A, anchor `f0187b4`) —
+  Endless Shuffle + Queue Stability + in-session Continuity; Main
+  Browse Mixed → Shuffle product apply in 13.4; slim
+  ConsumptionSession; Manual Shuffle = full Snapshot; playhead debt
+  reclassified in 13.5 (not bug-fix); tab = new Session; 13.6
+  Profile V-hard on iPhone 13 Pro (Kafka)
+- Cap 13.2 Endless Shuffle: `buildSessionQueue` Fisher–Yates +
+  injectable Random + `previousRoundLastId` first≠last retries;
+  work `f0187b4`
 - ADR-001 … ADR-023: docs/DECISIONS.md (ADR-023 Cap 13 Endless
-  Shuffle — Proposed, no anchor; ADR-022 Cap 12 Session Queue
+  Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session Queue
   Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
   Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md

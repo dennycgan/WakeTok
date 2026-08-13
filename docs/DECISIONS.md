@@ -1848,8 +1848,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-023: Cap 13 Endless Shuffle + Queue Stability + in-session Continuity lock
 
-- Status: Proposed
-- Commit/PR anchor: (none — Proposed; set on first Cap 13 work commit)
+- Status: Accepted (2026-08-13)
+- Commit/PR anchor: f0187b4
 - Plain summary (owner reads this):
   Cap 13 makes kickoff General/Mixed default Shuffle the real Main Browse
   experience (Endless Shuffle rounds), adds in-session Queue Stability /
@@ -2002,8 +2002,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     Cap 13.5 rewrite the Known debt row to Accepted behaviour under
     D8=A; readers must not treat Cap 13 as having “fixed” All↔Videos
     playhead sharing.
-  - Cap 12 SQ-4 / SQ-7 tests that expect shuffle `UnsupportedError` are
-    rewritten in 13.2 when construction lands.
+  - Cap 12 SQ-4 / SQ-7 tests that expected shuffle `UnsupportedError`
+    were rewritten as SHUF-1…7 in Cap 13.2 work `f0187b4`.
   - Architecture suite must stay green; guard tests update with D9 seam
     in 13.4.
   - 13.6 Profile V-hard is **must-pass** to close Cap 13 when D1=A;
@@ -2011,5 +2011,5 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Release hang Known debt stays on Final performance Cap.
   - No Cap 13 Known debt **adds**; playhead row is **reclassified** in
     13.5 (not deleted without replacement wording).
-  - Accepted date/anchor = first Cap 13.2 work commit (when it lands),
-    not Cap 13.1 docs and not Cap close-out.
+  - Accepted date/anchor = Cap 13.2 work `f0187b4` (2026-08-13), per
+    docs workflow (not Cap 13.1 docs and not Cap close-out).
