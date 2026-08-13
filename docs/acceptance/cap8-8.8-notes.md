@@ -75,6 +75,8 @@ Recorded during C1 doomscroll; **out of Cap 8.8 gate**. Do not conflate with A1.
 
 **Owner preliminary view (not a final decision):** Behavior looks acceptable for now and may even help a future Session Continuity capability; **revisit when Session Continuity is designed**. **No fix in Cap 8.8.**
 
+**Cap 13.5 update:** **Accepted behaviour** per ADR-023 D6 (docs commit for Cap 13.5). Not a Host / `PlaybackApiHost` fix; not cross-tab Continuity (ADR-023 D8: tab = new Session). STATE Known debt row reworded and **kept** as a permanent accepted-behaviour record (not removed) to prevent re-litigation. Closed by Cap 13.5.
+
 ---
 
 ## Audio leak (A1) — fixed + retested PASS

@@ -46,7 +46,8 @@
 - [x] Media Info Overlay, loading states, empty states,
       POC-10 file-size semantics,
       optional best-effort Location Label (not release-blocking)
-      (ADR-015…018; 8.8 notes; Location + cross-source playhead debts)
+      (ADR-015…018; 8.8 notes; Location Known debt remains;
+      cross-source playhead Accepted ADR-023 / Cap 13.5)
 - [x] Live Photo rendering and static fallback (POC-08)
       (ADR-019; POC-08 PASS Cap 9.7; mute persist `4aa93b0`;
       UX-1/UX-2 Known debt; notes `cap9-9.7-poc08-notes.md`)
@@ -137,7 +138,7 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       Queue; supersede ADR-014 Sequential product default via
       ADR-023; composition / guard update (D9=A)
       — work `10a5735`
-- [ ] 13.5 Playhead debt reclassification (D6=A): Known debt row
+- [x] 13.5 Playhead debt reclassification (D6=A): Known debt row
       reworded Accepted behaviour — not a bug fix (D8=A: tab =
       new Session; cross-tab Continuity not in Cap 13); no
       PlaybackApiHost code change
@@ -154,15 +155,14 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       Phase Roadmap → Auto-play Presets placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.4 closed; next = 13.5 playhead debt reclass
-- Sub-steps done: 13.4 work `10a5735` (lib/app browse seam; Mixed
-      derive + Shuffle Session; Endless round; D9 guards)
-- Next step: owner OK this docs commit/push → 13.5 Known debt reword
-- Related decisions: ADR-023 (Accepted, anchor `f0187b4`); ADR-014
-      Status: Decisions 2–3 superseded by ADR-023 at Cap 13.4;
-      Decision 4 outcome still binding (D8 re-ground); Known debt
-      playhead row unchanged until 13.5; Release hang stays Final
-      performance Cap; 13.6 Profile must include Endless round gesture
+- Goal (one line): Cap 13.5 closed; next = 13.6 acceptance + Profile
+- Sub-steps done: 13.5 docs — Known debt playhead row reclassified
+      Accepted (ADR-023 D6); row kept (not deleted) as permanent
+      accepted-behaviour record; cap8-8.8 Status append
+- Next step: owner OK this docs commit/push → 13.6 acceptance
+- Related decisions: ADR-023 D6/D8; no Host change; Release hang
+      stays Final performance Cap; 13.6 Profile must include Endless
+      round gesture
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -246,7 +246,7 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
   Endless Shuffle + Queue Stability + in-session Continuity; Main
   Browse Mixed → Shuffle product apply landed 13.4 (`10a5735`); slim
   ConsumptionSession; Manual Shuffle = full Snapshot; playhead debt
-  reclassified in 13.5 (not bug-fix); tab = new Session; 13.6
+  reclassified Accepted Cap 13.5 (not bug-fix; row kept); tab = new Session; 13.6
   Profile V-hard on iPhone 13 Pro (Kafka)
 - Cap 13.2 Endless Shuffle: `buildSessionQueue` Fisher–Yates +
   injectable Random + `previousRoundLastId` first≠last retries;
@@ -297,7 +297,7 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 |---|---|---|---|---|
 | Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
 | Media Info Overlay | Location Label (reverse geocode) not implemented | Owner Cap 8 Q1=B: Overlay row 4 hidden when empty this Cap (kickoff ADR-X best-effort deferral; no geocode). Current-Item-only geocode hard rule unchanged when a later Cap picks this up | Later Cap (or reopen when Owner schedules) | kickoff ADR-X |
-| Media Info Overlay | Same-asset playhead shared across built-in sources (All ↔ Videos) | First observed Cap 8.8: `PlaybackApiHost` keys the app-scoped player by `assetIdentifier` (ADR-006), so the same Photos id under All vs Videos reuses position / ended-on-last-frame. ADR-014 Decision 4 only resets **feed index** on tab switch — not playhead continuity. Owner preliminary (not final): likely acceptable and may help Session Continuity; **revisit when that capability is designed**. No Cap 8 fix. | Session Continuity (when scheduled) | ADR-006 / ADR-014; `docs/acceptance/cap8-8.8-notes.md` |
+| Media Info Overlay | Same-asset playhead shared across built-in sources (All ↔ Videos) — **Accepted behaviour** | First observed Cap 8.8 (`cap8-8.8-notes.md`): `PlaybackApiHost` keys the app-scoped player by `assetIdentifier` (ADR-006), so the same Photos id under All vs Videos reuses position / ended-on-last-frame. **Accepted (ADR-023 D6 / Cap 13.5)** — intentional Host keying, **not** a bug fix and **not** cross-tab Continuity (D8: tab = new Session; feed index still resets). No `PlaybackApiHost` change. **Row kept** (not deleted like resolved bugs) as a permanent record of accepted behaviour to prevent re-litigation when the shared playhead is noticed again. | Closed by Cap 13.5 (ADR-023 D6) | ADR-006 / ADR-014 / ADR-023; `docs/acceptance/cap8-8.8-notes.md` |
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
