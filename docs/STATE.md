@@ -129,9 +129,10 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       (Fisher–Yates + round reshuffle + first≠last best-effort;
       injectable Random; Cap 12 UnsupportedError removed)
       — work `f0187b4`
-- [ ] 13.3 Domain: Queue Stability + in-session Continuity
+- [x] 13.3 Domain: Queue Stability + in-session Continuity
       (rebuild mapping; slim ConsumptionSession; no
       SessionCheckpoint persistence)
+      — work `78f6d9d`
 - [ ] 13.4 Product apply: Main Browse Mixed → derive + Shuffle
       Queue; supersede ADR-014 Sequential product default via
       ADR-023; composition / guard update (D9=A)
@@ -150,10 +151,10 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       Phase Roadmap → Auto-play Presets placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.2 closed; next = 13.3 Continuity domain
-- Sub-steps done: 13.2 work `f0187b4` (Endless Shuffle builder;
-      SHUF-1…7; Cap 12 UnsupportedError removed); ADR-023 Accepted
-- Next step: owner OK this docs commit/push → design/go for 13.3
+- Goal (one line): Cap 13.3 closed; next = 13.4 Browse product apply
+- Sub-steps done: 13.3 work `78f6d9d` (slim ConsumptionSession;
+      Order-only rebuild + asset-id remap; SESS/STAB/CONT)
+- Next step: owner OK this docs commit/push → design/go for 13.4
 - Related decisions: ADR-023 (Accepted, anchor `f0187b4`); Known
       debt unchanged until 13.5 (playhead reclassification); Release
       hang stays Final performance Cap
@@ -242,6 +243,11 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 - Cap 13.2 Endless Shuffle: `buildSessionQueue` Fisher–Yates +
   injectable Random + `previousRoundLastId` first≠last retries;
   work `f0187b4`
+- Cap 13.3 Continuity: `lib/domain/session/consumption_session.dart`
+  — slim in-memory session; `startConsumptionSession` /
+  `applySessionConfiguration` (Order rebuild + asset-id remap;
+  Advance/Repeat config-only); no Checkpoint / browse history;
+  work `78f6d9d`
 - ADR-001 … ADR-023: docs/DECISIONS.md (ADR-023 Cap 13 Endless
   Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session Queue
   Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
