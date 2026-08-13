@@ -261,4 +261,56 @@ void main() {
     expect(next.currentAssetId, 'e');
     expect(next.currentIndex, 0);
   });
+
+  // --- ROUND (Cap 13.4 Endless) ---
+
+  test('ROUND-1 next Shuffle round: index 0, first ≠ previous last', () {
+    final snap = _snapshot(id: 'round1', ids: const ['a', 'b', 'c', 'd', 'e']);
+    final session = startConsumptionSession(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(0),
+    );
+    // Random(0) → [e,c,d,b,a]; last = 'a'.
+    expect(session.queue.orderedAssetIds, ['e', 'c', 'd', 'b', 'a']);
+    expect(session.queue.orderedAssetIds.last, 'a');
+
+    final next = startNextShuffleRound(
+      session: session,
+      random: Random(1),
+    );
+    expect(next.currentIndex, 0);
+    expect(next.playbackPositionMs, isNull);
+    expect(next.snapshot, same(session.snapshot));
+    expect(next.queue.orderedAssetIds.toSet(), snap.coalescedAssetIds.toSet());
+    expect(next.queue.orderedAssetIds.first, isNot('a'));
+    expect(next.queue.orderedAssetIds, isNot(session.queue.orderedAssetIds));
+  });
+
+  test('ROUND-2 stopAtEnd does not advance round', () {
+    const stop = SessionConfiguration(
+      orderPolicy: OrderPolicy.shuffle,
+      advanceMode: AdvanceMode.manual,
+      repeatPolicy: RepeatPolicy.stopAtEnd,
+    );
+    final snap = _snapshot(id: 'round2', ids: const ['a', 'b', 'c']);
+    final session = startConsumptionSession(
+      snapshot: snap,
+      configuration: stop,
+      random: Random(0),
+    );
+    final next = startNextShuffleRound(session: session, random: Random(1));
+    expect(identical(next, session), isTrue);
+  });
+
+  test('ROUND-3 n≤1 is a no-op', () {
+    final snap = _snapshot(id: 'round3', ids: const ['only']);
+    final session = startConsumptionSession(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(0),
+    );
+    final next = startNextShuffleRound(session: session, random: Random(1));
+    expect(identical(next, session), isTrue);
+  });
 }

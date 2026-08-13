@@ -30,8 +30,7 @@ PoolProfileKind classifyPoolProfile({
 /// Derives the kickoff Default Session Profile for a new Consumption Session.
 ///
 /// Returns [DefaultSessionProfile.generalMixed] for every constructible Cap
-/// 12 pool. **Not wired to Main Browse** — ADR-014 Sequential remains the
-/// effective product default until Cap 13 (ADR-022 D2 derive ≠ apply).
+/// 12 pool. Cap 13.4 wires this profile to Main Browse Mixed tabs (ADR-023).
 SessionConfiguration deriveDefaultSessionProfile({
   required SourcePoolDefinition definition,
   required ResolvedPoolSnapshot snapshot,

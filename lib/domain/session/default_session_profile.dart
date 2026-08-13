@@ -7,8 +7,7 @@ import 'package:waketok/domain/session/session_configuration.dart';
 ///
 /// Named static fields (same pattern as `PoolCapacity`) so Pure config is
 /// unit-testable without a live Pure pool. Cap 12 derivation always selects
-/// [generalMixed]; product Main Browse remains Sequential until Cap 13
-/// (ADR-022 D2 derive ≠ apply).
+/// [generalMixed]; Cap 13.4 applies it on Main Browse Mixed tabs (ADR-023).
 abstract final class DefaultSessionProfile {
   /// General / Mixed Pool default.
   static const SessionConfiguration generalMixed = SessionConfiguration(

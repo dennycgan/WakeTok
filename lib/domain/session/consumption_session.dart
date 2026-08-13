@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:waketok/domain/session/build_session_queue.dart';
 import 'package:waketok/domain/session/order_policy.dart';
+import 'package:waketok/domain/session/repeat_policy.dart';
 import 'package:waketok/domain/session/session_configuration.dart';
 import 'package:waketok/domain/session/session_queue.dart';
 import 'package:waketok/domain/source/resolved_pool_snapshot.dart';
@@ -183,4 +184,40 @@ int _remapIndex({
     }
   }
   return previousIndex.clamp(0, n - 1);
+}
+
+/// Starts the next Endless Shuffle round on the **same** Snapshot (ADR-023).
+///
+/// When [RepeatPolicy.repeatAll] and the queue has more than one id, builds a
+/// new Shuffle [SessionQueue] with [previousRoundLastId] = current round's
+/// last id, and returns a session at index 0. Clears [playbackPositionMs]
+/// (new round head).
+///
+/// No-ops (returns [session] unchanged) when:
+/// - [repeatPolicy] is not [RepeatPolicy.repeatAll], or
+/// - the queue length is ≤ 1 (nothing to reshuffle meaningfully).
+ConsumptionSession startNextShuffleRound({
+  required ConsumptionSession session,
+  Random? random,
+}) {
+  final config = session.queue.configuration;
+  if (config.repeatPolicy != RepeatPolicy.repeatAll) {
+    return session;
+  }
+  final ids = session.queue.orderedAssetIds;
+  if (ids.length <= 1) {
+    return session;
+  }
+  final newQueue = buildSessionQueue(
+    snapshot: session.snapshot,
+    configuration: config,
+    random: random,
+    previousRoundLastId: ids.last,
+  );
+  return ConsumptionSession(
+    snapshot: session.snapshot,
+    queue: newQueue,
+    currentIndex: 0,
+    playbackPositionMs: null,
+  );
 }

@@ -24,7 +24,7 @@ import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Vertical Manual feed over Cap 6 resolve ids (Cap 7.5 / ADR-014).
+/// Vertical Manual feed over Cap 13 Shuffle Session Queue (ADR-023).
 class VerticalMediaFeed extends ConsumerStatefulWidget {
   const VerticalMediaFeed({super.key});
 
@@ -36,6 +36,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   PageController? _pageController;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
+  bool _advancingRound = false;
 
   final FeedActivationCoordinator _activation = FeedActivationCoordinator();
   /// Cap 9.4 / F4: feed-scoped mutex for Live Host cancel/request (not per-page —
@@ -136,11 +137,31 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     }
   }
 
+  void _tryAdvanceEndlessRound({
+    required int feedIndex,
+    required int queueLength,
+  }) {
+    if (_advancingRound || queueLength <= 1 || feedIndex != queueLength - 1) {
+      return;
+    }
+    _advancingRound = true;
+    unawaited(ref.read(playbackRepositoryProvider).pause());
+    ref.read(browseSessionProvider.notifier).advanceToNextRound();
+    ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _advancingRound = false;
+      final controller = _pageController;
+      if (controller != null && controller.hasClients) {
+        controller.jumpToPage(0);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final asyncQueue = ref.watch(mainBrowseFeedQueueProvider);
+    final asyncSession = ref.watch(browseSessionProvider);
     final source = ref.watch(mainBrowseSelectedSourceProvider);
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
@@ -176,7 +197,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     return ColoredBox(
       key: const Key('mainBrowseFeed'),
       color: tokens.feedBackground,
-      child: asyncQueue.when(
+      child: asyncSession.when(
         loading: () => Center(
           key: const Key('mainBrowseFeedLoading'),
           child: Column(
@@ -197,10 +218,10 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           message: l10n.mainBrowseFeedResolveFailed,
           actionLabel: l10n.mainBrowseFeedRetry,
           actionKey: const Key('mainBrowseFeedRetry'),
-          onAction: () => ref.invalidate(mainBrowseFeedQueueProvider),
+          onAction: () => ref.invalidate(browseSessionProvider),
         ),
-        data: (resolved) {
-          final ids = resolved.assetIdentifiers;
+        data: (view) {
+          final ids = view.orderedAssetIds;
           _ids = ids;
           if (ids.isEmpty) {
             return _BrowseStatusPanel(
@@ -230,30 +251,47 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              PageView.builder(
-                key: ValueKey<String>('feed-${source.id}-${ids.length}'),
-                controller: _pageController,
-                scrollDirection: Axis.vertical,
-                itemCount: ids.length,
-                onPageChanged: (i) {
-                  ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
-                  _activateCurrentItem(ids[i]);
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is OverscrollNotification &&
+                      notification.overscroll > 0 &&
+                      notification.metrics.axis == Axis.vertical) {
+                    _tryAdvanceEndlessRound(
+                      feedIndex: feedIndex,
+                      queueLength: ids.length,
+                    );
+                  }
+                  return false;
                 },
-                itemBuilder: (context, index) {
-                  final isCurrent = browseActive && index == feedIndex;
-                  return MediaFeedPage(
-                    key: ValueKey<String>('page-${ids[index]}-$index'),
-                    assetIdentifier: ids[index],
-                    feedIndex: index,
-                    sourceKind: source.kind,
-                    isCurrent: isCurrent,
-                    liveHostSerial: liveHostSerial,
-                    currentDisplayGate:
-                        isCurrent ? _activation.currentDisplayGate : null,
-                    assignedDisplayGeneration:
-                        isCurrent ? _activeDisplayGeneration : null,
-                  );
-                },
+                child: PageView.builder(
+                  key: ValueKey<String>(
+                    'feed-${source.id}-r${view.roundEpoch}',
+                  ),
+                  controller: _pageController,
+                  scrollDirection: Axis.vertical,
+                  itemCount: ids.length,
+                  onPageChanged: (i) {
+                    ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
+                    _activateCurrentItem(ids[i]);
+                  },
+                  itemBuilder: (context, index) {
+                    final isCurrent = browseActive && index == feedIndex;
+                    return MediaFeedPage(
+                      key: ValueKey<String>(
+                        'page-${ids[index]}-$index-r${view.roundEpoch}',
+                      ),
+                      assetIdentifier: ids[index],
+                      feedIndex: index,
+                      sourceKind: source.kind,
+                      isCurrent: isCurrent,
+                      liveHostSerial: liveHostSerial,
+                      currentDisplayGate:
+                          isCurrent ? _activation.currentDisplayGate : null,
+                      assignedDisplayGeneration:
+                          isCurrent ? _activeDisplayGeneration : null,
+                    );
+                  },
+                ),
               ),
               if (browseActive) MediaInfoOverlay(snapshot: _overlaySnapshot),
             ],

@@ -109,7 +109,8 @@ void main() {
   });
 
   test(
-      'architecture: main_browse must not import resolve_pool (ADR-021 D4=A)',
+      'architecture: main_browse must not import resolve_pool (ADR-021 D4=A; '
+      'Cap 13.4 seam stays in lib/app)',
       () {
     final browseDir = Directory('${libRoot.path}/features/main_browse');
     final violations = <String>[];
@@ -126,7 +127,7 @@ void main() {
           if (target == 'lib/domain/source/resolve_pool.dart') {
             violations.add(
               '$rel:${directive.line}: main_browse must not import '
-              'resolve_pool.dart (ADR-021 D4=A)',
+              'resolve_pool.dart (ADR-021 D4=A / ADR-023 D9)',
             );
           }
         }
@@ -143,7 +144,7 @@ void main() {
 
   test(
       'architecture: main_browse must not import build_session_queue '
-      '(ADR-022 D1=A)',
+      '(ADR-022 D1=A; Cap 13.4 seam stays in lib/app)',
       () {
     final browseDir = Directory('${libRoot.path}/features/main_browse');
     final violations = <String>[];
@@ -160,7 +161,7 @@ void main() {
           if (target == 'lib/domain/session/build_session_queue.dart') {
             violations.add(
               '$rel:${directive.line}: main_browse must not import '
-              'build_session_queue.dart (ADR-022 D1=A)',
+              'build_session_queue.dart (ADR-022 D1=A / ADR-023 D9)',
             );
           }
         }
@@ -173,6 +174,36 @@ void main() {
       reason: 'ADR-022 D1=A main_browse build_session_queue imports:\n'
           '${violations.join('\n')}',
     );
+  });
+
+  test(
+      'architecture: lib/app wires resolve_pool and consumption_session '
+      '(ADR-023 D9 composition seam)',
+      () {
+    final appDir = Directory('${libRoot.path}/app');
+    expect(appDir.existsSync(), isTrue);
+    var sawResolvePool = false;
+    var sawConsumptionSession = false;
+    for (final file in _dartFilesUnder(appDir)) {
+      final source = file.readAsStringSync();
+      for (final directive in _importOrExportUris(source)) {
+        final target = _resolveWakatokTarget(
+          packageRoot: packageRoot,
+          fromFile: file,
+          uri: directive.uri,
+        );
+        if (target == 'lib/domain/source/resolve_pool.dart') {
+          sawResolvePool = true;
+        }
+        if (target == 'lib/domain/session/consumption_session.dart') {
+          sawConsumptionSession = true;
+        }
+      }
+    }
+    // Direct resolvePool import; SessionQueue/Shuffle via consumption_session
+    // (which calls build_session_queue — not a required direct app import).
+    expect(sawResolvePool, isTrue);
+    expect(sawConsumptionSession, isTrue);
   });
 }
 

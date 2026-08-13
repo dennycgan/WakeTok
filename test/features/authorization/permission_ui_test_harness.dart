@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
@@ -58,6 +61,10 @@ Widget permissionUiHarness({
   FakePresentationMetadataRepository? presentationMetadata,
   LivePhotoRepository? livePhoto,
   bool sharedMuteInitiallyMuted = false,
+  /// Cap 13.4: default seeded Shuffle so feed widget tests are deterministic.
+  /// Each read constructs a fresh [Random] so session rebuilds do not share
+  /// a consumed PRNG stream.
+  int browseShuffleSeed = 0,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -77,6 +84,9 @@ Widget permissionUiHarness({
       ),
       livePhotoRepositoryProvider.overrideWithValue(
         livePhoto ?? FakeLivePhotoRepository(),
+      ),
+      browseShuffleRandomFactoryProvider.overrideWith(
+        (ref) => () => Random(browseShuffleSeed),
       ),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),

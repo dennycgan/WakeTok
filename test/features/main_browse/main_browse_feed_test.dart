@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
@@ -13,6 +15,7 @@ import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -67,7 +70,8 @@ void main() {
 
     expect(sources.resolveCalls, greaterThan(0));
     expect(find.byType(PageView), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseFeedStill_a')), findsOneWidget);
+    // Random(0) Shuffle on [a,b,c] → [c,b,a] (Cap 13.4 product default).
+    expect(find.byKey(const Key('mainBrowseFeedStill_c')), findsOneWidget);
   });
 
   testWidgets('W-F3 empty resolve shows empty ARB', (tester) async {
@@ -205,7 +209,8 @@ void main() {
     await tester.tap(find.text(l10n.libraryRowAll));
     await tester.pumpAndSettle();
     expect(container.read(mainBrowseFeedIndexProvider), 0);
-    expect(find.byKey(const Key('mainBrowseFeedStill_a')), findsOneWidget);
+    // New Session on revisit; Random(0) again → head is still 'c'.
+    expect(find.byKey(const Key('mainBrowseFeedStill_c')), findsOneWidget);
     expect(
       sources.resolveHistory.where((r) => r == SourceReference.all).length,
       1,
@@ -275,8 +280,10 @@ void main() {
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final display = FakeMediaDisplayRepository();
-    final gateN = Completer<void>();
-    display.displayGates['n'] = gateN;
+    // Random(0) Shuffle on [n, mid, n2] → [n2, mid, n]. Gate the head (n2);
+    // jump to index 2 (image n); completing the head gate must not paint Live.
+    final gateHead = Completer<void>();
+    display.displayGates['n2'] = gateHead;
     display.displaysById['n'] = const DisplayAsset(
       assetIdentifier: 'n',
       mediaKind: PlaybackMediaKind.image,
@@ -304,10 +311,10 @@ void main() {
         mediaDisplay: display,
       ),
     );
-    // Resolve + start gated display for current page.
+    // Resolve + start gated display for current page (shuffled head = n2).
     await tester.pump();
     await tester.pump();
-    expect(display.displayCalls, contains('n'));
+    expect(display.displayCalls, contains('n2'));
 
     final element = tester.element(find.byType(VerticalMediaFeed));
     final container = ProviderScope.containerOf(element);
@@ -315,10 +322,11 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    gateN.complete();
+    gateHead.complete();
     await pumpAsyncWork(tester);
 
-    expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedStill_n')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseLiveBadge')), findsNothing);
     expect(container.read(mainBrowseFeedIndexProvider), 2);
   });
 
@@ -1642,6 +1650,109 @@ void main() {
     expect(muteAt, isNonNegative);
     expect(playAt, isNonNegative);
     expect(muteAt, lessThan(playAt));
+  });
+
+  testWidgets('W-SHUF-1 Random(0) head matches Shuffle golden', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['x', 'y', 'z'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Random(0) → [z,y,x]
+    expect(find.byKey(const Key('mainBrowseFeedStill_z')), findsOneWidget);
+  });
+
+  testWidgets(
+      'W-SHUF-2 distinguishable seeds yield different ordered content',
+      (tester) async {
+    final fake = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    // Hard assert via two ProviderContainers (same as APP-3) — avoids
+    // WidgetTester ProviderScope reuse pitfalls across pumpWidget swaps.
+    final container1 = ProviderContainer(
+      overrides: [
+        assetSourceRepositoryProvider.overrideWithValue(fake),
+        browseShuffleRandomFactoryProvider.overrideWith(
+          (ref) => () => Random(1),
+        ),
+      ],
+    );
+    addTearDown(container1.dispose);
+    final ids1 =
+        (await container1.read(browseSessionProvider.future)).orderedAssetIds;
+
+    final container2 = ProviderContainer(
+      overrides: [
+        assetSourceRepositoryProvider.overrideWithValue(fake),
+        browseShuffleRandomFactoryProvider.overrideWith(
+          (ref) => () => Random(2),
+        ),
+      ],
+    );
+    addTearDown(container2.dispose);
+    final ids2 =
+        (await container2.read(browseSessionProvider.future)).orderedAssetIds;
+
+    expect(ids1, ['a', 'b', 'c', 'd', 'e']);
+    expect(ids2, ['c', 'a', 'e', 'b', 'd']);
+    expect(ids2, isNot(ids1));
+
+    // UI smoke: seed 2 lands on shuffled head.
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['a', 'b', 'c', 'd', 'e'],
+        ),
+        browseShuffleSeed: 2,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_c')), findsOneWidget);
+  });
+
+  testWidgets('W-END-1 advanceToNextRound API: index 0, first ≠ prior last',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    final before = container.read(browseSessionProvider).requireValue;
+    expect(before.orderedAssetIds, ['e', 'c', 'd', 'b', 'a']);
+    final lastId = before.orderedAssetIds.last;
+
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
+    await tester.pumpAndSettle();
+
+    container.read(browseSessionProvider.notifier).advanceToNextRound();
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await tester.pumpAndSettle();
+
+    final after = container.read(browseSessionProvider).requireValue;
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+    expect(after.orderedAssetIds.first, isNot(lastId));
+    expect(after.roundEpoch, greaterThan(before.roundEpoch));
   });
 }
 
