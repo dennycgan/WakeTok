@@ -1,10 +1,12 @@
 import 'package:waketok/domain/session/session_configuration.dart';
 
 /// Finite ordered Media Item list for one Consumption Session
-/// (Glossary §11 / ADR-022).
+/// (Glossary §11 / ADR-022 / ADR-023).
 ///
-/// Cap 12 Sequential construction copies [ResolvedPoolSnapshot.coalescedAssetIds]
-/// — no Queue-layer segmentIndex sort (ADR-022 D5). Repeat Policy is not
+/// Sequential construction copies [ResolvedPoolSnapshot.coalescedAssetIds]
+/// — no Queue-layer segmentIndex sort (ADR-022 D5). Shuffle construction is
+/// one Endless Shuffle **round** (ADR-023 D5) — not an infinite list; the
+/// next round is a new [buildSessionQueue] call. Repeat Policy is not
 /// expanded into an infinite list.
 class SessionQueue {
   SessionQueue({
@@ -19,7 +21,8 @@ class SessionQueue {
   /// Session Configuration that drove construction (Order / Advance / Repeat).
   final SessionConfiguration configuration;
 
-  /// Finite ordered asset identifiers. Cap 12 Sequential = Snapshot order.
+  /// Finite ordered asset identifiers (one Sequential list or one Shuffle
+  /// round).
   final List<String> orderedAssetIds;
 
   @override

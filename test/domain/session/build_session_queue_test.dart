@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/session/advance_mode.dart';
 import 'package:waketok/domain/session/build_session_queue.dart';
@@ -15,6 +17,12 @@ import 'package:waketok/domain/source/source_resolve_status.dart';
 
 const _sequentialManualRepeatAll = SessionConfiguration(
   orderPolicy: OrderPolicy.sequential,
+  advanceMode: AdvanceMode.manual,
+  repeatPolicy: RepeatPolicy.repeatAll,
+);
+
+const _shuffleManualRepeatAll = SessionConfiguration(
+  orderPolicy: OrderPolicy.shuffle,
   advanceMode: AdvanceMode.manual,
   repeatPolicy: RepeatPolicy.repeatAll,
 );
@@ -77,27 +85,6 @@ void main() {
     );
   });
 
-  test('SQ-4 OrderPolicy.shuffle → documented UnsupportedError (ADR-022 D6)',
-      () {
-    const shuffleConfig = SessionConfiguration(
-      orderPolicy: OrderPolicy.shuffle,
-      advanceMode: AdvanceMode.manual,
-      repeatPolicy: RepeatPolicy.repeatAll,
-    );
-    final snap = _snapshot(id: 'pool-shuf', ids: const ['a', 'b']);
-
-    expect(
-      () => buildSessionQueue(snapshot: snap, configuration: shuffleConfig),
-      throwsA(
-        isA<UnsupportedError>().having(
-          (e) => e.message,
-          'message',
-          allOf(contains('Cap 13'), contains('ADR-022')),
-        ),
-      ),
-    );
-  });
-
   test('SQ-5 Advance/Repeat changes do not alter Sequential id list', () {
     final snap = _snapshot(id: 'pool-axes', ids: const ['1', '2', '3']);
     const autoStop = SessionConfiguration(
@@ -155,8 +142,143 @@ void main() {
     expect(a, isNot(differentSnap));
   });
 
+  // --- Cap 13.2 Endless Shuffle (ADR-023 D5) ---
+
   test(
-    'SQ-7 Mixed deriveDefaultSessionProfile fed to buildSessionQueue refuses',
+    'SHUF-1 Shuffle n≥3 fixed seed: exact golden order (permutation + reorder)',
+    () {
+      // Random(0) Fisher–Yates on [x,y,z] → [z,y,x] (proves shuffle, not
+      // identity; identity would also be "a permutation").
+      final snap = _snapshot(id: 'pool-shuf1', ids: const ['x', 'y', 'z']);
+      final queue = buildSessionQueue(
+        snapshot: snap,
+        configuration: _shuffleManualRepeatAll,
+        random: Random(0),
+      );
+
+      expect(queue.orderedAssetIds, ['z', 'y', 'x']);
+      expect(
+        queue.orderedAssetIds.toSet(),
+        snap.coalescedAssetIds.toSet(),
+      );
+      expect(queue.orderedAssetIds.length, 3);
+      expect(queue.orderedAssetIds, isNot(snap.coalescedAssetIds));
+    },
+  );
+
+  test('SHUF-2 Shuffle empty Snapshot → empty Queue', () {
+    final queue = buildSessionQueue(
+      snapshot: _snapshot(id: 'pool-shuf-empty', ids: const []),
+      configuration: _shuffleManualRepeatAll,
+      random: Random(0),
+    );
+    expect(queue.orderedAssetIds, isEmpty);
+  });
+
+  test(
+    'SHUF-3 Shuffle n=1 returns sole id; previousRoundLastId does not loop',
+    () {
+      final snap = _snapshot(id: 'pool-one', ids: const ['only']);
+      final queue = buildSessionQueue(
+        snapshot: snap,
+        configuration: _shuffleManualRepeatAll,
+        random: Random(0),
+        previousRoundLastId: 'only',
+      );
+      expect(queue.orderedAssetIds, ['only']);
+    },
+  );
+
+  test('SHUF-4 Shuffle fixed seed is deterministic (golden)', () {
+    final snap = _snapshot(
+      id: 'pool-det',
+      ids: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    final q1 = buildSessionQueue(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(42),
+    );
+    final q2 = buildSessionQueue(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(42),
+    );
+    expect(q1.orderedAssetIds, ['d', 'b', 'a', 'e', 'c']);
+    expect(q2.orderedAssetIds, q1.orderedAssetIds);
+  });
+
+  test('SHUF-5 Advance/Repeat do not alter Shuffle id list (same seed)', () {
+    final snap = _snapshot(id: 'pool-axes-s', ids: const ['a', 'b', 'c', 'd']);
+    const autoStop = SessionConfiguration(
+      orderPolicy: OrderPolicy.shuffle,
+      advanceMode: AdvanceMode.auto,
+      repeatPolicy: RepeatPolicy.stopAtEnd,
+    );
+    const autoOne = SessionConfiguration(
+      orderPolicy: OrderPolicy.shuffle,
+      advanceMode: AdvanceMode.auto,
+      repeatPolicy: RepeatPolicy.repeatOne,
+    );
+
+    final q1 = buildSessionQueue(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(7),
+    );
+    final q2 = buildSessionQueue(
+      snapshot: snap,
+      configuration: autoStop,
+      random: Random(7),
+    );
+    final q3 = buildSessionQueue(
+      snapshot: snap,
+      configuration: autoOne,
+      random: Random(7),
+    );
+
+    expect(q2.orderedAssetIds, q1.orderedAssetIds);
+    expect(q3.orderedAssetIds, q1.orderedAssetIds);
+    expect(q2.configuration, autoStop);
+    expect(q3.configuration, autoOne);
+  });
+
+  test(
+    'SHUF-6 previousRoundLastId: retry after first FY would collide',
+    () {
+      // Same Random(2): without avoid → first round starts with 'c';
+      // with previousRoundLastId='c' → builder retries and returns the
+      // next round order (public-API premise, not a private FY probe).
+      const previousLast = 'c';
+      final snap = _snapshot(
+        id: 'pool-avoid',
+        ids: const ['a', 'b', 'c', 'd', 'e'],
+      );
+
+      final without = buildSessionQueue(
+        snapshot: snap,
+        configuration: _shuffleManualRepeatAll,
+        random: Random(2),
+      );
+      expect(without.orderedAssetIds, ['c', 'a', 'e', 'b', 'd']);
+
+      final withAvoid = buildSessionQueue(
+        snapshot: snap,
+        configuration: _shuffleManualRepeatAll,
+        random: Random(2),
+        previousRoundLastId: previousLast,
+      );
+      expect(withAvoid.orderedAssetIds.first, isNot(previousLast));
+      expect(withAvoid.orderedAssetIds, ['a', 'b', 'd', 'c', 'e']);
+      expect(
+        withAvoid.orderedAssetIds.toSet(),
+        snap.coalescedAssetIds.toSet(),
+      );
+    },
+  );
+
+  test(
+    'SHUF-7 Mixed deriveDefaultSessionProfile fed to buildSessionQueue succeeds',
     () {
       final def = SourcePoolDefinition(
         id: 'pool-mixed-derive',
@@ -165,7 +287,7 @@ void main() {
       );
       final snap = _snapshot(
         id: def.id,
-        ids: const ['m1', 'm2'],
+        ids: const ['m1', 'm2', 'm3'],
       );
       final derived = deriveDefaultSessionProfile(
         definition: def,
@@ -173,17 +295,14 @@ void main() {
       );
       expect(derived.orderPolicy, OrderPolicy.shuffle);
 
-      // Combination gate — do not replace with separate derive / shuffle tests.
-      expect(
-        () => buildSessionQueue(snapshot: snap, configuration: derived),
-        throwsA(
-          isA<UnsupportedError>().having(
-            (e) => e.message,
-            'message',
-            allOf(contains('Cap 13'), contains('ADR-022')),
-          ),
-        ),
+      final queue = buildSessionQueue(
+        snapshot: snap,
+        configuration: derived,
+        random: Random(0),
       );
+      expect(queue.configuration.orderPolicy, OrderPolicy.shuffle);
+      expect(queue.orderedAssetIds.length, 3);
+      expect(queue.orderedAssetIds.toSet(), {'m1', 'm2', 'm3'});
     },
   );
 }
