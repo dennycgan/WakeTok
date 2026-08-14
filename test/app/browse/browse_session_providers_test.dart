@@ -1,10 +1,13 @@
 import 'dart:math';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/session/default_session_profile.dart';
 import 'package:waketok/domain/session/order_policy.dart';
+import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 
@@ -129,5 +132,52 @@ void main() {
     expect(second.roundEpoch, greaterThan(first.roundEpoch));
     expect(second.orderedAssetIds.first, isNot(lastId));
     expect(fake.resolveCalls, 1);
+  });
+
+  test('APP-6 empty success is not cached; later resolve can populate',
+      () async {
+    final fake = FakeAssetSourceRepository(allIds: const []);
+    final container = ProviderContainer(
+      overrides: [
+        assetSourceRepositoryProvider.overrideWithValue(fake),
+        browseShuffleRandomFactoryProvider.overrideWith((ref) => () => Random(0)),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final empty = await container.read(browseSessionProvider.future);
+    expect(empty.orderedAssetIds, isEmpty);
+    expect(fake.resolveCalls, 1);
+
+    fake.allIds = const ['later'];
+    container.invalidate(browseSessionProvider);
+    final filled = await container.read(browseSessionProvider.future);
+    expect(fake.resolveCalls, 2);
+    expect(filled.orderedAssetIds, ['later']);
+  });
+
+  test('APP-7 unauthorized maps to empty ids, is not cached', () async {
+    final fake = FakeAssetSourceRepository(
+      resolveException: PlatformException(code: AppError.unauthorized.name),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        assetSourceRepositoryProvider.overrideWithValue(fake),
+        browseShuffleRandomFactoryProvider.overrideWith((ref) => () => Random(0)),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final view = await container.read(browseSessionProvider.future);
+    expect(view.orderedAssetIds, isEmpty);
+    expect(
+      view.session.snapshot.sourceStatuses.single.availability,
+      AssetSourceAvailability.unauthorized,
+    );
+    expect(fake.resolveCalls, 1);
+
+    container.invalidate(browseSessionProvider);
+    await container.read(browseSessionProvider.future);
+    expect(fake.resolveCalls, 2);
   });
 }

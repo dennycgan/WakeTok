@@ -155,14 +155,14 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       definition: definition,
       resolveOne: (reference) => resolveOneFromRepository(repo, reference),
     );
-    // ADR-014 D5: cache successes only. Mapped Failed (unauthorized /
-    // unavailable) must not stick — Retry / re-entry should resolve again.
+    // ADR-014 D5: cache successes only. Cap 13.8 narrows that: do not cache
+    // empty coalesced lists (Limited first-launch race) or mapped Failed.
     final hasHardFailure = snapshot.sourceStatuses.any(
       (s) =>
           s.availability == AssetSourceAvailability.unauthorized ||
           s.availability == AssetSourceAvailability.unavailable,
     );
-    if (!hasHardFailure) {
+    if (!hasHardFailure && snapshot.coalescedAssetIds.isNotEmpty) {
       cache.put(source, snapshot);
     }
     return snapshot;

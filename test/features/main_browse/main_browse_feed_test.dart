@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
@@ -105,6 +106,26 @@ void main() {
     expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
   });
 
+  testWidgets(
+      'W-F4b unauthorized mapped failure shows retry, not empty copy',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      resolveException: PlatformException(code: AppError.unauthorized.name),
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.mainBrowseFeedResolveFailed), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedResolveFailed')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedRetry')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsNothing);
+    expect(find.text(l10n.mainBrowseFeedEmpty), findsNothing);
+  });
+
   testWidgets('W-F5 page change updates feed index via PageController',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -181,6 +202,36 @@ void main() {
     );
     expect(sources.resolveCalls, 2);
     expect(find.byKey(const Key('mainBrowseFeedStill_all-1')), findsOneWidget);
+  });
+
+  testWidgets(
+      'W-S1b empty All is not cached; Photos then All re-resolves ids',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const [],
+      photosIds: const ['ph-1'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsOneWidget);
+
+    sources.allIds = const ['all-1'];
+    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(l10n.libraryRowAll));
+    await tester.pumpAndSettle();
+
+    expect(
+      sources.resolveHistory.where((r) => r == SourceReference.all).length,
+      2,
+    );
+    expect(find.byKey(const Key('mainBrowseFeedStill_all-1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsNothing);
   });
 
   testWidgets('W-S2 cache-hit source switch still resets feed index to 0',

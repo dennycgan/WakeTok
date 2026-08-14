@@ -10,6 +10,7 @@ import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
+import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
@@ -247,6 +248,20 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           final ids = view.orderedAssetIds;
           _ids = ids;
           if (ids.isEmpty) {
+            final hardFailure = view.session.snapshot.sourceStatuses.any(
+              (s) =>
+                  s.availability == AssetSourceAvailability.unauthorized ||
+                  s.availability == AssetSourceAvailability.unavailable,
+            );
+            if (hardFailure) {
+              return _BrowseStatusPanel(
+                panelKey: const Key('mainBrowseFeedResolveFailed'),
+                message: l10n.mainBrowseFeedResolveFailed,
+                actionLabel: l10n.mainBrowseFeedRetry,
+                actionKey: const Key('mainBrowseFeedRetry'),
+                onAction: () => ref.invalidate(browseSessionProvider),
+              );
+            }
             return _BrowseStatusPanel(
               // Resolve-level empty path (source resolved to zero items).
               panelKey: const Key('mainBrowseFeedEmpty'),
