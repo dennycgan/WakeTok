@@ -24,6 +24,29 @@ import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+/// True when a vertical feed scroll is past the trailing edge (next-item
+/// direction). Used for Endless last-page round advance.
+///
+/// Last-page **settle** (`extentAfter == 0` but still in-range) must not
+/// match — that would reshuffle when the user only lands on the last item.
+bool isEndlessRoundAdvanceScroll(ScrollNotification notification) {
+  if (notification.metrics.axis != Axis.vertical) {
+    return false;
+  }
+  if (notification is OverscrollNotification) {
+    return notification.overscroll > 0;
+  }
+  if (notification is ScrollUpdateNotification) {
+    final delta = notification.scrollDelta ?? 0;
+    if (delta <= 0) {
+      return false;
+    }
+    final metrics = notification.metrics;
+    return metrics.outOfRange && metrics.pixels > metrics.maxScrollExtent;
+  }
+  return false;
+}
+
 /// Vertical Manual feed over Cap 13 Shuffle Session Queue (ADR-023).
 class VerticalMediaFeed extends ConsumerStatefulWidget {
   const VerticalMediaFeed({super.key});
@@ -253,9 +276,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
             children: [
               NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
-                  if (notification is OverscrollNotification &&
-                      notification.overscroll > 0 &&
-                      notification.metrics.axis == Axis.vertical) {
+                  if (isEndlessRoundAdvanceScroll(notification)) {
                     _tryAdvanceEndlessRound(
                       feedIndex: feedIndex,
                       queueLength: ids.length,

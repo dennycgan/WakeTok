@@ -1754,6 +1754,100 @@ void main() {
     expect(after.orderedAssetIds.first, isNot(lastId));
     expect(after.roundEpoch, greaterThan(before.roundEpoch));
   });
+
+  testWidgets(
+      'W-END-2 last-page outOfRange ScrollUpdate advances a new round',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    final before = container.read(browseSessionProvider).requireValue;
+    expect(before.orderedAssetIds.length, 5);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
+    await tester.pumpAndSettle();
+
+    final pageContext = tester.element(find.byType(PageView));
+    final metrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 800,
+      pixels: 860,
+      viewportDimension: 400,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: tester.view.devicePixelRatio,
+    );
+    ScrollUpdateNotification(
+      metrics: metrics,
+      context: pageContext,
+      depth: 0,
+      dragDetails: null,
+      scrollDelta: 24,
+    ).dispatch(pageContext);
+    await tester.pump();
+    await tester.pump();
+
+    final after = container.read(browseSessionProvider).requireValue;
+    expect(after.roundEpoch, greaterThan(before.roundEpoch));
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+  });
+
+  testWidgets(
+      'W-END-3 last-page in-range ScrollUpdate does not advance',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    final before = container.read(browseSessionProvider).requireValue;
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
+    await tester.pumpAndSettle();
+
+    final pageContext = tester.element(find.byType(PageView));
+    final metrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 800,
+      pixels: 800,
+      viewportDimension: 400,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: tester.view.devicePixelRatio,
+    );
+    expect(metrics.extentAfter, 0);
+    expect(metrics.outOfRange, isFalse);
+    ScrollUpdateNotification(
+      metrics: metrics,
+      context: pageContext,
+      depth: 0,
+      dragDetails: null,
+      scrollDelta: 12,
+    ).dispatch(pageContext);
+    await tester.pump();
+
+    final after = container.read(browseSessionProvider).requireValue;
+    expect(after.roundEpoch, before.roundEpoch);
+    expect(container.read(mainBrowseFeedIndexProvider), 4);
+  });
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {
