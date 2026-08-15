@@ -2142,9 +2142,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-025: Cap 14 current-item iCloud fetch, visual preheating, and loading states
 
-- Status: Proposed
-- Commit/PR anchor: (none until the first Cap 14.2 work commit; do not
-  invent a placeholder)
+- Status: Accepted (2026-08-15)
+- Commit/PR anchor: 393ebc9
 - Plain summary (owner reads this):
   When you stop on a photo or video that lives in iCloud, WakeTok should
   still show a recognisable preview immediately in most cases, then load

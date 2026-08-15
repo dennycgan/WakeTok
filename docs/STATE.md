@@ -67,8 +67,8 @@
       bar not lowered; see Parked capability below)
 - [ ] <-- YOU ARE HERE: Current-item iCloud media fetch, visual
       preheating, and loading states
-      (Cap 14 / ADR-025 Proposed; restores 13.6 *executability*,
-      does not run 13.6 Instruments)
+      (Cap 14 / ADR-025 Accepted, work `393ebc9`; restores 13.6
+      *executability*, does not run 13.6 Instruments)
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
       (**deferred past Cap 14** — does not unblock 13.6)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
@@ -138,8 +138,8 @@ preheating, and loading states (Cap 14)
 - [x] 14.1 Contract freeze: ADR-025 Proposed (no Accepted date, no
       fake anchor); Capability Roadmap reorder; Parked Cap 13;
       Known debt Picks it up → Cap 14; Auto-play lookahead row renamed
-- [ ] 14.2 Host Layer 1: `requestPreview` (local still + video poster)
-      + cancel
+- [x] 14.2 Host Layer 1: `requestPreview` (local still + video poster)
+      + cancel (work `393ebc9`)
 - [ ] 14.3 Host Layer 2: current-item `requestDisplayAsset` /
       `requestPlayableVideo` may use network + cancel
       (ADR-006 Status narrow supersede in the docs commit after this
@@ -190,13 +190,15 @@ preheating, and loading states (Cap 14)
       (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.1 contract freeze (ADR-025 Proposed + Roadmap
-      reorder); Cap 13 parked at 13.6
-- Sub-steps done: this docs commit is 14.1
-- Next step: owner OK commit/push → 14.2 Host Layer 1 `requestPreview`
-      + cancel (no code until then)
-- Related decisions: ADR-025 Proposed; ADR-006 Cap 7.3 local-only still
-      **fully binding until 14.2 work + Accepted docs**; ADR-023 D10
+- Goal (one line): Cap 14.3 Host Layer 2 — current-item
+      `requestDisplayAsset` / `requestPlayableVideo` may use network
+      + cancel
+- Sub-steps done: 14.2 work `393ebc9`; this docs commit accepts
+      ADR-025
+- Next step: 14.3 Host Layer 2 (no Feed / ARB; ADR-006 Status narrow
+      supersede is the docs commit after that work sha)
+- Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Cap 7.3
+      local-only still **fully binding until 14.3**; ADR-023 D10
       13.6 V-hard unchanged; ADR-024 empty Snapshot not cached
 
 ## Contract pointers (don't memorize, go read the source)
@@ -240,7 +242,10 @@ preheating, and loading states (Cap 14)
   `item_ordering_policy.dart`; `SourceReference` + `AssetSourceKind`
   (album/smartAlbum); work kinds `8c99d46` / SPD `6aa35dc` / ordering `954d7e0`
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
-  PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3);
+  PhotoLibraryApi.requestPreview (Cap 14.2 `393ebc9` / ADR-025 Layer 1,
+  local-only still + video poster, cancellable);
+  PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3
+  local-only until 14.3);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
@@ -299,7 +304,7 @@ preheating, and loading states (Cap 14)
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
   ADR-024
 - ADR-001 … ADR-025: docs/DECISIONS.md (ADR-025 Cap 14 current-item
-  iCloud fetch — **Proposed**, no work anchor yet; ADR-024 Cap 13.8
+  iCloud fetch — **Accepted**, anchor `393ebc9`; ADR-024 Cap 13.8
   Browse Snapshot cache — Accepted, anchor `1f8a240`; ADR-023 Cap 13
   Endless Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session
   Queue Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
