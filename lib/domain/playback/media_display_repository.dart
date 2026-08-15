@@ -1,10 +1,11 @@
 import 'package:waketok/domain/playback/playback_models.dart';
 
-/// Still/video presentation over PhotoLibraryApi (Cap 7.3 + Cap 14.2).
+/// Still/video presentation over PhotoLibraryApi (Cap 7.3 + Cap 14.2/14.3).
 ///
-/// [requestDisplayAsset] / [requestPlayableVideo] remain Cap 7.3 local-only:
-/// iCloud-only assets fail with channel `iCloudDownloadRequired` as a
-/// **user-visible** failure until Cap 14.3.
+/// [requestDisplayAsset] / [requestPlayableVideo] are Cap 14.3 Layer 2
+/// (network allowed). They never emit channel `iCloudDownloadRequired`.
+/// Terminal download failure is `iCloudDownloadFailed`; abort / same-id
+/// supersede is `operationCancelled` (non-terminal).
 ///
 /// [requestPreview] is Layer 1 (local still / video poster). Its
 /// `iCloudDownloadRequired` means Layer 1 is missing — not user-visible
@@ -15,7 +16,11 @@ import 'package:waketok/domain/playback/playback_models.dart';
 abstract class MediaDisplayRepository {
   Future<DisplayAsset> requestDisplayAsset(String assetIdentifier);
 
+  Future<void> cancelDisplayAsset(String assetIdentifier);
+
   Future<PlayableVideo> requestPlayableVideo(String assetIdentifier);
+
+  Future<void> cancelPlayableVideo(String assetIdentifier);
 
   Future<DisplayAsset> requestPreview(String assetIdentifier);
 

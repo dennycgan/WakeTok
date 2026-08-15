@@ -177,3 +177,32 @@ final class PreviewImageRequestTableTests: XCTestCase {
     }
   }
 }
+
+final class PhotoKitRequestTableLayer2Tests: XCTestCase {
+  func testMarkTransferBeganIsGenerationScoped() {
+    let table = PhotoKitRequestTable<PreviewCompletion>()
+    let start = table.registerStart(assetId: "a") { _ in }
+    table.markTransferBegan(assetId: "a", generation: start.generation)
+    XCTAssertTrue(table.didTransferBegin(assetId: "a", generation: start.generation))
+    XCTAssertFalse(
+      table.didTransferBegin(assetId: "a", generation: start.generation &+ 1)
+    )
+  }
+}
+
+final class PlaybackCurrentItemReplaceTests: XCTestCase {
+  func testSwitchingCurrentItemCancelsInFlightPrepareForPreviousAsset() {
+    let host = PlaybackApiHost()
+    host.debugRegisterInFlightCurrentPrepare(assetId: "A", requestId: 77)
+    let toCancel = host.replaceCurrentItem("B")
+    XCTAssertEqual(toCancel, 77)
+  }
+
+  func testReplaceCurrentItemSameIdDoesNotReturnPreviousRequestId() {
+    let host = PlaybackApiHost()
+    host.debugRegisterInFlightCurrentPrepare(assetId: "A", requestId: 77)
+    XCTAssertNil(host.replaceCurrentItem("A"))
+    let toCancel = host.replaceCurrentItem("B")
+    XCTAssertEqual(toCancel, 77)
+  }
+}

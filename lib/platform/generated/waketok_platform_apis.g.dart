@@ -381,9 +381,11 @@ class ResolvedSourceDto {
 /// [PhotoLibraryApi.requestPreview] → preview store (cap 3, Cap 14.2).
 /// Callers must not share one cache slot across those two methods.
 ///
-/// Error semantics are **per method**, not per DTO. Cap 7.3
+/// Error semantics are **per method**, not per DTO. Cap 14.3 Layer 2
 /// [PhotoLibraryApi.requestDisplayAsset] / [PhotoLibraryApi.requestPlayableVideo]
-/// still treat [ErrorCode.iCloudDownloadRequired] as a user-visible failure.
+/// never emit [ErrorCode.iCloudDownloadRequired] (that code remains Layer 1
+/// preview / local-only miss only). Layer 2 terminal download failure is
+/// [ErrorCode.iCloudDownloadFailed].
 class DisplayAssetDto {
   DisplayAssetDto({
     required this.assetIdentifier,
@@ -1274,6 +1276,14 @@ class PhotoLibraryApi {
     return pigeonVar_replyValue! as ResolvedSourceDto;
   }
 
+  /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
+  /// true. Videos remain [ErrorCode.unsupportedMedia] here.
+  ///
+  /// Never emits [ErrorCode.iCloudDownloadRequired]. Terminal failure after
+  /// a transfer began → [ErrorCode.iCloudDownloadFailed]; failure with no
+  /// transfer (and not cancel) → [ErrorCode.assetUnavailable]; abort or
+  /// same-id supersede → [ErrorCode.operationCancelled] (non-terminal).
+  /// Transfer progress is Host-internal (not a FlutterApi stream).
   Future<DisplayAssetDto> requestDisplayAsset(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestDisplayAsset$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1293,6 +1303,29 @@ class PhotoLibraryApi {
     return pigeonVar_replyValue! as DisplayAssetDto;
   }
 
+  /// Aborts an in-flight [requestDisplayAsset]. No-op if none. Does **not**
+  /// delete a display JPEG already on disk.
+  Future<void> cancelDisplayAsset(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.cancelDisplayAsset$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Cap 14.3 Layer 2 playable video (current item).
+  /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
+  /// [requestDisplayAsset].
   Future<PlayableVideoDto> requestPlayableVideo(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPlayableVideo$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1310,6 +1343,25 @@ class PhotoLibraryApi {
     )
     ;
     return pigeonVar_replyValue! as PlayableVideoDto;
+  }
+
+  /// Aborts an in-flight [requestPlayableVideo]. No-op if none.
+  Future<void> cancelPlayableVideo(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.cancelPlayableVideo$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 
   /// Cap 14.2 Layer 1: local-only degraded still / Live key frame / video
@@ -1331,8 +1383,8 @@ class PhotoLibraryApi {
   /// should start Layer 2. Failure / blank chrome is allowed only when
   /// Layer 1 is missing **and** Layer 2 has failed (ADR-025 D2). Do not
   /// revive the Cap 8 iCloud-only copy panel from this code.
-  /// Cap 7.3 [requestDisplayAsset] / [requestPlayableVideo] keep treating
-  /// the same error as user-visible until Cap 14.3.
+  /// Cap 14.3 [requestDisplayAsset] / [requestPlayableVideo] never emit
+  /// this code; their download failure is [ErrorCode.iCloudDownloadFailed].
   ///
   /// [ErrorCode.operationCancelled] is non-terminal for the caller: the
   /// request may have been replaced by a newer [requestPreview] for the

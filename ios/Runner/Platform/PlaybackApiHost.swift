@@ -44,7 +44,13 @@ final class PlaybackApiHost: PlaybackApi {
 
   private var bgObserver: NSObjectProtocol?
   private var fgObserver: NSObjectProtocol?
-  private let prepareQueue = DispatchQueue(label: "com.dennycgan.waketok.playback.prepare")
+  private let activePrepareQueue = DispatchQueue(
+    label: "com.dennycgan.waketok.playback.prepare.active"
+  )
+  private let warmPrepareQueue = DispatchQueue(
+    label: "com.dennycgan.waketok.playback.prepare.warm"
+  )
+  private let currentPrepareTable = PhotoKitRequestTable<() -> Void>()
 
   init() {
     bgObserver = NotificationCenter.default.addObserver(
@@ -75,7 +81,7 @@ final class PlaybackApiHost: PlaybackApi {
   // MARK: - PlaybackApi
 
   func load(item: PlaybackItemDto) throws {
-    currentAssetIdentifier = item.assetIdentifier
+    cancelImageRequestIfNeeded(replaceCurrentItem(item.assetIdentifier))
     currentFeedIndex = item.feedIndex
     prepareActive(assetId: item.assetIdentifier)
     warmNextIfPossible()
@@ -136,19 +142,18 @@ final class PlaybackApiHost: PlaybackApi {
       return
     }
     let item = plan.orderedItems[idx]
-    currentAssetIdentifier = item.assetIdentifier
+    cancelImageRequestIfNeeded(replaceCurrentItem(item.assetIdentifier))
     currentFeedIndex = item.feedIndex
     prepareActive(assetId: item.assetIdentifier)
     warmNextIfPossible()
   }
 
   func syncPlanPosition(assetIdentifier: String, feedIndex: Int64) throws {
+    cancelImageRequestIfNeeded(replaceCurrentItem(assetIdentifier))
     if restoreGuardActive {
-      currentAssetIdentifier = assetIdentifier
       currentFeedIndex = feedIndex
       return
     }
-    currentAssetIdentifier = assetIdentifier
     currentFeedIndex = feedIndex
     if let plan {
       self.plan = PlaybackPlanDto(
@@ -219,6 +224,10 @@ final class PlaybackApiHost: PlaybackApi {
     clearEpoch &+= 1
     pendingPlay = false
     preparingAssetIds.removeAll()
+    if let current = currentAssetIdentifier {
+      let result = currentPrepareTable.invalidate(assetId: current)
+      cancelImageRequestIfNeeded(result.requestId)
+    }
     clearWarming()
     activePlayer?.pause()
     activePlayer = nil
@@ -251,6 +260,27 @@ final class PlaybackApiHost: PlaybackApi {
     guard let surfaceView else { return }
     surfaceView.attach(player: activePlayer)
     restoreGuardActive = false
+  }
+
+  /// Reads the previous current id, invalidates/cancels that slot when the
+  /// id actually changes, then writes [newId]. Callers must not assign
+  /// [currentAssetIdentifier] themselves.
+  @discardableResult
+  func replaceCurrentItem(_ newId: String) -> PHImageRequestID? {
+    let previousId = currentAssetIdentifier
+    var requestIdToCancel: PHImageRequestID?
+    if let previousId, previousId != newId {
+      let result = currentPrepareTable.invalidate(assetId: previousId)
+      requestIdToCancel = result.requestId
+      preparingAssetIds.remove(previousId)
+    }
+    currentAssetIdentifier = newId
+    return requestIdToCancel
+  }
+
+  private func cancelImageRequestIfNeeded(_ requestId: PHImageRequestID?) {
+    guard let requestId, requestId != PHInvalidImageRequestID else { return }
+    PHImageManager.default().cancelImageRequest(requestId)
   }
 
   private func prepareActive(assetId: String) {
@@ -286,33 +316,84 @@ final class PlaybackApiHost: PlaybackApi {
 
     let token = assetId
     let epoch = clearEpoch
-    prepareQueue.async { [weak self] in
-      let player = Self.makePlayer(assetId: token)
-      DispatchQueue.main.async {
+    let start = currentPrepareTable.registerStart(assetId: token, completion: {})
+    cancelImageRequestIfNeeded(start.previousRequestId)
+    let generation = start.generation
+
+    activePrepareQueue.async { [weak self] in
+      guard let self else { return }
+      let fetch = PHAsset.fetchAssets(withLocalIdentifiers: [token], options: nil)
+      guard let asset = fetch.firstObject, asset.mediaType == .video else {
+        _ = self.currentPrepareTable.invalidate(assetId: token)
+        DispatchQueue.main.async {
+          self.preparingAssetIds.remove(token)
+          guard self.clearEpoch == epoch else { return }
+          self.adoptPreparedPlayer(nil, token: token)
+        }
+        return
+      }
+
+      let options = PHVideoRequestOptions()
+      options.isNetworkAccessAllowed = true
+      options.deliveryMode = .highQualityFormat
+      options.progressHandler = { [weak self] _, _, _, _ in
+        self?.currentPrepareTable.markTransferBegan(
+          assetId: token,
+          generation: generation
+        )
+      }
+
+      let requestId = PHImageManager.default().requestAVAsset(
+        forVideo: asset,
+        options: options
+      ) { [weak self] avAsset, _, info in
         guard let self else { return }
-        self.preparingAssetIds.remove(token)
-        guard self.clearEpoch == epoch else { return }
-        guard self.currentAssetIdentifier == token || self.activeAssetId == token
-          || self.currentAssetIdentifier == nil
-        else { return }
-        // Re-check intent: still want this asset as active.
-        if self.currentAssetIdentifier != nil, self.currentAssetIdentifier != token {
-          return
+        let take = self.currentPrepareTable.takeForDelivery(
+          assetId: token,
+          generation: generation
+        )
+        guard take.accepted else { return }
+        if let toCancel = take.requestIdToCancel {
+          PHImageManager.default().cancelImageRequest(toCancel)
         }
-        // Already active for this asset — keep the existing player.
-        if self.activeAssetId == token, self.activePlayer != nil {
-          self.surfaceView?.attach(player: self.activePlayer)
-          self.consumePendingPlayIfNeeded()
-          return
+        let cancelled = ((info ?? [:])[PHImageCancelledKey] as? Bool) == true
+        DispatchQueue.main.async {
+          self.preparingAssetIds.remove(token)
+          guard self.clearEpoch == epoch else { return }
+          guard !cancelled, let avAsset else { return }
+          let player = AVPlayer(playerItem: AVPlayerItem(asset: avAsset))
+          self.adoptPreparedPlayer(player, token: token)
         }
-        self.activePlayer?.pause()
-        self.activePlayer = player
-        self.activeAssetId = token
-        self.applyMuteToPlayers()
-        self.surfaceView?.attach(player: player)
-        self.consumePendingPlayIfNeeded()
+      }
+
+      if let toCancel = self.currentPrepareTable.bindRequestId(
+        assetId: token,
+        generation: generation,
+        requestId: requestId
+      ) {
+        PHImageManager.default().cancelImageRequest(toCancel)
       }
     }
+  }
+
+  private func adoptPreparedPlayer(_ player: AVPlayer?, token: String) {
+    guard currentAssetIdentifier == token || activeAssetId == token
+      || currentAssetIdentifier == nil
+    else { return }
+    if currentAssetIdentifier != nil, currentAssetIdentifier != token {
+      return
+    }
+    if activeAssetId == token, activePlayer != nil {
+      surfaceView?.attach(player: activePlayer)
+      consumePendingPlayIfNeeded()
+      return
+    }
+    activePlayer?.pause()
+    activePlayer = player
+    activeAssetId = token
+    applyMuteToPlayers()
+    surfaceView?.attach(player: player)
+    consumePendingPlayIfNeeded()
   }
 
   /// Fires a play() intent that arrived before the current asset's player
@@ -348,8 +429,8 @@ final class PlaybackApiHost: PlaybackApi {
     clearWarming()
     let token = nextId
     let epoch = clearEpoch
-    prepareQueue.async { [weak self] in
-      let player = Self.makePlayer(assetId: token)
+    warmPrepareQueue.async { [weak self] in
+      let player = Self.makeLocalPlayer(assetId: token)
       DispatchQueue.main.async {
         guard let self else { return }
         guard self.clearEpoch == epoch else { return }
@@ -372,8 +453,10 @@ final class PlaybackApiHost: PlaybackApi {
     warmingAssetId = nil
   }
 
-  /// Local-only AVPlayer create. Returns nil for iCloud-only / non-video.
-  private static func makePlayer(assetId: String) -> AVPlayer? {
+  /// Local-only AVPlayer create for ±1 warming. Returns nil for iCloud-only
+  /// / non-video. Current-item prepare uses networked [requestAVAsset]
+  /// instead (no semaphore).
+  private static func makeLocalPlayer(assetId: String) -> AVPlayer? {
     let fetch = PHAsset.fetchAssets(withLocalIdentifiers: [assetId], options: nil)
     guard let asset = fetch.firstObject, asset.mediaType == .video else {
       return nil
@@ -406,6 +489,19 @@ final class PlaybackApiHost: PlaybackApi {
     (activePlayer != nil, warmingPlayer != nil)
   }
   var clearEpochForTests: UInt64 { clearEpoch }
+
+  func debugRegisterInFlightCurrentPrepare(
+    assetId: String,
+    requestId: PHImageRequestID
+  ) {
+    currentAssetIdentifier = assetId
+    let start = currentPrepareTable.registerStart(assetId: assetId, completion: {})
+    _ = currentPrepareTable.bindRequestId(
+      assetId: assetId,
+      generation: start.generation,
+      requestId: requestId
+    )
+  }
   #endif
 }
 

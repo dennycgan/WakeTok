@@ -55,7 +55,9 @@ void main() {
     'listAssetSources',
     'resolveSource',
     'requestDisplayAsset',
+    'cancelDisplayAsset',
     'requestPlayableVideo',
+    'cancelPlayableVideo',
     'requestPreview',
     'cancelPreview',
     'releasePreview',
@@ -232,6 +234,8 @@ void main() {
       photoChannel('requestPlayableVideo'),
       PlayableVideoDto(assetIdentifier: 'a'),
     );
+    mockSuccess(photoChannel('cancelDisplayAsset'), null);
+    mockSuccess(photoChannel('cancelPlayableVideo'), null);
     mockSuccess(
       photoChannel('requestPreview'),
       DisplayAssetDto(
@@ -288,6 +292,8 @@ void main() {
       (await api.requestPlayableVideo('a')).assetIdentifier,
       'a',
     );
+    await api.cancelDisplayAsset('a');
+    await api.cancelPlayableVideo('a');
     expect(
       (await api.requestPreview('a')).localFilePath,
       '/tmp/a_preview.jpg',

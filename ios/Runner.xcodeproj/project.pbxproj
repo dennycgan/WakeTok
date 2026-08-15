@@ -21,6 +21,7 @@
 		B1000000000000000000000B /* PhotoLibraryService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* PhotoLibraryService.swift */; };
 		B1000000000000000000000C /* PlaybackApiHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* PlaybackApiHost.swift */; };
 		B1000000000000000000000D /* LivePhotoApiHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* LivePhotoApiHost.swift */; };
+		B1000000000000000000000E /* PhotoKitRequestTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* PhotoKitRequestTable.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,7 @@
 		B10000000000000000000002 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
 		B10000000000000000000003 /* PlaybackApiHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackApiHost.swift; sourceTree = "<group>"; };
 		B10000000000000000000004 /* LivePhotoApiHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LivePhotoApiHost.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* PhotoKitRequestTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoKitRequestTable.swift; sourceTree = "<group>"; };
 		BE5152C43AB3E06FDA772ADD /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -181,6 +183,7 @@
 			children = (
 				B10000000000000000000011 /* Generated */,
 				B10000000000000000000002 /* PhotoLibraryService.swift */,
+				B10000000000000000000005 /* PhotoKitRequestTable.swift */,
 				B10000000000000000000003 /* PlaybackApiHost.swift */,
 				B10000000000000000000004 /* LivePhotoApiHost.swift */,
 			);
@@ -412,6 +415,7 @@
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				B1000000000000000000000A /* WaketokPlatformApis.g.swift in Sources */,
 				B1000000000000000000000B /* PhotoLibraryService.swift in Sources */,
+				B1000000000000000000000E /* PhotoKitRequestTable.swift in Sources */,
 				B1000000000000000000000C /* PlaybackApiHost.swift in Sources */,
 				B1000000000000000000000D /* LivePhotoApiHost.swift in Sources */,
 			);
@@ -698,6 +702,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.dennycgan.waketok;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) DEBUG";
 				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;

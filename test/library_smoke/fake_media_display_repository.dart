@@ -52,6 +52,9 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   }
 
   @override
+  Future<void> cancelDisplayAsset(String assetIdentifier) async {}
+
+  @override
   Future<PlayableVideo> requestPlayableVideo(String assetIdentifier) async {
     playableCalls.add(assetIdentifier);
     return video ??
@@ -60,6 +63,9 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
           durationSeconds: 1.0,
         );
   }
+
+  @override
+  Future<void> cancelPlayableVideo(String assetIdentifier) async {}
 
   @override
   Future<DisplayAsset> requestPreview(String assetIdentifier) async {

@@ -432,9 +432,11 @@ struct ResolvedSourceDto: Hashable, CustomStringConvertible {
 /// [PhotoLibraryApi.requestPreview] → preview store (cap 3, Cap 14.2).
 /// Callers must not share one cache slot across those two methods.
 ///
-/// Error semantics are **per method**, not per DTO. Cap 7.3
+/// Error semantics are **per method**, not per DTO. Cap 14.3 Layer 2
 /// [PhotoLibraryApi.requestDisplayAsset] / [PhotoLibraryApi.requestPlayableVideo]
-/// still treat [ErrorCode.iCloudDownloadRequired] as a user-visible failure.
+/// never emit [ErrorCode.iCloudDownloadRequired] (that code remains Layer 1
+/// preview / local-only miss only). Layer 2 terminal download failure is
+/// [ErrorCode.iCloudDownloadFailed].
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct DisplayAssetDto: Hashable, CustomStringConvertible {
@@ -1130,8 +1132,24 @@ protocol PhotoLibraryApi {
   /// pair must match frozen built-in ids (all / photos / videos).
   /// Mismatch → [ErrorCode.assetUnavailable].
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
+  /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
+  /// true. Videos remain [ErrorCode.unsupportedMedia] here.
+  ///
+  /// Never emits [ErrorCode.iCloudDownloadRequired]. Terminal failure after
+  /// a transfer began → [ErrorCode.iCloudDownloadFailed]; failure with no
+  /// transfer (and not cancel) → [ErrorCode.assetUnavailable]; abort or
+  /// same-id supersede → [ErrorCode.operationCancelled] (non-terminal).
+  /// Transfer progress is Host-internal (not a FlutterApi stream).
   func requestDisplayAsset(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
+  /// Aborts an in-flight [requestDisplayAsset]. No-op if none. Does **not**
+  /// delete a display JPEG already on disk.
+  func cancelDisplayAsset(assetIdentifier: String) throws
+  /// Cap 14.3 Layer 2 playable video (current item).
+  /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
+  /// [requestDisplayAsset].
   func requestPlayableVideo(assetIdentifier: String, completion: @escaping (Result<PlayableVideoDto, Error>) -> Void)
+  /// Aborts an in-flight [requestPlayableVideo]. No-op if none.
+  func cancelPlayableVideo(assetIdentifier: String) throws
   /// Cap 14.2 Layer 1: local-only degraded still / Live key frame / video
   /// poster. [isNetworkAccessAllowed] is false. Uses `PHImageManager.requestImage`
   /// (not [requestDisplayAsset] — videos remain `unsupportedMedia` there).
@@ -1151,8 +1169,8 @@ protocol PhotoLibraryApi {
   /// should start Layer 2. Failure / blank chrome is allowed only when
   /// Layer 1 is missing **and** Layer 2 has failed (ADR-025 D2). Do not
   /// revive the Cap 8 iCloud-only copy panel from this code.
-  /// Cap 7.3 [requestDisplayAsset] / [requestPlayableVideo] keep treating
-  /// the same error as user-visible until Cap 14.3.
+  /// Cap 14.3 [requestDisplayAsset] / [requestPlayableVideo] never emit
+  /// this code; their download failure is [ErrorCode.iCloudDownloadFailed].
   ///
   /// [ErrorCode.operationCancelled] is non-terminal for the caller: the
   /// request may have been replaced by a newer [requestPreview] for the
@@ -1322,6 +1340,14 @@ class PhotoLibraryApiSetup {
     } else {
       resolveSourceChannel.setMessageHandler(nil)
     }
+    /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
+    /// true. Videos remain [ErrorCode.unsupportedMedia] here.
+    ///
+    /// Never emits [ErrorCode.iCloudDownloadRequired]. Terminal failure after
+    /// a transfer began → [ErrorCode.iCloudDownloadFailed]; failure with no
+    /// transfer (and not cancel) → [ErrorCode.assetUnavailable]; abort or
+    /// same-id supersede → [ErrorCode.operationCancelled] (non-terminal).
+    /// Transfer progress is Host-internal (not a FlutterApi stream).
     let requestDisplayAssetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestDisplayAsset\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestDisplayAssetChannel.setMessageHandler { message, reply in
@@ -1339,6 +1365,26 @@ class PhotoLibraryApiSetup {
     } else {
       requestDisplayAssetChannel.setMessageHandler(nil)
     }
+    /// Aborts an in-flight [requestDisplayAsset]. No-op if none. Does **not**
+    /// delete a display JPEG already on disk.
+    let cancelDisplayAssetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.cancelDisplayAsset\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelDisplayAssetChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.cancelDisplayAsset(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelDisplayAssetChannel.setMessageHandler(nil)
+    }
+    /// Cap 14.3 Layer 2 playable video (current item).
+    /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
+    /// [requestDisplayAsset].
     let requestPlayableVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPlayableVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestPlayableVideoChannel.setMessageHandler { message, reply in
@@ -1355,6 +1401,22 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestPlayableVideoChannel.setMessageHandler(nil)
+    }
+    /// Aborts an in-flight [requestPlayableVideo]. No-op if none.
+    let cancelPlayableVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.cancelPlayableVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelPlayableVideoChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.cancelPlayableVideo(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelPlayableVideoChannel.setMessageHandler(nil)
     }
     /// Cap 14.2 Layer 1: local-only degraded still / Live key frame / video
     /// poster. [isNetworkAccessAllowed] is false. Uses `PHImageManager.requestImage`
@@ -1375,8 +1437,8 @@ class PhotoLibraryApiSetup {
     /// should start Layer 2. Failure / blank chrome is allowed only when
     /// Layer 1 is missing **and** Layer 2 has failed (ADR-025 D2). Do not
     /// revive the Cap 8 iCloud-only copy panel from this code.
-    /// Cap 7.3 [requestDisplayAsset] / [requestPlayableVideo] keep treating
-    /// the same error as user-visible until Cap 14.3.
+    /// Cap 14.3 [requestDisplayAsset] / [requestPlayableVideo] never emit
+    /// this code; their download failure is [ErrorCode.iCloudDownloadFailed].
     ///
     /// [ErrorCode.operationCancelled] is non-terminal for the caller: the
     /// request may have been replaced by a newer [requestPreview] for the

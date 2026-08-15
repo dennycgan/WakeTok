@@ -18,8 +18,13 @@ final class PhotoLibraryService: PhotoLibraryApi {
   private static let previewJpegQuality: CGFloat = 0.8
 
   private let previewRequests = PreviewImageRequestTable()
+  private let displayRequests = PhotoKitRequestTable<PreviewCompletion>()
+  private let playableRequests = PhotoKitRequestTable<PlayableCompletion>()
   private let previewEncodeQueue = DispatchQueue(
     label: "com.dennycgan.waketok.preview.encode"
+  )
+  private let displayWriteQueue = DispatchQueue(
+    label: "com.dennycgan.waketok.display.write"
   )
 
   private func fail(_ code: ErrorCode, message: String) -> PigeonError {
@@ -663,87 +668,61 @@ final class PhotoLibraryService: PhotoLibraryApi {
         return
       }
 
+      let start = displayRequests.registerStart(
+        assetId: assetIdentifier,
+        completion: completion
+      )
+      if let previousId = start.previousRequestId {
+        PHImageManager.default().cancelImageRequest(previousId)
+      }
+      if let superseded = start.supersededCompletion {
+        DispatchQueue.main.async {
+          superseded(
+            .failure(
+              self.fail(
+                .operationCancelled,
+                message: "Display request replaced"
+              )
+            )
+          )
+        }
+      }
+
+      let generation = start.generation
       let options = PHImageRequestOptions()
-      // Cap 7.3: local-only; no host-initiated iCloud download.
-      options.isNetworkAccessAllowed = false
+      options.isNetworkAccessAllowed = true
       options.deliveryMode = .highQualityFormat
       options.resizeMode = .fast
       options.isSynchronous = false
+      options.progressHandler = { [weak self] _, _, _, _ in
+        self?.displayRequests.markTransferBegan(
+          assetId: assetIdentifier,
+          generation: generation
+        )
+      }
 
-      PHImageManager.default().requestImageDataAndOrientation(
+      let kind = mapMediaKind(asset)
+      let requestId = PHImageManager.default().requestImageDataAndOrientation(
         for: asset,
         options: options
-      ) { data, _, _, info in
-        let infoDict = info ?? [:]
-        if (infoDict[PHImageCancelledKey] as? Bool) == true {
-          completion(
-            .failure(
-              self.fail(.operationCancelled, message: "Display request cancelled")
-            )
-          )
-          return
-        }
-        if infoDict[PHImageErrorKey] != nil, data == nil {
-          let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
-          completion(
-            .failure(
-              self.fail(
-                inCloud ? .iCloudDownloadRequired : .assetUnavailable,
-                message: inCloud
-                  ? "Asset is iCloud-only; download not started in Cap 7.3"
-                  : "Failed to load display data"
-              )
-            )
-          )
-          return
-        }
-        if data == nil {
-          let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
-          completion(
-            .failure(
-              self.fail(
-                inCloud ? .iCloudDownloadRequired : .assetUnavailable,
-                message: inCloud
-                  ? "Asset is iCloud-only; download not started in Cap 7.3"
-                  : "No display data for asset"
-              )
-            )
-          )
-          return
-        }
-        guard let data else { return }
+      ) { [weak self] data, _, _, info in
+        self?.handleDisplayResult(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          mediaKind: kind,
+          pixelWidth: Int64(asset.pixelWidth),
+          pixelHeight: Int64(asset.pixelHeight),
+          data: data,
+          info: info
+        )
+      }
 
-        do {
-          let path = try DisplayTempFileStore.shared.replace(
-            assetId: assetIdentifier,
-            data: data
-          )
-          let kind = self.mapMediaKind(asset)
-          DispatchQueue.main.async {
-            completion(
-              .success(
-                DisplayAssetDto(
-                  assetIdentifier: assetIdentifier,
-                  mediaKind: kind,
-                  localFilePath: path,
-                  pixelWidth: Int64(asset.pixelWidth),
-                  pixelHeight: Int64(asset.pixelHeight)
-                )
-              )
-            )
-          }
-        } catch {
-          DispatchQueue.main.async {
-            completion(
-              .failure(
-                self.fail(
-                  .insufficientStorage,
-                  message: "Failed to write display temp file"
-                )
-              )
-            )
-          }
-        }
+      if let toCancel = displayRequests.bindRequestId(
+        assetId: assetIdentifier,
+        generation: generation,
+        requestId: requestId
+      ) {
+        PHImageManager.default().cancelImageRequest(toCancel)
       }
     } catch {
       completion(.failure(error))
@@ -777,58 +756,56 @@ final class PhotoLibraryService: PhotoLibraryApi {
         return
       }
 
-      let options = PHVideoRequestOptions()
-      // Same Cap 7.3 local-only policy as display images.
-      options.isNetworkAccessAllowed = false
-      options.deliveryMode = .highQualityFormat
-
-      PHImageManager.default().requestAVAsset(
-        forVideo: asset,
-        options: options
-      ) { avAsset, _, info in
-        let infoDict = info ?? [:]
-        if (infoDict[PHImageCancelledKey] as? Bool) == true {
-          completion(
-            .failure(
-              self.fail(.operationCancelled, message: "Video request cancelled")
-            )
-          )
-          return
-        }
-        if avAsset == nil {
-          let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
-          completion(
+      let start = playableRequests.registerStart(
+        assetId: assetIdentifier,
+        completion: completion
+      )
+      if let previousId = start.previousRequestId {
+        PHImageManager.default().cancelImageRequest(previousId)
+      }
+      if let superseded = start.supersededCompletion {
+        DispatchQueue.main.async {
+          superseded(
             .failure(
               self.fail(
-                inCloud ? .iCloudDownloadRequired : .assetUnavailable,
-                message: inCloud
-                  ? "Video is iCloud-only; download not started in Cap 7.3"
-                  : "Failed to load playable video"
-              )
-            )
-          )
-          return
-        }
-        let duration: Double?
-        if let urlAsset = avAsset as? AVURLAsset {
-          let seconds = CMTimeGetSeconds(urlAsset.duration)
-          duration = seconds.isFinite ? seconds : nil
-        } else if let avAsset {
-          let seconds = CMTimeGetSeconds(avAsset.duration)
-          duration = seconds.isFinite ? seconds : Double(asset.duration)
-        } else {
-          duration = Double(asset.duration)
-        }
-        DispatchQueue.main.async {
-          completion(
-            .success(
-              PlayableVideoDto(
-                assetIdentifier: assetIdentifier,
-                durationSeconds: duration
+                .operationCancelled,
+                message: "Playable video request replaced"
               )
             )
           )
         }
+      }
+
+      let generation = start.generation
+      let options = PHVideoRequestOptions()
+      options.isNetworkAccessAllowed = true
+      options.deliveryMode = .highQualityFormat
+      options.progressHandler = { [weak self] _, _, _, _ in
+        self?.playableRequests.markTransferBegan(
+          assetId: assetIdentifier,
+          generation: generation
+        )
+      }
+
+      let requestId = PHImageManager.default().requestAVAsset(
+        forVideo: asset,
+        options: options
+      ) { [weak self] avAsset, _, info in
+        self?.handlePlayableResult(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          fallbackDuration: Double(asset.duration),
+          avAsset: avAsset,
+          info: info
+        )
+      }
+
+      if let toCancel = playableRequests.bindRequestId(
+        assetId: assetIdentifier,
+        generation: generation,
+        requestId: requestId
+      ) {
+        PHImageManager.default().cancelImageRequest(toCancel)
       }
     } catch {
       completion(.failure(error))
@@ -917,6 +894,14 @@ final class PhotoLibraryService: PhotoLibraryApi {
 
   func releasePreview(assetIdentifier: String) throws {
     abortPreview(assetIdentifier: assetIdentifier, releaseFile: true)
+  }
+
+  func cancelDisplayAsset(assetIdentifier: String) throws {
+    abortDisplay(assetIdentifier: assetIdentifier)
+  }
+
+  func cancelPlayableVideo(assetIdentifier: String) throws {
+    abortPlayable(assetIdentifier: assetIdentifier)
   }
 
   private func abortPreview(assetIdentifier: String, releaseFile: Bool) {
@@ -1089,6 +1074,259 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     DispatchQueue.main.async {
       guard let completion = self.previewRequests.takeCompletionIfCurrent(
+        assetId: assetIdentifier,
+        generation: generation
+      ) else {
+        return
+      }
+      completion(result)
+    }
+  }
+
+  private func abortDisplay(assetIdentifier: String) {
+    let result = displayRequests.invalidate(assetId: assetIdentifier)
+    if let requestId = result.requestId {
+      PHImageManager.default().cancelImageRequest(requestId)
+    }
+    if let completion = result.completion {
+      DispatchQueue.main.async {
+        completion(
+          .failure(
+            self.fail(.operationCancelled, message: "Display request cancelled")
+          )
+        )
+      }
+    }
+  }
+
+  private func abortPlayable(assetIdentifier: String) {
+    let result = playableRequests.invalidate(assetId: assetIdentifier)
+    if let requestId = result.requestId {
+      PHImageManager.default().cancelImageRequest(requestId)
+    }
+    if let completion = result.completion {
+      DispatchQueue.main.async {
+        completion(
+          .failure(
+            self.fail(
+              .operationCancelled,
+              message: "Playable video request cancelled"
+            )
+          )
+        )
+      }
+    }
+  }
+
+  private func layer2Failure(
+    cancelled: Bool,
+    transferBegan: Bool,
+    cancelledMessage: String,
+    failedMessage: String,
+    unavailableMessage: String
+  ) -> PigeonError {
+    if cancelled {
+      return fail(.operationCancelled, message: cancelledMessage)
+    }
+    if transferBegan {
+      return fail(.iCloudDownloadFailed, message: failedMessage)
+    }
+    return fail(.assetUnavailable, message: unavailableMessage)
+  }
+
+  private func handleDisplayResult(
+    assetIdentifier: String,
+    generation: UInt64,
+    mediaKind: MediaKind,
+    pixelWidth: Int64,
+    pixelHeight: Int64,
+    data: Data?,
+    info: [AnyHashable: Any]?
+  ) {
+    let infoDict = info ?? [:]
+    let cancelled = (infoDict[PHImageCancelledKey] as? Bool) == true
+
+    if let data, !cancelled {
+      let take = displayRequests.takeForDelivery(
+        assetId: assetIdentifier,
+        generation: generation
+      )
+      if !take.accepted {
+        return
+      }
+      if let requestId = take.requestIdToCancel {
+        PHImageManager.default().cancelImageRequest(requestId)
+      }
+      displayWriteQueue.async { [weak self] in
+        guard let self else { return }
+        do {
+          let path = try self.displayRequests.commitIfCurrent(
+            assetId: assetIdentifier,
+            generation: generation
+          ) {
+            try DisplayTempFileStore.shared.replace(
+              assetId: assetIdentifier,
+              data: data
+            )
+          }
+          guard let path else {
+            self.finishDisplay(
+              assetIdentifier: assetIdentifier,
+              generation: generation,
+              result: .failure(
+                self.fail(
+                  .operationCancelled,
+                  message: "Display request cancelled"
+                )
+              )
+            )
+            return
+          }
+          let dto = DisplayAssetDto(
+            assetIdentifier: assetIdentifier,
+            mediaKind: mediaKind,
+            localFilePath: path,
+            pixelWidth: pixelWidth,
+            pixelHeight: pixelHeight
+          )
+          self.finishDisplay(
+            assetIdentifier: assetIdentifier,
+            generation: generation,
+            result: .success(dto)
+          )
+        } catch {
+          self.finishDisplay(
+            assetIdentifier: assetIdentifier,
+            generation: generation,
+            result: .failure(
+              self.fail(
+                .insufficientStorage,
+                message: "Failed to write display temp file"
+              )
+            )
+          )
+        }
+      }
+      return
+    }
+
+    if displayRequests.shouldDropCallback(
+      assetId: assetIdentifier,
+      generation: generation
+    ) {
+      return
+    }
+
+    let transferBegan = displayRequests.didTransferBegin(
+      assetId: assetIdentifier,
+      generation: generation
+    )
+    finishDisplay(
+      assetIdentifier: assetIdentifier,
+      generation: generation,
+      result: .failure(
+        layer2Failure(
+          cancelled: cancelled,
+          transferBegan: transferBegan,
+          cancelledMessage: "Display request cancelled",
+          failedMessage: "Display download failed",
+          unavailableMessage: "No display data for asset"
+        )
+      )
+    )
+  }
+
+  private func handlePlayableResult(
+    assetIdentifier: String,
+    generation: UInt64,
+    fallbackDuration: Double,
+    avAsset: AVAsset?,
+    info: [AnyHashable: Any]?
+  ) {
+    let infoDict = info ?? [:]
+    let cancelled = (infoDict[PHImageCancelledKey] as? Bool) == true
+
+    if let avAsset, !cancelled {
+      let take = playableRequests.takeForDelivery(
+        assetId: assetIdentifier,
+        generation: generation
+      )
+      if !take.accepted {
+        return
+      }
+      if let requestId = take.requestIdToCancel {
+        PHImageManager.default().cancelImageRequest(requestId)
+      }
+      let duration: Double?
+      if let urlAsset = avAsset as? AVURLAsset {
+        let seconds = CMTimeGetSeconds(urlAsset.duration)
+        duration = seconds.isFinite ? seconds : nil
+      } else {
+        let seconds = CMTimeGetSeconds(avAsset.duration)
+        duration = seconds.isFinite ? seconds : fallbackDuration
+      }
+      finishPlayable(
+        assetIdentifier: assetIdentifier,
+        generation: generation,
+        result: .success(
+          PlayableVideoDto(
+            assetIdentifier: assetIdentifier,
+            durationSeconds: duration
+          )
+        )
+      )
+      return
+    }
+
+    if playableRequests.shouldDropCallback(
+      assetId: assetIdentifier,
+      generation: generation
+    ) {
+      return
+    }
+
+    let transferBegan = playableRequests.didTransferBegin(
+      assetId: assetIdentifier,
+      generation: generation
+    )
+    finishPlayable(
+      assetIdentifier: assetIdentifier,
+      generation: generation,
+      result: .failure(
+        layer2Failure(
+          cancelled: cancelled,
+          transferBegan: transferBegan,
+          cancelledMessage: "Playable video request cancelled",
+          failedMessage: "Playable video download failed",
+          unavailableMessage: "Failed to load playable video"
+        )
+      )
+    )
+  }
+
+  private func finishDisplay(
+    assetIdentifier: String,
+    generation: UInt64,
+    result: Result<DisplayAssetDto, Error>
+  ) {
+    DispatchQueue.main.async {
+      guard let completion = self.displayRequests.takeCompletionIfCurrent(
+        assetId: assetIdentifier,
+        generation: generation
+      ) else {
+        return
+      }
+      completion(result)
+    }
+  }
+
+  private func finishPlayable(
+    assetIdentifier: String,
+    generation: UInt64,
+    result: Result<PlayableVideoDto, Error>
+  ) {
+    DispatchQueue.main.async {
+      guard let completion = self.playableRequests.takeCompletionIfCurrent(
         assetId: assetIdentifier,
         generation: generation
       ) else {
@@ -1396,166 +1634,6 @@ final class DisplayTempFileStore {
     lock.lock()
     defer { lock.unlock() }
     return paths[assetId]?.path
-  }
-}
-
-// MARK: - Preview request table (Cap 14.2)
-
-typealias PreviewCompletion = (Result<DisplayAssetDto, Error>) -> Void
-
-struct PreviewRegisterStart {
-  let generation: UInt64
-  let previousRequestId: PHImageRequestID?
-  let supersededCompletion: PreviewCompletion?
-}
-
-struct PreviewInvalidateResult {
-  let requestId: PHImageRequestID?
-  let completion: PreviewCompletion?
-}
-
-struct PreviewDeliveryTake {
-  let accepted: Bool
-  let requestIdToCancel: PHImageRequestID?
-}
-
-/// Per-asset preview generation + PhotoKit request ids.
-///
-/// PhotoKit's opportunistic `requestImage` may invoke the result handler
-/// **before** `requestImage` returns an id (in-memory cache). Call
-/// [registerStart] *before* `requestImage`, then [bindRequestId] with the
-/// returned id. [takeForDelivery] with a current slot and a nil id is a
-/// legal first frame — not an error. A missing slot is stale (ignore).
-///
-/// After the first non-nil image, Host `cancelImageRequest` to stop the
-/// high-quality decode; later callbacks (including `PHImageCancelledKey`)
-/// must be dropped because [takeForDelivery] already marked delivered.
-final class PreviewImageRequestTable {
-  private struct Slot {
-    var generation: UInt64
-    var requestId: PHImageRequestID?
-    var delivered: Bool
-    var completion: PreviewCompletion?
-  }
-
-  private let lock = NSLock()
-  private var slots: [String: Slot] = [:]
-
-  func registerStart(
-    assetId: String,
-    completion: @escaping PreviewCompletion
-  ) -> PreviewRegisterStart {
-    lock.lock()
-    defer { lock.unlock() }
-    let previous = slots[assetId]
-    let nextGen = (previous?.generation ?? 0) &+ 1
-    slots[assetId] = Slot(
-      generation: nextGen,
-      requestId: nil,
-      delivered: false,
-      completion: completion
-    )
-    return PreviewRegisterStart(
-      generation: nextGen,
-      previousRequestId: previous?.requestId,
-      supersededCompletion: previous?.completion
-    )
-  }
-
-  /// Bind the PhotoKit id. Returns an id the caller must cancel when the
-  /// first frame already ran (sync handler) or the generation is stale.
-  func bindRequestId(
-    assetId: String,
-    generation: UInt64,
-    requestId: PHImageRequestID
-  ) -> PHImageRequestID? {
-    lock.lock()
-    defer { lock.unlock() }
-    guard var slot = slots[assetId], slot.generation == generation else {
-      return requestId
-    }
-    if slot.delivered {
-      return requestId
-    }
-    slot.requestId = requestId
-    slots[assetId] = slot
-    return nil
-  }
-
-  func takeForDelivery(
-    assetId: String,
-    generation: UInt64
-  ) -> PreviewDeliveryTake {
-    lock.lock()
-    defer { lock.unlock() }
-    guard var slot = slots[assetId], slot.generation == generation else {
-      return PreviewDeliveryTake(accepted: false, requestIdToCancel: nil)
-    }
-    if slot.delivered {
-      return PreviewDeliveryTake(accepted: false, requestIdToCancel: nil)
-    }
-    slot.delivered = true
-    let id = slot.requestId
-    slot.requestId = nil
-    slots[assetId] = slot
-    return PreviewDeliveryTake(accepted: true, requestIdToCancel: id)
-  }
-
-  func shouldDropCallback(assetId: String, generation: UInt64) -> Bool {
-    lock.lock()
-    defer { lock.unlock() }
-    guard let slot = slots[assetId], slot.generation == generation else {
-      return true
-    }
-    return slot.delivered
-  }
-
-  func isCurrent(assetId: String, generation: UInt64) -> Bool {
-    lock.lock()
-    defer { lock.unlock() }
-    return slots[assetId]?.generation == generation
-  }
-
-  func takeCompletionIfCurrent(
-    assetId: String,
-    generation: UInt64
-  ) -> PreviewCompletion? {
-    lock.lock()
-    defer { lock.unlock() }
-    guard var slot = slots[assetId], slot.generation == generation else {
-      return nil
-    }
-    let completion = slot.completion
-    slot.completion = nil
-    slots[assetId] = slot
-    return completion
-  }
-
-  /// Write JPEG only if [generation] is still current (atomic vs release).
-  func writeIfCurrent(
-    assetId: String,
-    generation: UInt64,
-    data: Data
-  ) throws -> String? {
-    lock.lock()
-    defer { lock.unlock() }
-    guard slots[assetId]?.generation == generation else {
-      return nil
-    }
-    return try PreviewTempFileStore.shared.replace(assetId: assetId, data: data)
-  }
-
-  func invalidate(assetId: String, releaseFile: Bool) -> PreviewInvalidateResult {
-    lock.lock()
-    defer { lock.unlock() }
-    let previous = slots.removeValue(forKey: assetId)
-    if releaseFile {
-      PreviewTempFileStore.shared.release(assetId: assetId)
-    }
-    return PreviewInvalidateResult(
-      requestId: previous?.requestId,
-      completion: previous?.completion
-    )
   }
 }
 

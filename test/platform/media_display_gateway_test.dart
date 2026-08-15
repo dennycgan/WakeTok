@@ -15,7 +15,9 @@ void main() {
   tearDown(() {
     for (final m in <String>[
       'requestDisplayAsset',
+      'cancelDisplayAsset',
       'requestPlayableVideo',
+      'cancelPlayableVideo',
       'requestPreview',
       'cancelPreview',
       'releasePreview',
@@ -53,14 +55,18 @@ void main() {
     expect(display.pixelWidth, 100);
   });
 
-  test('G-D1 iCloudDownloadRequired propagates as PlatformException', () async {
+  test('G-D1 iCloudDownloadFailed propagates as PlatformException', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockDecodedMessageHandler<Object?>(
       BasicMessageChannel<Object?>(
         photoChannel('requestDisplayAsset'),
         codec,
       ),
-      (message) async => <Object?>['iCloudDownloadRequired', 'iCloud-only', null],
+      (message) async => <Object?>[
+        'iCloudDownloadFailed',
+        'download failed',
+        null,
+      ],
     );
 
     final gateway = PhotoLibraryGateway();
@@ -68,7 +74,26 @@ void main() {
       await gateway.requestDisplayAsset('cloud');
       fail('expected PlatformException');
     } on PlatformException catch (e) {
-      expect(e.code, 'iCloudDownloadRequired');
+      expect(e.code, 'iCloudDownloadFailed');
+    }
+  });
+
+  test('G-D1 operationCancelled propagates as PlatformException', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestDisplayAsset'),
+        codec,
+      ),
+      (message) async => <Object?>['operationCancelled', 'replaced', null],
+    );
+
+    final gateway = PhotoLibraryGateway();
+    try {
+      await gateway.requestDisplayAsset('img1');
+      fail('expected PlatformException');
+    } on PlatformException catch (e) {
+      expect(e.code, 'operationCancelled');
     }
   });
 
@@ -195,5 +220,41 @@ void main() {
     await gateway.releasePreview('n2');
     expect(cancelled, ['n1']);
     expect(released, ['n2']);
+  });
+
+  test('G-D1 cancelDisplayAsset and cancelPlayableVideo hit PhotoLibrary channels',
+      () async {
+    final displayCancelled = <String>[];
+    final playableCancelled = <String>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('cancelDisplayAsset'),
+        codec,
+      ),
+      (message) async {
+        final args = message! as List<Object?>;
+        displayCancelled.add(args[0]! as String);
+        return <Object?>[null];
+      },
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('cancelPlayableVideo'),
+        codec,
+      ),
+      (message) async {
+        final args = message! as List<Object?>;
+        playableCancelled.add(args[0]! as String);
+        return <Object?>[null];
+      },
+    );
+
+    final gateway = PhotoLibraryGateway();
+    await gateway.cancelDisplayAsset('d1');
+    await gateway.cancelPlayableVideo('v1');
+    expect(displayCancelled, ['d1']);
+    expect(playableCancelled, ['v1']);
   });
 }

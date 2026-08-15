@@ -286,12 +286,22 @@ class PhotoLibraryGateway
   }
 
   @override
+  Future<void> cancelDisplayAsset(String assetIdentifier) {
+    return _api.cancelDisplayAsset(assetIdentifier);
+  }
+
+  @override
   Future<PlayableVideo> requestPlayableVideo(String assetIdentifier) async {
     final dto = await _api.requestPlayableVideo(assetIdentifier);
     return PlayableVideo(
       assetIdentifier: dto.assetIdentifier,
       durationSeconds: dto.durationSeconds,
     );
+  }
+
+  @override
+  Future<void> cancelPlayableVideo(String assetIdentifier) {
+    return _api.cancelPlayableVideo(assetIdentifier);
   }
 
   @override
