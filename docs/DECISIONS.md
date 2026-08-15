@@ -913,8 +913,18 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   tabs use Shuffle + Manual + Repeat All via derive + Session Queue;
   Decision 4 outcome (tab switch → feed index 0) remains binding, with
   rationale re-grounded by ADR-023 D8 (tab = new Consumption Session)
-  rather than “no Session Queue model yet”; Decisions 1 and 5–7 and
-  the Cap 7 Profile V-hard / Release hang split remain binding
+  rather than “no Session Queue model yet”; the **Decision 5 caching
+  clause only** — “session-scoped cache per source (at most one real
+  `resolveSource` per All / Photos / Videos per session, reuse on
+  revisit)”, as detailed in the Cap 7.6 Consequences bullet — is
+  narrowly superseded by ADR-024 (2026-08-15; Cap 13.8 work
+  `1f8a240`): a **successful but empty** resolve is no longer cached,
+  so an empty source may issue more than one `resolveSource` per
+  session; the rest of Decision 5 remains binding (independent Host
+  predicates per built-in, no Dart derivation of Photos / Videos from
+  All’s id list, `ResolvedSourceDto` carries ids only), and so does
+  the Cap 7.6 rule that failures are never stored; Decisions 1, 6–7
+  and the Cap 7 Profile V-hard / Release hang split remain binding
 - Commit/PR anchor: 5ef2e8a
 - Plain summary (owner reads this):
   Cap 7 Main Browse drives a vertical feed from Cap 6 built-in
@@ -2020,3 +2030,110 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     13.5 (not deleted without replacement wording).
   - Accepted date/anchor = Cap 13.2 work `f0187b4` (2026-08-13), per
     docs workflow (not Cap 13.1 docs and not Cap close-out).
+
+---
+
+## ADR-024: Cap 13.8 Browse Snapshot cache — never cache an empty resolve; a mapped failure is not “empty”
+
+- Status: Accepted (2026-08-15)
+- Commit/PR anchor: 1f8a240
+- Plain summary (owner reads this):
+  When a Browse tab resolves to zero items, WakeTok no longer remembers
+  that emptiness for the rest of the process. A user who grants Limited
+  access and lands on an empty All tab can switch to Photos or Videos
+  and back, and All then shows content — no force-quit. Separately, a
+  source that failed because of permissions now shows a failure message
+  with a Retry button instead of the “no content in this source” copy,
+  which had no Retry at all.
+- Context / what problem forced this:
+  Cap 13.6b device work (`docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md`,
+  draft 3) found that on a first-launch **Limited** library the default
+  All tab showed empty copy while Photos / Videos had items, switching
+  back to All stayed empty in the same process, and only force-quit +
+  reopen made All populate. Two independent defects sit behind that:
+  (a) `browseSnapshotCacheProvider` stored any non-hard-failure
+  Snapshot, including one whose coalesced id list is length 0 — a
+  **pre-13.4** behaviour inherited from ADR-014 Decision 5 / the Cap 7.6
+  cache bullet, so one unlucky first resolve poisoned the whole process;
+  (b) Cap 13.4 (`10a5735`) routes per-source failures through ADR-021
+  `resolvePool`, which records `unauthorized` / `albumUnavailable` in
+  `sourceStatuses` instead of throwing, so the feed saw “resolved,
+  zero ids” and rendered the empty-state copy with no Retry — a 13.4
+  regression against the ADR-015 / ADR-021 empty-vs-failed split. Both
+  had to be settled before Cap 13 could be described honestly, and (a)
+  is an explicit, owner-approved **scope expansion** of Cap 13.
+- Decision (what was chosen):
+  1. **Never cache a successful but empty Snapshot.**
+     `BrowseSessionNotifier._snapshotFor` calls `cache.put` only when
+     there is no hard failure **and** `coalescedAssetIds` is non-empty.
+     This narrowly supersedes the ADR-014 Decision 5 caching clause: the
+     “at most one real `resolveSource` per built-in per session”
+     guarantee no longer holds for an empty result. Everything else in
+     Decision 5 (independent Host predicates, no Dart derivation of
+     Photos / Videos from All, ids-only DTO) is untouched.
+  2. **Mapped Failed renders the failure panel, not the empty panel.**
+     When the ordered id list is empty and any `SourceResolveStatus`
+     has availability `unauthorized` or `unavailable`, the feed shows
+     the same `mainBrowseFeedResolveFailed` panel + Retry as a thrown
+     resolve error; Retry is `ref.invalidate(browseSessionProvider)`.
+     A genuinely empty source (no failed status) keeps the
+     `mainBrowseFeedEmpty` copy with no Retry.
+  3. **Failures are still never cached — continuity, not a new
+     exception.** The `hasHardFailure` guard landed with Cap 13.4 and
+     preserves the ADR-014 Cap 7.6 rule (“failures are never stored”)
+     under `resolvePool` semantics, where failures no longer throw.
+     Readers must not treat 13.8 as having changed failure caching.
+  4. **Cap 13 scope expansion, recorded explicitly.** Decision 1 fixes
+     behaviour that predates 13.4 and is therefore **not** part of the
+     13.4 regression; only Decision 2 is. This ADR exists so the two
+     are not later collapsed into “Cap 13 broke and fixed its own
+     cache”.
+  5. **Acceptance shape (13.8d).** Unit / widget: APP-6, APP-7,
+     W-F4b, W-S1b (+4; suite 267) with the full `flutter test` and
+     architecture suite green. Device: Kafka iPhone 13 Pro Profile,
+     first-launch Limited — All → Photos/Videos → All has content with
+     no force-quit. The `unauthorized` path is **unit-only** by owner
+     decision (creating that state on device is not worth the
+     permission thrash). No Instruments in 13.8.
+  6. **Out of scope.** Resolving only after authorization / Limited
+     selection has settled, any Photos library observer, and the
+     remaining first-frame empty flash (Known debt, picked up by the
+     iCloud media-loading capability). Cap 13.6’s Profile V-hard gate
+     (ADR-023 D10) is untouched and Cap 13 stays blocked there.
+- Rejected alternatives (why not B):
+  - Keep the empty-cache behaviour as Known debt with no code —
+    rejected; the sticky half required a force-quit to escape, which no
+    user will discover, and the fix is a one-line predicate.
+  - Resolve only after PhotoKit reports the Limited selection settled —
+    rejected **for 13.8**; correct direction but permission/timing
+    scope, far larger than this phase, and it would have pulled Cap 13
+    into a second open front while 13.6 is blocked.
+  - Invalidate the cache after the system Limited picker dismisses —
+    rejected; patches one entry path only, leaves the empty-cache
+    defect on every other path, and does not remove the first-frame
+    race.
+  - Render mapped Failed with the empty copy (status quo after 13.4) —
+    rejected; drops Retry and contradicts ADR-021’s status semantics,
+    where Failed and Empty are different outcomes.
+  - Clear the whole Snapshot cache on every tab switch — rejected;
+    would discard ADR-014 Decision 5’s performance intent for the
+    normal non-empty case.
+- Consequences / constraints accepted:
+  - A genuinely empty source re-resolves on every tab revisit
+    (bounded: one host call per revisit). Accepted as the price of not
+    caching empty.
+  - On first-launch Limited the **first** All frame may still flash
+    empty, with no Retry, until the user switches tabs. Recorded as
+    Known debt with the switch-away-and-back workaround and pointed at
+    the iCloud media-loading capability; explicitly **not** fixed here.
+  - ADR-014 Status records the Decision 5 caching-clause supersession;
+    ADR-014’s reasoning is untouched.
+  - No Host / Swift change, no Pigeon change, no theme or ARB key
+    change (13.8b reuses the existing `mainBrowseFeedResolveFailed` /
+    `mainBrowseFeedRetry` copy).
+  - Cap 13.6 remains FAIL / blocked on gate-foundation grounds; 13.8
+    neither lowers nor splits that bar, and 13.7 close-out stays
+    unavailable.
+  - Accepted date/anchor = Cap 13.8 work `1f8a240` (2026-08-15) —
+    13.8b and 13.8c shipped in that single work commit; this docs
+    commit is separate per two-commit discipline.

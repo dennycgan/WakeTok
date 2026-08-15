@@ -142,27 +142,70 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       reworded Accepted behaviour — not a bug fix (D8=A: tab =
       new Session; cross-tab Continuity not in Cap 13); no
       PlaybackApiHost code change
-- [ ] 13.6 Acceptance: unit SHUF/CONT/STAB/ROUND + APP/W-SHUF/W-END
-      + architecture green; Instruments Profile Hang retest on
-      iPhone 13 Pro (Kafka, UDID `00008110-001114420AEA801E`) —
-      same V-hard as ADR-014 Cap 7.7a (mean hitch < 25 ms/s AND
-      zero Severe Hang on production chrome with Shuffle-driven
-      feed **including Manual Endless: swipe past last item to
-      start next Shuffle round**; not Conditional Pass); does not
-      clear Release hang Known debt; no new PoC gate; no
-      Checkpoint recovery test
-- [ ] 13.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
+- [ ] 13.6 Acceptance — **blocked** (gate-foundation defect; NOT
+      "no hang found", NOT "skipped for now"): unit
+      SHUF/CONT/STAB/ROUND + APP/W-SHUF/W-END + architecture green;
+      Instruments Profile Hang retest on iPhone 13 Pro (Kafka, UDID
+      `00008110-001114420AEA801E`) — same V-hard as ADR-014 Cap 7.7a
+      (mean hitch < 25 ms/s AND zero Severe Hang on production chrome
+      with Shuffle-driven feed **including Manual Endless: swipe past
+      last item to start next Shuffle round**; not Conditional Pass);
+      does not clear Release hang Known debt; no new PoC gate; no
+      Checkpoint recovery test.
+      **Why blocked:** the gate's own preconditions are broken, so the
+      Instruments run is not interpretable — iCloud-only pages render
+      as a copy panel whose Retry is a no-op (Host is local-only,
+      ADR-006 Cap 7.3 fill-in), and Shuffle scatters those pages
+      through the Queue, so a Full-library doomscroll is not a
+      readable hitch surface. The bar is **not** lowered, **not**
+      Conditional Pass, **not** split. Evidence:
+      `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
+      `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md` (campaign
+      stopped as inexecutable; hypotheses A–D untested — no
+      hang-window stack). Re-run of the full matrix at the unchanged
+      bar is owed by the iCloud media-loading capability (scope not
+      yet owner-approved — no Roadmap line yet)
+- [x] 13.8 Browse empty / failure feed + claim Endless gesture
+      (opened after 13.6 blocked; does **not** close or relax 13.6)
+      - [x] 13.8a claim the Endless last-page gesture already on
+            `main` — work `e8564ce`
+      - [x] 13.8b mapped `unauthorized` / `unavailable` with empty
+            coalesced ids now shows the resolve-failed panel + Retry
+            instead of empty copy (**13.4 regression**) — work
+            `1f8a240`
+      - [x] 13.8c never cache an empty coalesced Snapshot
+            (**Cap 13 scope expansion** — fixes pre-13.4 ADR-014 D5
+            behaviour; not part of the 13.4 regression) — work
+            `1f8a240`
+      - [x] 13.8d Acceptance: APP-6/APP-7 + W-F4b/W-S1b (+4, suite
+            267) and full `flutter test` green; device Kafka Profile
+            Limited first-launch All → Photos/Videos → All has
+            content **without force-quit** = PASS; `unauthorized`
+            path unit-only by owner decision (no permission thrash);
+            no Instruments in 13.8
+      - [x] 13.8e docs: ADR-024 + ADR-014 D5 cache-clause narrow
+            supersede; 13.6 blocked reason; Known debt row for
+            Limited first-launch All
+- [ ] 13.7 Cap close-out (stays last; cannot run while 13.6 is
+      blocked): STATE Cap `[x]` + PHASE_HISTORY;
       Phase Roadmap → Auto-play Presets placeholder
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.5 closed; next = 13.6 acceptance + Profile
-- Sub-steps done: 13.5 docs — Known debt playhead row reclassified
-      Accepted (ADR-023 D6); row kept (not deleted) as permanent
-      accepted-behaviour record; cap8-8.8 Status append
-- Next step: owner OK this docs commit/push → 13.6 acceptance
-- Related decisions: ADR-023 D6/D8; no Host change; Release hang
-      stays Final performance Cap; 13.6 Profile must include Endless
-      round gesture
+- Goal (one line): Cap 13.8 closed; Cap 13 stays open and **blocked at
+      13.6**, so 13.7 close-out cannot run
+- Sub-steps done: 13.8a claim `e8564ce`; 13.8b + 13.8c work `1f8a240`
+      (pushed); 13.8d unit +4 (suite 267) + Kafka Profile device PASS
+      (switch away and back to All shows content, no force-quit);
+      13.8e this docs commit
+- Next step: owner review of the design draft for the Manual Doom
+      Scroll iCloud media-loading capability (scope **not** approved
+      yet — no Capability Roadmap line, no code, no Phase Roadmap
+      entry until then); no other Cap 13 phase may start
+- Related decisions: ADR-024 (empty Snapshot never cached; mapped
+      failure ≠ empty); ADR-014 D5 cache clause narrowed, rest of D5
+      binding; ADR-023 D10 13.6 V-hard unchanged; ADR-006 Cap 7.3
+      local-only (`isNetworkAccessAllowed = false`) still binding
+      until a future capability supersedes that clause
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -256,7 +299,15 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
   `applySessionConfiguration` (Order rebuild + asset-id remap;
   Advance/Repeat config-only); no Checkpoint / browse history;
   work `78f6d9d`
-- ADR-001 … ADR-023: docs/DECISIONS.md (ADR-023 Cap 13 Endless
+- Cap 13.8 Browse empty / failure feed:
+  `lib/app/browse/browse_session_providers.dart` (`_snapshotFor` caches
+  only when there is no hard failure **and** the coalesced list is
+  non-empty) + `lib/features/main_browse/vertical_media_feed.dart`
+  (empty ids with `unauthorized` / `unavailable` status →
+  resolve-failed panel + Retry, not empty copy); work `1f8a240` /
+  ADR-024
+- ADR-001 … ADR-024: docs/DECISIONS.md (ADR-024 Cap 13.8 Browse
+  Snapshot cache — Accepted, anchor `1f8a240`; ADR-023 Cap 13 Endless
   Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session Queue
   Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
   Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
@@ -284,6 +335,11 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
   docs/acceptance/cap9-9.6-playback-style-matrix.md
 - Acceptance notes (Cap 9.7 POC-08 device):
   docs/acceptance/cap9-9.7-poc08-notes.md
+- Acceptance notes (Cap 13.6 Profile V-hard FAIL — do not rewrite the
+  FAIL tables): docs/acceptance/cap13-13.6-notes.md
+- Acceptance notes (Cap 13.6b hang campaign stopped as inexecutable;
+  Limited All empty draft 3 + resolution):
+  docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
@@ -315,3 +371,4 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 | Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`) | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
 | Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | Cap 9.7 layout observation; move badge+spinner to bottom-right | Main Browse / Live chrome polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
+| Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** — the new user's very first screen reads "no content in this source" | Not a corner-case timing nit — this is the product's first impression for every user who grants Limited. PhotoKit has not surfaced the Limited selection yet when the default All tab resolves, so that first resolve is legitimately empty; there is **no** Photos observer and **no** automatic re-resolve, so the empty screen persists until the user happens to switch tabs on their own. Risk: the user concludes the app is broken and uninstalls before ever finding that hidden step. `1f8a240` (13.8c) removed only the *sticky* half — an empty result is no longer cached — the first-frame race itself is untouched. **Workaround: switch to Photos or Videos and back to All; force-quit is NOT needed** (device-verified 13.8d). Deeper fix (resolve only after authorization/selection has settled) was deliberately kept out of 13.8 as permission/timing scope | The iCloud media-loading capability being scoped next (exact capability name and Roadmap position land with the Roadmap reorder docs commit) | ADR-024 / ADR-014 / ADR-021 |
