@@ -144,8 +144,8 @@ preheating, and loading states (Cap 14)
       `requestPlayableVideo` may use network + cancel
       (work `ce8807f`; ADR-006 Status narrow supersede this docs
       commit)
-- [ ] 14.4 Feed three-layer UI + ARB; retire/rewrite
-      `mainBrowseFeedICloudOnly`
+- [x] 14.4 Feed three-layer UI + ARB; retire
+      `mainBrowseFeedICloudOnly` (work `9cf22a5`)
 - [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
 - [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
       empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
@@ -172,14 +172,14 @@ preheating, and loading states (Cap 14)
       last item to start next Shuffle round**; not Conditional Pass);
       does not clear Release hang Known debt; no new PoC gate; no
       Checkpoint recovery test.
-      **Why blocked:** the gate's own preconditions are broken, so the
-      Instruments run is not interpretable — iCloud-only pages still
-      render as a copy panel (Feed three-layer UI is 14.4); Retry
-      does not yet start Layer 2. Host current-item Layer 2 landed
-      `ce8807f` (ADR-006 Status narrow supersede). Shuffle scatters
-      those pages through the Queue, so a Full-library feed scroll is
-      not a readable hitch surface. The bar is **not** lowered, **not**
-      Conditional Pass, **not** split. Evidence:
+      **Why blocked:** the gate's own preconditions are still incomplete,
+      so the Instruments run is not interpretable — Feed three-layer UI
+      and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
+      copy panel). Remaining Cap 14: ±1 local-only visual preheat
+      (14.5) and Limited first-launch All empty (14.6). Host Layer 2
+      is `ce8807f`. Shuffle still scatters iCloud pages through the
+      Queue. The bar is **not** lowered, **not** Conditional Pass,
+      **not** split. Evidence:
       `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
       `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md` (campaign
       stopped as inexecutable; hypotheses A–D untested — no
@@ -191,11 +191,12 @@ preheating, and loading states (Cap 14)
       (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.4 Feed three-layer UI + ARB; retire/rewrite
-      `mainBrowseFeedICloudOnly`
-- Sub-steps done: 14.3 work `ce8807f`; this docs commit narrow-
-      supersedes ADR-006 Status for current-item Layer 2
-- Next step: 14.4 Feed three-layer UI + ARB (no Host PhotoKit change)
+- Goal (one line): Cap 14.5 ±1 local-only visual preheat + cancel on
+      leaving the window
+- Sub-steps done: 14.4 work `9cf22a5` (this docs commit marks 14.4
+      complete)
+- Next step: 14.5 ±1 local-only `requestPreview` preheat + cancel
+      (no Host PhotoKit contract change)
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
       narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
       Live motion stay local-only; ADR-023 D10 13.6 V-hard unchanged;
@@ -247,6 +248,9 @@ preheating, and loading states (Cap 14)
   PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (Cap 14.3
   `ce8807f` / ADR-025 Layer 2 current item: network allowed + cancel;
   never `iCloudDownloadRequired`; ADR-006 Status narrow supersede);
+  Feed three-layer UI (Cap 14.4 `9cf22a5`): Layer 1 preview then
+  current-item Layer 2; Layer 3 spinner Semantics; Retry overlay
+  when a still remains; `mainBrowseFeedICloudOnly` retired;
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
