@@ -2137,3 +2137,207 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Accepted date/anchor = Cap 13.8 work `1f8a240` (2026-08-15) —
     13.8b and 13.8c shipped in that single work commit; this docs
     commit is separate per two-commit discipline.
+
+---
+
+## ADR-025: Cap 14 current-item iCloud fetch, visual preheating, and loading states
+
+- Status: Proposed
+- Commit/PR anchor: (none until the first Cap 14.2 work commit; do not
+  invent a placeholder)
+- Plain summary (owner reads this):
+  When you stop on a photo or video that lives in iCloud, WakeTok should
+  still show a recognisable preview immediately in most cases, then load
+  the real file (including on cellular) with a spinner on top, and let
+  you swipe away to cancel. The first screen after granting Limited
+  access must not claim the library is empty while PhotoKit is still
+  catching up. This is not Auto-play lookahead or “waiting for the next
+  video in a queue”.
+- Context / what problem forced this:
+  Cap 13.6 Profile V-hard is **blocked on a gate-foundation defect**,
+  not because a hang was skipped or unfound
+  (`docs/acceptance/cap13-13.6-notes.md`,
+  `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md`): iCloud-only
+  pages render as copy whose Retry is a no-op, and Shuffle scatters
+  those pages, so Instruments is unreadable. That copy exists because
+  ADR-006’s Cap 7.3 fill-in (`29fcf2d`) sets
+  `isNetworkAccessAllowed = false` on `requestDisplayAsset` /
+  `requestPlayableVideo` and treats `PHImageResultIsInCloudKey` as a
+  hard `iCloudDownloadRequired` — without falling back to the
+  **local thumbnail / poster that PhotoKit usually already has**.
+  Kickoff MVP Scope §1–2 (and the Glossary clause titled
+  “Manual Doom Scroll” — cited, not adopted as WakeTok working
+  vocabulary) already require: stay on the current item; show a media
+  **loading** state; do not skip; show fetch / wait / fail / retry for
+  iCloud-only resources. Cap 8 shipped a panel + Retry, but Retry
+  cannot succeed under local-only Host policy.
+  Separately, Limited first-launch All can resolve successful-empty
+  before PhotoKit has written the Limited selection into
+  `allFetchResult`. ADR-024 stopped **caching** that emptiness; the
+  first frame can still show empty copy. Waiting for the Limited
+  picker to dismiss is **not** a fix — that dismiss has already
+  happened when the empty All resolve runs.
+  Pulling the Capability Roadmap row “One-item Lookahead Fetch,
+  Waiting for Media, iCloud Fallback” would import Auto-play
+  Eligibility, Pending Eligibility, and ADR-O foreground/background /
+  process-termination semantics. Kickoff ADR-O §1 / §3 and Glossary
+  “Auto-play Fetch Rule” bind lookahead to Auto-play only. Kickoff
+  ADR-P.5 allows bounded **local** visual preheating on Manual
+  browse; it forbids downloading full originals merely to preheat.
+- Decision (what was chosen):
+  1. **Capability identity.** Title:
+     **Current-item iCloud media fetch, visual preheating, and
+     loading states** (Cap 14). Do **not** use “Doom Scroll” in the
+     capability name, this ADR’s title, code identifiers, ARB keys, or
+     test names. When citing kickoff, quote the Glossary heading
+     “Manual Doom Scroll” or MVP Scope §1–2 as a spec reference only.
+  2. **Three display layers.**
+     - **Layer 1 — degraded preview (usually local, immediate):**
+       show any image PhotoKit can return without network: thumbnail,
+       degraded still, or **video poster**. Video preview **must not**
+       use `requestDisplayAsset` (Host already returns
+       `unsupportedMedia` for videos). Black / failure chrome is
+       forbidden while Layer 1 succeeded.
+     - **Layer 2 — full resource (current item only):** full still
+       or playable video. `isNetworkAccessAllowed = true`, including
+       cellular (D1=A). No App-level cellular toggle in this Cap
+       (evaluate at Settings).
+     - **Layer 3 — loading indicator:** spinner over Layer 1 while
+       Layer 2 is in flight. User may swipe away at any time.
+     **Failure / blank chrome is allowed only when Layer 1 is
+     unavailable and Layer 2 has failed or there is no network.**
+     Two copy paths: (a) Layer 2 still in flight — waiting, spinner,
+     no Retry; (b) Layer 2 failed or cancelled — reason + **effective**
+     Retry (a new network-allowed request). “Keep trying” means the
+     current Layer 2 request is in flight — **not** an unbounded retry
+     loop and **not** a Reachability observer.
+  3. **Pigeon shape (D7=A).** Keep one-shot `Result` completions.
+     Add `requestPreview` (local-only, stills **and** video poster,
+     cancellable). Change existing `requestDisplayAsset` /
+     `requestPlayableVideo` so the **current-item Layer 2** path may
+     set `isNetworkAccessAllowed = true` and is cancellable. Do **not**
+     introduce a FlutterApi event stream for opportunistic
+     double-callbacks in this Cap. PhotoKit `.opportunistic` two-callback
+     delivery does not fit one Pigeon `Result`; two requests, two
+     completions.
+  4. **Cancellation (in-scope, not an optimisation).** Leaving the
+     current item cancels its in-flight Layer 2 request. Leaving the
+     ±1 window cancels that neighbour’s preview. Host must retain
+     request ids (`cancelImageRequest` / stop caching as applicable).
+     Un-cancelled full fetches would waste cellular, pile work onto
+     the hitch surface, and complete onto the wrong page.
+  5. **±1 visual preheating (D2=B).** Preheat at most one item
+     before and after the current item using **already-local**
+     thumbnail/poster only (`networkAccessAllowed = false`). Do not
+     start a Layer 2 download for neighbours. Aligns with kickoff
+     ADR-P.5 (bounded visual preheat; no full original merely to
+     preheat).
+  6. **Live Photo (D3=A).** Still / key photo uses Layers 1–2.
+     Motion stays local-only (ADR-019 UX-1 remains). Matches kickoff
+     ADR-S: if motion is still in iCloud, show the still + loading;
+     on motion failure, remain on the still — do not skip.
+  7. **Narrow supersede of ADR-006 — Layer 2 current item only.**
+     When this ADR is **Accepted**, ADR-006 Status will record that
+     **only** the Cap 7.3 fill-in rule that **current-item full still
+     / playable video** must use `isNetworkAccessAllowed = false` and
+     must fail immediately with `iCloudDownloadRequired` is
+     superseded. **Still binding:** Layer 1 preview, ±1 preheat, POC-10
+     / Overlay file-size fetches, Live motion, and any other path not
+     named here stay local-only. Do **not** treat “Cap 7.3 local-only”
+     as a blanket lift. **Do not flip ADR-006 Status in the Proposed
+     docs commit.**
+  8. **Limited first-launch empty All (D4, restated).** Product: the
+     first screen after granting Limited must not show empty copy
+     while PhotoKit may still be populating `allFetchResult`.
+     Mechanism: **not** “wait for the picker / auth callback” (that
+     callback has already run). On a **successful empty** Snapshot
+     (no hard failure): keep **resolve-loading** (not empty copy) and
+     re-resolve **up to 3 additional times** with delays **500 ms,
+     1000 ms, 2000 ms** after each empty result (four attempts
+     including the first; ~3.5 s after the first empty). Then show
+     empty copy if still empty (true empty library). Hard failures
+     stay on the 13.8b failed panel; no automatic retry. No
+     `PHPhotoLibraryChangeObserver` in this Cap (ADR-023 D7 / kickoff
+     ADR-I: do not rebuild a non-empty Session because the library
+     changed). Tab-switch re-resolve of empty (ADR-024) remains as
+     backup.
+  9. **Copy.** Retire or rewrite `mainBrowseFeedICloudOnly` (and debug
+     `playbackProbeICloudOnly`): “iCloud-only on this device” is false
+     once Layer 1 is the normal iCloud-only first paint. New waiting /
+     failed strings via ARB + ADR-012.
+  10. **Roadmap reorder.** Insert Cap 14 immediately after Cap 13 in
+      execution order. **Skip (defer, do not delete)** Build-a-Pool,
+      Saved Pool, and Auto-play Presets — they do not restore 13.6’s
+      gate foundation. Rename the later row to **Auto-play One-item
+      Lookahead Fetch, Waiting for Media, and iCloud Fallback** so
+      “iCloud Fallback” is not ambiguous with Cap 14. Out of Cap 14:
+      lookahead; Auto-play Waiting for Media / Pending Eligibility;
+      ADR-O foreground vs background vs process termination; Mode
+      Eligibility / Presets; file-size-triggered download.
+  11. **Two open capabilities — intentional STATE deviation (D5).**
+      `state-decisions-maintenance` allows only one ACTIVE capability
+      in the Phase Roadmap. Cap 13 is not complete, so it cannot move
+      to PHASE_HISTORY. STATE will: mark Cap 13 `[~]` on the
+      Capability Roadmap; put YOU ARE HERE on Cap 14; replace the
+      Phase Roadmap with 14.1–14.7; add a **Parked capability: Cap 13**
+      section holding 13.6 (blocked, bar unchanged) and 13.7. This is
+      an explicit deviation, not an accident.
+  12. **Close-out binds 13.6 but does not run it (D6).** Cap 14 must
+      not be marked `[x]` until STATE records that 13.6’s
+      gate-foundation defect is **cleared as a blocker** (Layer 1+2+3
+      on production chrome) and **YOU ARE HERE returns to Cap 13**
+      with Phase Roadmap 13.6 + 13.7. The hitch retest itself remains
+      **Cap 13.6** at the **unchanged** ADR-014 / ADR-023 D10 V-hard
+      bar (not lowered, not Conditional Pass, not split). Cap 14’s
+      last phase is docs / unpark — **not** Instruments. 13.6 notes
+      for the re-run must record network conditions and roughly how
+      much of the library was already local, so a “quiet” trace is not
+      mistaken for a free pass. This Cap restores **executability** of
+      13.6; it does not claim 13.6 PASS.
+  13. **Docs workflow.** Cap 14.1 appends this entry as **Proposed**
+      (this commit): no Accepted date, no fake anchor. After the first
+      **14.2** work commit, a later docs commit flips Status to
+      Accepted with that work sha (`git log -1 --format=%cs`) — same
+      pattern as ADR-022 / ADR-023. The **ADR-006 Status** narrow
+      supersede is **not** part of that 14.2 docs commit; it lands in
+      the docs commit after **14.3** work (the sha that actually
+      allows network on current-item Layer 2). Cap 14.7 close-out is
+      separate: Cap `[x]`, return YOU ARE HERE to Cap 13.
+- Rejected alternatives (why not B):
+  - Advance the Auto-play Lookahead / Waiting for Media / iCloud
+    Fallback capability instead — rejected; ADR-O is Auto-play-only
+    and would pull Eligibility / Presets.
+  - Keep iCloud-only as a copy panel until a later performance Cap —
+    rejected; contradicts kickoff MVP Scope §1–2 and leaves 13.6
+    inexecutable.
+  - One opportunistic Pigeon call with two completions / FlutterApi
+    stream (D7=B) — rejected; freezes an unverified event channel;
+    video still cannot use `requestDisplayAsset`.
+  - ±1 network Display-sized preheat (D2=C) — rejected; two extra
+    downloads per swipe; muddies 13.6.
+  - Live motion download in this Cap (D3=B) — rejected; separate Host
+    path + UX-1.
+  - Wait for Limited picker completion before first All resolve —
+    rejected; that is the current timing of the bug.
+  - `PHPhotoLibraryChangeObserver` (even empty-only) in this Cap —
+    rejected; too easy to violate ADR-023 D7; empty-only invalidate
+    may be a later ADR.
+  - App-level Wi-Fi-only (D1=B) or “follow system Photos cellular”
+    (D1=C) — rejected; Settings is not built; C is an unverified
+    PhotoKit assumption. Cancellation bounds cellular cost.
+  - Run the 13.6 Instruments matrix as Cap 14’s last phase —
+    rejected; phase ownership would mix two capabilities.
+  - Flip ADR-006 Status in the Proposed commit — rejected; no
+    implementing sha yet.
+- Consequences / constraints accepted:
+  - ADR-014 Decision 5 remainder, ADR-024 empty-cache rule, and
+    ADR-023 D7 / D10 remain binding.
+  - Architecture guards (ADR-009/010/012) stay green on every `lib/`
+    touch; new user-visible copy goes through ARB.
+  - Genuinely empty libraries wait ~3.5 s on loading before empty
+    copy — accepted cost of not lying on Limited first launch.
+  - 13.6 hitch numbers after Cap 14 will include decode of Layer 1,
+    swap to Layer 2, and overlay spinner — that is the real product
+    surface, not a reason to lower the bar.
+  - Vocabulary: keep “Doom Scroll” inside kickoff / GLOSSARY citations
+    only.

@@ -62,12 +62,22 @@
       and stable Item Ordering Semantics
       (ADR-022; CFG `f53d455`; derive `ba81abc`;
       Queue `77571a9`; guard `a14d748`; accept `2e167bf`)
-- [ ] <-- YOU ARE HERE: Endless Shuffle, Queue Stability,
-      and Session Continuity
+- [~] Endless Shuffle, Queue Stability, and Session Continuity
+      (Cap 13; **parked / blocked at 13.6** — gate-foundation defect;
+      bar not lowered; see Parked capability below)
+- [ ] <-- YOU ARE HERE: Current-item iCloud media fetch, visual
+      preheating, and loading states
+      (Cap 14 / ADR-025 Proposed; restores 13.6 *executability*,
+      does not run 13.6 Instruments)
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
+      (**deferred past Cap 14** — does not unblock 13.6)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
+      (**deferred past Cap 14** — does not unblock 13.6)
 - [ ] Auto-play Presets and Mode Eligibility Rule
-- [ ] One-item Lookahead Fetch, Waiting for Media, iCloud Fallback
+      (**deferred past Cap 14** — does not unblock 13.6)
+- [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
+      iCloud Fallback
+      (renamed so “iCloud Fallback” is Auto-play / ADR-O, not Cap 14)
 - [ ] Background Audio, lock-screen playback, system media controls
 - [ ] SessionCheckpoint and Session Recovery
       (Queue, current Media Item, playback position,
@@ -110,7 +120,8 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Endless Shuffle, Queue Stability, and Session Continuity
+Active capability: Current-item iCloud media fetch, visual
+preheating, and loading states (Cap 14)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -119,29 +130,38 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 > When YOU ARE HERE moves, do not generate Phase Roadmap content without
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
+>
+> **Intentional deviation (ADR-025 D5 / D11):** Cap 13 is incomplete so it
+> cannot enter PHASE_HISTORY. It is **Parked** in the next section — not
+> expanded here. Only Cap 14 phases are ACTIVE.
 
-- [x] 13.1 Contract freeze: owner review D1–D9=A; ADR-023 Proposed
-      (Browse Shuffle product apply; slim ConsumptionSession;
-      zero Checkpoint/SQLite; Manual Shuffle = full Snapshot;
-      injectable Random + first≠last retry; playhead debt
-      reclassified Accepted not bug-fix; tab = new Session;
-      composition-seam guard update); Out-of-scope locked
-- [x] 13.2 Domain: Endless Shuffle in buildSessionQueue
-      (Fisher–Yates + round reshuffle + first≠last best-effort;
-      injectable Random; Cap 12 UnsupportedError removed)
-      — work `f0187b4`
-- [x] 13.3 Domain: Queue Stability + in-session Continuity
-      (rebuild mapping; slim ConsumptionSession; no
-      SessionCheckpoint persistence)
-      — work `78f6d9d`
-- [x] 13.4 Product apply: Main Browse Mixed → derive + Shuffle
-      Queue; supersede ADR-014 Sequential product default via
-      ADR-023; composition / guard update (D9=A)
-      — work `10a5735`
-- [x] 13.5 Playhead debt reclassification (D6=A): Known debt row
-      reworded Accepted behaviour — not a bug fix (D8=A: tab =
-      new Session; cross-tab Continuity not in Cap 13); no
-      PlaybackApiHost code change
+- [x] 14.1 Contract freeze: ADR-025 Proposed (no Accepted date, no
+      fake anchor); Capability Roadmap reorder; Parked Cap 13;
+      Known debt Picks it up → Cap 14; Auto-play lookahead row renamed
+- [ ] 14.2 Host Layer 1: `requestPreview` (local still + video poster)
+      + cancel
+- [ ] 14.3 Host Layer 2: current-item `requestDisplayAsset` /
+      `requestPlayableVideo` may use network + cancel
+      (ADR-006 Status narrow supersede in the docs commit after this
+      work sha)
+- [ ] 14.4 Feed three-layer UI + ARB; retire/rewrite
+      `mainBrowseFeedICloudOnly`
+- [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
+- [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
+      empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
+- [ ] 14.7 Cap 14 close-out docs: Cap 14 `[x]`; **return YOU ARE HERE
+      to Cap 13**; 13.6 unblocked as executable at the **unchanged**
+      V-hard bar; **do not run Instruments in 14.7**
+      (ADR-025 Accepted is the docs commit **after 14.2**, not 14.7)
+
+## Parked capability: Cap 13 (Endless Shuffle, Queue Stability, and Session Continuity)
+
+> Not ACTIVE. Do not treat these lines as the Phase Roadmap. Do not
+> rewrite 13.6 FAIL tables. Do not lower, Conditional-Pass, or split
+> the hitch bar. Re-opened only when Cap 14 close-out returns YOU ARE
+> HERE here (ADR-025 D6 / D12).
+
+- [x] 13.1–13.5, 13.8 — see git / ADR-023 / ADR-024 (13.8e `7edc99c`)
 - [ ] 13.6 Acceptance — **blocked** (gate-foundation defect; NOT
       "no hang found", NOT "skipped for now"): unit
       SHUF/CONT/STAB/ROUND + APP/W-SHUF/W-END + architecture green;
@@ -156,56 +176,28 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
       Instruments run is not interpretable — iCloud-only pages render
       as a copy panel whose Retry is a no-op (Host is local-only,
       ADR-006 Cap 7.3 fill-in), and Shuffle scatters those pages
-      through the Queue, so a Full-library doomscroll is not a
+      through the Queue, so a Full-library feed scroll is not a
       readable hitch surface. The bar is **not** lowered, **not**
       Conditional Pass, **not** split. Evidence:
       `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
       `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md` (campaign
       stopped as inexecutable; hypotheses A–D untested — no
-      hang-window stack). Re-run of the full matrix at the unchanged
-      bar is owed by the iCloud media-loading capability (scope not
-      yet owner-approved — no Roadmap line yet)
-- [x] 13.8 Browse empty / failure feed + claim Endless gesture
-      (opened after 13.6 blocked; does **not** close or relax 13.6)
-      - [x] 13.8a claim the Endless last-page gesture already on
-            `main` — work `e8564ce`
-      - [x] 13.8b mapped `unauthorized` / `unavailable` with empty
-            coalesced ids now shows the resolve-failed panel + Retry
-            instead of empty copy (**13.4 regression**) — work
-            `1f8a240`
-      - [x] 13.8c never cache an empty coalesced Snapshot
-            (**Cap 13 scope expansion** — fixes pre-13.4 ADR-014 D5
-            behaviour; not part of the 13.4 regression) — work
-            `1f8a240`
-      - [x] 13.8d Acceptance: APP-6/APP-7 + W-F4b/W-S1b (+4, suite
-            267) and full `flutter test` green; device Kafka Profile
-            Limited first-launch All → Photos/Videos → All has
-            content **without force-quit** = PASS; `unauthorized`
-            path unit-only by owner decision (no permission thrash);
-            no Instruments in 13.8
-      - [x] 13.8e docs: ADR-024 + ADR-014 D5 cache-clause narrow
-            supersede; 13.6 blocked reason; Known debt row for
-            Limited first-launch All
+      hang-window stack). Cap 14 restores **executability**; the
+      re-run remains this 13.6 phase after YOU ARE HERE returns.
 - [ ] 13.7 Cap close-out (stays last; cannot run while 13.6 is
       blocked): STATE Cap `[x]` + PHASE_HISTORY;
-      Phase Roadmap → Auto-play Presets placeholder
+      Phase Roadmap → Build a Pool, Ephemeral Pool, and Source ordering
+      (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.8 closed; Cap 13 stays open and **blocked at
-      13.6**, so 13.7 close-out cannot run
-- Sub-steps done: 13.8a claim `e8564ce`; 13.8b + 13.8c work `1f8a240`
-      (pushed); 13.8d unit +4 (suite 267) + Kafka Profile device PASS
-      (switch away and back to All shows content, no force-quit);
-      13.8e this docs commit
-- Next step: owner review of the design draft for the Manual Doom
-      Scroll iCloud media-loading capability (scope **not** approved
-      yet — no Capability Roadmap line, no code, no Phase Roadmap
-      entry until then); no other Cap 13 phase may start
-- Related decisions: ADR-024 (empty Snapshot never cached; mapped
-      failure ≠ empty); ADR-014 D5 cache clause narrowed, rest of D5
-      binding; ADR-023 D10 13.6 V-hard unchanged; ADR-006 Cap 7.3
-      local-only (`isNetworkAccessAllowed = false`) still binding
-      until a future capability supersedes that clause
+- Goal (one line): Cap 14.1 contract freeze (ADR-025 Proposed + Roadmap
+      reorder); Cap 13 parked at 13.6
+- Sub-steps done: this docs commit is 14.1
+- Next step: owner OK commit/push → 14.2 Host Layer 1 `requestPreview`
+      + cancel (no code until then)
+- Related decisions: ADR-025 Proposed; ADR-006 Cap 7.3 local-only still
+      **fully binding until 14.2 work + Accepted docs**; ADR-023 D10
+      13.6 V-hard unchanged; ADR-024 empty Snapshot not cached
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -306,10 +298,11 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
   (empty ids with `unauthorized` / `unavailable` status →
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
   ADR-024
-- ADR-001 … ADR-024: docs/DECISIONS.md (ADR-024 Cap 13.8 Browse
-  Snapshot cache — Accepted, anchor `1f8a240`; ADR-023 Cap 13 Endless
-  Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session Queue
-  Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
+- ADR-001 … ADR-025: docs/DECISIONS.md (ADR-025 Cap 14 current-item
+  iCloud fetch — **Proposed**, no work anchor yet; ADR-024 Cap 13.8
+  Browse Snapshot cache — Accepted, anchor `1f8a240`; ADR-023 Cap 13
+  Endless Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session
+  Queue Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
   Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
@@ -371,4 +364,4 @@ Active capability: Endless Shuffle, Queue Stability, and Session Continuity
 | Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`) | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
 | Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | Cap 9.7 layout observation; move badge+spinner to bottom-right | Main Browse / Live chrome polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
-| Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** — the new user's very first screen reads "no content in this source" | Not a corner-case timing nit — this is the product's first impression for every user who grants Limited. PhotoKit has not surfaced the Limited selection yet when the default All tab resolves, so that first resolve is legitimately empty; there is **no** Photos observer and **no** automatic re-resolve, so the empty screen persists until the user happens to switch tabs on their own. Risk: the user concludes the app is broken and uninstalls before ever finding that hidden step. `1f8a240` (13.8c) removed only the *sticky* half — an empty result is no longer cached — the first-frame race itself is untouched. **Workaround: switch to Photos or Videos and back to All; force-quit is NOT needed** (device-verified 13.8d). Deeper fix (resolve only after authorization/selection has settled) was deliberately kept out of 13.8 as permission/timing scope | The iCloud media-loading capability being scoped next (exact capability name and Roadmap position land with the Roadmap reorder docs commit) | ADR-024 / ADR-014 / ADR-021 |
+| Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** — the new user's very first screen reads "no content in this source" | Not a corner-case timing nit — this is the product's first impression for every user who grants Limited. PhotoKit has not surfaced the Limited selection yet when the default All tab resolves, so that first resolve is legitimately empty; there is **no** Photos observer and **no** automatic re-resolve, so the empty screen persists until the user happens to switch tabs on their own. Risk: the user concludes the app is broken and uninstalls before ever finding that hidden step. `1f8a240` (13.8c) removed only the *sticky* half — an empty result is no longer cached — the first-frame race itself is untouched. **Workaround: switch to Photos or Videos and back to All; force-quit is NOT needed** (device-verified 13.8d). Cap 14.6: keep resolve-loading on successful empty + bounded re-resolve (not “wait for picker”). | Current-item iCloud media fetch, visual preheating, and loading states (Cap 14 / ADR-025; phase 14.6) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
