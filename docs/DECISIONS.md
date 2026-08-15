@@ -339,7 +339,15 @@
 
 ## ADR-006: App-scoped PlaybackApi ownership (Platform View is detachable surface)
 
-- Status: Accepted (2026-07-30)
+- Status: Accepted (2026-07-30); the Cap 7.3 fill-in clause that
+  current-item `requestDisplayAsset` / `requestPlayableVideo` (and
+  foreground player prepare) must use `isNetworkAccessAllowed = false`
+  and fail immediately with `iCloudDownloadRequired` is narrowly
+  superseded by ADR-025 (2026-08-15; Cap 14.3 work `ce8807f`) for
+  **current-item Layer 2 only**. Still binding: Layer 1 preview, ±1
+  preheat, POC-10 / Overlay file-size fetches, Live motion, and any
+  other path not named in ADR-025 D7; PlaybackApi ownership, detachable
+  surface, 1+1 pool, and the rest of this ADR remain binding
 - Commit/PR anchor: a0b99d2
 - Plain summary (owner reads this):
   WakeTok’s player lives in a Swift app-scoped service, not inside a Flutter

@@ -140,10 +140,10 @@ preheating, and loading states (Cap 14)
       Known debt Picks it up → Cap 14; Auto-play lookahead row renamed
 - [x] 14.2 Host Layer 1: `requestPreview` (local still + video poster)
       + cancel (work `393ebc9`)
-- [ ] 14.3 Host Layer 2: current-item `requestDisplayAsset` /
+- [x] 14.3 Host Layer 2: current-item `requestDisplayAsset` /
       `requestPlayableVideo` may use network + cancel
-      (ADR-006 Status narrow supersede in the docs commit after this
-      work sha)
+      (work `ce8807f`; ADR-006 Status narrow supersede this docs
+      commit)
 - [ ] 14.4 Feed three-layer UI + ARB; retire/rewrite
       `mainBrowseFeedICloudOnly`
 - [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
@@ -173,11 +173,12 @@ preheating, and loading states (Cap 14)
       does not clear Release hang Known debt; no new PoC gate; no
       Checkpoint recovery test.
       **Why blocked:** the gate's own preconditions are broken, so the
-      Instruments run is not interpretable — iCloud-only pages render
-      as a copy panel whose Retry is a no-op (Host is local-only,
-      ADR-006 Cap 7.3 fill-in), and Shuffle scatters those pages
-      through the Queue, so a Full-library feed scroll is not a
-      readable hitch surface. The bar is **not** lowered, **not**
+      Instruments run is not interpretable — iCloud-only pages still
+      render as a copy panel (Feed three-layer UI is 14.4); Retry
+      does not yet start Layer 2. Host current-item Layer 2 landed
+      `ce8807f` (ADR-006 Status narrow supersede). Shuffle scatters
+      those pages through the Queue, so a Full-library feed scroll is
+      not a readable hitch surface. The bar is **not** lowered, **not**
       Conditional Pass, **not** split. Evidence:
       `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
       `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md` (campaign
@@ -190,16 +191,15 @@ preheating, and loading states (Cap 14)
       (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.3 Host Layer 2 — current-item
-      `requestDisplayAsset` / `requestPlayableVideo` may use network
-      + cancel
-- Sub-steps done: 14.2 work `393ebc9`; this docs commit accepts
-      ADR-025
-- Next step: 14.3 Host Layer 2 (no Feed / ARB; ADR-006 Status narrow
-      supersede is the docs commit after that work sha)
-- Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Cap 7.3
-      local-only still **fully binding until 14.3**; ADR-023 D10
-      13.6 V-hard unchanged; ADR-024 empty Snapshot not cached
+- Goal (one line): Cap 14.4 Feed three-layer UI + ARB; retire/rewrite
+      `mainBrowseFeedICloudOnly`
+- Sub-steps done: 14.3 work `ce8807f`; this docs commit narrow-
+      supersedes ADR-006 Status for current-item Layer 2
+- Next step: 14.4 Feed three-layer UI + ARB (no Host PhotoKit change)
+- Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
+      narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
+      Live motion stay local-only; ADR-023 D10 13.6 V-hard unchanged;
+      ADR-024 empty Snapshot not cached
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -244,8 +244,9 @@ preheating, and loading states (Cap 14)
 - Playback / display: lib/domain/playback/, lib/platform/playback_gateway.dart;
   PhotoLibraryApi.requestPreview (Cap 14.2 `393ebc9` / ADR-025 Layer 1,
   local-only still + video poster, cancellable);
-  PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (ADR-006 Cap 7.3
-  local-only until 14.3);
+  PhotoLibraryApi.requestDisplayAsset / requestPlayableVideo (Cap 14.3
+  `ce8807f` / ADR-025 Layer 2 current item: network allowed + cancel;
+  never `iCloudDownloadRequired`; ADR-006 Status narrow supersede);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
