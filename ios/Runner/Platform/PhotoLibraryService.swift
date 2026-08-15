@@ -13,6 +13,15 @@ final class PhotoLibraryService: PhotoLibraryApi {
   /// Upper bound for [fetchLibraryPage] pageSize (host clamp).
   private static let maxPageSize: Int = 500
 
+  /// Layer 1 preview: `PHImageManager` targetSize bounding box (pixels).
+  private static let previewTargetSize = CGSize(width: 1080, height: 1080)
+  private static let previewJpegQuality: CGFloat = 0.8
+
+  private let previewRequests = PreviewImageRequestTable()
+  private let previewEncodeQueue = DispatchQueue(
+    label: "com.dennycgan.waketok.preview.encode"
+  )
+
   private func fail(_ code: ErrorCode, message: String) -> PigeonError {
     PigeonError(code: codeName(code), message: message, details: nil)
   }
@@ -826,6 +835,269 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  // MARK: - Layer 1 preview (Cap 14.2 / ADR-025)
+
+  func requestPreview(
+    assetIdentifier: String,
+    completion: @escaping (Result<DisplayAssetDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      let fetch = PHAsset.fetchAssets(
+        withLocalIdentifiers: [assetIdentifier],
+        options: nil
+      )
+      guard let asset = fetch.firstObject else {
+        completion(
+          .failure(
+            fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
+          )
+        )
+        return
+      }
+
+      let start = previewRequests.registerStart(
+        assetId: assetIdentifier,
+        completion: completion
+      )
+      if let previousId = start.previousRequestId {
+        PHImageManager.default().cancelImageRequest(previousId)
+      }
+      if let superseded = start.supersededCompletion {
+        DispatchQueue.main.async {
+          superseded(
+            .failure(
+              self.fail(
+                .operationCancelled,
+                message: "Preview request replaced"
+              )
+            )
+          )
+        }
+      }
+
+      let options = PHImageRequestOptions()
+      options.isNetworkAccessAllowed = false
+      options.deliveryMode = .opportunistic
+      options.resizeMode = .fast
+      options.isSynchronous = false
+
+      let generation = start.generation
+      let kind = mapMediaKind(asset)
+      let requestId = PHImageManager.default().requestImage(
+        for: asset,
+        targetSize: Self.previewTargetSize,
+        contentMode: .aspectFit,
+        options: options
+      ) { [weak self] image, info in
+        self?.handlePreviewResult(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          mediaKind: kind,
+          image: image,
+          info: info
+        )
+      }
+
+      if let toCancel = previewRequests.bindRequestId(
+        assetId: assetIdentifier,
+        generation: generation,
+        requestId: requestId
+      ) {
+        PHImageManager.default().cancelImageRequest(toCancel)
+      }
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
+  func cancelPreview(assetIdentifier: String) throws {
+    abortPreview(assetIdentifier: assetIdentifier, releaseFile: false)
+  }
+
+  func releasePreview(assetIdentifier: String) throws {
+    abortPreview(assetIdentifier: assetIdentifier, releaseFile: true)
+  }
+
+  private func abortPreview(assetIdentifier: String, releaseFile: Bool) {
+    let result = previewRequests.invalidate(
+      assetId: assetIdentifier,
+      releaseFile: releaseFile
+    )
+    if let requestId = result.requestId {
+      PHImageManager.default().cancelImageRequest(requestId)
+    }
+    if let completion = result.completion {
+      DispatchQueue.main.async {
+        completion(
+          .failure(
+            self.fail(
+              .operationCancelled,
+              message: releaseFile
+                ? "Preview released"
+                : "Preview request cancelled"
+            )
+          )
+        )
+      }
+    }
+  }
+
+  private func handlePreviewResult(
+    assetIdentifier: String,
+    generation: UInt64,
+    mediaKind: MediaKind,
+    image: UIImage?,
+    info: [AnyHashable: Any]?
+  ) {
+    let infoDict = info ?? [:]
+    let cancelled = (infoDict[PHImageCancelledKey] as? Bool) == true
+
+    if let image, !cancelled {
+      let take = previewRequests.takeForDelivery(
+        assetId: assetIdentifier,
+        generation: generation
+      )
+      if !take.accepted {
+        return
+      }
+      if let requestId = take.requestIdToCancel {
+        PHImageManager.default().cancelImageRequest(requestId)
+      }
+      encodeAndCompletePreview(
+        assetIdentifier: assetIdentifier,
+        generation: generation,
+        mediaKind: mediaKind,
+        image: image
+      )
+      return
+    }
+
+    if previewRequests.shouldDropCallback(
+      assetId: assetIdentifier,
+      generation: generation
+    ) {
+      return
+    }
+
+    if cancelled {
+      finishPreview(
+        assetIdentifier: assetIdentifier,
+        generation: generation,
+        result: .failure(
+          fail(.operationCancelled, message: "Preview request cancelled")
+        )
+      )
+      return
+    }
+
+    let inCloud = (infoDict[PHImageResultIsInCloudKey] as? Bool) == true
+    finishPreview(
+      assetIdentifier: assetIdentifier,
+      generation: generation,
+      result: .failure(
+        fail(
+          inCloud ? .iCloudDownloadRequired : .assetUnavailable,
+          message: inCloud
+            ? "No local preview; Layer 1 unavailable"
+            : "No preview image for asset"
+        )
+      )
+    )
+  }
+
+  private func encodeAndCompletePreview(
+    assetIdentifier: String,
+    generation: UInt64,
+    mediaKind: MediaKind,
+    image: UIImage
+  ) {
+    previewEncodeQueue.async { [weak self] in
+      guard let self else { return }
+      guard self.previewRequests.isCurrent(
+        assetId: assetIdentifier,
+        generation: generation
+      ) else {
+        self.finishPreview(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          result: .failure(
+            self.fail(.operationCancelled, message: "Preview request cancelled")
+          )
+        )
+        return
+      }
+      guard let data = image.jpegData(compressionQuality: Self.previewJpegQuality)
+      else {
+        self.finishPreview(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          result: .failure(
+            self.fail(.assetUnavailable, message: "Failed to encode preview JPEG")
+          )
+        )
+        return
+      }
+      let pixelWidth = Int64((image.size.width * image.scale).rounded())
+      let pixelHeight = Int64((image.size.height * image.scale).rounded())
+      do {
+        guard let path = try self.previewRequests.writeIfCurrent(
+          assetId: assetIdentifier,
+          generation: generation,
+          data: data
+        ) else {
+          self.finishPreview(
+            assetIdentifier: assetIdentifier,
+            generation: generation,
+            result: .failure(
+              self.fail(.operationCancelled, message: "Preview request cancelled")
+            )
+          )
+          return
+        }
+        let dto = DisplayAssetDto(
+          assetIdentifier: assetIdentifier,
+          mediaKind: mediaKind,
+          localFilePath: path,
+          pixelWidth: pixelWidth,
+          pixelHeight: pixelHeight
+        )
+        self.finishPreview(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          result: .success(dto)
+        )
+      } catch {
+        self.finishPreview(
+          assetIdentifier: assetIdentifier,
+          generation: generation,
+          result: .failure(
+            self.fail(
+              .insufficientStorage,
+              message: "Failed to write preview temp file"
+            )
+          )
+        )
+      }
+    }
+  }
+
+  private func finishPreview(
+    assetIdentifier: String,
+    generation: UInt64,
+    result: Result<DisplayAssetDto, Error>
+  ) {
+    DispatchQueue.main.async {
+      guard let completion = self.previewRequests.takeCompletionIfCurrent(
+        assetId: assetIdentifier,
+        generation: generation
+      ) else {
+        return
+      }
+      completion(result)
+    }
+  }
+
   // MARK: - Presentation Metadata (Cap 8.3 / ADR-015)
 
   func requestPresentationMetadata(
@@ -1114,11 +1386,239 @@ final class DisplayTempFileStore {
     order.removeAll { $0 == assetId }
   }
 
-  #if DEBUG
   var fileCountForTests: Int {
     lock.lock()
     defer { lock.unlock() }
     return paths.count
   }
-  #endif
+
+  func pathForTests(assetId: String) -> String? {
+    lock.lock()
+    defer { lock.unlock() }
+    return paths[assetId]?.path
+  }
+}
+
+// MARK: - Preview request table (Cap 14.2)
+
+typealias PreviewCompletion = (Result<DisplayAssetDto, Error>) -> Void
+
+struct PreviewRegisterStart {
+  let generation: UInt64
+  let previousRequestId: PHImageRequestID?
+  let supersededCompletion: PreviewCompletion?
+}
+
+struct PreviewInvalidateResult {
+  let requestId: PHImageRequestID?
+  let completion: PreviewCompletion?
+}
+
+struct PreviewDeliveryTake {
+  let accepted: Bool
+  let requestIdToCancel: PHImageRequestID?
+}
+
+/// Per-asset preview generation + PhotoKit request ids.
+///
+/// PhotoKit's opportunistic `requestImage` may invoke the result handler
+/// **before** `requestImage` returns an id (in-memory cache). Call
+/// [registerStart] *before* `requestImage`, then [bindRequestId] with the
+/// returned id. [takeForDelivery] with a current slot and a nil id is a
+/// legal first frame — not an error. A missing slot is stale (ignore).
+///
+/// After the first non-nil image, Host `cancelImageRequest` to stop the
+/// high-quality decode; later callbacks (including `PHImageCancelledKey`)
+/// must be dropped because [takeForDelivery] already marked delivered.
+final class PreviewImageRequestTable {
+  private struct Slot {
+    var generation: UInt64
+    var requestId: PHImageRequestID?
+    var delivered: Bool
+    var completion: PreviewCompletion?
+  }
+
+  private let lock = NSLock()
+  private var slots: [String: Slot] = [:]
+
+  func registerStart(
+    assetId: String,
+    completion: @escaping PreviewCompletion
+  ) -> PreviewRegisterStart {
+    lock.lock()
+    defer { lock.unlock() }
+    let previous = slots[assetId]
+    let nextGen = (previous?.generation ?? 0) &+ 1
+    slots[assetId] = Slot(
+      generation: nextGen,
+      requestId: nil,
+      delivered: false,
+      completion: completion
+    )
+    return PreviewRegisterStart(
+      generation: nextGen,
+      previousRequestId: previous?.requestId,
+      supersededCompletion: previous?.completion
+    )
+  }
+
+  /// Bind the PhotoKit id. Returns an id the caller must cancel when the
+  /// first frame already ran (sync handler) or the generation is stale.
+  func bindRequestId(
+    assetId: String,
+    generation: UInt64,
+    requestId: PHImageRequestID
+  ) -> PHImageRequestID? {
+    lock.lock()
+    defer { lock.unlock() }
+    guard var slot = slots[assetId], slot.generation == generation else {
+      return requestId
+    }
+    if slot.delivered {
+      return requestId
+    }
+    slot.requestId = requestId
+    slots[assetId] = slot
+    return nil
+  }
+
+  func takeForDelivery(
+    assetId: String,
+    generation: UInt64
+  ) -> PreviewDeliveryTake {
+    lock.lock()
+    defer { lock.unlock() }
+    guard var slot = slots[assetId], slot.generation == generation else {
+      return PreviewDeliveryTake(accepted: false, requestIdToCancel: nil)
+    }
+    if slot.delivered {
+      return PreviewDeliveryTake(accepted: false, requestIdToCancel: nil)
+    }
+    slot.delivered = true
+    let id = slot.requestId
+    slot.requestId = nil
+    slots[assetId] = slot
+    return PreviewDeliveryTake(accepted: true, requestIdToCancel: id)
+  }
+
+  func shouldDropCallback(assetId: String, generation: UInt64) -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    guard let slot = slots[assetId], slot.generation == generation else {
+      return true
+    }
+    return slot.delivered
+  }
+
+  func isCurrent(assetId: String, generation: UInt64) -> Bool {
+    lock.lock()
+    defer { lock.unlock() }
+    return slots[assetId]?.generation == generation
+  }
+
+  func takeCompletionIfCurrent(
+    assetId: String,
+    generation: UInt64
+  ) -> PreviewCompletion? {
+    lock.lock()
+    defer { lock.unlock() }
+    guard var slot = slots[assetId], slot.generation == generation else {
+      return nil
+    }
+    let completion = slot.completion
+    slot.completion = nil
+    slots[assetId] = slot
+    return completion
+  }
+
+  /// Write JPEG only if [generation] is still current (atomic vs release).
+  func writeIfCurrent(
+    assetId: String,
+    generation: UInt64,
+    data: Data
+  ) throws -> String? {
+    lock.lock()
+    defer { lock.unlock() }
+    guard slots[assetId]?.generation == generation else {
+      return nil
+    }
+    return try PreviewTempFileStore.shared.replace(assetId: assetId, data: data)
+  }
+
+  func invalidate(assetId: String, releaseFile: Bool) -> PreviewInvalidateResult {
+    lock.lock()
+    defer { lock.unlock() }
+    let previous = slots.removeValue(forKey: assetId)
+    if releaseFile {
+      PreviewTempFileStore.shared.release(assetId: assetId)
+    }
+    return PreviewInvalidateResult(
+      requestId: previous?.requestId,
+      completion: previous?.completion
+    )
+  }
+}
+
+// MARK: - Preview temp files (cap 3 = current ±1)
+
+/// Host-managed JPEG temps for [requestPreview]. Max three files.
+///
+/// Invariant: callers must [releasePreview] an old neighbour **before**
+/// [requestPreview] on a new neighbour. Cap 3 is the working set
+/// (current + ±1), not headroom for preheat-then-release overflow.
+/// Prefix `waketok_preview_` must not collide with display temps.
+final class PreviewTempFileStore {
+  static let shared = PreviewTempFileStore()
+
+  private let maxFiles = 3
+  private var order: [String] = []
+  private var paths: [String: URL] = [:]
+  private let lock = NSLock()
+
+  /// Writes/replaces the temp for [assetId]; evicts LRU others beyond maxFiles.
+  func replace(assetId: String, data: Data) throws -> String {
+    lock.lock()
+    defer { lock.unlock() }
+
+    if let existing = paths[assetId] {
+      try? FileManager.default.removeItem(at: existing)
+      paths.removeValue(forKey: assetId)
+      order.removeAll { $0 == assetId }
+    }
+
+    while order.count >= maxFiles {
+      let evictId = order.removeFirst()
+      if let url = paths.removeValue(forKey: evictId) {
+        try? FileManager.default.removeItem(at: url)
+      }
+    }
+
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("waketok_preview_\(UUID().uuidString).jpg")
+    try data.write(to: url, options: .atomic)
+    paths[assetId] = url
+    order.append(assetId)
+    return url.path
+  }
+
+  func release(assetId: String) {
+    lock.lock()
+    defer { lock.unlock() }
+    if let url = paths.removeValue(forKey: assetId) {
+      try? FileManager.default.removeItem(at: url)
+    }
+    order.removeAll { $0 == assetId }
+  }
+
+  var fileCountForTests: Int {
+    lock.lock()
+    defer { lock.unlock() }
+    return paths.count
+  }
+
+  func pathForTests(assetId: String) -> String? {
+    lock.lock()
+    defer { lock.unlock() }
+    return paths[assetId]?.path
+  }
 }

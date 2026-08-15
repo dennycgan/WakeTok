@@ -3,6 +3,9 @@ import UIKit
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
+  /// Strong retain for preview request-id lifetime (Pigeon handlers also retain).
+  private var photoLibraryService: PhotoLibraryService?
+
   override func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
@@ -13,9 +16,11 @@ import UIKit
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
     let messenger = engineBridge.applicationRegistrar.messenger()
+    let photoLibraryService = PhotoLibraryService()
+    self.photoLibraryService = photoLibraryService
     PhotoLibraryApiSetup.setUp(
       binaryMessenger: messenger,
-      api: PhotoLibraryService()
+      api: photoLibraryService
     )
     let playbackHost = PlaybackApiHost()
     PlaybackApiSetup.setUp(

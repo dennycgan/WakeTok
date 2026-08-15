@@ -295,6 +295,28 @@ class PhotoLibraryGateway
   }
 
   @override
+  Future<DisplayAsset> requestPreview(String assetIdentifier) async {
+    final dto = await _api.requestPreview(assetIdentifier);
+    return DisplayAsset(
+      assetIdentifier: dto.assetIdentifier,
+      mediaKind: playbackMediaKindFromPigeon(dto.mediaKind),
+      localFilePath: dto.localFilePath,
+      pixelWidth: dto.pixelWidth,
+      pixelHeight: dto.pixelHeight,
+    );
+  }
+
+  @override
+  Future<void> cancelPreview(String assetIdentifier) {
+    return _api.cancelPreview(assetIdentifier);
+  }
+
+  @override
+  Future<void> releasePreview(String assetIdentifier) {
+    return _api.releasePreview(assetIdentifier);
+  }
+
+  @override
   Future<PresentationMetadata> requestPresentationMetadata(
     String assetIdentifier,
   ) async {

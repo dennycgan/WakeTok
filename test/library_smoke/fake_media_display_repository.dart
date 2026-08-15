@@ -60,4 +60,19 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
           durationSeconds: 1.0,
         );
   }
+
+  @override
+  Future<DisplayAsset> requestPreview(String assetIdentifier) async {
+    return DisplayAsset(
+      assetIdentifier: assetIdentifier,
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/fake_preview_$assetIdentifier.jpg',
+    );
+  }
+
+  @override
+  Future<void> cancelPreview(String assetIdentifier) async {}
+
+  @override
+  Future<void> releasePreview(String assetIdentifier) async {}
 }

@@ -56,6 +56,9 @@ void main() {
     'resolveSource',
     'requestDisplayAsset',
     'requestPlayableVideo',
+    'requestPreview',
+    'cancelPreview',
+    'releasePreview',
     'requestPresentationMetadata',
     'requestPresentationFileSize',
     'createAlbum',
@@ -230,6 +233,16 @@ void main() {
       PlayableVideoDto(assetIdentifier: 'a'),
     );
     mockSuccess(
+      photoChannel('requestPreview'),
+      DisplayAssetDto(
+        assetIdentifier: 'a',
+        mediaKind: MediaKind.video,
+        localFilePath: '/tmp/a_preview.jpg',
+      ),
+    );
+    mockSuccess(photoChannel('cancelPreview'), null);
+    mockSuccess(photoChannel('releasePreview'), null);
+    mockSuccess(
       photoChannel('requestPresentationMetadata'),
       PresentationMetadataDto(
         assetIdentifier: 'a',
@@ -275,6 +288,12 @@ void main() {
       (await api.requestPlayableVideo('a')).assetIdentifier,
       'a',
     );
+    expect(
+      (await api.requestPreview('a')).localFilePath,
+      '/tmp/a_preview.jpg',
+    );
+    await api.cancelPreview('a');
+    await api.releasePreview('a');
     final meta = await api.requestPresentationMetadata('a');
     expect(meta.assetIdentifier, 'a');
     expect(meta.mediaKind, MediaKind.image);

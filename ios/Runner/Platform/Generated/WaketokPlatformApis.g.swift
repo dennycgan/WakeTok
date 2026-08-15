@@ -421,17 +421,27 @@ struct ResolvedSourceDto: Hashable, CustomStringConvertible {
   }
 }
 
-/// Displayable still (incl. Live Photo key photo) for Flutter [Image.file].
+/// Still JPEG on disk for Flutter [Image.file] (display still **or** preview).
 ///
-/// Cap 7.3: [localFilePath] is a host temp JPEG/PNG; count bounded ≤1+1 with
-/// the display pool (ADR-001 / POC-04). Local-only request — iCloud-only →
-/// [ErrorCode.iCloudDownloadRequired] (no host-initiated download).
+/// [localFilePath] is always a static JPEG, including when [mediaKind] is
+/// [MediaKind.video] (poster). [mediaKind] describes the PHAsset, not the
+/// file type at [localFilePath].
+///
+/// Which Host store owns the file depends on the API that returned this DTO:
+/// [PhotoLibraryApi.requestDisplayAsset] → display store (≤1+1, Cap 7.3);
+/// [PhotoLibraryApi.requestPreview] → preview store (cap 3, Cap 14.2).
+/// Callers must not share one cache slot across those two methods.
+///
+/// Error semantics are **per method**, not per DTO. Cap 7.3
+/// [PhotoLibraryApi.requestDisplayAsset] / [PhotoLibraryApi.requestPlayableVideo]
+/// still treat [ErrorCode.iCloudDownloadRequired] as a user-visible failure.
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct DisplayAssetDto: Hashable, CustomStringConvertible {
   var assetIdentifier: String
   var mediaKind: MediaKind
-  /// Absolute path to a host-managed temp file (JPEG). Bounded ≤1+1.
+  /// Absolute path to a host-managed temp JPEG. Bound depends on the API
+  /// that wrote the file (display ≤1+1 vs preview cap 3).
   var localFilePath: String
   var pixelWidth: Int64? = nil
   var pixelHeight: Int64? = nil
@@ -1122,6 +1132,44 @@ protocol PhotoLibraryApi {
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
   func requestDisplayAsset(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
   func requestPlayableVideo(assetIdentifier: String, completion: @escaping (Result<PlayableVideoDto, Error>) -> Void)
+  /// Cap 14.2 Layer 1: local-only degraded still / Live key frame / video
+  /// poster. [isNetworkAccessAllowed] is false. Uses `PHImageManager.requestImage`
+  /// (not [requestDisplayAsset] — videos remain `unsupportedMedia` there).
+  ///
+  /// One Pigeon completion. Opportunistic delivery: the first non-nil
+  /// `UIImage` is Layer 1 from PhotoKit; Host then `cancelImageRequest` so
+  /// preview does **not** upgrade to a later high-quality decode. Later
+  /// callbacks (including `PHImageCancelledKey` from that cancel) are dropped.
+  ///
+  /// [DisplayAssetDto.localFilePath] is always a static JPEG.
+  /// [DisplayAssetDto.mediaKind] is the PHAsset kind (video → [MediaKind.video]
+  /// + JPEG poster). Do not use [mediaKind] to decide whether to attach a
+  /// player; that is [requestPlayableVideo] only.
+  ///
+  /// [ErrorCode.iCloudDownloadRequired] on **this** method is not a
+  /// user-visible failure: it means Layer 1 is unavailable, so the caller
+  /// should start Layer 2. Failure / blank chrome is allowed only when
+  /// Layer 1 is missing **and** Layer 2 has failed (ADR-025 D2). Do not
+  /// revive the Cap 8 iCloud-only copy panel from this code.
+  /// Cap 7.3 [requestDisplayAsset] / [requestPlayableVideo] keep treating
+  /// the same error as user-visible until Cap 14.3.
+  ///
+  /// [ErrorCode.operationCancelled] is non-terminal for the caller: the
+  /// request may have been replaced by a newer [requestPreview] for the
+  /// same id, or aborted by [cancelPreview] / [releasePreview]. Do not
+  /// show failed chrome.
+  func requestPreview(assetIdentifier: String, completion: @escaping (Result<DisplayAssetDto, Error>) -> Void)
+  /// Aborts an in-flight [requestPreview] for [assetIdentifier] (PhotoKit +
+  /// encode). No-op if none. Does **not** delete a JPEG already on disk
+  /// (current-page Layer 1 may still display it).
+  func cancelPreview(assetIdentifier: String) throws
+  /// Aborts in-flight preview (same as [cancelPreview]) **and** deletes the
+  /// preview JPEG for [assetIdentifier]. No-op if none.
+  ///
+  /// Invariant (Cap 14.5): callers must [releasePreview] an old neighbour
+  /// before [requestPreview] on a new neighbour. Cap 3 is current ±1, not
+  /// a slot for preheat-then-release overflow.
+  func releasePreview(assetIdentifier: String) throws
   /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
   ///
   /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
@@ -1307,6 +1355,88 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestPlayableVideoChannel.setMessageHandler(nil)
+    }
+    /// Cap 14.2 Layer 1: local-only degraded still / Live key frame / video
+    /// poster. [isNetworkAccessAllowed] is false. Uses `PHImageManager.requestImage`
+    /// (not [requestDisplayAsset] — videos remain `unsupportedMedia` there).
+    ///
+    /// One Pigeon completion. Opportunistic delivery: the first non-nil
+    /// `UIImage` is Layer 1 from PhotoKit; Host then `cancelImageRequest` so
+    /// preview does **not** upgrade to a later high-quality decode. Later
+    /// callbacks (including `PHImageCancelledKey` from that cancel) are dropped.
+    ///
+    /// [DisplayAssetDto.localFilePath] is always a static JPEG.
+    /// [DisplayAssetDto.mediaKind] is the PHAsset kind (video → [MediaKind.video]
+    /// + JPEG poster). Do not use [mediaKind] to decide whether to attach a
+    /// player; that is [requestPlayableVideo] only.
+    ///
+    /// [ErrorCode.iCloudDownloadRequired] on **this** method is not a
+    /// user-visible failure: it means Layer 1 is unavailable, so the caller
+    /// should start Layer 2. Failure / blank chrome is allowed only when
+    /// Layer 1 is missing **and** Layer 2 has failed (ADR-025 D2). Do not
+    /// revive the Cap 8 iCloud-only copy panel from this code.
+    /// Cap 7.3 [requestDisplayAsset] / [requestPlayableVideo] keep treating
+    /// the same error as user-visible until Cap 14.3.
+    ///
+    /// [ErrorCode.operationCancelled] is non-terminal for the caller: the
+    /// request may have been replaced by a newer [requestPreview] for the
+    /// same id, or aborted by [cancelPreview] / [releasePreview]. Do not
+    /// show failed chrome.
+    let requestPreviewChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPreview\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestPreviewChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.requestPreview(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestPreviewChannel.setMessageHandler(nil)
+    }
+    /// Aborts an in-flight [requestPreview] for [assetIdentifier] (PhotoKit +
+    /// encode). No-op if none. Does **not** delete a JPEG already on disk
+    /// (current-page Layer 1 may still display it).
+    let cancelPreviewChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.cancelPreview\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelPreviewChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.cancelPreview(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelPreviewChannel.setMessageHandler(nil)
+    }
+    /// Aborts in-flight preview (same as [cancelPreview]) **and** deletes the
+    /// preview JPEG for [assetIdentifier]. No-op if none.
+    ///
+    /// Invariant (Cap 14.5): callers must [releasePreview] an old neighbour
+    /// before [requestPreview] on a new neighbour. Cap 3 is current ±1, not
+    /// a slot for preheat-then-release overflow.
+    let releasePreviewChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.releasePreview\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      releasePreviewChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.releasePreview(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      releasePreviewChannel.setMessageHandler(nil)
     }
     /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
     ///

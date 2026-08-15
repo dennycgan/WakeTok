@@ -13,7 +13,13 @@ void main() {
       'dev.flutter.pigeon.waketok.PhotoLibraryApi.$method';
 
   tearDown(() {
-    for (final m in <String>['requestDisplayAsset', 'requestPlayableVideo']) {
+    for (final m in <String>[
+      'requestDisplayAsset',
+      'requestPlayableVideo',
+      'requestPreview',
+      'cancelPreview',
+      'releasePreview',
+    ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockDecodedMessageHandler<Object?>(
         BasicMessageChannel<Object?>(photoChannel(m), codec),
@@ -84,5 +90,110 @@ void main() {
     final gateway = PhotoLibraryGateway();
     final video = await gateway.requestPlayableVideo('vid1');
     expect(video.durationSeconds, 12.5);
+  });
+
+  test('G-P1 preview maps localFilePath and video mediaKind', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestPreview'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        pigeon.DisplayAssetDto(
+          assetIdentifier: 'vid1',
+          mediaKind: pigeon.MediaKind.video,
+          localFilePath: '/tmp/vid1_poster.jpg',
+          pixelWidth: 1080,
+          pixelHeight: 608,
+        ),
+      ],
+    );
+
+    final gateway = PhotoLibraryGateway();
+    final preview = await gateway.requestPreview('vid1');
+    expect(preview.localFilePath, '/tmp/vid1_poster.jpg');
+    expect(preview.mediaKind, PlaybackMediaKind.video);
+    expect(preview.pixelWidth, 1080);
+  });
+
+  test('G-P1 preview iCloudDownloadRequired propagates as PlatformException',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestPreview'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        'iCloudDownloadRequired',
+        'no layer 1',
+        null,
+      ],
+    );
+
+    final gateway = PhotoLibraryGateway();
+    try {
+      await gateway.requestPreview('cloud');
+      fail('expected PlatformException');
+    } on PlatformException catch (e) {
+      expect(e.code, 'iCloudDownloadRequired');
+    }
+  });
+
+  test('G-P1 preview operationCancelled propagates as PlatformException',
+      () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestPreview'),
+        codec,
+      ),
+      (message) async => <Object?>['operationCancelled', 'replaced', null],
+    );
+
+    final gateway = PhotoLibraryGateway();
+    try {
+      await gateway.requestPreview('img1');
+      fail('expected PlatformException');
+    } on PlatformException catch (e) {
+      expect(e.code, 'operationCancelled');
+    }
+  });
+
+  test('G-P1 cancelPreview and releasePreview hit PhotoLibrary channels',
+      () async {
+    final cancelled = <String>[];
+    final released = <String>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('cancelPreview'),
+        codec,
+      ),
+      (message) async {
+        final args = message! as List<Object?>;
+        cancelled.add(args[0]! as String);
+        return <Object?>[null];
+      },
+    );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('releasePreview'),
+        codec,
+      ),
+      (message) async {
+        final args = message! as List<Object?>;
+        released.add(args[0]! as String);
+        return <Object?>[null];
+      },
+    );
+
+    final gateway = PhotoLibraryGateway();
+    await gateway.cancelPreview('n1');
+    await gateway.releasePreview('n2');
+    expect(cancelled, ['n1']);
+    expect(released, ['n2']);
   });
 }
