@@ -254,10 +254,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'No assets in the selected built-in source.';
 
   @override
-  String get playbackProbeICloudOnly =>
-      'iCloud-only on device; Cap 7.3 does not download.';
-
-  @override
   String get playbackProbeFailed => 'Playback / display probe failed.';
 
   @override
@@ -294,11 +290,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedRetry => 'Retry';
 
   @override
-  String get mainBrowseFeedICloudOnly =>
-      'This item is iCloud-only on this device.';
+  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
 
   @override
-  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
+  String get mainBrowseFeedLayer3Loading => 'Loading full quality';
+
+  @override
+  String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
 
   @override
   String get mainBrowseLiveBadge => 'LIVE';

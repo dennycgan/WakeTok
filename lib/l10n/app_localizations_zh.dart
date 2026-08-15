@@ -251,10 +251,6 @@ class AppLocalizationsZh extends AppLocalizations {
       'No assets in the selected built-in source.';
 
   @override
-  String get playbackProbeICloudOnly =>
-      'iCloud-only on device; Cap 7.3 does not download.';
-
-  @override
   String get playbackProbeFailed => 'Playback / display probe failed.';
 
   @override
@@ -291,11 +287,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedRetry => 'Retry';
 
   @override
-  String get mainBrowseFeedICloudOnly =>
-      'This item is iCloud-only on this device.';
+  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
 
   @override
-  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
+  String get mainBrowseFeedLayer3Loading => 'Loading full quality';
+
+  @override
+  String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
 
   @override
   String get mainBrowseLiveBadge => 'LIVE';
@@ -622,9 +620,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get playbackProbeNoAssets => '所选内置来源没有资源。';
 
   @override
-  String get playbackProbeICloudOnly => '设备上为仅 iCloud；Cap 7.3 不发起下载。';
-
-  @override
   String get playbackProbeFailed => '播放 / 显示探针失败。';
 
   @override
@@ -661,10 +656,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseFeedRetry => '重试';
 
   @override
-  String get mainBrowseFeedICloudOnly => '此项目在本机仅为 iCloud。';
+  String get mainBrowseFeedMediaFailed => '无法显示此项目。';
 
   @override
-  String get mainBrowseFeedMediaFailed => '无法显示此项目。';
+  String get mainBrowseFeedLayer3Loading => '正在加载完整画质';
+
+  @override
+  String get mainBrowseFeedDownloadFailed => '无法下载此项目。';
 
   @override
   String get mainBrowseLiveBadge => 'LIVE';

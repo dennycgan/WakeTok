@@ -12,9 +12,9 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Cap 7.3 debug probe: one local image via temp file + one video via PV.
+/// Cap 7.3 debug probe: one image via temp file + one video via PV.
 ///
-/// Not Main Browse. Local-only host policy — iCloud-only surfaces as error copy.
+/// Not Main Browse. Layer 2 display/playable failures use generic probe copy.
 class PlaybackPipelineProbeSection extends ConsumerStatefulWidget {
   const PlaybackPipelineProbeSection({super.key});
 
@@ -49,8 +49,9 @@ class _PlaybackPipelineProbeSectionState
         return;
       }
       final id = resolved.assetIdentifiers.first;
-      final display =
-          await ref.read(mediaDisplayRepositoryProvider).requestDisplayAsset(id);
+      final display = await ref
+          .read(mediaDisplayRepositoryProvider)
+          .requestDisplayAsset(id);
       if (!mounted) {
         return;
       }
@@ -58,14 +59,12 @@ class _PlaybackPipelineProbeSectionState
         _imagePath = display.localFilePath;
         _status = l10n.playbackProbeImageOk;
       });
-    } on PlatformException catch (e) {
+    } on PlatformException {
       if (!mounted) {
         return;
       }
       setState(() {
-        _status = e.code == 'iCloudDownloadRequired'
-            ? l10n.playbackProbeICloudOnly
-            : l10n.playbackProbeFailed;
+        _status = l10n.playbackProbeFailed;
       });
     } catch (_) {
       if (!mounted) {
@@ -125,14 +124,12 @@ class _PlaybackPipelineProbeSectionState
         _videoId = id;
         _status = l10n.playbackProbeVideoReady;
       });
-    } on PlatformException catch (e) {
+    } on PlatformException {
       if (!mounted) {
         return;
       }
       setState(() {
-        _status = e.code == 'iCloudDownloadRequired'
-            ? l10n.playbackProbeICloudOnly
-            : l10n.playbackProbeFailed;
+        _status = l10n.playbackProbeFailed;
       });
     } catch (_) {
       if (!mounted) {
@@ -158,9 +155,9 @@ class _PlaybackPipelineProbeSectionState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: tokens.onSurface,
-        );
+    final bodyStyle = Theme.of(
+      context,
+    ).textTheme.bodyMedium?.copyWith(color: tokens.onSurface);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -170,9 +167,9 @@ class _PlaybackPipelineProbeSectionState
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Text(
             l10n.playbackProbeSectionTitle,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: tokens.onSurface,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(color: tokens.onSurface),
           ),
         ),
         Padding(
@@ -237,7 +234,8 @@ class _PlaybackPipelineProbeSectionState
                   viewType: PlaybackPipelineProbeSection.playbackViewType,
                   creationParams: _videoId,
                   creationParamsCodec: const StandardMessageCodec(),
-                  gestureRecognizers: const <Factory<OneSequenceGestureRecognizer>>{},
+                  gestureRecognizers:
+                      const <Factory<OneSequenceGestureRecognizer>>{},
                   onPlatformViewCreated: (_) async {
                     final id = _videoId;
                     if (id == null) {

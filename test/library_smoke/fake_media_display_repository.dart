@@ -5,11 +5,7 @@ import 'package:waketok/domain/playback/media_display_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 
 class FakeMediaDisplayRepository implements MediaDisplayRepository {
-  FakeMediaDisplayRepository({
-    this.display,
-    this.video,
-    this.displayErrorCode,
-  });
+  FakeMediaDisplayRepository({this.display, this.video, this.displayErrorCode});
 
   DisplayAsset? display;
   PlayableVideo? video;
@@ -18,14 +14,31 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   /// Per-id display overrides (takes precedence over [display]).
   final Map<String, DisplayAsset> displaysById = <String, DisplayAsset>{};
 
+  /// Per-id preview overrides.
+  final Map<String, DisplayAsset> previewsById = <String, DisplayAsset>{};
+
   /// Per-id delayed completion for display requests (W-F7).
   final Map<String, Completer<void>> displayGates = <String, Completer<void>>{};
+
+  /// Per-id delayed completion for preview requests.
+  final Map<String, Completer<void>> previewGates = <String, Completer<void>>{};
+
+  /// Per-id delayed completion for playable-video requests.
+  final Map<String, Completer<void>> playableGates =
+      <String, Completer<void>>{};
 
   /// Forced [PlatformException.code] per asset id for display.
   final Map<String, String> displayErrorById = <String, String>{};
 
+  /// Forced [PlatformException.code] per asset id for preview.
+  final Map<String, String> previewErrorById = <String, String>{};
+
   final List<String> displayCalls = <String>[];
   final List<String> playableCalls = <String>[];
+  final List<String> previewCalls = <String>[];
+  final List<String> cancelDisplayCalls = <String>[];
+  final List<String> cancelPlayableCalls = <String>[];
+  final List<String> cancelPreviewCalls = <String>[];
 
   @override
   Future<DisplayAsset> requestDisplayAsset(String assetIdentifier) async {
@@ -52,32 +65,49 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   }
 
   @override
-  Future<void> cancelDisplayAsset(String assetIdentifier) async {}
+  Future<void> cancelDisplayAsset(String assetIdentifier) async {
+    cancelDisplayCalls.add(assetIdentifier);
+  }
 
   @override
   Future<PlayableVideo> requestPlayableVideo(String assetIdentifier) async {
     playableCalls.add(assetIdentifier);
+    final gate = playableGates[assetIdentifier];
+    if (gate != null) {
+      await gate.future;
+    }
     return video ??
-        PlayableVideo(
+        PlayableVideo(assetIdentifier: assetIdentifier, durationSeconds: 1.0);
+  }
+
+  @override
+  Future<void> cancelPlayableVideo(String assetIdentifier) async {
+    cancelPlayableCalls.add(assetIdentifier);
+  }
+
+  @override
+  Future<DisplayAsset> requestPreview(String assetIdentifier) async {
+    previewCalls.add(assetIdentifier);
+    final gate = previewGates[assetIdentifier];
+    if (gate != null) {
+      await gate.future;
+    }
+    final perIdError = previewErrorById[assetIdentifier];
+    if (perIdError != null) {
+      throw PlatformException(code: perIdError, message: 'fake');
+    }
+    return previewsById[assetIdentifier] ??
+        DisplayAsset(
           assetIdentifier: assetIdentifier,
-          durationSeconds: 1.0,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: '/tmp/fake_preview_$assetIdentifier.jpg',
         );
   }
 
   @override
-  Future<void> cancelPlayableVideo(String assetIdentifier) async {}
-
-  @override
-  Future<DisplayAsset> requestPreview(String assetIdentifier) async {
-    return DisplayAsset(
-      assetIdentifier: assetIdentifier,
-      mediaKind: PlaybackMediaKind.image,
-      localFilePath: '/tmp/fake_preview_$assetIdentifier.jpg',
-    );
+  Future<void> cancelPreview(String assetIdentifier) async {
+    cancelPreviewCalls.add(assetIdentifier);
   }
-
-  @override
-  Future<void> cancelPreview(String assetIdentifier) async {}
 
   @override
   Future<void> releasePreview(String assetIdentifier) async {}

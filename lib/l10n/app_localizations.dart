@@ -513,12 +513,6 @@ abstract class AppLocalizations {
   /// **'No assets in the selected built-in source.'**
   String get playbackProbeNoAssets;
 
-  /// Host returned iCloudDownloadRequired (local-only policy)
-  ///
-  /// In en, this message translates to:
-  /// **'iCloud-only on device; Cap 7.3 does not download.'**
-  String get playbackProbeICloudOnly;
-
   /// Generic ARB fallback for probe errors
   ///
   /// In en, this message translates to:
@@ -591,17 +585,23 @@ abstract class AppLocalizations {
   /// **'Retry'**
   String get mainBrowseFeedRetry;
 
-  /// Feed page when host returns iCloudDownloadRequired (local-only)
-  ///
-  /// In en, this message translates to:
-  /// **'This item is iCloud-only on this device.'**
-  String get mainBrowseFeedICloudOnly;
-
   /// Feed page generic display/playable failure
   ///
   /// In en, this message translates to:
   /// **'Could not display this item.'**
   String get mainBrowseFeedMediaFailed;
+
+  /// Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight
+  ///
+  /// In en, this message translates to:
+  /// **'Loading full quality'**
+  String get mainBrowseFeedLayer3Loading;
+
+  /// Layer 2 failed while Layer 1 preview is still shown
+  ///
+  /// In en, this message translates to:
+  /// **'Could not download this item.'**
+  String get mainBrowseFeedDownloadFailed;
 
   /// Corner badge when display mediaKind is livePhoto (static mark only)
   ///

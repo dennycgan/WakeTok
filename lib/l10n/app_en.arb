@@ -309,10 +309,6 @@
   "@playbackProbeNoAssets": {
     "description": "Resolve returned an empty id list"
   },
-  "playbackProbeICloudOnly": "iCloud-only on device; Cap 7.3 does not download.",
-  "@playbackProbeICloudOnly": {
-    "description": "Host returned iCloudDownloadRequired (local-only policy)"
-  },
   "playbackProbeFailed": "Playback / display probe failed.",
   "@playbackProbeFailed": {
     "description": "Generic ARB fallback for probe errors"
@@ -361,13 +357,17 @@
   "@mainBrowseFeedRetry": {
     "description": "Retry button for feed resolve or page media errors"
   },
-  "mainBrowseFeedICloudOnly": "This item is iCloud-only on this device.",
-  "@mainBrowseFeedICloudOnly": {
-    "description": "Feed page when host returns iCloudDownloadRequired (local-only)"
-  },
   "mainBrowseFeedMediaFailed": "Could not display this item.",
   "@mainBrowseFeedMediaFailed": {
     "description": "Feed page generic display/playable failure"
+  },
+  "mainBrowseFeedLayer3Loading": "Loading full quality",
+  "@mainBrowseFeedLayer3Loading": {
+    "description": "Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight"
+  },
+  "mainBrowseFeedDownloadFailed": "Could not download this item.",
+  "@mainBrowseFeedDownloadFailed": {
+    "description": "Layer 2 failed while Layer 1 preview is still shown"
   },
   "mainBrowseLiveBadge": "LIVE",
   "@mainBrowseLiveBadge": {
