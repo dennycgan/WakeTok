@@ -25,30 +25,35 @@ class MainBrowseShellPage extends ConsumerWidget {
     final destination = ref.watch(mainBrowseDestinationProvider);
     final immersiveContent = destination != MainBrowseDestination.settings;
     final l10n = AppLocalizations.of(context)!;
+    final ambientTheme = Theme.of(context);
 
-    // Content theme: Browse/Clips/Auto forced-dark; Settings follows ambient.
-    Widget body = IndexedStack(
-      index: destination.index,
-      sizing: StackFit.expand,
-      children: [
-        const _BrowsePane(),
-        _StubPane(
-          title: l10n.mainBrowseNavClips,
-          body: l10n.mainBrowseStubClipsBody,
-        ),
-        _StubPane(
-          title: l10n.mainBrowseNavAuto,
-          body: l10n.mainBrowseStubAutoBody,
-        ),
-        _SettingsStubPane(access: access),
-      ],
+    // Always wrap IndexedStack in immersive dark Theme. Do not restore a
+    // destination-conditional wrap: dropping Theme changes this slot from
+    // Theme to IndexedStack, Widget.canUpdate is false, and the whole stack
+    // (VerticalMediaFeed + PageController) is disposed while Riverpod
+    // feedIndex survives → visible page 0 vs current index N.
+    Widget body = Theme(
+      data: waketokTheme(Brightness.dark),
+      child: IndexedStack(
+        index: destination.index,
+        sizing: StackFit.expand,
+        children: [
+          const _BrowsePane(),
+          _StubPane(
+            title: l10n.mainBrowseNavClips,
+            body: l10n.mainBrowseStubClipsBody,
+          ),
+          _StubPane(
+            title: l10n.mainBrowseNavAuto,
+            body: l10n.mainBrowseStubAutoBody,
+          ),
+          Theme(
+            data: ambientTheme,
+            child: _SettingsStubPane(access: access),
+          ),
+        ],
+      ),
     );
-    if (immersiveContent) {
-      body = Theme(
-        data: waketokTheme(Brightness.dark),
-        child: body,
-      );
-    }
 
     // Bottom bar always dark — never inherit Light Appearance (unselected
     // onMediaMuted icons vanish on light surface otherwise).

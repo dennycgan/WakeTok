@@ -2501,6 +2501,196 @@ void main() {
     expect(find.text(sizeCopy), findsOneWidget);
     expect(presentation.sizeCalls, 2);
   });
+
+  testWidgets(
+    'W-14.4c Settings round-trip restarts Layer 2 and does not stick on loading',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      display.displayGates['a1'] = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls, isNotEmpty);
+      final displaysAtHang = display.displayCalls.length;
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+      await pumpAsyncWork(tester);
+
+      expect(display.displayCalls.length, greaterThan(displaysAtHang));
+      display.displayGates['a1']!.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+      expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'W-14.4c Settings round-trip keeps VerticalMediaFeed State at non-zero index',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pumpAndSettle();
+      expect(container.read(mainBrowseFeedIndexProvider), 1);
+
+      final stateBefore = tester.state(find.byType(VerticalMediaFeed));
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+      await pumpAsyncWork(tester);
+
+      final stateAfter = tester.state(find.byType(VerticalMediaFeed));
+      expect(identical(stateBefore, stateAfter), isTrue);
+      expect(container.read(mainBrowseFeedIndexProvider), 1);
+    },
+  );
+
+  testWidgets(
+    'W-14.4c Settings round-trip from non-zero index does not show page failed',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pumpAndSettle();
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+      await pumpAsyncWork(tester);
+
+      expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsNothing);
+      expect(
+        find.byKey(
+          const Key('mainBrowseFeedPageFailed'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-14.4c leave without Layer 1 is a neutral placeholder not failed or loading',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      display.previewErrorById['a1'] = 'iCloudDownloadRequired';
+      display.displayGates['a1'] = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await pumpAsyncWork(tester);
+
+      expect(
+        find.byKey(
+          const Key('mainBrowseFeedPageFailed'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
+      expect(
+        find.byKey(
+          const Key('mainBrowseFeedPageLoading'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
+      display.displayGates['a1']!.complete();
+    },
+  );
+
+  testWidgets(
+    'W-14.4c off-current _startLoad does not promote to current when isCurrent flips mid-teardown',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      display.previewGates['a1'] = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(display.previewCalls, isNotEmpty);
+
+      final page = tester.state<MediaFeedPageState>(find.byType(MediaFeedPage));
+      page.debugHoldOffCurrentTeardown = Completer<void>();
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+      await pumpAsyncWork(tester);
+      final previewsAfterReturn = display.previewCalls.length;
+
+      page.debugHoldOffCurrentTeardown!.complete();
+      page.debugHoldOffCurrentTeardown = null;
+      await pumpAsyncWork(tester);
+      expect(display.previewCalls.length, previewsAfterReturn);
+
+      display.previewGates['a1']!.complete();
+      await tester.pumpAndSettle();
+    },
+  );
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

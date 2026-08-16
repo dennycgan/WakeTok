@@ -76,10 +76,24 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   int? _activeDisplayGeneration;
   PresentationOverlaySnapshot? _overlaySnapshot;
 
+  /// Last [build] value of browse-tab active. Default true: first frame is Browse.
+  /// Updated every build so the false→true edge cannot go stale.
+  bool _browseWasActive = true;
+
+  /// Set on Browse false→true; cleared only after [_beginCurrentItemActivation]
+  /// runs. Must not clear on the same frame if session is loading/error/empty
+  /// — that would drop the generation bump. Not a substitute for the shell
+  /// Theme wrap.
+  bool _browseResumeLatch = false;
+
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController = PageController(
+      // Second line of defense if Feed State is ever recreated. Primary
+      // fix is the unconditional IndexedStack Theme wrap in the shell.
+      initialPage: ref.read(mainBrowseFeedIndexProvider),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) => _attachRestore());
   }
 
@@ -109,20 +123,24 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   }
 
   /// Hard constraint: metadata + current-display [begin] in one synchronous call.
+  /// No [setState] — [build] assigns fields then reads them in the same frame.
+  void _beginCurrentItemActivation(String assetId) {
+    final gens = _activation.beginCurrentItem();
+    final cached = _overlayCache[assetId];
+    _activeAssetId = assetId;
+    _activeDisplayGeneration = gens.display;
+    _overlaySnapshot =
+        cached ?? PresentationOverlaySnapshot(assetIdentifier: assetId);
+    unawaited(_loadOverlay(gens.metadata, assetId));
+  }
+
   void _activateCurrentItem(String assetId) {
     if (_activeAssetId == assetId &&
         _activeDisplayGeneration == _activation.currentDisplayGate.generation) {
       return;
     }
-    final gens = _activation.beginCurrentItem();
-    final cached = _overlayCache[assetId];
-    setState(() {
-      _activeAssetId = assetId;
-      _activeDisplayGeneration = gens.display;
-      _overlaySnapshot =
-          cached ?? PresentationOverlaySnapshot(assetIdentifier: assetId);
-    });
-    unawaited(_loadOverlay(gens.metadata, assetId));
+    _beginCurrentItemActivation(assetId);
+    setState(() {});
   }
 
   /// Layer-2 (still) / video surface-ready. Does not bump [beginCurrentItem].
@@ -226,6 +244,10 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
     final browseActive = destination == MainBrowseDestination.browse;
+    if (browseActive && !_browseWasActive) {
+      _browseResumeLatch = true;
+    }
+    _browseWasActive = browseActive;
 
     // Cap 9.6: video host has no persisted mute — push preference on change.
     ref.listen<bool>(sharedMuteProvider, (previous, next) {
@@ -310,14 +332,15 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           final currentId = ids[safeIndex];
           // Sync activate in this build so the current page receives
           // assignedDisplayGeneration before its first _startLoad.
-          if (_activeAssetId != currentId || _activeDisplayGeneration == null) {
-            final gens = _activation.beginCurrentItem();
-            _activeAssetId = currentId;
-            _activeDisplayGeneration = gens.display;
-            _overlaySnapshot =
-                _overlayCache[currentId] ??
-                PresentationOverlaySnapshot(assetIdentifier: currentId);
-            unawaited(_loadOverlay(gens.metadata, currentId));
+          // _browseResumeLatch: Clips/Auto/Settings keep this State
+          // (IndexedStack). Bump display+metadata together so in-flight
+          // loads cannot share the pre-leave generation (14.4c A/C).
+          // Recreate is covered by _activeDisplayGeneration == null.
+          if (_browseResumeLatch ||
+              _activeAssetId != currentId ||
+              _activeDisplayGeneration == null) {
+            _beginCurrentItemActivation(currentId);
+            _browseResumeLatch = false;
           }
           return Stack(
             fit: StackFit.expand,
@@ -478,8 +501,6 @@ class MediaFeedPage extends ConsumerStatefulWidget {
 /// Public for Cap 9.5 L-S6 `@visibleForTesting` seam ([debugSetLivePreparing]).
 class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     with WidgetsBindingObserver {
-  final FeedMediaRequestGate _localGate = FeedMediaRequestGate();
-
   /// Cap 9.4 / F4: per Live activation token (not assetId alone).
   final FeedMediaRequestGate _liveMotionGate = FeedMediaRequestGate();
   FeedPageMedia? _media;
@@ -489,6 +510,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
   AppLifecycleState? _lastLifecycle;
+
+  /// Test seam: hold [_teardownLiveMotion] when this page is off-current.
+  @visibleForTesting
+  Completer<void>? debugHoldOffCurrentTeardown;
 
   bool _liveMotionMounted = false;
   bool _livePhotoReady = false;
@@ -647,7 +672,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _localGate.begin(); // invalidate in-flight local loads
     _liveMotionGate.begin(); // invalidate Live activation
     unawaited(_cancelLiveSubscriptions());
     unawaited(_cancelCurrentItemPhotoKit(widget.assetIdentifier));
@@ -878,6 +902,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// F4 leave path: invalidate token first, then await host cancel/stop.
   Future<void> _teardownLiveMotion({required bool cancelHost}) async {
+    final hold = debugHoldOffCurrentTeardown;
+    if (hold != null && !widget.isCurrent) {
+      await hold.future;
+    }
     final generation = _liveMotionGate.begin();
     await _cancelLiveSubscriptions();
     _livePhotoReady = false;
@@ -962,9 +990,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   Future<void> _startLoad() async {
-    final FeedMediaRequestGate gate;
-    final int generation;
-    if (widget.isCurrent) {
+    final startedOffCurrent = !widget.isCurrent;
+    FeedMediaRequestGate? gate;
+    int? generation;
+    if (!startedOffCurrent) {
       final shared = widget.currentDisplayGate;
       final assigned = widget.assignedDisplayGeneration;
       if (shared == null || assigned == null) {
@@ -981,9 +1010,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
       gate = shared;
       generation = assigned;
-    } else {
-      gate = _localGate;
-      generation = _localGate.begin();
     }
     // Await teardown so cancel cannot race a later request (F4 / ADR-006).
     // Off-current pages must still cancelHost when this page had Live motion /
@@ -997,7 +1023,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
 
-    if (!widget.isCurrent) {
+    if (startedOffCurrent) {
       setState(() {
         _layer2InFlight = false;
         _layer2Failed = false;
@@ -1011,11 +1037,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _loading = false;
         } else {
           _media = null;
-          _loading = true;
+          _loading = false;
         }
       });
       return;
     }
+
+    final currentGate = gate!;
+    final currentGeneration = generation!;
 
     setState(() {
       _layer2Failed = false;
@@ -1034,12 +1063,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _displayRepo = displayRepo;
 
     final layer1 = await loadFeedPageLayer1(
-      gate: gate,
-      generation: generation,
+      gate: currentGate,
+      generation: currentGeneration,
       assetIdentifier: widget.assetIdentifier,
       displayRepository: displayRepo,
     );
-    if (!mounted || !gate.isCurrent(generation)) {
+    if (!mounted || !currentGate.isCurrent(currentGeneration)) {
       return;
     }
     if (layer1 != null) {
@@ -1054,13 +1083,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       });
     }
 
-    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+    if (!mounted ||
+        !currentGate.isCurrent(currentGeneration) ||
+        !widget.isCurrent) {
       return;
     }
 
     final layer2 = await loadFeedPageLayer2(
-      gate: gate,
-      generation: generation,
+      gate: currentGate,
+      generation: currentGeneration,
       sourceKind: widget.sourceKind,
       assetIdentifier: widget.assetIdentifier,
       feedIndex: widget.feedIndex,
@@ -1070,8 +1101,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       playbackRepository: playbackRepo,
     );
     await _applyLayer2Result(
-      gate: gate,
-      generation: generation,
+      gate: currentGate,
+      generation: currentGeneration,
       layer1: layer1,
       layer2: layer2,
     );
