@@ -37,6 +37,20 @@ final class PlaybackApiHost: PlaybackApi {
   /// warm callbacks must drop results when their captured epoch is stale.
   private var clearEpoch: UInt64 = 0
 
+  /// TEMPORARY default `false`. Browse does not wire native plan-advance yet.
+  /// Background Audio / lock-screen queue **must** set this from real mode
+  /// state — do not leave it stuck false, or ADR-006 D4 (plan end: no loop)
+  /// is unenforced on one-item plans.
+  private var backgroundPlanAdvanceActive = false
+
+  private var itemEndObserver: NSObjectProtocol?
+  private weak var observedEndItem: AVPlayerItem?
+  /// Discrete: this active item has received `AVPlayerItemDidPlayToEndTime`.
+  /// Not a currentTime/duration float compare.
+  private var activeItemDidPlayToEnd = false
+  /// Ignore overlapping end notifications while `seek(to: .zero)` is in flight.
+  private var endSeekInFlight = false
+
   private weak var surfaceView: PlaybackSurfaceView?
 
   /// Guard raised by native on willEnterForeground; cleared on notifyDisplaySurfaceReady.
@@ -70,6 +84,7 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   deinit {
+    unregisterItemEndObserver()
     if let bgObserver {
       NotificationCenter.default.removeObserver(bgObserver)
     }
@@ -92,19 +107,7 @@ final class PlaybackApiHost: PlaybackApi {
       guard let self else { return }
       // After background detach, layer may still be nil — re-adopt before play.
       self.adoptActivePlayerOntoSurface()
-      // Only play when the active player is already the *current* asset.
-      // After a swipe, activePlayer may still be the previous video until
-      // prepareActive finishes — playing that would clear pendingPlay and
-      // leave the newly prepared player paused at frame 0.
-      if let player = self.activePlayer,
-        self.activeAssetId == self.currentAssetIdentifier
-      {
-        self.pendingPlay = false
-        self.applyMuteToPlayers()
-        player.play()
-      } else {
-        self.pendingPlay = true
-      }
+      self.playActiveApplyingReenterPolicy()
     }
   }
 
@@ -221,6 +224,7 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   private func performClearPlaybackPool() {
+    unregisterItemEndObserver()
     clearEpoch &+= 1
     pendingPlay = false
     preparingAssetIds.removeAll()
@@ -232,6 +236,8 @@ final class PlaybackApiHost: PlaybackApi {
     activePlayer?.pause()
     activePlayer = nil
     activeAssetId = nil
+    activeItemDidPlayToEnd = false
+    endSeekInFlight = false
     plan = nil
     currentAssetIdentifier = nil
     currentFeedIndex = 0
@@ -288,20 +294,25 @@ final class PlaybackApiHost: PlaybackApi {
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
         self.surfaceView?.attach(player: self.activePlayer)
+        self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
       }
       return
     }
     if warmingAssetId == assetId, let warming = warmingPlayer {
+      unregisterItemEndObserver()
       activePlayer?.pause()
       activePlayer = warming
       activeAssetId = assetId
+      activeItemDidPlayToEnd = false
+      endSeekInFlight = false
       warmingPlayer = nil
       warmingAssetId = nil
       applyMuteToPlayers()
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
         self.surfaceView?.attach(player: self.activePlayer)
+        self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
       }
       return
@@ -377,35 +388,31 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   private func adoptPreparedPlayer(_ player: AVPlayer?, token: String) {
-    guard currentAssetIdentifier == token || activeAssetId == token
-      || currentAssetIdentifier == nil
-    else { return }
-    if currentAssetIdentifier != nil, currentAssetIdentifier != token {
-      return
-    }
+    // Stale completions must not attach: only the current plan item.
+    guard currentAssetIdentifier == token else { return }
     if activeAssetId == token, activePlayer != nil {
       surfaceView?.attach(player: activePlayer)
+      registerItemEndObserverIfNeeded()
       consumePendingPlayIfNeeded()
       return
     }
+    unregisterItemEndObserver()
     activePlayer?.pause()
     activePlayer = player
     activeAssetId = token
+    activeItemDidPlayToEnd = false
+    endSeekInFlight = false
     applyMuteToPlayers()
     surfaceView?.attach(player: player)
+    registerItemEndObserverIfNeeded()
     consumePendingPlayIfNeeded()
   }
 
   /// Fires a play() intent that arrived before the current asset's player
   /// was ready (or while activePlayer still pointed at the previous video).
   private func consumePendingPlayIfNeeded() {
-    guard pendingPlay,
-      let player = activePlayer,
-      activeAssetId == currentAssetIdentifier
-    else { return }
-    pendingPlay = false
-    applyMuteToPlayers()
-    player.play()
+    guard pendingPlay else { return }
+    playActiveApplyingReenterPolicy()
   }
 
   private func warmNextIfPossible() {
@@ -448,9 +455,113 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   private func clearWarming() {
+    // Warming must never own the item-end observer (no loop on ±1).
     warmingPlayer?.pause()
     warmingPlayer = nil
     warmingAssetId = nil
+  }
+
+  private func unregisterItemEndObserver() {
+    if let itemEndObserver {
+      NotificationCenter.default.removeObserver(itemEndObserver)
+    }
+    itemEndObserver = nil
+    observedEndItem = nil
+  }
+
+  /// Registers [AVPlayerItemDidPlayToEndTime] only on the active current item.
+  private func registerItemEndObserverIfNeeded() {
+    unregisterItemEndObserver()
+    guard let player = activePlayer,
+      let item = player.currentItem,
+      activeAssetId == currentAssetIdentifier
+    else { return }
+    observedEndItem = item
+    itemEndObserver = NotificationCenter.default.addObserver(
+      forName: .AVPlayerItemDidPlayToEndTime,
+      object: item,
+      queue: .main
+    ) { [weak self] note in
+      self?.handleItemDidPlayToEnd(note)
+    }
+  }
+
+  private func handleItemDidPlayToEnd(_ note: Notification) {
+    let ended = note.object as? AVPlayerItem
+    let observedIsCurrentItem =
+      ended != nil
+      && ended === observedEndItem
+      && ended === activePlayer?.currentItem
+    let isActiveCurrent = activeAssetId == currentAssetIdentifier
+    // ADR-006 D4: background plan-advance must stopKeepPosition (no item loop).
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: !backgroundPlanAdvanceActive,
+      isBackgroundPlanAdvance: backgroundPlanAdvanceActive,
+      isActiveCurrent: isActiveCurrent,
+      observedItemIsCurrentItem: observedIsCurrentItem
+    )
+    switch action {
+    case .loopSeekZeroAndPlay:
+      if endSeekInFlight {
+        return
+      }
+      activeItemDidPlayToEnd = true
+      endSeekInFlight = true
+      seekZeroAndPlay(activePlayer)
+    case .stopKeepPosition:
+      activeItemDidPlayToEnd = true
+    case .ignore:
+      break
+    }
+  }
+
+  private func playActiveApplyingReenterPolicy() {
+    // Only play when the active player is already the *current* asset.
+    // After a swipe, activePlayer may still be the previous video until
+    // prepareActive finishes — playing that would clear pendingPlay and
+    // leave the newly prepared player paused at frame 0.
+    guard let player = activePlayer,
+      activeAssetId == currentAssetIdentifier
+    else {
+      pendingPlay = true
+      return
+    }
+    pendingPlay = false
+    applyMuteToPlayers()
+    switch VideoPlaybackPolicy.actionOnBecomeCurrent(
+      playerExists: true,
+      itemAtEnd: activeItemDidPlayToEnd
+    ) {
+    case .seekZeroAndPlay:
+      if endSeekInFlight {
+        return
+      }
+      endSeekInFlight = true
+      seekZeroAndPlay(player)
+    case .playOnly:
+      player.play()
+    case .prepareNew:
+      break
+    }
+  }
+
+  private func seekZeroAndPlay(_ player: AVPlayer?) {
+    guard let player else {
+      endSeekInFlight = false
+      return
+    }
+    let token = activeAssetId
+    player.seek(to: .zero) { [weak self] finished in
+      guard let self else { return }
+      self.endSeekInFlight = false
+      guard finished else { return }
+      guard self.activePlayer === player,
+        self.activeAssetId == token,
+        self.currentAssetIdentifier == token
+      else { return }
+      self.activeItemDidPlayToEnd = false
+      player.play()
+    }
   }
 
   /// Local-only AVPlayer create for ±1 warming. Returns nil for iCloud-only

@@ -522,6 +522,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Cap 9.5 Q4=A: motion prepare spinner (generation-gated writes).
   bool _livePreparing = false;
+  /// One in-flight preview reload per broken path (errorBuilder storms).
+  bool _previewReloadInFlight = false;
+  String? _previewReloadTriedPath;
   StreamSubscription<LivePhotoReadyEvent>? _liveReadySub;
   StreamSubscription<LivePhotoFailedEvent>? _liveFailedSub;
   StreamSubscription<LivePhotoPlaybackEndedEvent>? _liveEndedSub;
@@ -644,6 +647,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           }),
         );
       }
+    }
+
+    if (oldWidget.assetIdentifier != widget.assetIdentifier ||
+        oldWidget.assignedDisplayGeneration !=
+            widget.assignedDisplayGeneration) {
+      _previewReloadInFlight = false;
+      _previewReloadTriedPath = null;
     }
 
     if (oldWidget.assetIdentifier != widget.assetIdentifier ||
@@ -950,6 +960,73 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     } catch (_) {}
   }
 
+  void _onPreviewFileBroken() {
+    if (!mounted || !widget.isCurrent) {
+      return;
+    }
+    final display = _media?.display;
+    final path = display?.localFilePath;
+    if (display == null || path == null) {
+      return;
+    }
+    if (display.assetIdentifier != widget.assetIdentifier) {
+      return;
+    }
+    if (_previewReloadInFlight || _previewReloadTriedPath == path) {
+      return;
+    }
+    _previewReloadTriedPath = path;
+    _previewReloadInFlight = true;
+    unawaited(_reloadPreviewFile());
+  }
+
+  Future<void> _reloadPreviewFile() async {
+    final gate = widget.currentDisplayGate;
+    final generation = widget.assignedDisplayGeneration;
+    if (!mounted ||
+        !widget.isCurrent ||
+        gate == null ||
+        generation == null ||
+        !gate.isCurrent(generation)) {
+      _previewReloadInFlight = false;
+      return;
+    }
+    final assetId = widget.assetIdentifier;
+    try {
+      final preview = await ref
+          .read(mediaDisplayRepositoryProvider)
+          .requestPreview(assetId);
+      if (!mounted ||
+          !gate.isCurrent(generation) ||
+          !widget.isCurrent ||
+          widget.assignedDisplayGeneration != generation ||
+          widget.assetIdentifier != assetId) {
+        _previewReloadInFlight = false;
+        return;
+      }
+      setState(() {
+        final media = _media;
+        if (media?.kind == FeedPageMediaKind.video) {
+          _media = FeedPageMedia.video(
+            media!.videoAssetId ?? assetId,
+            poster: preview,
+          );
+        } else if (media?.kind == FeedPageMediaKind.still ||
+            media?.display != null) {
+          _media = FeedPageMedia.still(
+            preview,
+            layer: FeedDisplayLayer.preview,
+          );
+        }
+        _previewReloadInFlight = false;
+      });
+    } catch (_) {
+      if (mounted) {
+        _previewReloadInFlight = false;
+      }
+    }
+  }
+
   Future<void> _retryLayer2Only() async {
     final FeedMediaRequestGate gate;
     final int generation;
@@ -1200,6 +1277,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           display: media.display!,
           liveLabel: l10n.mainBrowseLiveBadge,
           livePreparing: _livePreparing,
+          onPreviewFileBroken: _onPreviewFileBroken,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
                   assetIdentifier: widget.assetIdentifier,
@@ -1250,6 +1328,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             ? _StillPage(
                 display: media.display!,
                 liveLabel: l10n.mainBrowseLiveBadge,
+                onPreviewFileBroken: _onPreviewFileBroken,
               )
             : null,
         l10n: l10n,
@@ -1340,6 +1419,7 @@ class _StillPage extends StatelessWidget {
     required this.liveLabel,
     this.livePreparing = false,
     this.liveMotionOverlay,
+    this.onPreviewFileBroken,
   });
 
   final DisplayAsset display;
@@ -1351,6 +1431,8 @@ class _StillPage extends StatelessWidget {
   /// Cap 9.4 F1=A: motion-phase Live PV only (null when idle / after Q7 unload).
   final Widget? liveMotionOverlay;
 
+  final VoidCallback? onPreviewFileBroken;
+
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
@@ -1358,11 +1440,10 @@ class _StillPage extends StatelessWidget {
       key: Key('mainBrowseFeedStill_${display.assetIdentifier}'),
       fit: StackFit.expand,
       children: [
-        Image.file(
-          File(display.localFilePath),
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) =>
-              ColoredBox(color: tokens.feedBackground),
+        _ReloadableFileImage(
+          path: display.localFilePath,
+          color: tokens.feedBackground,
+          onFileBroken: onPreviewFileBroken,
         ),
         if (display.mediaKind == PlaybackMediaKind.livePhoto)
           Positioned(
@@ -1391,6 +1472,58 @@ class _StillPage extends StatelessWidget {
           ),
         if (liveMotionOverlay != null) liveMotionOverlay!,
       ],
+    );
+  }
+}
+
+/// [Image.file] errorBuilder must not [setState] or start I/O inline.
+/// Post-frame + per-path latch; parent reloads preview under generation.
+class _ReloadableFileImage extends StatefulWidget {
+  const _ReloadableFileImage({
+    required this.path,
+    required this.color,
+    this.onFileBroken,
+  });
+
+  final String path;
+  final Color color;
+  final VoidCallback? onFileBroken;
+
+  @override
+  State<_ReloadableFileImage> createState() => _ReloadableFileImageState();
+}
+
+class _ReloadableFileImageState extends State<_ReloadableFileImage> {
+  bool _postedBroken = false;
+
+  @override
+  void didUpdateWidget(covariant _ReloadableFileImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path) {
+      _postedBroken = false;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.file(
+      File(widget.path),
+      key: ValueKey<String>(widget.path),
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        if (!_postedBroken) {
+          _postedBroken = true;
+          final onBroken = widget.onFileBroken;
+          if (onBroken != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                onBroken();
+              }
+            });
+          }
+        }
+        return ColoredBox(color: widget.color);
+      },
     );
   }
 }

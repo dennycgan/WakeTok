@@ -1150,6 +1150,10 @@ void main() {
     );
     expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+    expect(
+      live.calls.where((c) => c == 'startPlayback').length,
+      1,
+    );
   });
 
   testWidgets('L-F4 sync request failure keeps still + badge (no skip)', (

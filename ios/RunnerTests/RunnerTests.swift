@@ -206,3 +206,78 @@ final class PlaybackCurrentItemReplaceTests: XCTestCase {
     XCTAssertEqual(toCancel, 77)
   }
 }
+
+final class VideoPlaybackPolicyTests: XCTestCase {
+  func testForegroundCurrentItemEndLoops() {
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: true,
+      isBackgroundPlanAdvance: false,
+      isActiveCurrent: true,
+      observedItemIsCurrentItem: true
+    )
+    XCTAssertEqual(action, .loopSeekZeroAndPlay)
+  }
+
+  func testWarmingItemEndIsIgnored() {
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: true,
+      isBackgroundPlanAdvance: false,
+      isActiveCurrent: false,
+      observedItemIsCurrentItem: true
+    )
+    XCTAssertEqual(action, .ignore)
+  }
+
+  func testStaleObserverItemEndIsIgnored() {
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: true,
+      isBackgroundPlanAdvance: false,
+      isActiveCurrent: true,
+      observedItemIsCurrentItem: false
+    )
+    XCTAssertEqual(action, .ignore)
+  }
+
+  /// ADR-006 D4: background plan-advance at last item must stop and keep
+  /// position — never loop, including a one-item Browse-shaped plan.
+  func testAdr006D4BackgroundPlanAdvanceDoesNotLoop() {
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: true,
+      isBackgroundPlanAdvance: true,
+      isActiveCurrent: true,
+      observedItemIsCurrentItem: true
+    )
+    XCTAssertEqual(action, .stopKeepPosition)
+  }
+
+  func testReenterAtEndSeeksZeroAndPlays() {
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: true,
+        itemAtEnd: true
+      ),
+      .seekZeroAndPlay
+    )
+  }
+
+  func testReenterMidItemPlaysOnlyPreservingPlayhead() {
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: true,
+        itemAtEnd: false
+      ),
+      .playOnly
+    )
+  }
+
+  func testReenterWithoutPlayerPreparesNew() {
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: false,
+        itemAtEnd: true
+      ),
+      .prepareNew
+    )
+  }
+}
+
