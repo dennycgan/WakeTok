@@ -153,6 +153,10 @@ preheating, and loading states (Cap 14)
       Theme wrap (work `6178f9e`; Kafka non-head still+video
       Settings round-trip PASS); resume activation latch;
       off-current `_startLoad` identity lock + neutral placeholder
+- [ ] 14.4d Video item loop + replay on return-to-ended
+      (`PlaybackApi` video only; Live play-once must not regress)
+- [ ] 14.4e Leave Browse resets queue (product; D8 vs new ADR /
+      reset strength / background boundary TBD at 14.4e kickoff)
 - [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
 - [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
       empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
@@ -182,7 +186,8 @@ preheating, and loading states (Cap 14)
       **Why blocked:** the gate's own preconditions are still incomplete,
       so the Instruments run is not interpretable — Feed three-layer UI
       and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
-      copy panel). Remaining Cap 14: ±1 local-only visual preheat
+      copy panel). Remaining Cap 14: 14.4d video loop/replay,
+      14.4e leave-Browse queue reset, ±1 local-only visual preheat
       (14.5) and Limited first-launch All empty (14.6). Host Layer 2
       is `ce8807f`. Shuffle still scatters iCloud pages through the
       Queue. The bar is **not** lowered, **not** Conditional Pass,
@@ -198,13 +203,12 @@ preheating, and loading states (Cap 14)
       (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.5 ±1 local-only visual preheat + cancel on
-      leaving the window
+- Goal (one line): Cap 14.4d video item loop + replay on return-to-ended
 - Sub-steps done: 14.4 `9cf22a5`; 14.4b `eddb7c3` + `900581e`
       (Kafka same-page Overlay size PASS); 14.4c `6178f9e`
       (Kafka Settings round-trip PASS)
-- Next step: 14.5 ±1 local-only `requestPreview` preheat + cancel
-      (no Host PhotoKit contract change)
+- Next step: 14.4d design review — loop vs replay as separate
+      mechanisms; Live play-once regression (not 14.4e / 14.5)
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
       narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
       Live motion stay local-only; ADR-015/018 Overlay size local-only;
@@ -390,6 +394,7 @@ preheating, and loading states (Cap 14)
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
 | Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`) | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
+| Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | 14.4c keep-alive resume bumps generation → `_startLoad` → `_surfaceReady = false` → poster condition true until surface ready. Same `_surfaceReady`/poster timing family as the swipe-flash row above; **different trigger** (tab resume, not page swipe). **Do not special-case resume** this Cap — 14.4e leave-Browse queue reset would delete this path. | 14.4e (dissolves if reset lands); else later feed polish | ADR-006 / ADR-025 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
 | Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | Cap 9.7 layout observation; move badge+spinner to bottom-right | Main Browse / Live chrome polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
 | Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** — the new user's very first screen reads "no content in this source" | Not a corner-case timing nit — this is the product's first impression for every user who grants Limited. PhotoKit has not surfaced the Limited selection yet when the default All tab resolves, so that first resolve is legitimately empty; there is **no** Photos observer and **no** automatic re-resolve, so the empty screen persists until the user happens to switch tabs on their own. Risk: the user concludes the app is broken and uninstalls before ever finding that hidden step. `1f8a240` (13.8c) removed only the *sticky* half — an empty result is no longer cached — the first-frame race itself is untouched. **Workaround: switch to Photos or Videos and back to All; force-quit is NOT needed** (device-verified 13.8d). Cap 14.6: keep resolve-loading on successful empty + bounded re-resolve (not “wait for picker”). | Current-item iCloud media fetch, visual preheating, and loading states (Cap 14 / ADR-025; phase 14.6) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
