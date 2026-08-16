@@ -591,6 +591,12 @@ abstract class AppLocalizations {
   /// **'Could not display this item.'**
   String get mainBrowseFeedMediaFailed;
 
+  /// Layer 2 failed before transfer began (cellular/wireless-data prompt or no network)
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load. Allow wireless data, then retry.'**
+  String get mainBrowseFeedNetworkFailed;
+
   /// Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight
   ///
   /// In en, this message translates to:

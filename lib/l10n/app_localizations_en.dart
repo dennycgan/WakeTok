@@ -293,6 +293,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedMediaFailed => 'Could not display this item.';
 
   @override
+  String get mainBrowseFeedNetworkFailed =>
+      'Could not load. Allow wireless data, then retry.';
+
+  @override
   String get mainBrowseFeedLayer3Loading => 'Loading full quality';
 
   @override

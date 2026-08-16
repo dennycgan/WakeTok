@@ -361,6 +361,10 @@
   "@mainBrowseFeedMediaFailed": {
     "description": "Feed page generic display/playable failure"
   },
+  "mainBrowseFeedNetworkFailed": "Could not load. Allow wireless data, then retry.",
+  "@mainBrowseFeedNetworkFailed": {
+    "description": "Layer 2 failed before transfer began (cellular/wireless-data prompt or no network)"
+  },
   "mainBrowseFeedLayer3Loading": "Loading full quality",
   "@mainBrowseFeedLayer3Loading": {
     "description": "Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight"

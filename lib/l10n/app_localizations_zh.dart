@@ -290,6 +290,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedMediaFailed => 'Could not display this item.';
 
   @override
+  String get mainBrowseFeedNetworkFailed =>
+      'Could not load. Allow wireless data, then retry.';
+
+  @override
   String get mainBrowseFeedLayer3Loading => 'Loading full quality';
 
   @override
@@ -657,6 +661,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedMediaFailed => '无法显示此项目。';
+
+  @override
+  String get mainBrowseFeedNetworkFailed => '无法加载。请允许无线数据后重试。';
 
   @override
   String get mainBrowseFeedLayer3Loading => '正在加载完整画质';

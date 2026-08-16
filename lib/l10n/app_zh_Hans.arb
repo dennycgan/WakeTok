@@ -83,6 +83,7 @@
   "mainBrowseFeedResolveFailed": "无法加载此来源。",
   "mainBrowseFeedRetry": "重试",
   "mainBrowseFeedMediaFailed": "无法显示此项目。",
+  "mainBrowseFeedNetworkFailed": "无法加载。请允许无线数据后重试。",
   "mainBrowseFeedLayer3Loading": "正在加载完整画质",
   "mainBrowseFeedDownloadFailed": "无法下载此项目。",
   "mainBrowseLiveBadge": "LIVE",

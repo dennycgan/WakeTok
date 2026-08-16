@@ -432,7 +432,8 @@ class MediaFeedPage extends ConsumerStatefulWidget {
 }
 
 /// Public for Cap 9.5 L-S6 `@visibleForTesting` seam ([debugSetLivePreparing]).
-class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
+class MediaFeedPageState extends ConsumerState<MediaFeedPage>
+    with WidgetsBindingObserver {
   final FeedMediaRequestGate _localGate = FeedMediaRequestGate();
 
   /// Cap 9.4 / F4: per Live activation token (not assetId alone).
@@ -442,6 +443,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   bool _surfaceReady = false;
   bool _layer2InFlight = false;
   bool _layer2Failed = false;
+  FeedFailureReason? _layer2FailureReason;
+  AppLifecycleState? _lastLifecycle;
 
   bool _liveMotionMounted = false;
   bool _livePhotoReady = false;
@@ -462,7 +465,39 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
   @override
   void initState() {
     super.initState();
+    _lastLifecycle = WidgetsBinding.instance.lifecycleState;
+    WidgetsBinding.instance.addObserver(this);
     _startLoad();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final previous = _lastLifecycle;
+    _lastLifecycle = state;
+    if (state != AppLifecycleState.resumed) {
+      return;
+    }
+    // China-SKU wireless-data alert: typically inactive→resumed (app never
+    // backgrounds). True background uses paused→resumed. Listen for both.
+    if (previous != AppLifecycleState.inactive &&
+        previous != AppLifecycleState.paused) {
+      return;
+    }
+    _retryFailedLayer2AfterResume();
+  }
+
+  /// Auto-retry only when this current page is already in a fail state.
+  void _retryFailedLayer2AfterResume() {
+    if (!mounted || !widget.isCurrent || _layer2InFlight) {
+      return;
+    }
+    if (_layer2Failed) {
+      unawaited(_retryLayer2Only());
+      return;
+    }
+    if (_media?.kind == FeedPageMediaKind.failed) {
+      unawaited(_startLoad());
+    }
   }
 
   @override
@@ -497,6 +532,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
           _surfaceReady = false;
           _layer2InFlight = false;
           _layer2Failed = false;
+          _layer2FailureReason = null;
         });
       } else if (_media?.kind == FeedPageMediaKind.video) {
         setState(() {
@@ -504,11 +540,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
           _surfaceReady = false;
           _layer2InFlight = false;
           _layer2Failed = false;
+          _layer2FailureReason = null;
         });
       } else {
         setState(() {
           _layer2InFlight = false;
           _layer2Failed = false;
+          _layer2FailureReason = null;
         });
       }
       // Capture repo before async gaps; leave cancel must not depend on
@@ -564,6 +602,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _localGate.begin(); // invalidate in-flight local loads
     _liveMotionGate.begin(); // invalidate Live activation
     unawaited(_cancelLiveSubscriptions());
@@ -855,6 +894,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     }
     setState(() {
       _layer2Failed = false;
+      _layer2FailureReason = null;
       _layer2InFlight = true;
     });
     final layer1 = _media;
@@ -917,6 +957,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       setState(() {
         _layer2InFlight = false;
         _layer2Failed = false;
+        _layer2FailureReason = null;
         _surfaceReady = false;
         _liveMotionMounted = false;
         if (_media?.display != null) {
@@ -934,6 +975,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
 
     setState(() {
       _layer2Failed = false;
+      _layer2FailureReason = null;
       _layer2InFlight = false;
       _surfaceReady = false;
       _liveMotionMounted = false;
@@ -1007,6 +1049,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
     if (layer2.kind == FeedPageMediaKind.failed) {
       setState(() {
         _layer2InFlight = false;
+        _layer2FailureReason =
+            layer2.failureReason ?? FeedFailureReason.generic;
         if (_media?.display != null || layer1?.display != null) {
           _layer2Failed = true;
           _loading = false;
@@ -1027,6 +1071,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
         _loading = false;
         _layer2InFlight = true;
         _layer2Failed = false;
+        _layer2FailureReason = null;
       });
       await _syncPlaybackActive();
       return;
@@ -1036,6 +1081,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       _loading = false;
       _layer2InFlight = false;
       _layer2Failed = false;
+      _layer2FailureReason = null;
     });
     await _maybeBeginLiveMotion();
   }
@@ -1132,7 +1178,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
       ),
       FeedPageMediaKind.failed => _BrowseStatusPanel(
         panelKey: const Key('mainBrowseFeedPageFailed'),
-        message: l10n.mainBrowseFeedMediaFailed,
+        message: _failureCopy(
+          l10n,
+          media.failureReason ?? FeedFailureReason.generic,
+        ),
         actionLabel: l10n.mainBrowseFeedRetry,
         actionKey: const Key('mainBrowseFeedPageRetry'),
         onAction: _startLoad,
@@ -1168,23 +1217,41 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage> {
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 48),
-              child: Semantics(
-                label: l10n.mainBrowseFeedDownloadFailed,
-                child: TextButton(
-                  key: const Key('mainBrowseFeedLayer2Retry'),
-                  onPressed: () {
-                    unawaited(_retryLayer2Only());
-                  },
-                  child: Text(
-                    l10n.mainBrowseFeedRetry,
-                    style: tokens.labelOnMedia,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _failureCopy(
+                      l10n,
+                      _layer2FailureReason ?? FeedFailureReason.generic,
+                    ),
+                    textAlign: TextAlign.center,
+                    style: tokens.bodyOnMedia,
                   ),
-                ),
+                  TextButton(
+                    key: const Key('mainBrowseFeedLayer2Retry'),
+                    onPressed: () {
+                      unawaited(_retryLayer2Only());
+                    },
+                    child: Text(
+                      l10n.mainBrowseFeedRetry,
+                      style: tokens.labelOnMedia,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
       ],
     );
+  }
+
+  String _failureCopy(AppLocalizations l10n, FeedFailureReason reason) {
+    return switch (reason) {
+      FeedFailureReason.network => l10n.mainBrowseFeedNetworkFailed,
+      FeedFailureReason.download => l10n.mainBrowseFeedDownloadFailed,
+      FeedFailureReason.generic => l10n.mainBrowseFeedMediaFailed,
+    };
   }
 }
 

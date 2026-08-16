@@ -70,27 +70,25 @@ class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
           body: Center(
             child: Text(
               '${async.error}',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: tokens.onSurface,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyLarge?.copyWith(color: tokens.onSurface),
             ),
           ),
         );
       }
       return Scaffold(
         backgroundColor: tokens.background,
-        body: Center(
-          child: CircularProgressIndicator(color: tokens.brandGold),
-        ),
+        body: Center(child: CircularProgressIndicator(color: tokens.brandGold)),
       );
     }
 
     return switch (access) {
       PhotosAccess.notDetermined => const PermissionRequestPage(),
-      PhotosAccess.denied || PhotosAccess.restricted =>
-        PermissionBlockedPage(access: access),
-      PhotosAccess.limited || PhotosAccess.full =>
-        MainBrowseShellPage(access: access),
+      PhotosAccess.denied ||
+      PhotosAccess.restricted => PermissionBlockedPage(access: access),
+      PhotosAccess.limited ||
+      PhotosAccess.full => MainBrowseShellPage(access: access),
     };
   }
 }

@@ -586,6 +586,44 @@ void main() {
     expect(media?.display, poster);
   });
 
+  test('U-14.4b Layer 2 maps assetUnavailable to network fail', () async {
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['a1'] = 'assetUnavailable';
+    final gate = FeedMediaRequestGate();
+    final media = await loadFeedPageLayer2(
+      gate: gate,
+      generation: gate.begin(),
+      sourceKind: AssetSourceKind.entireLibrary,
+      assetIdentifier: 'a1',
+      feedIndex: 0,
+      isCurrent: true,
+      layer1: null,
+      displayRepository: display,
+      playbackRepository: FakePlaybackRepository(),
+    );
+    expect(media?.kind, FeedPageMediaKind.failed);
+    expect(media?.failureReason, FeedFailureReason.network);
+  });
+
+  test('U-14.4b Layer 2 maps iCloudDownloadFailed to download fail', () async {
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['a1'] = 'iCloudDownloadFailed';
+    final gate = FeedMediaRequestGate();
+    final media = await loadFeedPageLayer2(
+      gate: gate,
+      generation: gate.begin(),
+      sourceKind: AssetSourceKind.entireLibrary,
+      assetIdentifier: 'a1',
+      feedIndex: 0,
+      isCurrent: true,
+      layer1: null,
+      displayRepository: display,
+      playbackRepository: FakePlaybackRepository(),
+    );
+    expect(media?.kind, FeedPageMediaKind.failed);
+    expect(media?.failureReason, FeedFailureReason.download);
+  });
+
   test('W-F7-unit stale generation discards late display', () async {
     final display = FakeMediaDisplayRepository();
     final gateN = Completer<void>();
@@ -847,6 +885,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsNothing);
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(find.text(l10n.mainBrowseFeedDownloadFailed), findsOneWidget);
     },
   );
 
@@ -867,7 +907,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
-    expect(find.text(l10n.mainBrowseFeedMediaFailed), findsOneWidget);
+    expect(find.text(l10n.mainBrowseFeedNetworkFailed), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
   });
 
@@ -2191,6 +2231,89 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets(
+    'W-14.4b inactive→resumed retries full-page fail via _startLoad',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      display.previewErrorById['a1'] = 'iCloudDownloadRequired';
+      display.displayErrorById['a1'] = 'assetUnavailable';
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
+      final before = display.displayCalls.length;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpAsyncWork(tester);
+
+      expect(display.displayCalls.length, greaterThan(before));
+    },
+  );
+
+  testWidgets(
+    'W-14.4b inactive→resumed retries overlay fail via Layer 2 only',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      display.displayErrorById['a1'] = 'iCloudDownloadFailed';
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer2Retry')),
+        findsOneWidget,
+      );
+      final previews = display.previewCalls.length;
+      final displays = display.displayCalls.length;
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpAsyncWork(tester);
+
+      expect(display.displayCalls.length, greaterThan(displays));
+      expect(display.previewCalls.length, previews);
+    },
+  );
+
+  testWidgets('W-14.4b inactive→resumed does not retry a successful still', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    final before = display.displayCalls.length;
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await pumpAsyncWork(tester);
+
+    expect(display.displayCalls.length, before);
+  });
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

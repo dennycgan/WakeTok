@@ -16,12 +16,24 @@ enum FeedPageMediaKind {
 
 enum FeedDisplayLayer { preview, full }
 
+/// Visible fail copy: network/cellular vs download vs generic (ADR-025).
+enum FeedFailureReason { network, download, generic }
+
+FeedFailureReason feedFailureReasonFromPlatformCode(String code) {
+  return switch (code) {
+    'assetUnavailable' => FeedFailureReason.network,
+    'iCloudDownloadFailed' => FeedFailureReason.download,
+    _ => FeedFailureReason.generic,
+  };
+}
+
 class FeedPageMedia {
   const FeedPageMedia._({
     required this.kind,
     this.display,
     this.videoAssetId,
     this.displayLayer,
+    this.failureReason,
   });
 
   factory FeedPageMedia.still(
@@ -46,13 +58,15 @@ class FeedPageMedia {
     videoAssetId: assetIdentifier,
   );
 
-  factory FeedPageMedia.failed() =>
-      const FeedPageMedia._(kind: FeedPageMediaKind.failed);
+  factory FeedPageMedia.failed({
+    FeedFailureReason reason = FeedFailureReason.generic,
+  }) => FeedPageMedia._(kind: FeedPageMediaKind.failed, failureReason: reason);
 
   final FeedPageMediaKind kind;
   final DisplayAsset? display;
   final String? videoAssetId;
   final FeedDisplayLayer? displayLayer;
+  final FeedFailureReason? failureReason;
 }
 
 /// Layer 1: local preview JPEG (still / Live key / video poster).
@@ -145,7 +159,9 @@ Future<FeedPageMedia?> loadFeedPageLayer2({
           playbackRepository: playbackRepository,
         );
       }
-      return FeedPageMedia.failed();
+      return FeedPageMedia.failed(
+        reason: feedFailureReasonFromPlatformCode(e.code),
+      );
     } catch (_) {
       if (!gate.isCurrent(generation)) {
         return null;
@@ -202,7 +218,9 @@ Future<FeedPageMedia?> _loadVideo({
     if (e.code == 'operationCancelled') {
       return null;
     }
-    return FeedPageMedia.failed();
+    return FeedPageMedia.failed(
+      reason: feedFailureReasonFromPlatformCode(e.code),
+    );
   } catch (_) {
     if (!gate.isCurrent(generation)) {
       return null;
