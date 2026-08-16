@@ -2348,3 +2348,71 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     surface, not a reason to lower the bar.
   - Vocabulary: keep “Doom Scroll” inside kickoff / GLOSSARY citations
     only.
+
+---
+
+## ADR-026: Cap 14.4d foreground video item-loop + return-to-ended replay
+
+- Status: Accepted (2026-08-16)
+  <!-- Accepted date from `git log -1 --format=%cs 8189543` → 2026-08-16 -->
+- Commit/PR anchor: 8189543
+- Plain summary (owner reads this):
+  On Manual Browse, an ordinary video on the current page loops from the
+  start when it finishes. If you swipe away and come back, it restarts
+  only when it had already reached the end; a mid-play return keeps the
+  playhead. Under lock-screen / background plan-advance, finishing the
+  plan still stops and keeps position — no plan loop. Live Photos still
+  play once.
+- Context / what problem forced this:
+  Cap 7 / ADR-014 Decision 2 freezes Manual advance (end-of-item does
+  **not** auto-advance to the next feed item) and no Repeat product
+  controls in Cap 7. ADR-006 D4 freezes **background plan-advance** at
+  plan end: stop, keep position, **no loop**. Cap 14.4d needs in-item
+  loop for the foreground current video and replay when returning to an
+  ended item, without violating D4, without using `currentTime` /
+  `duration` float equality that would break ADR-023 D6 playhead
+  sharing, and without turning Live (ADR-019) into a loop.
+- Decision (what was chosen):
+  1. **Foreground page-driven current video: in-item loop.**
+     When `AVPlayerItem` ends and the item is still the foreground
+     current item → seek 0 + play. This loops **within the same feed
+     item**; it is **not** auto-advance to the next item and **not**
+     ADR-014 Repeat product controls. ADR-014 D2 (“end-of-item does
+     not auto-advance”) remains binding.
+  2. **ADR-006 D4 unchanged.**
+     When `isBackgroundPlanAdvance == true`, item-end →
+     `stopKeepPosition` — **no** loop (including a one-item
+     Browse-shaped plan). Policy evaluates **D4 before** the
+     foreground loop branch.
+  3. **Re-enter / become-current: seek 0 only when at-end.**
+     Use the Host discrete `activeItemDidPlayToEnd` (or equivalent end
+     flag). **Do not** use `currentTime` / `duration` float checks.
+     Mid-play re-enter only `play()`, preserving ADR-023 D6 All↔Videos
+     playhead sharing.
+  4. **Live does not loop.**
+     This ADR constrains the `PlaybackApi` ordinary-video path only;
+     Live play-once (ADR-019) must not regress.
+  5. **Policy table is a Host-testable pure unit.**
+     `VideoPlaybackPolicy.actionOnItemEnd` /
+     `actionOnBecomeCurrent` stay separate from Host glue; automation
+     covers the decision table, not on-device AVPlayer end feel.
+- Rejected alternatives (why not B):
+  - Unconditional loop on every item-end (including background plan) —
+    violates ADR-006 D4.
+  - Seek 0 on every re-enter regardless of position — breaks ADR-023
+    D6 playhead sharing.
+  - Treat `currentTime` ≈ `duration` as “at end” — float-unreliable and
+    duplicates the discrete end event.
+  - Same loop policy for Live and ordinary video — violates ADR-019.
+  - Auto-advance to the next feed item at item end — violates Manual /
+    ADR-014 D2.
+- Consequences / constraints accepted:
+  - Cap 14.4d work commit `8189543`; device Kafka: in-item loop,
+    return-to-ended replay, mid-play seek preserve, Live plays once.
+  - `backgroundPlanAdvanceActive` defaults to false until a background
+    Cap wires the real flag; that Cap **must** feed the true value or
+    D4 is a no-op.
+  - Dead-file `requestPreview` reload in the same work commit is an
+    adjacent bugfix, **not** a product decision frozen by this ADR.
+  - Does **not** supersede ADR-006 D4, ADR-014 D2 (auto-advance),
+    ADR-019, or ADR-023 D6.

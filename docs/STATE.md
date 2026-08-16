@@ -153,8 +153,10 @@ preheating, and loading states (Cap 14)
       Theme wrap (work `6178f9e`; Kafka non-head still+video
       Settings round-trip PASS); resume activation latch;
       off-current `_startLoad` identity lock + neutral placeholder
-- [ ] 14.4d Video item loop + replay on return-to-ended
-      (`PlaybackApi` video only; Live play-once must not regress)
+- [x] 14.4d Video item loop + replay on return-to-ended
+      (work `8189543` / ADR-026; Kafka: in-item loop, return-to-ended
+      replay, mid-play seek preserve, dead-file preview reload,
+      Live play-once; ADR-006 D4 background plan-end still no loop)
 - [ ] 14.4e Leave Browse resets queue (product; D8 vs new ADR /
       reset strength / background boundary TBD at 14.4e kickoff)
 - [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
@@ -186,10 +188,10 @@ preheating, and loading states (Cap 14)
       **Why blocked:** the gate's own preconditions are still incomplete,
       so the Instruments run is not interpretable — Feed three-layer UI
       and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
-      copy panel). Remaining Cap 14: 14.4d video loop/replay,
-      14.4e leave-Browse queue reset, ±1 local-only visual preheat
-      (14.5) and Limited first-launch All empty (14.6). Host Layer 2
-      is `ce8807f`. Shuffle still scatters iCloud pages through the
+      copy panel). Remaining Cap 14: 14.4e leave-Browse queue reset,
+      ±1 local-only visual preheat (14.5) and Limited first-launch
+      All empty (14.6). Host Layer 2 is `ce8807f`; video loop/replay
+      is `8189543`. Shuffle still scatters iCloud pages through the
       Queue. The bar is **not** lowered, **not** Conditional Pass,
       **not** split. Evidence:
       `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
@@ -203,17 +205,20 @@ preheating, and loading states (Cap 14)
       (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.4d video item loop + replay on return-to-ended
+- Goal (one line): Cap 14.4e leave Browse resets queue
 - Sub-steps done: 14.4 `9cf22a5`; 14.4b `eddb7c3` + `900581e`
       (Kafka same-page Overlay size PASS); 14.4c `6178f9e`
-      (Kafka Settings round-trip PASS)
-- Next step: 14.4d design review — loop vs replay as separate
-      mechanisms; Live play-once regression (not 14.4e / 14.5)
+      (Kafka Settings round-trip PASS); 14.4d `8189543`
+      (Kafka loop / return-to-ended / Live play-once PASS)
+- Next step: 14.4e kickoff — D8 vs new ADR, reset strength,
+      whether background counts as leave (not 14.5)
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
       narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
       Live motion stay local-only; ADR-015/018 Overlay size local-only;
       ADR-023 D10 13.6 V-hard unchanged;
-      ADR-024 empty Snapshot not cached
+      ADR-024 empty Snapshot not cached;
+      ADR-026 foreground video item-loop + return-to-ended replay
+      (`8189543`) — ADR-006 D4 plan-end no loop unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -323,12 +328,14 @@ preheating, and loading states (Cap 14)
   (empty ids with `unauthorized` / `unavailable` status →
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
   ADR-024
-- ADR-001 … ADR-025: docs/DECISIONS.md (ADR-025 Cap 14 current-item
-  iCloud fetch — **Accepted**, anchor `393ebc9`; ADR-024 Cap 13.8
-  Browse Snapshot cache — Accepted, anchor `1f8a240`; ADR-023 Cap 13
-  Endless Shuffle — Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session
-  Queue Accepted, anchor `f53d455`; ADR-021 Cap 11 Live Resolution
-  Accepted, anchor `95779ef`; ADR-020 Cap 10 models Accepted)
+- ADR-001 … ADR-026: docs/DECISIONS.md (ADR-026 Cap 14.4d foreground
+  video item-loop + return-to-ended replay — **Accepted**, anchor
+  `8189543`; ADR-025 Cap 14 current-item iCloud fetch — Accepted,
+  anchor `393ebc9`; ADR-024 Cap 13.8 Browse Snapshot cache — Accepted,
+  anchor `1f8a240`; ADR-023 Cap 13 Endless Shuffle — Accepted, anchor
+  `f0187b4`; ADR-022 Cap 12 Session Queue Accepted, anchor `f53d455`;
+  ADR-021 Cap 11 Live Resolution Accepted, anchor `95779ef`; ADR-020
+  Cap 10 models Accepted)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
