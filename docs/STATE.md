@@ -149,6 +149,10 @@ preheating, and loading states (Cap 14)
 - [x] 14.4b First-launch cellular retry + failure-reason copy
       (work `eddb7c3`); Overlay file-size refresh after Layer 2
       (work `900581e`; Kafka same-page size PASS)
+- [x] 14.4c Browse↔Settings keep-alive: unconditional IndexedStack
+      Theme wrap (work `6178f9e`; Kafka non-head still+video
+      Settings round-trip PASS); resume activation latch;
+      off-current `_startLoad` identity lock + neutral placeholder
 - [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
 - [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
       empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
@@ -197,7 +201,8 @@ preheating, and loading states (Cap 14)
 - Goal (one line): Cap 14.5 ±1 local-only visual preheat + cancel on
       leaving the window
 - Sub-steps done: 14.4 `9cf22a5`; 14.4b `eddb7c3` + `900581e`
-      (Kafka same-page Overlay size PASS)
+      (Kafka same-page Overlay size PASS); 14.4c `6178f9e`
+      (Kafka Settings round-trip PASS)
 - Next step: 14.5 ±1 local-only `requestPreview` preheat + cancel
       (no Host PhotoKit contract change)
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
@@ -218,6 +223,8 @@ preheating, and loading states (Cap 14)
 - Main Browse shell: lib/features/main_browse/ (Cap 7.4–7.6 feed;
   Cap 8.2 immersive content + always-dark bottom bar `60f3283` / ADR-017;
   transparent top + compact bar `5fb93de` / ADR-016);
+  Cap 14.4c IndexedStack always wrapped in immersive Theme (`6178f9e`)
+  so Settings cannot dispose VerticalMediaFeed;
   Cap 13.4 Shuffle Session wiring: `lib/app/browse/browse_session_providers.dart`
   (`10a5735` / ADR-023)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
@@ -353,6 +360,9 @@ preheating, and loading states (Cap 14)
 
 ## Do NOT touch (unless explicitly opening a new phase)
 - docs/WakeTok(App)_project_kickoff.md — owner's private spec, READ-ONLY for AI tools
+- Main Browse shell IndexedStack Theme wrap — do not restore a
+  destination-conditional Theme around the stack (disposes
+  VerticalMediaFeed / PageController; 14.4c `6178f9e`)
 - (grows as fragile areas appear)
 
 ## Known debt / intentionally deferred
@@ -364,6 +374,7 @@ preheating, and loading states (Cap 14)
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. iCloud-only blank size **before** local data exists is ADR-015/018 (never download solely for size; Photos Info is not a public-SDK ground truth). Same-page refresh after Layer 2 landed `900581e`. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | Main Browse Screen | First cold start: All current item fails until Retry because the 无线数据 dialog appears after Layer 2 has already been issued | China-SKU app-level first-network prompt (国行 App Store vs NZ: Pictok same split). Dart `HttpClient` pre-feed probe does **not** trigger it. Lifecycle auto-retry landed `eddb7c3`. Kafka first-launch retest still pending. | Later Cap / owner device confirm; native `URLSession` pre-trigger is a separate optional row | ADR-025 |
 | Main Browse Screen | Optional native `URLSession` (CFNetwork) pre-feed to show 无线数据 on the loading screen instead of after first Layer 2 fail | Dart sockets do not trip the China-SKU prompt. Not required for doom-scroll once B auto-retries (`eddb7c3`). Pictok 国行 still shows the prompt in the feed. | Later Cap / optional | ADR-025 |
+| Main Browse Screen | Tab leave does not cancel `PlaybackApiHost.prepareActive` iCloud video download | `pause()` only pauses the player. `replaceCurrentItem` cancels PHImageRequest only when the asset id **changes**. Browse→Settings keeps the same id, so `requestAVAsset` (`isNetworkAccessAllowed = true`) can keep running. `cancelPlayableVideo` covers PhotoLibrary duration only. Needs a Host entry to cancel the **current** prepare even when id is unchanged (ADR-025 D4). | Later Cap (id-unchanged prepare cancel; feed keep-alive is `6178f9e`) | ADR-025 / ADR-006 |
 | Main Browse Screen | Profile/Debug may prompt Local Network (“查找本地网络中的设备”) before Photos | Flutter observatory / mDNS, not product PhotoKit. Release expected not to show it. | Do not fix in product; observe on Release | — |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
