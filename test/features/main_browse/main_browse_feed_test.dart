@@ -2314,6 +2314,193 @@ void main() {
 
     expect(display.displayCalls.length, before);
   });
+
+  testWidgets(
+    'S-1 still Layer 2 success refreshes blank Overlay size on same page',
+    (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      const sizeBytes = 2_886_627;
+      final sizeCopy = formatOverlayFileSize(
+        l10n: l10n,
+        fileSizeBytes: sizeBytes,
+      );
+      final presentation = FakePresentationMetadataRepository(
+        sizeSequenceById: {
+          'a1': [
+            const PresentationFileSize(assetIdentifier: 'a1'),
+            const PresentationFileSize(
+              assetIdentifier: 'a1',
+              fileSizeBytes: sizeBytes,
+              fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+            ),
+          ],
+        },
+      );
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          presentationMetadata: presentation,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+      expect(find.text(sizeCopy), findsOneWidget);
+      expect(presentation.sizeCalls, 2);
+    },
+  );
+
+  testWidgets('S-2 existing Overlay size skips Layer 2 size refresh', (
+    tester,
+  ) async {
+    const sizeBytes = 2_886_627;
+    final presentation = FakePresentationMetadataRepository(
+      sizeById: {
+        'a1': const PresentationFileSize(
+          assetIdentifier: 'a1',
+          fileSizeBytes: sizeBytes,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      },
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        presentationMetadata: presentation,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(presentation.sizeCalls, 1);
+  });
+
+  testWidgets('S-3 swipe away discards in-flight Layer 2 size refresh', (
+    tester,
+  ) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    const a1Bytes = 2_886_627;
+    const a2Bytes = 11_260_685;
+    final a1Size = formatOverlayFileSize(l10n: l10n, fileSizeBytes: a1Bytes);
+    final a2Size = formatOverlayFileSize(l10n: l10n, fileSizeBytes: a2Bytes);
+    final presentation = FakePresentationMetadataRepository(
+      hangOnSizeCall: 2,
+      sizeGate: Completer<void>(),
+      sizeSequenceById: {
+        'a1': [
+          const PresentationFileSize(assetIdentifier: 'a1'),
+          const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: a1Bytes,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        ],
+      },
+      sizeById: {
+        'a2': const PresentationFileSize(
+          assetIdentifier: 'a2',
+          fileSizeBytes: a2Bytes,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      },
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        presentationMetadata: presentation,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(find.text(a1Size), findsNothing);
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pumpAndSettle();
+    expect(find.text(a2Size), findsOneWidget);
+    expect(find.text(a1Size), findsNothing);
+
+    presentation.sizeGate!.complete();
+    await tester.pumpAndSettle();
+    expect(find.text(a2Size), findsOneWidget);
+    expect(find.text(a1Size), findsNothing);
+  });
+
+  testWidgets('S-4 Layer 2 failure does not refresh Overlay size', (
+    tester,
+  ) async {
+    final presentation = FakePresentationMetadataRepository(
+      sizeById: {'a1': const PresentationFileSize(assetIdentifier: 'a1')},
+    );
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['a1'] = 'iCloudDownloadFailed';
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        presentationMetadata: presentation,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedLayer2Retry')), findsOneWidget);
+    expect(presentation.sizeCalls, 1);
+  });
+
+  testWidgets('S-5 video Overlay size refreshes after surface ready', (
+    tester,
+  ) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    const sizeBytes = 11_260_685;
+    final sizeCopy = formatOverlayFileSize(
+      l10n: l10n,
+      fileSizeBytes: sizeBytes,
+    );
+    final presentation = FakePresentationMetadataRepository(
+      sizeSequenceById: {
+        'v1': [
+          const PresentationFileSize(assetIdentifier: 'v1'),
+          const PresentationFileSize(
+            assetIdentifier: 'v1',
+            fileSizeBytes: sizeBytes,
+            fileSizeSemantics: FileSizeSemantics.localVideoUrl,
+          ),
+        ],
+      },
+    );
+    final display = FakeMediaDisplayRepository();
+    display.previewsById['v1'] = const DisplayAsset(
+      assetIdentifier: 'v1',
+      mediaKind: PlaybackMediaKind.video,
+      localFilePath: '/tmp/fake_preview_v1.jpg',
+    );
+    display.playableGates['v1'] = Completer<void>();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        mediaDisplay: display,
+        presentationMetadata: presentation,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsNothing);
+    expect(find.text(sizeCopy), findsNothing);
+
+    display.playableGates['v1']!.complete();
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    expect(find.text(sizeCopy), findsOneWidget);
+    expect(presentation.sizeCalls, 2);
+  });
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

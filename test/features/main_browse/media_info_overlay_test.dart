@@ -27,10 +27,13 @@ void main() {
     );
   }
 
-  testWidgets('W-O1 rows 1–3 keep height; row 4 collapses without location',
-      (tester) async {
+  testWidgets('W-O1 rows 1–3 keep height; row 4 collapses without location', (
+    tester,
+  ) async {
     await tester.pumpWidget(harness(null));
-    final emptyH = tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+    final emptyH = tester
+        .getSize(find.byKey(const Key('mediaInfoOverlay')))
+        .height;
 
     await tester.pumpWidget(
       harness(
@@ -43,8 +46,9 @@ void main() {
         ),
       ),
     );
-    final filledH =
-        tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+    final filledH = tester
+        .getSize(find.byKey(const Key('mediaInfoOverlay')))
+        .height;
     expect(emptyH, filledH);
     expect(emptyH, MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount);
     expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
@@ -58,8 +62,9 @@ void main() {
         ),
       ),
     );
-    final withLocH =
-        tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+    final withLocH = tester
+        .getSize(find.byKey(const Key('mediaInfoOverlay')))
+        .height;
     expect(
       withLocH,
       MediaInfoOverlay.rowHeight * (MediaInfoOverlay.baseRowCount + 1),
@@ -69,44 +74,50 @@ void main() {
   });
 
   testWidgets(
-      'W-O-prog progressive basics then size keep Overlay height stable',
-      (tester) async {
-    await tester.pumpWidget(harness(null));
-    final h0 = tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
+    'W-O-prog progressive basics then size keep Overlay height stable',
+    (tester) async {
+      await tester.pumpWidget(harness(null));
+      final h0 = tester
+          .getSize(find.byKey(const Key('mediaInfoOverlay')))
+          .height;
 
-    await tester.pumpWidget(
-      harness(
-        PresentationOverlaySnapshot(
-          assetIdentifier: 'a',
-          createdAt: DateTime(2024, 6, 10, 12),
-          mediaKind: PresentationMediaKind.image,
+      await tester.pumpWidget(
+        harness(
+          PresentationOverlaySnapshot(
+            assetIdentifier: 'a',
+            createdAt: DateTime(2024, 6, 10, 12),
+            mediaKind: PresentationMediaKind.image,
+          ),
         ),
-      ),
-    );
-    final hBasics =
-        tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
-    expect(hBasics, h0);
+      );
+      final hBasics = tester
+          .getSize(find.byKey(const Key('mediaInfoOverlay')))
+          .height;
+      expect(hBasics, h0);
 
-    await tester.pumpWidget(
-      harness(
-        PresentationOverlaySnapshot(
-          assetIdentifier: 'a',
-          createdAt: DateTime(2024, 6, 10, 12),
-          mediaKind: PresentationMediaKind.image,
-          fileSizeBytes: 2_886_627,
-          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+      await tester.pumpWidget(
+        harness(
+          PresentationOverlaySnapshot(
+            assetIdentifier: 'a',
+            createdAt: DateTime(2024, 6, 10, 12),
+            mediaKind: PresentationMediaKind.image,
+            fileSizeBytes: 2_886_627,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
         ),
-      ),
-    );
-    final hSized =
-        tester.getSize(find.byKey(const Key('mediaInfoOverlay'))).height;
-    expect(hSized, h0);
-    expect(h0, MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount);
-    expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
-  });
+      );
+      final hSized = tester
+          .getSize(find.byKey(const Key('mediaInfoOverlay')))
+          .height;
+      expect(hSized, h0);
+      expect(h0, MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount);
+      expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+    },
+  );
 
-  testWidgets('W-Loc1 whitespace-only locationLabel collapses row 4',
-      (tester) async {
+  testWidgets('W-Loc1 whitespace-only locationLabel collapses row 4', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       harness(
         const PresentationOverlaySnapshot(
@@ -119,8 +130,9 @@ void main() {
     expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
   });
 
-  testWidgets('W-O4 live photo copy joins size on row 3 when both present',
-      (tester) async {
+  testWidgets('W-O4 live photo copy joins size on row 3 when both present', (
+    tester,
+  ) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.pumpWidget(
       harness(
@@ -133,10 +145,12 @@ void main() {
       ),
     );
     expect(
-      find.text(l10n.mediaInfoCharacteristicsJoined(
-        l10n.mediaInfoLivePhoto,
-        l10n.mediaInfoFileSizeMb('2.9'),
-      )),
+      find.text(
+        l10n.mediaInfoCharacteristicsJoined(
+          l10n.mediaInfoLivePhoto,
+          l10n.mediaInfoFileSizeMb('2.9'),
+        ),
+      ),
       findsOneWidget,
     );
   });
@@ -236,17 +250,18 @@ void main() {
   });
 
   test('W-O6 snapshot merge keeps basics when size arrives', () {
-    final basics = PresentationOverlaySnapshot(
-      assetIdentifier: 'a',
-      createdAt: DateTime.utc(2024, 1, 1),
-      mediaKind: PresentationMediaKind.image,
-    ).mergeBasics(
-      PresentationMetadata(
-        assetIdentifier: 'a',
-        mediaKind: PresentationMediaKind.image,
-        createdAt: DateTime.utc(2024, 1, 1),
-      ),
-    );
+    final basics =
+        PresentationOverlaySnapshot(
+          assetIdentifier: 'a',
+          createdAt: DateTime.utc(2024, 1, 1),
+          mediaKind: PresentationMediaKind.image,
+        ).mergeBasics(
+          PresentationMetadata(
+            assetIdentifier: 'a',
+            mediaKind: PresentationMediaKind.image,
+            createdAt: DateTime.utc(2024, 1, 1),
+          ),
+        );
     final withSize = basics.mergeSize(
       const PresentationFileSize(
         assetIdentifier: 'a',
@@ -257,5 +272,30 @@ void main() {
     expect(withSize.createdAt, basics.createdAt);
     expect(withSize.mediaKind, PresentationMediaKind.image);
     expect(withSize.fileSizeBytes, 100);
+  });
+
+  test('S-6 mergeSize does not let nil clobber existing bytes', () {
+    const withBytes = PresentationOverlaySnapshot(
+      assetIdentifier: 'a',
+      fileSizeBytes: 100,
+      fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+    );
+    final afterNil = withBytes.mergeSize(
+      const PresentationFileSize(assetIdentifier: 'a'),
+    );
+    expect(afterNil.fileSizeBytes, 100);
+    expect(
+      afterNil.fileSizeSemantics,
+      FileSizeSemantics.currentImageRepresentation,
+    );
+    final updated = withBytes.mergeSize(
+      const PresentationFileSize(
+        assetIdentifier: 'a',
+        fileSizeBytes: 200,
+        fileSizeSemantics: FileSizeSemantics.localVideoUrl,
+      ),
+    );
+    expect(updated.fileSizeBytes, 200);
+    expect(updated.fileSizeSemantics, FileSizeSemantics.localVideoUrl);
   });
 }

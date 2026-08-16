@@ -35,12 +35,17 @@ class PresentationOverlaySnapshot {
   }
 
   PresentationOverlaySnapshot mergeSize(PresentationFileSize size) {
+    // Same metadata generation can complete two size requests out of order
+    // (activation nil after Layer-2 refresh). isCurrent cannot drop the nil.
+    final keepExisting = fileSizeBytes != null && size.fileSizeBytes == null;
     return PresentationOverlaySnapshot(
       assetIdentifier: assetIdentifier,
       createdAt: createdAt,
       mediaKind: mediaKind,
-      fileSizeBytes: size.fileSizeBytes,
-      fileSizeSemantics: size.fileSizeSemantics,
+      fileSizeBytes: keepExisting ? fileSizeBytes : size.fileSizeBytes,
+      fileSizeSemantics: keepExisting
+          ? fileSizeSemantics
+          : size.fileSizeSemantics,
       locationLabel: locationLabel,
     );
   }

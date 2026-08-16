@@ -11,6 +11,7 @@ import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/media_display_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
+import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
@@ -124,6 +125,49 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     unawaited(_loadOverlay(gens.metadata, assetId));
   }
 
+  /// Layer-2 (still) / video surface-ready. Does not bump [beginCurrentItem].
+  void _onCurrentLayer2MediaReady(String assetId) {
+    if (!mounted || _activeAssetId != assetId) {
+      return;
+    }
+    if (_overlaySnapshot?.assetIdentifier == assetId &&
+        _overlaySnapshot?.fileSizeBytes != null) {
+      return;
+    }
+    final generation = _activation.metadataGate.generation;
+    unawaited(_refreshOverlaySize(generation, assetId));
+  }
+
+  void _commitOverlaySize(String assetId, PresentationFileSize size) {
+    setState(() {
+      final base = (_overlaySnapshot?.assetIdentifier == assetId)
+          ? _overlaySnapshot!
+          : PresentationOverlaySnapshot(assetIdentifier: assetId);
+      final next = base.mergeSize(size);
+      _overlaySnapshot = next;
+      _overlayCache[assetId] = next;
+    });
+  }
+
+  Future<void> _refreshOverlaySize(
+    int metadataGeneration,
+    String assetId,
+  ) async {
+    final repo = ref.read(presentationMetadataRepositoryProvider);
+    try {
+      final size = await repo.requestPresentationFileSize(assetId);
+      if (!mounted || !_activation.metadataGate.isCurrent(metadataGeneration)) {
+        return;
+      }
+      if (_activeAssetId != assetId) {
+        return;
+      }
+      _commitOverlaySize(assetId, size);
+    } catch (_) {
+      // Size stays blank.
+    }
+  }
+
   Future<void> _loadOverlay(int metadataGeneration, String assetId) async {
     final repo = ref.read(presentationMetadataRepositoryProvider);
     try {
@@ -147,14 +191,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
       if (!mounted || !_activation.metadataGate.isCurrent(metadataGeneration)) {
         return;
       }
-      setState(() {
-        final base = (_overlaySnapshot?.assetIdentifier == assetId)
-            ? _overlaySnapshot!
-            : PresentationOverlaySnapshot(assetIdentifier: assetId);
-        final next = base.mergeSize(size);
-        _overlaySnapshot = next;
-        _overlayCache[assetId] = next;
-      });
+      _commitOverlaySize(assetId, size);
     } catch (_) {
       // Size stays blank.
     }
@@ -323,6 +360,9 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                       assignedDisplayGeneration: isCurrent
                           ? _activeDisplayGeneration
                           : null,
+                      onCurrentLayer2MediaReady: isCurrent
+                          ? _onCurrentLayer2MediaReady
+                          : null,
                     );
                   },
                 ),
@@ -412,6 +452,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.liveHostSerial,
     this.currentDisplayGate,
     this.assignedDisplayGeneration,
+    this.onCurrentLayer2MediaReady,
   });
 
   final String assetIdentifier;
@@ -423,6 +464,9 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   /// When current: feed-owned gate already begun in [_activateCurrentItem].
   final FeedMediaRequestGate? currentDisplayGate;
   final int? assignedDisplayGeneration;
+
+  /// Current page only. Parent reads metadata generation at callback time.
+  final void Function(String assetId)? onCurrentLayer2MediaReady;
 
   static const String playbackViewType = 'waketok/playback_surface';
   static const String livePhotoViewType = 'waketok/live_photo_surface';
@@ -1083,6 +1127,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _layer2Failed = false;
       _layer2FailureReason = null;
     });
+    widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
     await _maybeBeginLiveMotion();
   }
 
@@ -1161,6 +1206,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               _surfaceReady = true;
               _layer2InFlight = false;
             });
+            if (widget.isCurrent) {
+              widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
+            }
             await ref
                 .read(playbackRepositoryProvider)
                 .notifyDisplaySurfaceReady(media.videoAssetId!);
