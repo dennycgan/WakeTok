@@ -10,6 +10,7 @@ import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
 
@@ -180,4 +181,121 @@ void main() {
     await container.read(browseSessionProvider.future);
     expect(fake.resolveCalls, 2);
   });
+
+  test(
+    'APP-8 leave Browse→Settings resets session+index without returning to Browse',
+    () async {
+      final fake = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c', 'd', 'e'],
+      );
+      var seed = 1;
+      final container = ProviderContainer(
+        overrides: [
+          assetSourceRepositoryProvider.overrideWithValue(fake),
+          browseShuffleRandomFactoryProvider.overrideWith(
+            (ref) => () => Random(seed),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final before = await container.read(browseSessionProvider.future);
+      expect(before.orderedAssetIds, ['a', 'b', 'c', 'd', 'e']);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
+      expect(container.read(mainBrowseFeedIndexProvider), 2);
+
+      // Cap 14.4e: reset runs on leave, not on resume. Do not select(browse).
+      seed = 2;
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+
+      expect(container.read(mainBrowseDestinationProvider),
+          MainBrowseDestination.settings);
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      final after = await container.read(browseSessionProvider.future);
+      expect(after.roundEpoch, greaterThan(before.roundEpoch));
+      expect(after.orderedAssetIds, ['c', 'a', 'e', 'b', 'd']);
+      expect(fake.resolveCalls, 1);
+    },
+  );
+
+  test(
+    'APP-8b leave Browse→Clips also resets; Settings→Clips does not reshuffle again',
+    () async {
+      final fake = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c', 'd', 'e'],
+      );
+      var seed = 1;
+      final container = ProviderContainer(
+        overrides: [
+          assetSourceRepositoryProvider.overrideWithValue(fake),
+          browseShuffleRandomFactoryProvider.overrideWith(
+            (ref) => () => Random(seed),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final first = await container.read(browseSessionProvider.future);
+      seed = 2;
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.clips);
+      final afterClips = await container.read(browseSessionProvider.future);
+      expect(afterClips.roundEpoch, greaterThan(first.roundEpoch));
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
+
+      final epochAfterLeave = afterClips.roundEpoch;
+      final orderAfterLeave = afterClips.orderedAssetIds;
+      seed = 3;
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      final afterSettings =
+          await container.read(browseSessionProvider.future);
+      expect(afterSettings.roundEpoch, epochAfterLeave);
+      expect(afterSettings.orderedAssetIds, orderAfterLeave);
+      expect(fake.resolveCalls, 1);
+    },
+  );
+
+  test(
+    'APP-8c leave Browse restart maps unmapped throw to AsyncError not stuck Loading',
+    () async {
+      final fake = FakeAssetSourceRepository(
+        allIds: const ['a', 'b'],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          assetSourceRepositoryProvider.overrideWithValue(fake),
+          browseShuffleRandomFactoryProvider.overrideWith(
+            (ref) => () => Random(0),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(browseSessionProvider.future);
+      expect(fake.resolveCalls, 1);
+
+      // Force cache miss so restart re-resolves; plain Exception is not
+      // mapped by resolveOneFromRepository (only selected PlatformException).
+      container.read(browseSnapshotCacheProvider.notifier).clear();
+      fake.resolveException = Exception('unmapped resolve boom');
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+
+      await expectLater(
+        container.read(browseSessionProvider.future),
+        throwsA(isA<Exception>()),
+      );
+      final async = container.read(browseSessionProvider);
+      expect(async, isA<AsyncError<BrowseSessionView>>());
+      expect(async.isLoading, isFalse);
+      expect(fake.resolveCalls, 2);
+    },
+  );
 }

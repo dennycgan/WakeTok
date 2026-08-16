@@ -2543,7 +2543,7 @@ void main() {
   );
 
   testWidgets(
-    'W-14.4c Settings round-trip keeps VerticalMediaFeed State at non-zero index',
+    'W-14.4c Settings round-trip keeps VerticalMediaFeed State; leave resets index',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
@@ -2559,6 +2559,8 @@ void main() {
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
       await tester.pumpAndSettle();
       expect(container.read(mainBrowseFeedIndexProvider), 1);
+      final epochBefore =
+          (await container.read(browseSessionProvider.future)).roundEpoch;
 
       final stateBefore = tester.state(find.byType(VerticalMediaFeed));
 
@@ -2573,7 +2575,12 @@ void main() {
 
       final stateAfter = tester.state(find.byType(VerticalMediaFeed));
       expect(identical(stateBefore, stateAfter), isTrue);
-      expect(container.read(mainBrowseFeedIndexProvider), 1);
+      // Cap 14.4e: leave Browse resets queue/index; IndexedStack still keeps
+      // VerticalMediaFeed State (14.4c keep-alive).
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      final epochAfter =
+          (await container.read(browseSessionProvider.future)).roundEpoch;
+      expect(epochAfter, greaterThan(epochBefore));
     },
   );
 
@@ -2603,6 +2610,7 @@ void main() {
           .select(MainBrowseDestination.browse);
       await pumpAsyncWork(tester);
 
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
       expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsNothing);
       expect(
         find.byKey(

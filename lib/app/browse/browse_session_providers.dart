@@ -143,6 +143,47 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     );
   }
 
+  /// Cap 14.4e / ADR-027 strength C: new Consumption Session on the current
+  /// source (re-Shuffle), bumping [BrowseSessionView.roundEpoch].
+  ///
+  /// Prefer this over [Ref.invalidate] of [browseSessionProvider]: invalidate
+  /// disposes this notifier and resets [_roundEpoch], so the feed PageView
+  /// key (`…-r{epoch}`) may not change. Does **not** clear
+  /// [browseSnapshotCacheProvider].
+  ///
+  /// After [AsyncLoading], unexpected throws become [AsyncError] (not a stuck
+  /// spinner). [Ref.mounted] guards both success and error writes across the
+  /// async gap.
+  Future<void> restartSession() async {
+    final source = ref.read(mainBrowseSelectedSourceProvider);
+    state = const AsyncLoading();
+    try {
+      final snapshot = await _snapshotFor(source);
+      final definition = browsePoolDefinition(source);
+      final configuration = deriveDefaultSessionProfile(
+        definition: definition,
+        snapshot: snapshot,
+      );
+      final session = startConsumptionSession(
+        snapshot: snapshot,
+        configuration: configuration,
+        random: _random(),
+      );
+      if (!ref.mounted) {
+        return;
+      }
+      _roundEpoch += 1;
+      state = AsyncData(
+        BrowseSessionView(session: session, roundEpoch: _roundEpoch),
+      );
+    } catch (error, stackTrace) {
+      if (!ref.mounted) {
+        return;
+      }
+      state = AsyncError(error, stackTrace);
+    }
+  }
+
   Future<ResolvedPoolSnapshot> _snapshotFor(SourceReference source) async {
     final cache = ref.read(browseSnapshotCacheProvider.notifier);
     final hit = cache.get(source);

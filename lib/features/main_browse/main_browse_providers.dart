@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/source/source_reference.dart';
@@ -29,8 +31,22 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
   @override
   MainBrowseDestination build() => MainBrowseDestination.browse;
 
+  /// Bottom-nav destination change.
+  ///
+  /// Cap 14.4e / ADR-027: leaving Browse (→ Settings / Clips / Auto) ends the
+  /// current Consumption Session. Order is intentional — destination first so
+  /// `browseActive` is already false before session/index reset (avoids a
+  /// half-new Session while still current). App background / lock never calls
+  /// this method, so those paths do not reset.
   void select(MainBrowseDestination next) {
+    final leavingBrowse = state == MainBrowseDestination.browse &&
+        next != MainBrowseDestination.browse;
     state = next;
+    if (!leavingBrowse) {
+      return;
+    }
+    unawaited(ref.read(browseSessionProvider.notifier).restartSession());
+    ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
   }
 }
 
