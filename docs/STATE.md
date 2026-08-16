@@ -146,6 +146,9 @@ preheating, and loading states (Cap 14)
       commit)
 - [x] 14.4 Feed three-layer UI + ARB; retire
       `mainBrowseFeedICloudOnly` (work `9cf22a5`)
+- [ ] 14.4b First-launch cellular retry + failure-reason copy
+      (work `eddb7c3`); Overlay file-size refresh after Layer 2
+      still open (not mixed with 14.5)
 - [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
 - [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
       empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
@@ -175,8 +178,9 @@ preheating, and loading states (Cap 14)
       **Why blocked:** the gate's own preconditions are still incomplete,
       so the Instruments run is not interpretable — Feed three-layer UI
       and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
-      copy panel). Remaining Cap 14: ±1 local-only visual preheat
-      (14.5) and Limited first-launch All empty (14.6). Host Layer 2
+      copy panel). Remaining Cap 14: 14.4b Overlay size refresh
+      (`eddb7c3` landed retry + fail copy), ±1 local-only visual preheat
+      (14.5), and Limited first-launch All empty (14.6). Host Layer 2
       is `ce8807f`. Shuffle still scatters iCloud pages through the
       Queue. The bar is **not** lowered, **not** Conditional Pass,
       **not** split. Evidence:
@@ -191,15 +195,17 @@ preheating, and loading states (Cap 14)
       (Cap 14 will already be `[x]`; Auto-play Presets stay later)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.5 ±1 local-only visual preheat + cancel on
-      leaving the window
-- Sub-steps done: 14.4 work `9cf22a5` (this docs commit marks 14.4
-      complete)
-- Next step: 14.5 ±1 local-only `requestPreview` preheat + cancel
-      (no Host PhotoKit contract change)
+- Goal (one line): Cap 14.4b Overlay file-size refresh after Layer 2
+      (still local-only Host)
+- Sub-steps done: 14.4 `9cf22a5`; 14.4b retry + fail copy `eddb7c3`
+      (Dart HttpClient pre-feed does not trigger 国行无线数据; native
+      URLSession pre-trigger remains optional Known debt)
+- Next step: Overlay size re-fetch after Layer 2 success (separate
+      work commit) — not 14.5
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
       narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
-      Live motion stay local-only; ADR-023 D10 13.6 V-hard unchanged;
+      Live motion stay local-only; ADR-015/018 Overlay size local-only;
+      ADR-023 D10 13.6 V-hard unchanged;
       ADR-024 empty Snapshot not cached
 
 ## Contract pointers (don't memorize, go read the source)
@@ -357,7 +363,11 @@ preheating, and loading states (Cap 14)
 | Main Browse Screen | Release build Severe Hang / hitch on production feed (Kafka) | Accidental Release campaign V-hard FAIL (`cap7-7.7-notes.md`); **7.7a Profile PASS**. Evidence strength: **All** surface clean **3/3 FAIL (Release) → 3/3 PASS (Profile)** is a strong signal the mode divergence is real (not a one-off flip); **Videos** was already 2/3 PASS on Release (intermittent), so weaker as a divergence signal. Track for shipping; do not deep-dive cause here | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-001 / ADR-014 |
 | Media Info Overlay | Location Label (reverse geocode) not implemented | Owner Cap 8 Q1=B: Overlay row 4 hidden when empty this Cap (kickoff ADR-X best-effort deferral; no geocode). Current-Item-only geocode hard rule unchanged when a later Cap picks this up | Later Cap (or reopen when Owner schedules) | kickoff ADR-X |
 | Media Info Overlay | Same-asset playhead shared across built-in sources (All ↔ Videos) — **Accepted behaviour** | First observed Cap 8.8 (`cap8-8.8-notes.md`): `PlaybackApiHost` keys the app-scoped player by `assetIdentifier` (ADR-006), so the same Photos id under All vs Videos reuses position / ended-on-last-frame. **Accepted (ADR-023 D6 / Cap 13.5)** — intentional Host keying, **not** a bug fix and **not** cross-tab Continuity (D8: tab = new Session; feed index still resets). No `PlaybackApiHost` change. **Row kept** (not deleted like resolved bugs) as a permanent record of accepted behaviour to prevent re-litigation when the shared playhead is noticed again. | Closed by Cap 13.5 (ADR-023 D6) | ADR-006 / ADR-014 / ADR-023; `docs/acceptance/cap8-8.8-notes.md` |
-| Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
+| Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. iCloud-only blank size **before** local data exists is ADR-015/018 (never download solely for size; Photos Info is not a public-SDK ground truth). Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
+| Media Info Overlay | Overlay file size stays blank on the current iCloud page after Layer 2 has already downloaded | `_loadOverlay` requests size once at activation (local-only Host), in parallel with Layer 2; nil is cached for that visit. Swipe away/back re-fetches and then shows size. 14.4 device (Kafka). | Cap 14.4b (re-fetch size after Layer 2 success; still local-only Host) | ADR-015 / ADR-018 / ADR-025 |
+| Main Browse Screen | First cold start: All current item fails until Retry because the 无线数据 dialog appears after Layer 2 has already been issued | China-SKU app-level first-network prompt (国行 App Store vs NZ: Pictok same split). Dart `HttpClient` pre-feed probe does **not** trigger it (14.4b Kafka). Lifecycle auto-retry landed `eddb7c3` (inactive\|paused→resumed; overlay vs full-page fail). Kafka retest of first launch still pending. | Cap 14.4b device confirm; native `URLSession` pre-trigger is a separate optional row | ADR-025 |
+| Main Browse Screen | Optional native `URLSession` (CFNetwork) pre-feed to show 无线数据 on the loading screen instead of after first Layer 2 fail | Dart sockets do not trip the China-SKU prompt. Not required for doom-scroll once B auto-retries (`eddb7c3`). Pictok 国行 still shows the prompt in the feed. | Later Cap / optional; **not in 14.4b size work** | ADR-025 |
+| Main Browse Screen | Profile/Debug may prompt Local Network (“查找本地网络中的设备”) before Photos | Flutter observatory / mDNS, not product PhotoKit. Release expected not to show it. | Do not fix in product; observe on Release | — |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
 | POC-03 | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
