@@ -2416,3 +2416,58 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     adjacent bugfix, **not** a product decision frozen by this ADR.
   - Does **not** supersede ADR-006 D4, ADR-014 D2 (auto-advance),
     ADR-019, or ADR-023 D6.
+
+---
+
+## ADR-027: Cap 14.4e leave Browse ends Consumption Session
+
+- Status: Accepted (2026-08-17)
+  <!-- Accepted date from `git log -1 --format=%cs fe660dd` → 2026-08-17 -->
+- Commit/PR anchor: fe660dd
+- Plain summary (owner reads this):
+  Leaving the Browse tab for Settings, Clips, or Auto ends the current
+  browse queue and starts a fresh shuffled session at the first item.
+  Locking the phone or sending the app to the background does not do
+  that. Switching All / Photos / Videos still starts a new session the
+  same way as before.
+- Context / what problem forced this:
+  Cap 14.4c kept VerticalMediaFeed alive across Settings (IndexedStack
+  Theme wrap) so non-head pages would not black-screen. That also kept
+  the Consumption Session and feed index, so Browse→Settings→Browse
+  resumed mid-queue. ADR-023 D8 only covers built-in tab switches, not
+  bottom-nav leave. Cap 14.4e needs an explicit leave-Browse boundary
+  without stretching D8 or treating AppLifecycle as leave.
+- Decision (what was chosen):
+  1. **New ADR (not a D8 reinterpretation).** Leave-Browse is parallel
+     to ADR-023 D8; D8 / ADR-014 Decision 4 tab behaviour unchanged.
+  2. **Strength C.** On leave: new Consumption Session + re-Shuffle +
+     feed index 0; do **not** clear the process Snapshot cache.
+  3. **Trigger = bottom-nav leave only.**
+     `MainBrowseDestinationNotifier.select`: when
+     `browse → !browse` (Settings / Clips / Auto). Order: set
+     `state = next` first, then `restartSession()`, then `setIndex(0)`.
+  4. **Background / lock do not reset** — they never call `select()`.
+  5. **Keep 14.4c keep-alive.** IndexedStack + Theme wrap stay;
+     keep-alive ≠ keep-session. Resume latch activates the new head.
+  6. **`restartSession` not `invalidate`.** Invalidating
+     `browseSessionProvider` would dispose the notifier and reset the
+     in-notifier `roundEpoch`, so the PageView key might not remount.
+     Unexpected throws after `AsyncLoading` become `AsyncError` (not a
+     stuck spinner); `ref.mounted` guards both success and error writes.
+- Rejected alternatives (why not B):
+  - Stretch ADR-023 D8 to mean any leave — rejected; D8 text is tab-only.
+  - Reset only on `browseResumed` / in `VerticalMediaFeed.build` —
+    rejected; mutating session providers during build is unsafe.
+  - Index-only reset or `advanceToNextRound` only — rejected; not a
+    full new Session.
+  - Clear Snapshot cache on leave — rejected; forces re-resolve.
+  - Treat AppLifecycle pause as leave — rejected; conflicts with
+    playback ownership / future Background Audio continuity.
+- Consequences / constraints accepted:
+  - W-14.4c “preserve non-zero index” product expectation is flipped;
+    State identity keep-alive assertions remain.
+  - Settings resume poster-flash Known debt dissolves (no mid-queue
+    resume path). Queue-head Layer 1 spinner-only wait may be more
+    visible; recorded as Known debt, not a 14.4e defect.
+  - ADR-023 D6 same-asset Host playhead sharing unchanged.
+  - Does **not** supersede ADR-023 D8 or ADR-014 Decision 4.
