@@ -69,6 +69,13 @@
       preheating, and loading states
       (Cap 14 / ADR-025 Accepted, work `393ebc9`; restores 13.6
       *executability*, does not run 13.6 Instruments)
+- [ ] Feed swipe Layer 1→2 handoff polish and duplicate current-item
+      Layer 2 request (Cap 15). Scope: local-fast Layer 2 exposing
+      still/video swipe-in flash; listen+build double generation bump
+      that may duplicate Layer 2. **Start only after Cap 13 close-out
+      (13.7). Must not run between 14.7 and 13.6** (no guess-patch to
+      “help” 13.6). Design input is the 13.6 Instruments Profile
+      retest, not device notes alone.
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
       (**deferred past Cap 14** — does not unblock 13.6)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
@@ -162,7 +169,10 @@ preheating, and loading states (Cap 14)
 - [x] 14.4e Leave Browse resets queue (work `fe660dd` / ADR-027;
       Kafka: Settings/Clips leave → new Shuffle + index 0;
       AppLifecycle does not reset; APP-8/8b/8c)
-- [ ] 14.5 ±1 local-only visual preheat + cancel on leaving the window
+- [x] 14.5 ±1 local-only visual preheat + cancel on leaving the window
+      (work `fa09b00`; Kafka: neighbour Layer 1 more often present;
+      video neighbour poster / no audio; two-step skip does not
+      cap-3-evict the current preview)
 - [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
       empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
 - [ ] 14.7 Cap 14 close-out docs: Cap 14 `[x]`; **return YOU ARE HERE
@@ -191,10 +201,10 @@ preheating, and loading states (Cap 14)
       **Why blocked:** the gate's own preconditions are still incomplete,
       so the Instruments run is not interpretable — Feed three-layer UI
       and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
-      copy panel). Remaining Cap 14: ±1 local-only visual preheat
-      (14.5) and Limited first-launch All empty (14.6). Host Layer 2
-      is `ce8807f`; video loop/replay is `8189543`; leave-Browse
-      reset is `fe660dd`. Shuffle still scatters iCloud pages through the
+      copy panel). Remaining Cap 14: Limited first-launch All empty
+      (14.6). Host Layer 2 is `ce8807f`; video loop/replay is
+      `8189543`; leave-Browse reset is `fe660dd`; ±1 preheat is
+      `fa09b00`. Shuffle still scatters iCloud pages through the
       Queue. The bar is **not** lowered, **not** Conditional Pass,
       **not** split. Evidence:
       `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
@@ -204,18 +214,21 @@ preheating, and loading states (Cap 14)
       re-run remains this 13.6 phase after YOU ARE HERE returns.
 - [ ] 13.7 Cap close-out (stays last; cannot run while 13.6 is
       blocked): STATE Cap `[x]` + PHASE_HISTORY;
-      Phase Roadmap → Build a Pool, Ephemeral Pool, and Source ordering
-      (Cap 14 will already be `[x]`; Auto-play Presets stay later)
+      Phase Roadmap → Cap 15 feed swipe Layer 1→2 handoff polish and
+      duplicate current-item Layer 2 (not Build a Pool; that stays
+      after Cap 15). Cap 14 will already be `[x]`; Auto-play Presets
+      stay later. Cap 15 must not start between 14.7 and 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.5 ±1 local-only visual preheat
+- Goal (one line): Cap 14.6 Limited first-launch All empty + bounded re-resolve
 - Sub-steps done: 14.4 `9cf22a5`; 14.4b `eddb7c3` + `900581e`
       (Kafka same-page Overlay size PASS); 14.4c `6178f9e`
       (Kafka Settings round-trip PASS); 14.4d `8189543`
       (Kafka loop / return-to-ended / Live play-once PASS);
-      14.4e `fe660dd` (Kafka leave-Browse reset PASS)
-- Next step: 14.5 design review — ±1 local-only visual preheat +
-      cancel on leaving the window (not 14.6)
+      14.4e `fe660dd` (Kafka leave-Browse reset PASS);
+      14.5 `fa09b00` (Kafka ±1 preheat PASS)
+- Next step: 14.6 design review — keep resolve-loading on successful
+      empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
       narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
       Live motion stay local-only; ADR-015/018 Overlay size local-only;
@@ -276,6 +289,8 @@ preheating, and loading states (Cap 14)
   Feed three-layer UI (Cap 14.4 `9cf22a5`): Layer 1 preview then
   current-item Layer 2; Layer 3 spinner Semantics; Retry overlay
   when a still remains; `mainBrowseFeedICloudOnly` retired;
+  Feed ±1 neighbour `requestPreview` / `releasePreview` two-phase
+  window (Cap 14.5 `fa09b00`);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
@@ -406,7 +421,10 @@ preheating, and loading states (Cap 14)
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
-| Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`) | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
+| Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`). See also the 14.5 swipe-**in** Layer 1→2 handoff row (local vs iCloud); this row is swipe-**away** residue on the shared Platform View. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
+| Main Browse Screen | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** swipe-in may flash one black frame as the preview JPEG is replaced by the full JPEG (`Image.file` path swap). **Video (swipe to next, local):** (1) half-screen next poster; (2) half-screen black; (3) sometimes one frame of the *previous* playing video; (4) a second black **only if** (3) appeared; (5) then the new video plays. **Video (swipe away and back while the previous player is still the active slot, e.g. next still iCloud-spinning):** half-screen poster, then one flash to the *mid-play* frame and resume — not a restart. Two mechanisms under one visibility window — stills mainly `Image.file` decode/path; video also 1+1 player reuse + neighbour still→Platform View. One patch will not fix both. Related to but not the same as “Video page swipe may flash one frame of the previous video” (that row is swipe-away residue). | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-006 / ADR-025 |
+| Main Browse Screen | Swiping back to a video restarts from 0 after the next item has taken the active 1+1 slot; mid-play resume still happens while that slot is not yet taken | Pool is current + next only; no session-level playhead. Next local almost always occupies `activePlayer` immediately → return rebuilds a new player at 0. Next iCloud occupies only after `requestAVAsset` completes → return before that hits ADR-026 `playOnly` (same live player). **MVP accepts restart-from-0 once the next item has occupied the slot.** That acceptance does **not** mean “always restart on leave”, and must **not** weaken ADR-026 (`actionOnBecomeCurrent`: seek 0 only when at-end; mid-play re-enter `play()` while the player still exists). Do not add session playhead storage in Cap 14. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 / ADR-026 |
+| Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | Noticed while asserting 14.5 mid-preheat `displayCalls == 1` (actual 2). The extra request is generation-gated and discarded, but a duplicate `requestDisplayAsset` / `requestPlayableVideo` can already be in flight (cellular cost, same class of waste as ADR-025 D4 leave-cancel). Correctness is gated; count is not. Do not fix in 14.5. | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-025 / ADR-010 |
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | ADR-025 defined wait: `_loading` is spinner-only until `requestPreview` returns; Overlay metadata can land first. 14.4e `restartSession` remounts PageView at index 0, so this window is **more often visible** than keep-session resume. Not a defect; polish = keep last still across remount or shorten spinner-only. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-025 / ADR-027 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
