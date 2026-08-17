@@ -17,6 +17,8 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     this.albumResolveIds = const <String, List<String>>{},
     this.albumResolveUnauthorized = false,
     this.resolveException,
+    this.beforeEachResolve,
+    this.allIdsForCall,
   });
 
   List<String> allIds;
@@ -34,6 +36,12 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
 
   /// When set, [resolve] throws after recording history (Cap 11.5 W-P3).
   Exception? resolveException;
+
+  /// Cap 14.6: awaited after the call is recorded, before returning/throwing.
+  Future<void> Function(int callIndex)? beforeEachResolve;
+
+  /// Cap 14.6: per-call All ids (overrides [allIds] when set).
+  List<String> Function(int callIndex)? allIdsForCall;
 
   int listCalls = 0;
   int resolveCalls = 0;
@@ -83,6 +91,8 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     resolveCalls += 1;
     lastResolve = reference;
     resolveHistory.add(reference);
+    final callIndex = resolveCalls - 1;
+    await beforeEachResolve?.call(callIndex);
 
     final thrown = resolveException;
     if (thrown != null) {
@@ -105,11 +115,12 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
       throw PlatformException(code: AppError.assetUnavailable.name);
     }
     final ids = switch (reference.kind) {
-      AssetSourceKind.entireLibrary => allIds,
+      AssetSourceKind.entireLibrary => allIdsForCall?.call(callIndex) ?? allIds,
       AssetSourceKind.mediaTypePhotos => photosIds,
       AssetSourceKind.mediaTypeVideos => videosIds,
-      AssetSourceKind.album || AssetSourceKind.smartAlbum =>
-        throw StateError('unreachable after album branch'),
+      AssetSourceKind.album || AssetSourceKind.smartAlbum => throw StateError(
+        'unreachable after album branch',
+      ),
     };
     return ResolvedSource(
       sourceId: reference.id,

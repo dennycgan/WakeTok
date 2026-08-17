@@ -61,10 +61,16 @@ Widget permissionUiHarness({
   FakePresentationMetadataRepository? presentationMetadata,
   LivePhotoRepository? livePhoto,
   bool sharedMuteInitiallyMuted = false,
+
   /// Cap 13.4: default seeded Shuffle so feed widget tests are deterministic.
   /// Each read constructs a fresh [Random] so session rebuilds do not share
   /// a consumed PRNG stream.
   int browseShuffleSeed = 0,
+
+  /// Cap 14.6: default no extra empty retries so existing empty-path tests
+  /// keep a single resolve. Pass production or zero-duration lists to
+  /// exercise the retry loop.
+  List<Duration> browseEmptyRetryDelays = const [],
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -86,8 +92,10 @@ Widget permissionUiHarness({
         livePhoto ?? FakeLivePhotoRepository(),
       ),
       browseShuffleRandomFactoryProvider.overrideWith(
-        (ref) => () => Random(browseShuffleSeed),
+        (ref) =>
+            () => Random(browseShuffleSeed),
       ),
+      browseEmptyRetryDelaysProvider.overrideWithValue(browseEmptyRetryDelays),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)

@@ -33,6 +33,8 @@ import '../../library_smoke/fake_playback_repository.dart';
 import '../../library_smoke/fake_presentation_metadata_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
 
+const _feedZeroEmptyRetries = [Duration.zero, Duration.zero, Duration.zero];
+
 /// Advances async work without waiting for indeterminate preparing spinners.
 Future<void> pumpAsyncWork(WidgetTester tester) async {
   await tester.pump();
@@ -88,6 +90,66 @@ void main() {
     expect(find.text(l10n.mainBrowseFeedEmpty), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsOneWidget);
     expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+  });
+
+  testWidgets(
+    'W-14.6a successful empty stays on loading until a later resolve has ids',
+    (tester) async {
+      final firstHold = Completer<void>();
+      final secondHold = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final sources = FakeAssetSourceRepository(
+        allIdsForCall: (i) => i == 0 ? const <String>[] : const ['a', 'b', 'c'],
+        beforeEachResolve: (i) async {
+          if (i == 0) {
+            await firstHold.future;
+          } else if (i == 1) {
+            await secondHold.future;
+          }
+        },
+      );
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          browseEmptyRetryDelays: _feedZeroEmptyRetries,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(find.byKey(const Key('mainBrowseFeedLoading')), findsOneWidget);
+      expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsNothing);
+
+      firstHold.complete();
+      await pumpAsyncWork(tester);
+      expect(find.byKey(const Key('mainBrowseFeedLoading')), findsOneWidget);
+      expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsNothing);
+
+      secondHold.complete();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedStill_c')), findsOneWidget);
+      expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsNothing);
+    },
+  );
+
+  testWidgets('W-14.6b four empty resolves then empty copy, not failed panel', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        browseEmptyRetryDelays: _feedZeroEmptyRetries,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    expect(find.text(l10n.mainBrowseFeedEmpty), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedResolveFailed')), findsNothing);
+    expect(sources.resolveCalls, 4);
   });
 
   testWidgets('W-F4 resolve failure shows error ARB and retry', (tester) async {

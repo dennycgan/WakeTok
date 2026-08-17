@@ -8,6 +8,7 @@ export 'package:waketok/app/browse/browse_session_providers.dart'
     show
         BrowseSessionNotifier,
         BrowseSessionView,
+        browseEmptyRetryDelaysProvider,
         browseSessionProvider,
         browseShuffleRandomFactoryProvider,
         browseSnapshotCacheProvider,
@@ -15,17 +16,12 @@ export 'package:waketok/app/browse/browse_session_providers.dart'
         MainBrowseSelectedSource;
 
 /// Bottom destinations for the Main Browse shell.
-enum MainBrowseDestination {
-  browse,
-  clips,
-  auto,
-  settings,
-}
+enum MainBrowseDestination { browse, clips, auto, settings }
 
 final mainBrowseDestinationProvider =
     NotifierProvider<MainBrowseDestinationNotifier, MainBrowseDestination>(
-  MainBrowseDestinationNotifier.new,
-);
+      MainBrowseDestinationNotifier.new,
+    );
 
 class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
   @override
@@ -39,7 +35,8 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
   /// half-new Session while still current). App background / lock never calls
   /// this method, so those paths do not reset.
   void select(MainBrowseDestination next) {
-    final leavingBrowse = state == MainBrowseDestination.browse &&
+    final leavingBrowse =
+        state == MainBrowseDestination.browse &&
         next != MainBrowseDestination.browse;
     state = next;
     if (!leavingBrowse) {
@@ -52,8 +49,9 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
 
 /// Current PageView index; resets to 0 when the top source changes (Cap 7.5 /
 /// ADR-023 D8: tab = new Session).
-final mainBrowseFeedIndexProvider =
-    NotifierProvider<MainBrowseFeedIndex, int>(MainBrowseFeedIndex.new);
+final mainBrowseFeedIndexProvider = NotifierProvider<MainBrowseFeedIndex, int>(
+  MainBrowseFeedIndex.new,
+);
 
 class MainBrowseFeedIndex extends Notifier<int> {
   @override

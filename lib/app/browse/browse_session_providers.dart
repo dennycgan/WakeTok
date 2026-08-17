@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,8 +19,21 @@ import 'package:waketok/features/library_smoke/source_resolve_attempt_mapping.da
 /// instance. Tests override to `() => Random(seed)`.
 typedef BrowseShuffleRandomFactory = Random Function();
 
-final browseShuffleRandomFactoryProvider =
-    Provider<BrowseShuffleRandomFactory>((ref) => Random.new);
+final browseShuffleRandomFactoryProvider = Provider<BrowseShuffleRandomFactory>(
+  (ref) => Random.new,
+);
+
+/// Cap 14.6 / ADR-025 D8: extra waits after a successful empty Snapshot.
+///
+/// Production: three delays (four resolve attempts including the first).
+/// Tests override to `const []` so empty paths keep a single resolve.
+final browseEmptyRetryDelaysProvider = Provider<List<Duration>>(
+  (ref) => const [
+    Duration(milliseconds: 500),
+    Duration(milliseconds: 1000),
+    Duration(milliseconds: 2000),
+  ],
+);
 
 /// Selected built-in source for Main Browse (All / Photos / Videos).
 ///
@@ -27,8 +41,8 @@ final browseShuffleRandomFactoryProvider =
 /// circular `features` ↔ `app` import (Cap 13.4 / ADR-023 D9).
 final mainBrowseSelectedSourceProvider =
     NotifierProvider<MainBrowseSelectedSource, SourceReference>(
-  MainBrowseSelectedSource.new,
-);
+      MainBrowseSelectedSource.new,
+    );
 
 class MainBrowseSelectedSource extends Notifier<SourceReference> {
   @override
@@ -47,8 +61,8 @@ class MainBrowseSelectedSource extends Notifier<SourceReference> {
 /// caches [ResolvedPoolSnapshot], not Host resolve order as feed order).
 final browseSnapshotCacheProvider =
     NotifierProvider<BrowseSnapshotCache, Map<String, ResolvedPoolSnapshot>>(
-  BrowseSnapshotCache.new,
-);
+      BrowseSnapshotCache.new,
+    );
 
 class BrowseSnapshotCache extends Notifier<Map<String, ResolvedPoolSnapshot>> {
   @override
@@ -80,10 +94,7 @@ SourcePoolDefinition browsePoolDefinition(SourceReference source) {
 
 /// In-memory Browse feed session + round epoch (Cap 13.4).
 class BrowseSessionView {
-  const BrowseSessionView({
-    required this.session,
-    required this.roundEpoch,
-  });
+  const BrowseSessionView({required this.session, required this.roundEpoch});
 
   final ConsumptionSession session;
   final int roundEpoch;
@@ -98,18 +109,27 @@ class BrowseSessionView {
 /// cached Snapshot (D8). [advanceToNextRound] reshuffles in-place for Endless.
 final browseSessionProvider =
     AsyncNotifierProvider<BrowseSessionNotifier, BrowseSessionView>(
-  BrowseSessionNotifier.new,
-);
+      BrowseSessionNotifier.new,
+    );
 
 class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   int _roundEpoch = 0;
 
+  /// Cap 14.6: one generation for both [build] and [restartSession] loads.
+  int _loadGen = 0;
+
   Random _random() => ref.read(browseShuffleRandomFactoryProvider)();
+
+  bool _isCurrentLoad(int gen) => gen == _loadGen && ref.mounted;
 
   @override
   Future<BrowseSessionView> build() async {
+    final gen = ++_loadGen;
     final source = ref.watch(mainBrowseSelectedSourceProvider);
-    final snapshot = await _snapshotFor(source);
+    final snapshot = await _snapshotFor(source, gen: gen);
+    if (!_isCurrentLoad(gen)) {
+      return _parkStaleBuild();
+    }
     final definition = browsePoolDefinition(source);
     final configuration = deriveDefaultSessionProfile(
       definition: definition,
@@ -152,13 +172,17 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   /// [browseSnapshotCacheProvider].
   ///
   /// After [AsyncLoading], unexpected throws become [AsyncError] (not a stuck
-  /// spinner). [Ref.mounted] guards both success and error writes across the
-  /// async gap.
+  /// spinner). [_loadGen] plus [Ref.mounted] guard writes across the async gap
+  /// so a superseded restart cannot overwrite a newer load (Cap 14.6).
   Future<void> restartSession() async {
+    final gen = ++_loadGen;
     final source = ref.read(mainBrowseSelectedSourceProvider);
     state = const AsyncLoading();
     try {
-      final snapshot = await _snapshotFor(source);
+      final snapshot = await _snapshotFor(source, gen: gen);
+      if (!_isCurrentLoad(gen)) {
+        return;
+      }
       final definition = browsePoolDefinition(source);
       final configuration = deriveDefaultSessionProfile(
         definition: definition,
@@ -169,7 +193,7 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         configuration: configuration,
         random: _random(),
       );
-      if (!ref.mounted) {
+      if (!_isCurrentLoad(gen)) {
         return;
       }
       _roundEpoch += 1;
@@ -177,35 +201,99 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         BrowseSessionView(session: session, roundEpoch: _roundEpoch),
       );
     } catch (error, stackTrace) {
-      if (!ref.mounted) {
+      if (!_isCurrentLoad(gen)) {
         return;
       }
       state = AsyncError(error, stackTrace);
     }
   }
 
-  Future<ResolvedPoolSnapshot> _snapshotFor(SourceReference source) async {
+  /// Riverpod still applies [build]'s return if this Future completes with
+  /// data/error while the build subscription is `running` — and a manual
+  /// `state =` in [restartSession] does **not** flip that flag (only a
+  /// watched-dependency rebuild or invalidate does). Returning a View or
+  /// throwing here would overwrite the newer [restartSession] result with
+  /// stale empty/error. Parking until dispose is intentional: onDispose
+  /// runs after the subscription is cancelled, so the completion is ignored.
+  Future<BrowseSessionView> _parkStaleBuild() {
+    final done = Completer<BrowseSessionView>();
+    if (!ref.mounted) {
+      return done.future;
+    }
+    ref.onDispose(() {
+      if (!done.isCompleted) {
+        done.completeError(
+          StateError('stale browse session build discarded'),
+          StackTrace.empty,
+        );
+      }
+    });
+    return done.future;
+  }
+
+  Future<ResolvedPoolSnapshot> _snapshotFor(
+    SourceReference source, {
+    required int gen,
+  }) async {
     final cache = ref.read(browseSnapshotCacheProvider.notifier);
     final hit = cache.get(source);
     if (hit != null) {
       return hit;
     }
-    final repo = ref.read(assetSourceRepositoryProvider);
-    final definition = browsePoolDefinition(source);
-    final snapshot = await resolvePool(
-      definition: definition,
-      resolveOne: (reference) => resolveOneFromRepository(repo, reference),
-    );
-    // ADR-014 D5: cache successes only. Cap 13.8 narrows that: do not cache
-    // empty coalesced lists (Limited first-launch race) or mapped Failed.
-    final hasHardFailure = snapshot.sourceStatuses.any(
+
+    Future<ResolvedPoolSnapshot> resolveOnce() {
+      final repo = ref.read(assetSourceRepositoryProvider);
+      final definition = browsePoolDefinition(source);
+      return resolvePool(
+        definition: definition,
+        resolveOne: (reference) => resolveOneFromRepository(repo, reference),
+      );
+    }
+
+    var snapshot = await resolveOnce();
+    _cacheSuccessfulNonEmpty(cache, source, snapshot);
+    if (!_isCurrentLoad(gen) || !_shouldRetryEmpty(snapshot)) {
+      return snapshot;
+    }
+
+    final delays = ref.read(browseEmptyRetryDelaysProvider);
+    for (final delay in delays) {
+      await Future<void>.delayed(delay);
+      if (!_isCurrentLoad(gen)) {
+        return snapshot;
+      }
+      snapshot = await resolveOnce();
+      _cacheSuccessfulNonEmpty(cache, source, snapshot);
+      if (!_isCurrentLoad(gen) || !_shouldRetryEmpty(snapshot)) {
+        return snapshot;
+      }
+    }
+    return snapshot;
+  }
+
+  void _cacheSuccessfulNonEmpty(
+    BrowseSnapshotCache cache,
+    SourceReference source,
+    ResolvedPoolSnapshot snapshot,
+  ) {
+    // ADR-014 D5: cache successes only. Cap 13.8 / ADR-024: do not cache
+    // empty coalesced lists or mapped Failed.
+    if (!_hasHardFailure(snapshot) && snapshot.coalescedAssetIds.isNotEmpty) {
+      cache.put(source, snapshot);
+    }
+  }
+
+  bool _hasHardFailure(ResolvedPoolSnapshot snapshot) {
+    return snapshot.sourceStatuses.any(
       (s) =>
           s.availability == AssetSourceAvailability.unauthorized ||
           s.availability == AssetSourceAvailability.unavailable,
     );
-    if (!hasHardFailure && snapshot.coalescedAssetIds.isNotEmpty) {
-      cache.put(source, snapshot);
-    }
-    return snapshot;
+  }
+
+  /// Successful empty → keep resolve-loading and retry. Hard failure and
+  /// non-empty are terminal (ADR-025 D8).
+  bool _shouldRetryEmpty(ResolvedPoolSnapshot snapshot) {
+    return !_hasHardFailure(snapshot) && snapshot.coalescedAssetIds.isEmpty;
   }
 }
