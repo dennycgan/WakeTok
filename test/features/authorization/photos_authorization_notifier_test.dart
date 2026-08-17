@@ -1,11 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
 import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 
+import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 
 class _FakePhotosAuthorizationRepository
@@ -13,6 +16,7 @@ class _FakePhotosAuthorizationRepository
   _FakePhotosAuthorizationRepository(this.status);
 
   PhotosAccess status;
+  PhotosAccess requestResult = PhotosAccess.full;
   int presentCalls = 0;
 
   @override
@@ -20,7 +24,7 @@ class _FakePhotosAuthorizationRepository
 
   @override
   Future<PhotosAccess> requestAccess() async {
-    status = PhotosAccess.full;
+    status = requestResult;
     return status;
   }
 
@@ -36,6 +40,10 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         photosAuthorizationRepositoryProvider.overrideWithValue(fake),
+        assetSourceRepositoryProvider.overrideWithValue(
+          FakeAssetSourceRepository(allIds: const ['a']),
+        ),
+        browseEmptyRetryDelaysProvider.overrideWithValue(const <Duration>[]),
       ],
     );
     addTearDown(container.dispose);
@@ -50,7 +58,40 @@ void main() {
       container.read(photosAuthorizationProvider).value,
       PhotosAccess.full,
     );
+    final session = await container.read(browseSessionProvider.future);
+    expect(session.orderedAssetIds, isNotEmpty);
   });
+
+  test(
+    'R3 requestAccess Limited restarts browse session after grant',
+    () async {
+      final fake = _FakePhotosAuthorizationRepository(
+        PhotosAccess.notDetermined,
+      );
+      fake.requestResult = PhotosAccess.limited;
+      final sources = FakeAssetSourceRepository(allIds: const ['a', 'b', 'c']);
+      final container = ProviderContainer(
+        overrides: [
+          photosAuthorizationRepositoryProvider.overrideWithValue(fake),
+          assetSourceRepositoryProvider.overrideWithValue(sources),
+          browseEmptyRetryDelaysProvider.overrideWithValue(const <Duration>[]),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(photosAuthorizationProvider.future);
+      await container
+          .read(photosAuthorizationProvider.notifier)
+          .requestAccess();
+      expect(
+        container.read(photosAuthorizationProvider).value,
+        PhotosAccess.limited,
+      );
+      final view = await container.read(browseSessionProvider.future);
+      expect(view.orderedAssetIds, isNotEmpty);
+      expect(sources.resolveCalls, greaterThan(0));
+    },
+  );
 
   test('R2 presentLimitedLibraryPicker refreshes status and totals', () async {
     final fake = _FakePhotosAuthorizationRepository(PhotosAccess.limited);

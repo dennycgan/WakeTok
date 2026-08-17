@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -33,13 +34,23 @@ class ControllablePhotosAuthorizationRepository
   int requestCalls = 0;
   int presentCalls = 0;
 
+  /// When set, [requestAccess] waits here before applying [grantedAccess].
+  Completer<void>? requestAccessHold;
+
+  /// Status written when [requestAccess] completes (default Full, matching W2).
+  PhotosAccess grantedAccess = PhotosAccess.full;
+
   @override
   Future<PhotosAccess> currentStatus() async => status;
 
   @override
   Future<PhotosAccess> requestAccess() async {
     requestCalls += 1;
-    status = PhotosAccess.full;
+    final hold = requestAccessHold;
+    if (hold != null) {
+      await hold.future;
+    }
+    status = grantedAccess;
     return status;
   }
 

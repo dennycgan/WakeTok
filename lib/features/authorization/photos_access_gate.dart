@@ -52,7 +52,13 @@ class _PhotosAccessGateState extends ConsumerState<PhotosAccessGate>
     if (!mounted) {
       return;
     }
-    ref.invalidate(photosAuthorizationProvider);
+    // Cap 14.6: do not publish `.limited` from currentStatus while the first
+    // grant picker is still up — that starts an empty All resolve too early.
+    if (!ref
+        .read(photosAuthorizationProvider.notifier)
+        .isRequestAccessInFlight) {
+      ref.invalidate(photosAuthorizationProvider);
+    }
     ref.invalidate(libraryTotalsProvider);
   }
 
