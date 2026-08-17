@@ -173,8 +173,12 @@ preheating, and loading states (Cap 14)
       (work `fa09b00`; Kafka: neighbour Layer 1 more often present;
       video neighbour poster / no audio; two-step skip does not
       cap-3-evict the current preview)
-- [ ] 14.6 Limited first-launch All: keep resolve-loading on successful
+- [x] 14.6 Limited first-launch All: keep resolve-loading on successful
       empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
+      (work `37821ec` + `7329081`; Kafka Profile: grant Limited → All
+      shows loading then content, not empty copy; resume during picker
+      does not start All resolve; `requestAccess` complete restarts
+      Browse)
 - [ ] 14.7 Cap 14 close-out docs: Cap 14 `[x]`; **return YOU ARE HERE
       to Cap 13**; 13.6 unblocked as executable at the **unchanged**
       V-hard bar; **do not run Instruments in 14.7**
@@ -201,8 +205,9 @@ preheating, and loading states (Cap 14)
       **Why blocked:** the gate's own preconditions are still incomplete,
       so the Instruments run is not interpretable — Feed three-layer UI
       and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
-      copy panel). Remaining Cap 14: Limited first-launch All empty
-      (14.6). Host Layer 2 is `ce8807f`; video loop/replay is
+      copy panel). Remaining Cap 14: close-out docs (14.7). Limited
+      first-launch All empty is `37821ec` + `7329081`. Host Layer 2 is
+      `ce8807f`; video loop/replay is
       `8189543`; leave-Browse reset is `fe660dd`; ±1 preheat is
       `fa09b00`. Shuffle still scatters iCloud pages through the
       Queue. The bar is **not** lowered, **not** Conditional Pass,
@@ -220,15 +225,16 @@ preheating, and loading states (Cap 14)
       stay later. Cap 15 must not start between 14.7 and 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.6 Limited first-launch All empty + bounded re-resolve
+- Goal (one line): Cap 14.7 close-out docs — Cap 14 `[x]`; return YOU ARE HERE to Cap 13
 - Sub-steps done: 14.4 `9cf22a5`; 14.4b `eddb7c3` + `900581e`
       (Kafka same-page Overlay size PASS); 14.4c `6178f9e`
       (Kafka Settings round-trip PASS); 14.4d `8189543`
       (Kafka loop / return-to-ended / Live play-once PASS);
       14.4e `fe660dd` (Kafka leave-Browse reset PASS);
-      14.5 `fa09b00` (Kafka ±1 preheat PASS)
-- Next step: 14.6 design review — keep resolve-loading on successful
-      empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
+      14.5 `fa09b00` (Kafka ±1 preheat PASS);
+      14.6 `37821ec` + `7329081` (Kafka Limited first-launch All PASS)
+- Next step: 14.7 STATE Cap `[x]` + Parked Cap 13 YOU ARE HERE; do not
+      run Instruments
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
       narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
       Live motion stay local-only; ADR-015/018 Overlay size local-only;
@@ -344,10 +350,14 @@ preheating, and loading states (Cap 14)
 - Cap 13.8 Browse empty / failure feed:
   `lib/app/browse/browse_session_providers.dart` (`_snapshotFor` caches
   only when there is no hard failure **and** the coalesced list is
-  non-empty) + `lib/features/main_browse/vertical_media_feed.dart`
+  non-empty; Cap 14.6 `37821ec` keeps resolve-loading on successful
+  empty and re-resolves 3 extra times at 500/1000/2000 ms;
+  `7329081` skips resume auth invalidate while `requestAccess` is in
+  flight and `restartSession` after Limited/full grant) +
+  `lib/features/main_browse/vertical_media_feed.dart`
   (empty ids with `unauthorized` / `unavailable` status →
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
-  ADR-024
+  ADR-024; 14.6 Kafka Profile PASS
 - ADR-001 … ADR-027: docs/DECISIONS.md (ADR-027 Cap 14.4e leave Browse
   ends Consumption Session — **Accepted**, anchor `fe660dd`; ADR-026
   Cap 14.4d foreground video item-loop + return-to-ended replay —
@@ -430,4 +440,4 @@ preheating, and loading states (Cap 14)
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
 | Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | Cap 9.7 layout observation; move badge+spinner to bottom-right | Main Browse / Live chrome polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
-| Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** — the new user's very first screen reads "no content in this source" | Not a corner-case timing nit — this is the product's first impression for every user who grants Limited. PhotoKit has not surfaced the Limited selection yet when the default All tab resolves, so that first resolve is legitimately empty; there is **no** Photos observer and **no** automatic re-resolve, so the empty screen persists until the user happens to switch tabs on their own. Risk: the user concludes the app is broken and uninstalls before ever finding that hidden step. `1f8a240` (13.8c) removed only the *sticky* half — an empty result is no longer cached — the first-frame race itself is untouched. **Workaround: switch to Photos or Videos and back to All; force-quit is NOT needed** (device-verified 13.8d). Cap 14.6: keep resolve-loading on successful empty + bounded re-resolve (not “wait for picker”). | Current-item iCloud media fetch, visual preheating, and loading states (Cap 14 / ADR-025; phase 14.6) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
+| Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** | **Closed by 14.6** (`37821ec` + `7329081`). Bounded re-resolve on successful empty remains; Kafka showed the empty All was started by resume `currentStatus()=.limited` **before** `requestAuthorization` completed. Skip that invalidate while `requestAccess` is in flight, then `restartSession` when the grant completes. Kafka Profile: loading then selected media, not empty copy. ADR-024 empty-not-cached remains as tab-switch backup. | Closed by Cap 14.6 (ADR-025 D8 + grant-complete restart) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
