@@ -1039,8 +1039,9 @@ void main() {
   testWidgets('L-F1 Live current: clearPlaybackPool before requestLivePhoto', (
     tester,
   ) async {
-    final live = FakeLivePhotoRepository();
-    final playback = FakePlaybackRepository();
+    final lifecycleLog = <String>[];
+    final live = FakeLivePhotoRepository()..lifecycleLog = lifecycleLog;
+    final playback = FakePlaybackRepository()..lifecycleLog = lifecycleLog;
     final display = FakeMediaDisplayRepository();
     display.displaysById['live-1'] = const DisplayAsset(
       assetIdentifier: 'live-1',
@@ -1061,11 +1062,11 @@ void main() {
 
     expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
-    expect(playback.calls, contains('clearPlaybackPool'));
-    expect(live.calls, contains('requestLivePhoto:live-1'));
-    final clearAt = playback.calls.indexOf('clearPlaybackPool');
-    final requestAt = live.calls.indexOf('requestLivePhoto:live-1');
-    expect(clearAt, lessThan(requestAt));
+    expect(lifecycleLog, contains('clearPlaybackPool'));
+    expect(lifecycleLog, contains('requestLivePhoto:live-1'));
+    final clearAt = lifecycleLog.indexOf('clearPlaybackPool');
+    final requestAt = lifecycleLog.indexOf('requestLivePhoto:live-1');
+    expect(requestAt, greaterThan(clearAt));
     expect(
       find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
       findsOneWidget,
@@ -1150,10 +1151,7 @@ void main() {
     );
     expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
-    expect(
-      live.calls.where((c) => c == 'startPlayback').length,
-      1,
-    );
+    expect(live.calls.where((c) => c == 'startPlayback').length, 1);
   });
 
   testWidgets('L-F4 sync request failure keeps still + badge (no skip)', (
@@ -2141,9 +2139,7 @@ void main() {
     expect(display.cancelPlayableCalls, contains('a1'));
   });
 
-  testWidgets('W-14.4 off-current neighbour does not request preview', (
-    tester,
-  ) async {
+  testWidgets('W-14.5 two items at 0 preheats +1 neighbour', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final display = FakeMediaDisplayRepository();
     await tester.pumpWidget(
@@ -2154,8 +2150,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(display.previewCalls, ['a1']);
-    expect(display.displayCalls, ['a1']);
+    final ids = await _feedOrderedIds(tester);
+    expect(display.previewCalls.toSet(), {ids[0], ids[1]});
+    expect(display.displayCalls, [ids[0]]);
+    expect(display.playableCalls, isEmpty);
   });
 
   test('U-14.4 Layer 2 operationCancelled is null not failed', () async {
@@ -2559,8 +2557,9 @@ void main() {
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
       await tester.pumpAndSettle();
       expect(container.read(mainBrowseFeedIndexProvider), 1);
-      final epochBefore =
-          (await container.read(browseSessionProvider.future)).roundEpoch;
+      final epochBefore = (await container.read(
+        browseSessionProvider.future,
+      )).roundEpoch;
 
       final stateBefore = tester.state(find.byType(VerticalMediaFeed));
 
@@ -2578,8 +2577,9 @@ void main() {
       // Cap 14.4e: leave Browse resets queue/index; IndexedStack still keeps
       // VerticalMediaFeed State (14.4c keep-alive).
       expect(container.read(mainBrowseFeedIndexProvider), 0);
-      final epochAfter =
-          (await container.read(browseSessionProvider.future)).roundEpoch;
+      final epochAfter = (await container.read(
+        browseSessionProvider.future,
+      )).roundEpoch;
       expect(epochAfter, greaterThan(epochBefore));
     },
   );
@@ -2613,10 +2613,7 @@ void main() {
       expect(container.read(mainBrowseFeedIndexProvider), 0);
       expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsNothing);
       expect(
-        find.byKey(
-          const Key('mainBrowseFeedPageFailed'),
-          skipOffstage: false,
-        ),
+        find.byKey(const Key('mainBrowseFeedPageFailed'), skipOffstage: false),
         findsNothing,
       );
     },
@@ -2646,17 +2643,11 @@ void main() {
       await pumpAsyncWork(tester);
 
       expect(
-        find.byKey(
-          const Key('mainBrowseFeedPageFailed'),
-          skipOffstage: false,
-        ),
+        find.byKey(const Key('mainBrowseFeedPageFailed'), skipOffstage: false),
         findsNothing,
       );
       expect(
-        find.byKey(
-          const Key('mainBrowseFeedPageLoading'),
-          skipOffstage: false,
-        ),
+        find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
         findsNothing,
       );
       display.displayGates['a1']!.complete();
@@ -2703,6 +2694,267 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+
+  testWidgets('W-14.5 three items at 0 preheats +1 only', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['a1', 'a2', 'a3'],
+        ),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    expect(display.previewCalls.toSet(), {ids[0], ids[1]});
+    expect(display.previewCalls, isNot(contains(ids[2])));
+    expect(display.displayCalls, [ids[0]]);
+  });
+
+  testWidgets('W-14.5 three items at 1 preheats both neighbours', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['a1', 'a2', 'a3'],
+        ),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    expect(display.previewCalls.toSet(), {ids[0], ids[1], ids[2]});
+    expect(display.displayCalls, [ids[0], ids[1]]);
+  });
+
+  testWidgets(
+    'W-14.5 swipe 1→2 releases leaving id before new neighbour preview',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1', 'a2', 'a3', 'a4'],
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      expect(display.previewCalls, contains(ids[2]));
+
+      display.releaseGate = Completer<void>();
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(display.releasePreviewCalls, contains(ids[0]));
+      expect(display.previewCalls, isNot(contains(ids[3])));
+
+      display.releaseGate!.complete();
+      display.releaseGate = null;
+      await pumpAsyncWork(tester);
+      expect(display.previewCalls, contains(ids[3]));
+      final releaseAt = display.previewLifecycleLog.indexOf(
+        'release:${ids[0]}',
+      );
+      final previewAt = display.previewLifecycleLog.indexOf(
+        'preview:${ids[3]}',
+      );
+      expect(releaseAt, greaterThanOrEqualTo(0));
+      expect(previewAt, greaterThan(releaseAt));
+    },
+  );
+
+  testWidgets('W-14.5 neighbour iCloud miss does not fail or start Layer 2', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.previewErrorById['a1'] = 'iCloudDownloadRequired';
+    display.previewErrorById['a2'] = 'iCloudDownloadRequired';
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsNothing);
+    expect(
+      find.byKey(const Key('mainBrowseFeedPageFailed'), skipOffstage: false),
+      findsNothing,
+    );
+    expect(display.displayCalls, [ids[0]]);
+    expect(display.displayCalls, isNot(contains(ids[1])));
+  });
+
+  testWidgets(
+    'W-14.5 promoting a neighbour with Layer 1 skips preview and loads Layer 2',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final neighbor = ids[1];
+      final previewsForNeighbor = display.previewCalls
+          .where((id) => id == neighbor)
+          .length;
+      expect(previewsForNeighbor, greaterThan(0));
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(
+        display.previewCalls.where((id) => id == neighbor).length,
+        previewsForNeighbor,
+      );
+      expect(display.displayCalls, contains(neighbor));
+    },
+  );
+
+  testWidgets(
+    'W-14.5 promoting a neighbour mid-preheat does not race with the new current load',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final gateA1 = Completer<void>();
+      final gateA2 = Completer<void>();
+      display.previewGates['a1'] = gateA1;
+      display.previewGates['a2'] = gateA2;
+      display.previewsById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/preview_a1.jpg',
+      );
+      display.previewsById['a2'] = const DisplayAsset(
+        assetIdentifier: 'a2',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/preview_a2.jpg',
+      );
+      display.displaysById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/full_a1.jpg',
+      );
+      display.displaysById['a2'] = const DisplayAsset(
+        assetIdentifier: 'a2',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/full_a2.jpg',
+      );
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final current = ids[0];
+      final neighbor = ids[1];
+      if (current == 'a1') {
+        gateA1.complete();
+      } else {
+        gateA2.complete();
+      }
+      await pumpAsyncWork(tester);
+      expect(display.previewCalls, contains(neighbor));
+      final previewsForNeighbor = display.previewCalls
+          .where((id) => id == neighbor)
+          .length;
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pump();
+
+      if (neighbor == 'a1') {
+        gateA1.complete();
+      } else {
+        gateA2.complete();
+      }
+      await pumpAsyncWork(tester);
+
+      // In-flight neighbour preview is dropped by _localGate; current
+      // Layer 1 issues exactly one more requestPreview (no reuse yet).
+      expect(
+        display.previewCalls.where((id) => id == neighbor).length,
+        previewsForNeighbor + 1,
+      );
+      expect(display.displayCalls, contains(neighbor));
+
+      final page = tester.state<MediaFeedPageState>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is MediaFeedPage &&
+              w.assetIdentifier == neighbor &&
+              w.isCurrent,
+        ),
+      );
+      expect(
+        page.debugMedia?.display?.localFilePath,
+        '/tmp/full_$neighbor.jpg',
+      );
+      expect(page.debugMedia?.displayLayer, FeedDisplayLayer.full);
+    },
+  );
+
+  testWidgets('W-14.5 leave Browse does not keep preheating neighbours', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final n = display.previewCalls.length;
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container
+        .read(mainBrowseDestinationProvider.notifier)
+        .select(MainBrowseDestination.settings);
+    await pumpAsyncWork(tester);
+    expect(display.previewCalls.length, n);
+  });
+}
+
+Future<List<String>> _feedOrderedIds(WidgetTester tester) async {
+  final element = tester.element(find.byType(VerticalMediaFeed));
+  final container = ProviderScope.containerOf(element);
+  return (await container.read(browseSessionProvider.future)).orderedAssetIds;
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

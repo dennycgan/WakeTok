@@ -39,6 +39,11 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   final List<String> cancelDisplayCalls = <String>[];
   final List<String> cancelPlayableCalls = <String>[];
   final List<String> cancelPreviewCalls = <String>[];
+  final List<String> releasePreviewCalls = <String>[];
+  final List<String> previewLifecycleLog = <String>[];
+
+  /// When set, [releasePreview] waits before completing.
+  Completer<void>? releaseGate;
 
   @override
   Future<DisplayAsset> requestDisplayAsset(String assetIdentifier) async {
@@ -88,6 +93,7 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   @override
   Future<DisplayAsset> requestPreview(String assetIdentifier) async {
     previewCalls.add(assetIdentifier);
+    previewLifecycleLog.add('preview:$assetIdentifier');
     final gate = previewGates[assetIdentifier];
     if (gate != null) {
       await gate.future;
@@ -110,5 +116,12 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   }
 
   @override
-  Future<void> releasePreview(String assetIdentifier) async {}
+  Future<void> releasePreview(String assetIdentifier) async {
+    releasePreviewCalls.add(assetIdentifier);
+    previewLifecycleLog.add('release:$assetIdentifier');
+    final gate = releaseGate;
+    if (gate != null) {
+      await gate.future;
+    }
+  }
 }

@@ -86,6 +86,20 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   /// Theme wrap.
   bool _browseResumeLatch = false;
 
+  /// Cap 14.5: neighbour indices allowed to `requestPreview`. Never larger
+  /// than the last release-safe window (phase A shrinks; phase B expands).
+  Set<int> _allowedPreheatIndices = <int>{};
+
+  /// Last fully applied current±1 index window (after release await).
+  Set<int> _committedPreheatWindow = <int>{};
+
+  int _preheatSyncGen = 0;
+  int? _preheatTrackedIndex;
+  bool? _preheatTrackedBrowse;
+  int? _preheatTrackedLength;
+  int? _preheatTrackedEpoch;
+  List<String> _preheatIdSnapshot = const [];
+
   @override
   void initState() {
     super.initState();
@@ -235,6 +249,94 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     });
   }
 
+  Set<int> _preheatWindow(int feedIndex, int n, bool browseActive) {
+    if (!browseActive || n <= 0 || feedIndex < 0) {
+      return <int>{};
+    }
+    final window = <int>{feedIndex};
+    if (feedIndex - 1 >= 0) {
+      window.add(feedIndex - 1);
+    }
+    if (feedIndex + 1 < n) {
+      window.add(feedIndex + 1);
+    }
+    return window;
+  }
+
+  /// Phase A: shrink flags this frame. Phase B (async): await [releasePreview]
+  /// then expand [_allowedPreheatIndices].
+  void _notePreheatInputs({
+    required bool browseActive,
+    required int feedIndex,
+    required int queueLength,
+    required int roundEpoch,
+  }) {
+    if (_preheatTrackedBrowse == browseActive &&
+        _preheatTrackedIndex == feedIndex &&
+        _preheatTrackedLength == queueLength &&
+        _preheatTrackedEpoch == roundEpoch) {
+      return;
+    }
+    _preheatTrackedBrowse = browseActive;
+    _preheatTrackedIndex = feedIndex;
+    _preheatTrackedLength = queueLength;
+    _preheatTrackedEpoch = roundEpoch;
+    final newWindow = _preheatWindow(feedIndex, queueLength, browseActive);
+    final newNeighbors = newWindow.difference({feedIndex});
+    _allowedPreheatIndices = _allowedPreheatIndices.intersection(newNeighbors);
+    if (_ids.isNotEmpty) {
+      _preheatIdSnapshot = List<String>.from(_ids);
+    }
+    unawaited(
+      _syncPreheatWindow(
+        plannedIndex: feedIndex,
+        browseActive: browseActive,
+        ids: _preheatIdSnapshot,
+      ),
+    );
+  }
+
+  Future<void> _syncPreheatWindow({
+    required int plannedIndex,
+    required bool browseActive,
+    required List<String> ids,
+  }) async {
+    final gen = ++_preheatSyncGen;
+    final newWindow = _preheatWindow(plannedIndex, ids.length, browseActive);
+    final newNeighbors = newWindow.difference({plannedIndex});
+    final leavingIds = <String>[];
+    for (final i in _committedPreheatWindow.difference(newWindow)) {
+      if (i >= 0 && i < ids.length) {
+        leavingIds.add(ids[i]);
+      }
+    }
+    if (leavingIds.isNotEmpty) {
+      final display = ref.read(mediaDisplayRepositoryProvider);
+      try {
+        await Future.wait<void>(leavingIds.map(display.releasePreview));
+      } catch (_) {}
+    } else {
+      // Yield so Phase B setState cannot run synchronously during build
+      // (empty leaving has no await from Future.wait).
+      await Future<void>.value();
+    }
+    if (!mounted || gen != _preheatSyncGen) {
+      return;
+    }
+    if (ref.read(mainBrowseFeedIndexProvider) != plannedIndex) {
+      return;
+    }
+    final nowBrowse =
+        ref.read(mainBrowseDestinationProvider) == MainBrowseDestination.browse;
+    if (nowBrowse != browseActive) {
+      return;
+    }
+    setState(() {
+      _allowedPreheatIndices = newNeighbors;
+      _committedPreheatWindow = newWindow;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -280,28 +382,50 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
       key: const Key('mainBrowseFeed'),
       color: tokens.feedBackground,
       child: asyncSession.when(
-        loading: () => Center(
-          key: const Key('mainBrowseFeedLoading'),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: tokens.brandGold),
-              const SizedBox(height: 16),
-              Text(l10n.mainBrowseFeedLoading, style: tokens.bodyOnMedia),
-            ],
-          ),
-        ),
-        error: (error, stackTrace) => _BrowseStatusPanel(
-          // Resolve-level failure path (source could not load).
-          panelKey: const Key('mainBrowseFeedResolveFailed'),
-          message: l10n.mainBrowseFeedResolveFailed,
-          actionLabel: l10n.mainBrowseFeedRetry,
-          actionKey: const Key('mainBrowseFeedRetry'),
-          onAction: () => ref.invalidate(browseSessionProvider),
-        ),
+        loading: () {
+          _notePreheatInputs(
+            browseActive: false,
+            feedIndex: 0,
+            queueLength: 0,
+            roundEpoch: -1,
+          );
+          return Center(
+            key: const Key('mainBrowseFeedLoading'),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(color: tokens.brandGold),
+                const SizedBox(height: 16),
+                Text(l10n.mainBrowseFeedLoading, style: tokens.bodyOnMedia),
+              ],
+            ),
+          );
+        },
+        error: (error, stackTrace) {
+          _notePreheatInputs(
+            browseActive: false,
+            feedIndex: 0,
+            queueLength: 0,
+            roundEpoch: -1,
+          );
+          return _BrowseStatusPanel(
+            // Resolve-level failure path (source could not load).
+            panelKey: const Key('mainBrowseFeedResolveFailed'),
+            message: l10n.mainBrowseFeedResolveFailed,
+            actionLabel: l10n.mainBrowseFeedRetry,
+            actionKey: const Key('mainBrowseFeedRetry'),
+            onAction: () => ref.invalidate(browseSessionProvider),
+          );
+        },
         data: (view) {
           final ids = view.orderedAssetIds;
           _ids = ids;
+          _notePreheatInputs(
+            browseActive: browseActive,
+            feedIndex: feedIndex,
+            queueLength: ids.length,
+            roundEpoch: view.roundEpoch,
+          );
           if (ids.isEmpty) {
             final hardFailure = view.session.snapshot.sourceStatuses.any(
               (s) =>
@@ -361,6 +485,9 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                   ),
                   controller: _pageController,
                   scrollDirection: Axis.vertical,
+                  // This SDK's PageView.builder has no cacheExtent; true sets
+                  // Viewport cacheExtent to 1.0 viewport (±1 pages).
+                  allowImplicitScrolling: true,
                   itemCount: ids.length,
                   onPageChanged: (i) {
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
@@ -368,6 +495,10 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                   },
                   itemBuilder: (context, index) {
                     final isCurrent = browseActive && index == feedIndex;
+                    final isPreheatNeighbor =
+                        browseActive &&
+                        !isCurrent &&
+                        _allowedPreheatIndices.contains(index);
                     return MediaFeedPage(
                       key: ValueKey<String>(
                         'page-${ids[index]}-$index-r${view.roundEpoch}',
@@ -376,6 +507,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                       feedIndex: index,
                       sourceKind: source.kind,
                       isCurrent: isCurrent,
+                      isPreheatNeighbor: isPreheatNeighbor,
                       liveHostSerial: liveHostSerial,
                       currentDisplayGate: isCurrent
                           ? _activation.currentDisplayGate
@@ -472,6 +604,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.feedIndex,
     required this.sourceKind,
     required this.isCurrent,
+    required this.isPreheatNeighbor,
     required this.liveHostSerial,
     this.currentDisplayGate,
     this.assignedDisplayGeneration,
@@ -482,6 +615,9 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   final int feedIndex;
   final AssetSourceKind sourceKind;
   final bool isCurrent;
+
+  /// Cap 14.5: ±1 neighbour allowed to [requestPreview] after parent release.
+  final bool isPreheatNeighbor;
   final LiveHostOpSerial liveHostSerial;
 
   /// When current: feed-owned gate already begun in [_activateCurrentItem].
@@ -503,6 +639,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     with WidgetsBindingObserver {
   /// Cap 9.4 / F4: per Live activation token (not assetId alone).
   final FeedMediaRequestGate _liveMotionGate = FeedMediaRequestGate();
+
+  /// Cap 14.5: neighbour preheat [requestPreview] generation.
+  final FeedMediaRequestGate _localGate = FeedMediaRequestGate();
   FeedPageMedia? _media;
   bool _loading = true;
   bool _surfaceReady = false;
@@ -515,6 +654,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   Completer<void>? debugHoldOffCurrentTeardown;
 
+  @visibleForTesting
+  FeedPageMedia? get debugMedia => _media;
+
   bool _liveMotionMounted = false;
   bool _livePhotoReady = false;
   bool _liveSurfaceReady = false;
@@ -522,6 +664,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Cap 9.5 Q4=A: motion prepare spinner (generation-gated writes).
   bool _livePreparing = false;
+
   /// One in-flight preview reload per broken path (errorBuilder storms).
   bool _previewReloadInFlight = false;
   String? _previewReloadTriedPath;
@@ -583,6 +726,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @override
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isCurrent && widget.isCurrent) {
+      _localGate.begin();
+    }
+    if (oldWidget.isPreheatNeighbor && !widget.isPreheatNeighbor) {
+      _localGate.begin();
+    }
     // Leaving current must always pause — even when generation/asset props
     // change in the same update (parent clears assignedDisplayGeneration when
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
@@ -665,6 +814,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         unawaited(_cancelCurrentItemPhotoKit(oldWidget.assetIdentifier));
       }
       _startLoad();
+    } else if (!oldWidget.isPreheatNeighbor &&
+        widget.isPreheatNeighbor &&
+        !widget.isCurrent) {
+      _startLoad();
     } else if (!leftCurrent && oldWidget.isCurrent != widget.isCurrent) {
       // Became current without identity/generation change (rare).
       if (widget.isCurrent) {
@@ -683,6 +836,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _liveMotionGate.begin(); // invalidate Live activation
+    _localGate.begin();
     unawaited(_cancelLiveSubscriptions());
     unawaited(_cancelCurrentItemPhotoKit(widget.assetIdentifier));
     final playback = _playbackRepo;
@@ -707,12 +861,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   Future<void> _cancelLiveSubscriptions() async {
-    await _liveReadySub?.cancel();
-    await _liveFailedSub?.cancel();
-    await _liveEndedSub?.cancel();
+    final ready = _liveReadySub;
+    final failed = _liveFailedSub;
+    final ended = _liveEndedSub;
     _liveReadySub = null;
     _liveFailedSub = null;
     _liveEndedSub = null;
+    await Future.wait<void>([
+      if (ready != null) ready.cancel(),
+      if (failed != null) failed.cancel(),
+      if (ended != null) ended.cancel(),
+    ]);
   }
 
   Future<void> _enqueueLiveOp(Future<void> Function() op) {
@@ -766,15 +925,21 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _liveRepo = live;
     _playbackRepo = playback;
 
+    _livePhotoReady = false;
+    _liveSurfaceReady = false;
+    _liveStartIssued = false;
+
     await _enqueueLiveOp(() async {
+      // Dart StreamSubscription only — not Host cancel. unawaited is
+      // deliberate: awaiting cancel inside the serial stalls widget-test
+      // pumps when ±1 keep-alive reuses this State. Native cancel/request
+      // stay serialized by this queue; stale-ready safety is
+      // [_liveMotionGate] generation, not this line completing first.
+      unawaited(_cancelLiveSubscriptions());
       if (!mounted || !widget.isCurrent || !_isLiveStillMedia(_media)) {
         return;
       }
       final generation = _liveMotionGate.begin();
-      await _cancelLiveSubscriptions();
-      _livePhotoReady = false;
-      _liveSurfaceReady = false;
-      _liveStartIssued = false;
       if (_liveMotionMounted) {
         setState(() => _liveMotionMounted = false);
       }
@@ -1074,7 +1239,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       final shared = widget.currentDisplayGate;
       final assigned = widget.assignedDisplayGeneration;
       if (shared == null || assigned == null) {
-        // Parent activation not ready yet — keep spinner; reload on assign.
+        // Parent activation not ready yet. Keep a preheat still if we have one.
+        final reuseLayer1 =
+            _media?.display != null &&
+            _media!.display!.assetIdentifier == widget.assetIdentifier;
+        if (reuseLayer1) {
+          return;
+        }
         final liveGeneration = _liveMotionGate.begin();
         setState(() {
           _loading = true;
@@ -1087,17 +1258,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
       gate = shared;
       generation = assigned;
-    }
-    // Await teardown so cancel cannot race a later request (F4 / ADR-006).
-    // Off-current pages must still cancelHost when this page had Live motion /
-    // a Live still — leave must not rely solely on unawaited leftCurrent.
-    // Teardown already begin()s the live gate and clears preparing via
-    // [_setLivePreparing] — do not bump again here.
-    final cancelHost =
-        widget.isCurrent || _liveMotionMounted || _isLiveStillMedia(_media);
-    await _teardownLiveMotion(cancelHost: cancelHost);
-    if (!mounted) {
-      return;
     }
 
     if (startedOffCurrent) {
@@ -1117,6 +1277,61 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _loading = false;
         }
       });
+      if (!widget.isPreheatNeighbor) {
+        return;
+      }
+      final localGen = _localGate.begin();
+      final displayRepo = ref.read(mediaDisplayRepositoryProvider);
+      _displayRepo = displayRepo;
+      final layer1 = await loadFeedPageLayer1(
+        gate: _localGate,
+        generation: localGen,
+        assetIdentifier: widget.assetIdentifier,
+        displayRepository: displayRepo,
+      );
+      if (!mounted ||
+          !_localGate.isCurrent(localGen) ||
+          widget.isCurrent ||
+          !widget.isPreheatNeighbor) {
+        return;
+      }
+      if (layer1?.display != null) {
+        setState(() {
+          _media = layer1;
+          _loading = false;
+        });
+      }
+      return;
+    }
+
+    final reuseLayer1 =
+        widget.isCurrent &&
+        _media?.display != null &&
+        _media!.display!.assetIdentifier == widget.assetIdentifier;
+    if (reuseLayer1) {
+      await Future<void>.value();
+      if (!mounted || !widget.isCurrent) {
+        return;
+      }
+      // Neighbour promote normally never mounted Live; if flags are set,
+      // a later _startLoad branch leaked state — tear down instead of skip.
+      if (_liveMotionMounted || _livePreparing) {
+        await _teardownLiveMotion(cancelHost: true);
+        if (!mounted || !widget.isCurrent) {
+          return;
+        }
+      }
+      await _retryLayer2Only();
+      return;
+    }
+
+    // Current full reload: await host cancel so a new Live request cannot
+    // race leave (F4 / ADR-006). Neighbour reuseLayer1 skips this unless
+    // Live flags leaked (above). Leave already queued cancel; maybeBegin
+    // shares LiveHostOpSerial with that cancel.
+    final cancelHost = _liveMotionMounted || _isLiveStillMedia(_media);
+    await _teardownLiveMotion(cancelHost: cancelHost);
+    if (!mounted) {
       return;
     }
 

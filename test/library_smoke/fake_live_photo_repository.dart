@@ -5,10 +5,7 @@ import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 
 /// Test double for Cap 9.4 Feed Live orchestration.
 class FakeLivePhotoRepository implements LivePhotoRepository {
-  FakeLivePhotoRepository({
-    this.throwOnRequestCode,
-    this.autoReady = false,
-  });
+  FakeLivePhotoRepository({this.throwOnRequestCode, this.autoReady = false});
 
   /// When set, [requestLivePhoto] throws [PlatformException] with this code.
   final String? throwOnRequestCode;
@@ -23,6 +20,14 @@ class FakeLivePhotoRepository implements LivePhotoRepository {
   Completer<void>? cancelHold;
 
   final List<String> calls = <String>[];
+
+  /// Shared host timeline with [FakePlaybackRepository.lifecycleLog].
+  List<String>? lifecycleLog;
+
+  void _record(String entry) {
+    calls.add(entry);
+    lifecycleLog?.add(entry);
+  }
 
   final StreamController<LivePhotoReadyEvent> readyController =
       StreamController<LivePhotoReadyEvent>.broadcast();
@@ -49,7 +54,7 @@ class FakeLivePhotoRepository implements LivePhotoRepository {
 
   @override
   Future<void> requestLivePhoto(String assetIdentifier) async {
-    calls.add('requestLivePhoto:$assetIdentifier');
+    _record('requestLivePhoto:$assetIdentifier');
     final code = throwOnRequestCode;
     if (code != null) {
       throw PlatformException(code: code, message: 'fake');
@@ -63,7 +68,7 @@ class FakeLivePhotoRepository implements LivePhotoRepository {
 
   @override
   Future<void> cancel(String assetIdentifier) async {
-    calls.add('cancel:$assetIdentifier');
+    _record('cancel:$assetIdentifier');
     final hold = cancelHold;
     final holdId = cancelHoldAssetId;
     // All matching cancels await the same Future (multi-await OK) so a
@@ -75,21 +80,21 @@ class FakeLivePhotoRepository implements LivePhotoRepository {
 
   @override
   Future<void> startPlayback() async {
-    calls.add('startPlayback');
+    _record('startPlayback');
   }
 
   @override
   Future<void> stopPlayback() async {
-    calls.add('stopPlayback');
+    _record('stopPlayback');
   }
 
   @override
   Future<void> setMute(bool muted) async {
-    calls.add('setMute:$muted');
+    _record('setMute:$muted');
   }
 
   @override
   Future<void> notifyLiveSurfaceReady(String assetIdentifier) async {
-    calls.add('notifyLiveSurfaceReady:$assetIdentifier');
+    _record('notifyLiveSurfaceReady:$assetIdentifier');
   }
 }

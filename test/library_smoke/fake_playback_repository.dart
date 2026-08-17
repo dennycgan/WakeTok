@@ -7,8 +7,17 @@ class FakePlaybackRepository implements PlaybackRepository {
   FakePlaybackRepository();
 
   final List<String> calls = <String>[];
+
+  /// Shared host timeline with [FakeLivePhotoRepository.lifecycleLog].
+  List<String>? lifecycleLog;
+
   final StreamController<PlaybackRestoreRequest> restoreController =
       StreamController<PlaybackRestoreRequest>.broadcast();
+
+  void _record(String entry) {
+    calls.add(entry);
+    lifecycleLog?.add(entry);
+  }
 
   @override
   Stream<PlaybackRuntimeEvent> get runtimeEvents => const Stream.empty();
@@ -23,37 +32,37 @@ class FakePlaybackRepository implements PlaybackRepository {
 
   @override
   Future<void> load(PlaybackItem item) async {
-    calls.add('load:${item.assetIdentifier}');
+    _record('load:${item.assetIdentifier}');
   }
 
   @override
   Future<void> play() async {
-    calls.add('play');
+    _record('play');
   }
 
   @override
   Future<void> pause() async {
-    calls.add('pause');
+    _record('pause');
   }
 
   @override
   Future<void> seek(double positionSeconds) async {
-    calls.add('seek');
+    _record('seek');
   }
 
   @override
   Future<void> setRate(double rate) async {
-    calls.add('setRate');
+    _record('setRate');
   }
 
   @override
   Future<void> setMute(bool muted) async {
-    calls.add('setMute:$muted');
+    _record('setMute:$muted');
   }
 
   @override
   Future<void> setPlaybackPlan(PlaybackPlan plan) async {
-    calls.add('setPlaybackPlan:${plan.planId}');
+    _record('setPlaybackPlan:${plan.planId}');
   }
 
   @override
@@ -61,21 +70,21 @@ class FakePlaybackRepository implements PlaybackRepository {
     required String assetIdentifier,
     required int feedIndex,
   }) async {
-    calls.add('sync:$assetIdentifier:$feedIndex');
+    _record('sync:$assetIdentifier:$feedIndex');
   }
 
   @override
   Future<void> notifyDisplaySurfaceReady(String assetIdentifier) async {
-    calls.add('notifyReady:$assetIdentifier');
+    _record('notifyReady:$assetIdentifier');
   }
 
   @override
   Future<void> updateNowPlayingMetadata() async {
-    calls.add('nowPlaying');
+    _record('nowPlaying');
   }
 
   @override
   Future<void> clearPlaybackPool() async {
-    calls.add('clearPlaybackPool');
+    _record('clearPlaybackPool');
   }
 }
