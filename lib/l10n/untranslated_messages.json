@@ -66,6 +66,7 @@
     "mainBrowseFeedMediaFailed",
     "mainBrowseFeedNetworkFailed",
     "mainBrowseFeedLayer3Loading",
+    "mainBrowseFeedLiveLoading",
     "mainBrowseFeedDownloadFailed",
     "mainBrowseLiveBadge",
     "mainBrowseStubClipsBody",

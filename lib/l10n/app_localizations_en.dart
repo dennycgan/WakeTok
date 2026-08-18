@@ -300,6 +300,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedLayer3Loading => 'Loading full quality';
 
   @override
+  String get mainBrowseFeedLiveLoading => 'Loading Live Photo';
+
+  @override
   String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
 
   @override

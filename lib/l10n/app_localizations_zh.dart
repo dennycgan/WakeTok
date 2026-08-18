@@ -297,6 +297,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedLayer3Loading => 'Loading full quality';
 
   @override
+  String get mainBrowseFeedLiveLoading => 'Loading Live Photo';
+
+  @override
   String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
 
   @override
@@ -667,6 +670,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedLayer3Loading => '正在加载完整画质';
+
+  @override
+  String get mainBrowseFeedLiveLoading => '正在加载实况照片';
 
   @override
   String get mainBrowseFeedDownloadFailed => '无法下载此项目。';

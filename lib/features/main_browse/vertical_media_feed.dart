@@ -663,7 +663,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _liveStartIssued = false;
 
   /// Cap 9.5 Q4=A: motion prepare spinner (generation-gated writes).
+  /// Cap 14.6b also uses an ungated handoff write so the Live load spinner
+  /// stays up across `_layer2InFlight` → serial-queue wait.
   bool _livePreparing = false;
+
+  bool get _showLiveLoadSpinner =>
+      _isLiveStillMedia(_media) && (_layer2InFlight || _livePreparing);
+
+  /// Layer 2 in-flight (any item) or Live motion prepare — corner spinner.
+  bool get _showItemLoadSpinner => _layer2InFlight || _showLiveLoadSpinner;
 
   /// One in-flight preview reload per broken path (errorBuilder storms).
   bool _previewReloadInFlight = false;
@@ -826,6 +834,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _startLoad();
         } else {
           unawaited(_syncPlaybackActive());
+          if (_isLiveStillMedia(_media) && !_livePreparing) {
+            setState(() => _livePreparing = true);
+          }
           unawaited(_maybeBeginLiveMotion());
         }
       }
@@ -899,6 +910,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() => _livePreparing = next);
   }
 
+  /// Ungated clear for the 14.6b Layer 2 → motion handoff when
+  /// [_liveMotionGate.begin] has not run yet for this activation.
+  void _abandonLivePreparingHandoff() {
+    if (!mounted || !_livePreparing) {
+      return;
+    }
+    setState(() => _livePreparing = false);
+  }
+
   /// L-S6 test seam only: route a preparing write through [_setLivePreparing].
   ///
   /// Simulates a **defensive** "write carrying a stale generation" — not a race
@@ -915,6 +935,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 9.4 Live play-once + Cap 9.5 Q4=A spinner-only while preparing.
   Future<void> _maybeBeginLiveMotion() async {
     if (!widget.isCurrent || !_isLiveStillMedia(_media)) {
+      _abandonLivePreparingHandoff();
       return;
     }
     final assetId = widget.assetIdentifier;
@@ -937,6 +958,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // [_liveMotionGate] generation, not this line completing first.
       unawaited(_cancelLiveSubscriptions());
       if (!mounted || !widget.isCurrent || !_isLiveStillMedia(_media)) {
+        _abandonLivePreparingHandoff();
         return;
       }
       final generation = _liveMotionGate.begin();
@@ -982,12 +1004,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         if (!mounted ||
             !_liveMotionGate.isCurrent(generation) ||
             !widget.isCurrent) {
+          _setLivePreparing(generation, false);
           return;
         }
         await live.requestLivePhoto(assetId);
         if (!mounted ||
             !_liveMotionGate.isCurrent(generation) ||
             !widget.isCurrent) {
+          _setLivePreparing(generation, false);
           return;
         }
         setState(() => _liveMotionMounted = true);
@@ -1443,12 +1467,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       await _syncPlaybackActive();
       return;
     }
+    final liveStill =
+        layer2.kind == FeedPageMediaKind.still &&
+        layer2.display?.mediaKind == PlaybackMediaKind.livePhoto;
     setState(() {
       _media = layer2;
       _loading = false;
       _layer2InFlight = false;
       _layer2Failed = false;
       _layer2FailureReason = null;
+      // 14.6b: same-frame handoff so the Live spinner does not drop while
+      // [_maybeBeginLiveMotion] awaits LiveHostOpSerial.
+      if (liveStill && widget.isCurrent) {
+        _livePreparing = true;
+      }
     });
     widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
     await _maybeBeginLiveMotion();
@@ -1491,7 +1523,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         still: _StillPage(
           display: media.display!,
           liveLabel: l10n.mainBrowseLiveBadge,
-          livePreparing: _livePreparing,
+          liveLoadLabel: l10n.mainBrowseFeedLiveLoading,
+          layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
+          showLoadSpinner: _showItemLoadSpinner,
           onPreviewFileBroken: _onPreviewFileBroken,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
@@ -1543,6 +1577,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             ? _StillPage(
                 display: media.display!,
                 liveLabel: l10n.mainBrowseLiveBadge,
+                layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
+                showLoadSpinner: _layer2InFlight,
                 onPreviewFileBroken: _onPreviewFileBroken,
               )
             : null,
@@ -1575,15 +1611,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         if (video != null) video,
         if (still != null) still,
         if (poster != null) poster,
-        if (_layer2InFlight)
-          IgnorePointer(
-            child: Center(
-              child: Semantics(
-                key: const Key('mainBrowseFeedLayer3Spinner'),
-                label: l10n.mainBrowseFeedLayer3Loading,
-                child: CircularProgressIndicator(color: tokens.brandGold),
-              ),
-            ),
+        if (_layer2InFlight && still == null && poster == null)
+          _FeedCornerChrome(
+            color: tokens.brandGold,
+            strutBadgeLabel: l10n.mainBrowseLiveBadge,
+            showSpinner: true,
+            rowKey: const Key('mainBrowseFeedLayer3Chrome'),
+            spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
+            semanticsLabel: l10n.mainBrowseFeedLayer3Loading,
           ),
         if (_layer2Failed && !_layer2InFlight)
           Align(
@@ -1632,7 +1667,9 @@ class _StillPage extends StatelessWidget {
   const _StillPage({
     required this.display,
     required this.liveLabel,
-    this.livePreparing = false,
+    this.liveLoadLabel,
+    this.layer3LoadLabel,
+    this.showLoadSpinner = false,
     this.liveMotionOverlay,
     this.onPreviewFileBroken,
   });
@@ -1640,8 +1677,14 @@ class _StillPage extends StatelessWidget {
   final DisplayAsset display;
   final String liveLabel;
 
-  /// Cap 9.5 Q4=A: spinner-only beside LIVE badge while motion prepares.
-  final bool livePreparing;
+  /// VoiceOver while Live Layer 2 / motion prepare spinner is shown.
+  final String? liveLoadLabel;
+
+  /// VoiceOver while non-Live Layer 2 spinner is shown.
+  final String? layer3LoadLabel;
+
+  /// Cap 14.6b: corner spinner for Layer 2 in-flight (any item) or Live prepare.
+  final bool showLoadSpinner;
 
   /// Cap 9.4 F1=A: motion-phase Live PV only (null when idle / after Q7 unload).
   final Widget? liveMotionOverlay;
@@ -1651,6 +1694,9 @@ class _StillPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final isLive = display.mediaKind == PlaybackMediaKind.livePhoto;
+    final showChrome = isLive || showLoadSpinner;
+    final loadLabel = isLive ? liveLoadLabel : layer3LoadLabel;
     return Stack(
       key: Key('mainBrowseFeedStill_${display.assetIdentifier}'),
       fit: StackFit.expand,
@@ -1660,33 +1706,108 @@ class _StillPage extends StatelessWidget {
           color: tokens.feedBackground,
           onFileBroken: onPreviewFileBroken,
         ),
-        if (display.mediaKind == PlaybackMediaKind.livePhoto)
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _LiveBadge(label: liveLabel),
-                if (livePreparing) ...[
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    key: Key(
-                      'mainBrowseFeedLivePreparing_${display.assetIdentifier}',
-                    ),
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: tokens.brandGold,
-                    ),
-                  ),
-                ],
-              ],
-            ),
+        if (showChrome)
+          _FeedCornerChrome(
+            color: tokens.brandGold,
+            badgeLabel: isLive ? liveLabel : null,
+            strutBadgeLabel: liveLabel,
+            showSpinner: showLoadSpinner,
+            rowKey: isLive
+                ? Key('mainBrowseFeedLiveChrome_${display.assetIdentifier}')
+                : const Key('mainBrowseFeedLayer3Chrome'),
+            spinnerKey: isLive
+                ? Key('mainBrowseFeedLivePreparing_${display.assetIdentifier}')
+                : const Key('mainBrowseFeedLayer3Spinner'),
+            semanticsLabel: showLoadSpinner ? loadLabel : null,
           ),
         if (liveMotionOverlay != null) liveMotionOverlay!,
       ],
+    );
+  }
+}
+
+/// Bottom-right load chrome for every feed item (Live badge ± spinner).
+///
+/// Live lays the spinner out in a [Row] with the taller LIVE badge
+/// (`CrossAxisAlignment.center`), so the spinner sits higher than a
+/// 16px-only `Positioned(bottom: 12)`. Non-Live uses a zero-width badge
+/// strut with the same height so the spinner matches that vertical slot.
+class _FeedCornerChrome extends StatelessWidget {
+  const _FeedCornerChrome({
+    required this.color,
+    this.badgeLabel,
+    this.strutBadgeLabel,
+    this.showSpinner = false,
+    this.rowKey,
+    this.spinnerKey,
+    this.semanticsLabel,
+  });
+
+  static const double inset = 12;
+
+  final Color color;
+  final String? badgeLabel;
+  final String? strutBadgeLabel;
+  final bool showSpinner;
+  final Key? rowKey;
+  final Key? spinnerKey;
+  final String? semanticsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final showBadge = badgeLabel != null;
+    if (!showBadge && !showSpinner) {
+      return const SizedBox.shrink();
+    }
+    return Positioned(
+      right: inset,
+      bottom: inset,
+      child: IgnorePointer(
+        child: Semantics(
+          container: true,
+          excludeSemantics: showSpinner,
+          label: showSpinner ? semanticsLabel : null,
+          child: Row(
+            key: rowKey,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (showBadge) ...[
+                _LiveBadge(label: badgeLabel!),
+                if (showSpinner) const SizedBox(width: 8),
+              ] else if (showSpinner && strutBadgeLabel != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: 0,
+                  child: Opacity(
+                    opacity: 0,
+                    child: _LiveBadge(label: strutBadgeLabel!),
+                  ),
+                ),
+              if (showSpinner)
+                _FeedCornerSpinner(spinnerKey: spinnerKey, color: color),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// 16px brand-gold spinner used at the bottom-right of a feed page.
+class _FeedCornerSpinner extends StatelessWidget {
+  const _FeedCornerSpinner({this.spinnerKey, required this.color});
+
+  final Key? spinnerKey;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: spinnerKey,
+      width: 16,
+      height: 16,
+      child: CircularProgressIndicator(strokeWidth: 2, color: color),
     );
   }
 }

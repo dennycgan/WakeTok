@@ -369,6 +369,10 @@
   "@mainBrowseFeedLayer3Loading": {
     "description": "Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight"
   },
+  "mainBrowseFeedLiveLoading": "Loading Live Photo",
+  "@mainBrowseFeedLiveLoading": {
+    "description": "Semantics for the single Live still spinner covering Layer 2 and motion prepare (Cap 14.6b)"
+  },
   "mainBrowseFeedDownloadFailed": "Could not download this item.",
   "@mainBrowseFeedDownloadFailed": {
     "description": "Layer 2 failed while Layer 1 preview is still shown"

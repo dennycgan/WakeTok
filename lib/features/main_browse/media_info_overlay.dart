@@ -13,11 +13,7 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// [PresentationOverlaySnapshot.locationLabel] is non-empty — Cap 8 omits
 /// Location content (Q1=B), so the row collapses.
 class MediaInfoOverlay extends StatelessWidget {
-  const MediaInfoOverlay({
-    super.key,
-    required this.snapshot,
-    this.now,
-  });
+  const MediaInfoOverlay({super.key, required this.snapshot, this.now});
 
   final PresentationOverlaySnapshot? snapshot;
   final DateTime? now;
@@ -27,6 +23,12 @@ class MediaInfoOverlay extends StatelessWidget {
 
   /// Always-rendered rows (Relative / Exact / Characteristics).
   static const int baseRowCount = 3;
+
+  /// Trailing inset so Overlay copy stays left of bottom-right Live chrome.
+  ///
+  /// W-14.6b measured Live chrome width 103 + `right: 12` pad = 115 from the
+  /// trailing edge; +8 gap from Overlay copy.
+  static const double trailingInset = 123;
 
   @override
   Widget build(BuildContext context) {
@@ -44,10 +46,7 @@ class MediaInfoOverlay extends StatelessWidget {
       l10n: l10n,
       createdAt: snap?.createdAt,
     );
-    final characteristics = _row3(
-      l10n: l10n,
-      snap: snap,
-    );
+    final characteristics = _row3(l10n: l10n, snap: snap);
     final location = snap?.locationLabel?.trim() ?? '';
 
     final style = tokens.labelOnMedia.copyWith(
@@ -58,7 +57,7 @@ class MediaInfoOverlay extends StatelessWidget {
       child: Align(
         alignment: Alignment.bottomLeft,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 72, 12),
+          padding: const EdgeInsets.fromLTRB(16, 0, trailingInset, 12),
           child: Column(
             key: const Key('mediaInfoOverlay'),
             mainAxisSize: MainAxisSize.min,
@@ -117,11 +116,7 @@ class MediaInfoOverlay extends StatelessWidget {
 }
 
 class _OverlayRow extends StatelessWidget {
-  const _OverlayRow({
-    super.key,
-    required this.text,
-    required this.style,
-  });
+  const _OverlayRow({super.key, required this.text, required this.style});
 
   final String text;
   final TextStyle style;

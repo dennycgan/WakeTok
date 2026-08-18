@@ -21,6 +21,7 @@ import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
+import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
@@ -1110,6 +1111,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1143,6 +1145,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     display.displaysById['still-2'] = const DisplayAsset(
       assetIdentifier: 'still-2',
       mediaKind: PlaybackMediaKind.image,
@@ -1186,6 +1189,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1228,6 +1232,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1257,6 +1262,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1352,6 +1358,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     display.displaysById['still-2'] = const DisplayAsset(
       assetIdentifier: 'still-2',
       mediaKind: PlaybackMediaKind.image,
@@ -1481,6 +1488,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1496,8 +1504,10 @@ void main() {
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       findsOneWidget,
     );
+    expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsNothing);
     expect(find.byKey(const Key('mainBrowseFeedStill_live-1')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+    expect(find.bySemanticsLabel('Loading Live Photo'), findsOneWidget);
   });
 
   testWidgets('L-S2 ready clears preparing Key', (tester) async {
@@ -1508,6 +1518,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1547,6 +1558,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1577,6 +1589,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1618,6 +1631,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     display.displaysById['still-2'] = const DisplayAsset(
       assetIdentifier: 'still-2',
       mediaKind: PlaybackMediaKind.image,
@@ -1665,6 +1679,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     display.displaysById['still-2'] = const DisplayAsset(
       assetIdentifier: 'still-2',
       mediaKind: PlaybackMediaKind.image,
@@ -1718,8 +1733,9 @@ void main() {
     await tester.pump();
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
-      findsNothing,
-      reason: 'new activation waits on LiveHostOpSerial behind cancelHold',
+      findsOneWidget,
+      reason:
+          '14.6b handoff keeps the Live spinner during LiveHostOpSerial wait',
     );
     expect(live.calls.where((c) => c == 'requestLivePhoto:live-1'), isEmpty);
 
@@ -1766,6 +1782,204 @@ void main() {
     expect(live.calls, contains('startPlayback'));
   });
 
+  testWidgets(
+    'W-14.6b-L1 Live hung Layer 2 uses combined spinner, not Layer 3',
+    (tester) async {
+      final live = FakeLivePhotoRepository();
+      final display = FakeMediaDisplayRepository();
+      const liveAsset = DisplayAsset(
+        assetIdentifier: 'live-1',
+        mediaKind: PlaybackMediaKind.livePhoto,
+        localFilePath: '/tmp/live-1.jpg',
+      );
+      display.displaysById['live-1'] = liveAsset;
+      display.previewsById['live-1'] = liveAsset;
+      display.displayGates['live-1'] = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          mediaDisplay: display,
+          livePhoto: live,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      expect(
+        find.byKey(const Key('mainBrowseFeedStill_live-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsNothing,
+      );
+      expect(
+        live.calls.where((c) => c.startsWith('requestLivePhoto')),
+        isEmpty,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-14.6b-L2 Live spinner stays after Layer 2 until motion ready',
+    (tester) async {
+      final live = FakeLivePhotoRepository();
+      final display = FakeMediaDisplayRepository();
+      const liveAsset = DisplayAsset(
+        assetIdentifier: 'live-1',
+        mediaKind: PlaybackMediaKind.livePhoto,
+        localFilePath: '/tmp/live-1.jpg',
+      );
+      display.displaysById['live-1'] = liveAsset;
+      display.previewsById['live-1'] = liveAsset;
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          mediaDisplay: display,
+          livePhoto: live,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls, contains('live-1'));
+      expect(live.calls, contains('requestLivePhoto:live-1'));
+
+      for (var i = 0; i < 8; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(
+          find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
+          findsOneWidget,
+          reason: 'combined spinner must not drop between Layer 2 and ready',
+        );
+        expect(
+          find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+          findsNothing,
+        );
+      }
+    },
+  );
+
+  testWidgets(
+    'W-14.6b-L3 Live chrome sits in Overlay trailing corridor (measure)',
+    (tester) async {
+      final live = FakeLivePhotoRepository();
+      final display = FakeMediaDisplayRepository();
+      const liveAsset = DisplayAsset(
+        assetIdentifier: 'live-1',
+        mediaKind: PlaybackMediaKind.livePhoto,
+        localFilePath: '/tmp/live-1.jpg',
+      );
+      display.displaysById['live-1'] = liveAsset;
+      display.previewsById['live-1'] = liveAsset;
+      final presentation = FakePresentationMetadataRepository(
+        basicsById: {
+          'live-1': PresentationMetadata(
+            assetIdentifier: 'live-1',
+            mediaKind: PresentationMediaKind.livePhoto,
+            createdAt: DateTime(2024, 7, 1, 9, 0),
+          ),
+        },
+        sizeById: {
+          'live-1': const PresentationFileSize(
+            assetIdentifier: 'live-1',
+            fileSizeBytes: 2048,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        },
+      );
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          mediaDisplay: display,
+          livePhoto: live,
+          presentationMetadata: presentation,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      final chrome = tester.getRect(
+        find.byKey(const Key('mainBrowseFeedLiveChrome_live-1')),
+      );
+      final overlay = tester.getRect(find.byKey(const Key('mediaInfoOverlay')));
+      expect(
+        chrome.overlaps(overlay),
+        isFalse,
+        reason:
+            'Live chrome $chrome overlaps Overlay $overlay; '
+            'bump MediaInfoOverlay.trailingInset from '
+            '${MediaInfoOverlay.trailingInset}',
+      );
+      final liveSpinner = tester.getRect(
+        find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
+      );
+      expect(
+        liveSpinner.center.dy,
+        closeTo(chrome.center.dy, 1),
+        reason: 'Live spinner is vertically centered on the LIVE badge row',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-14.6b-L4 non-Live Layer 2 spinner sits in the same bottom-right corner',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      display.displayGates['a1'] = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('mainBrowseFeedLoading')), findsNothing);
+      final spinner = tester.getRect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+      );
+      final chrome = tester.getRect(
+        find.byKey(const Key('mainBrowseFeedLayer3Chrome')),
+      );
+      final feed = tester.getRect(find.byKey(const Key('mainBrowseFeed')));
+      expect(
+        spinner.center.dx,
+        greaterThan(feed.center.dx),
+        reason: 'Layer 2 spinner must be right of feed center, not centered',
+      );
+      expect(
+        spinner.center.dy,
+        greaterThan(feed.center.dy),
+        reason: 'Layer 2 spinner must be below feed center, not centered',
+      );
+      expect(feed.right - chrome.right, closeTo(12, 1));
+      expect(feed.bottom - chrome.bottom, closeTo(12, 1));
+      expect(
+        spinner.center.dy,
+        closeTo(chrome.center.dy, 1),
+        reason: 'non-Live spinner must share the Live badge-row vertical slot',
+      );
+      expect(
+        chrome.height,
+        greaterThan(spinner.height),
+        reason: 'zero-width LIVE badge strut must raise the spinner',
+      );
+    },
+  );
+
   testWidgets('L-M1 default unmuted: setMute:false before startPlayback', (
     tester,
   ) async {
@@ -1776,6 +1990,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1804,6 +2019,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1878,6 +2094,7 @@ void main() {
       mediaKind: PlaybackMediaKind.livePhoto,
       localFilePath: '/tmp/live-1.jpg',
     );
+    display.previewsById['live-1'] = display.displaysById['live-1']!;
     display.displayErrorById['v1'] = 'unsupportedMedia';
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(

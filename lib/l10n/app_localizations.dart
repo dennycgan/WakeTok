@@ -603,6 +603,12 @@ abstract class AppLocalizations {
   /// **'Loading full quality'**
   String get mainBrowseFeedLayer3Loading;
 
+  /// Semantics for the single Live still spinner covering Layer 2 and motion prepare (Cap 14.6b)
+  ///
+  /// In en, this message translates to:
+  /// **'Loading Live Photo'**
+  String get mainBrowseFeedLiveLoading;
+
   /// Layer 2 failed while Layer 1 preview is still shown
   ///
   /// In en, this message translates to:
