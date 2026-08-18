@@ -648,6 +648,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _layer2InFlight = false;
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
+  /// Cap 16.4: [Timer] from became-current. Cancel on leave / dispose.
+  Timer? _layer2DwellTimer;
+  Completer<void>? _layer2DwellCompleter;
   AppLifecycleState? _lastLifecycle;
 
   /// Test seam: hold [_teardownLiveMotion] when this page is off-current.
@@ -690,6 +693,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     super.initState();
     _lastLifecycle = WidgetsBinding.instance.lifecycleState;
     WidgetsBinding.instance.addObserver(this);
+    if (widget.isCurrent) {
+      _armLayer2DwellTimer();
+    }
     _startLoad();
   }
 
@@ -715,11 +721,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     if (_layer2Failed) {
-      unawaited(_retryLayer2Only());
+      unawaited(_retryLayer2Only(bypassDwell: true));
       return;
     }
     if (_media?.kind == FeedPageMediaKind.failed) {
-      unawaited(_startLoad());
+      unawaited(_startLoad(bypassDwell: true));
     }
   }
 
@@ -736,6 +742,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isCurrent && widget.isCurrent) {
       _localGate.begin();
+      _armLayer2DwellTimer();
     }
     if (oldWidget.isPreheatNeighbor && !widget.isPreheatNeighbor) {
       _localGate.begin();
@@ -750,6 +757,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _playbackRepo = playback;
       unawaited(playback.pause());
       unawaited(playback.cancelInFlightPrepare(widget.assetIdentifier));
+      _cancelLayer2DwellTimer();
       _displayRepo ??= ref.read(mediaDisplayRepositoryProvider);
       // Shared currentDisplayGate is bumped by the parent
       // [_activateCurrentItem] when the new current page is assigned.
@@ -849,6 +857,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _cancelLayer2DwellTimer();
     _liveMotionGate.begin(); // invalidate Live activation
     _localGate.begin();
     unawaited(_cancelLiveSubscriptions());
@@ -1218,7 +1227,57 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
   }
 
-  Future<void> _retryLayer2Only() async {
+  /// Cap 16.4: arm a cancelable timer when this page becomes current.
+  /// Join with Layer 1: Layer 2 waits for this future (already complete if
+  /// Layer 1 took longer than N).
+  void _armLayer2DwellTimer() {
+    _cancelLayer2DwellTimer();
+    final n = ref.read(browseLayer2DwellProvider);
+    if (n <= Duration.zero) {
+      _layer2DwellCompleter = Completer<void>()..complete();
+      return;
+    }
+    final done = Completer<void>();
+    _layer2DwellCompleter = done;
+    _layer2DwellTimer = Timer(n, () {
+      _layer2DwellTimer = null;
+      if (!done.isCompleted) {
+        done.complete();
+      }
+    });
+  }
+
+  void _cancelLayer2DwellTimer() {
+    _layer2DwellTimer?.cancel();
+    _layer2DwellTimer = null;
+    final pending = _layer2DwellCompleter;
+    _layer2DwellCompleter = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete();
+    }
+  }
+
+  Future<void> _awaitLayer2Dwell({required bool bypassDwell}) async {
+    if (bypassDwell) {
+      return;
+    }
+    var pending = _layer2DwellCompleter;
+    if (pending == null) {
+      // Leave / dispose already cancelled. Do not start a new clock off-current
+      // (a later become-current re-arm would complete that timer and skip N).
+      if (!widget.isCurrent) {
+        return;
+      }
+      _armLayer2DwellTimer();
+      pending = _layer2DwellCompleter;
+    }
+    if (pending == null) {
+      return;
+    }
+    await pending.future;
+  }
+
+  Future<void> _retryLayer2Only({bool bypassDwell = false}) async {
     final FeedMediaRequestGate gate;
     final int generation;
     if (widget.isCurrent) {
@@ -1237,6 +1296,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _layer2FailureReason = null;
       _layer2InFlight = true;
     });
+    await _awaitLayer2Dwell(bypassDwell: bypassDwell);
+    if (!mounted || !widget.isCurrent || !gate.isCurrent(generation)) {
+      return;
+    }
     final layer1 = _media;
     final layer2 = await loadFeedPageLayer2(
       gate: gate,
@@ -1257,7 +1320,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     );
   }
 
-  Future<void> _startLoad() async {
+  Future<void> _startLoad({bool bypassDwell = false}) async {
     final startedOffCurrent = !widget.isCurrent;
     FeedMediaRequestGate? gate;
     int? generation;
@@ -1401,6 +1464,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       });
     }
 
+    await _awaitLayer2Dwell(bypassDwell: bypassDwell);
     if (!mounted ||
         !currentGate.isCurrent(currentGeneration) ||
         !widget.isCurrent) {
@@ -1595,7 +1659,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         ),
         actionLabel: l10n.mainBrowseFeedRetry,
         actionKey: const Key('mainBrowseFeedPageRetry'),
-        onAction: _startLoad,
+        onAction: () {
+          unawaited(_startLoad(bypassDwell: true));
+        },
       ),
     };
   }
@@ -1641,7 +1707,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   TextButton(
                     key: const Key('mainBrowseFeedLayer2Retry'),
                     onPressed: () {
-                      unawaited(_retryLayer2Only());
+                      unawaited(_retryLayer2Only(bypassDwell: true));
                     },
                     child: Text(
                       l10n.mainBrowseFeedRetry,

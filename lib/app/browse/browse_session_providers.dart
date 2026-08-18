@@ -35,6 +35,13 @@ final browseEmptyRetryDelaysProvider = Provider<List<Duration>>(
   ],
 );
 
+/// Cap 16.4 / ADR-029: current-item Layer 2 must not start until the item
+/// has been current for this duration. Initial N = 500 ms. Tests override
+/// to [Duration.zero] (same pattern as [browseEmptyRetryDelaysProvider]).
+final browseLayer2DwellProvider = Provider<Duration>(
+  (ref) => const Duration(milliseconds: 500),
+);
+
 /// Selected built-in source for Main Browse (All / Photos / Videos).
 ///
 /// Lives at the composition root so session wiring can watch it without a

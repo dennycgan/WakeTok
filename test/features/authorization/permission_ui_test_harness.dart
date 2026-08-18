@@ -82,6 +82,9 @@ Widget permissionUiHarness({
   /// keep a single resolve. Pass production or zero-duration lists to
   /// exercise the retry loop.
   List<Duration> browseEmptyRetryDelays = const [],
+
+  /// Cap 16.4: default zero so existing feed tests do not wait production N.
+  Duration browseLayer2Dwell = Duration.zero,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -107,6 +110,7 @@ Widget permissionUiHarness({
             () => Random(browseShuffleSeed),
       ),
       browseEmptyRetryDelaysProvider.overrideWithValue(browseEmptyRetryDelays),
+      browseLayer2DwellProvider.overrideWithValue(browseLayer2Dwell),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)

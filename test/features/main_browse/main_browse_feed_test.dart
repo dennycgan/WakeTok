@@ -790,6 +790,196 @@ void main() {
     await completed;
   });
 
+  testWidgets('W-16.4a still Layer 2 waits 500 ms dwell', (tester) async {
+    final display = FakeMediaDisplayRepository();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        browseLayer2Dwell: const Duration(milliseconds: 500),
+      ),
+    );
+    final ids = await pumpUntilFeedIds(tester);
+    expect(display.displayCalls, isEmpty);
+    await tester.pump(const Duration(milliseconds: 499));
+    expect(display.displayCalls, isEmpty);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(display.displayCalls, [ids[0]]);
+  });
+
+  testWidgets('W-16.4b video load waits 500 ms dwell', (tester) async {
+    final display = FakeMediaDisplayRepository();
+    display.previewsById['v1'] = const DisplayAsset(
+      assetIdentifier: 'v1',
+      mediaKind: PlaybackMediaKind.video,
+      localFilePath: '/tmp/fake_preview_v1.jpg',
+    );
+    final playback = FakePlaybackRepository();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        mediaDisplay: display,
+        playback: playback,
+        browseLayer2Dwell: const Duration(milliseconds: 500),
+      ),
+    );
+    await pumpUntilFeedIds(tester);
+    expect(playback.calls.where((c) => c.startsWith('load:')), isEmpty);
+    await tester.pump(const Duration(milliseconds: 499));
+    expect(playback.calls.where((c) => c.startsWith('load:')), isEmpty);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(playback.calls, contains('load:v1'));
+  });
+
+  testWidgets('W-16.4c leave during dwell never starts Layer 2', (tester) async {
+    final display = FakeMediaDisplayRepository();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        mediaDisplay: display,
+        browseLayer2Dwell: const Duration(milliseconds: 500),
+      ),
+    );
+    final ids = await pumpUntilFeedIds(tester);
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(display.displayCalls, isEmpty);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(display.displayCalls, isNot(contains(ids[0])));
+  });
+
+  testWidgets('W-16.4d Retry bypasses dwell', (tester) async {
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['a1'] = 'iCloudDownloadFailed';
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        browseLayer2Dwell: const Duration(milliseconds: 500),
+      ),
+    );
+    await pumpUntilFeedIds(tester);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(display.displayCalls, ['a1']);
+    expect(find.byKey(const Key('mainBrowseFeedLayer2Retry')), findsOneWidget);
+    display.displayErrorById.remove('a1');
+    await tester.tap(find.byKey(const Key('mainBrowseFeedLayer2Retry')));
+    await tester.pump();
+    expect(display.displayCalls, ['a1', 'a1']);
+  });
+
+  testWidgets('W-16.4e spinner stays up during dwell', (tester) async {
+    final display = FakeMediaDisplayRepository();
+    display.previewsById['a1'] = const DisplayAsset(
+      assetIdentifier: 'a1',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/fake_preview_a1.jpg',
+    );
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        browseLayer2Dwell: const Duration(milliseconds: 500),
+      ),
+    );
+    await pumpUntilFeedIds(tester);
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+      findsOneWidget,
+    );
+    await tester.pump(const Duration(milliseconds: 499));
+    expect(
+      find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('W-16.4f neighbour promote still dwells', (tester) async {
+    final display = FakeMediaDisplayRepository();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        mediaDisplay: display,
+        browseLayer2Dwell: const Duration(milliseconds: 500),
+      ),
+    );
+    final ids = await pumpUntilFeedIds(tester);
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(display.displayCalls, [ids[0]]);
+    final neighbor = ids[1];
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pump();
+    expect(display.displayCalls, isNot(contains(neighbor)));
+    await tester.pump(const Duration(milliseconds: 499));
+    expect(display.displayCalls, isNot(contains(neighbor)));
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(display.displayCalls, contains(neighbor));
+  });
+
+  testWidgets(
+    'W-16.4g Endless round change cancels in-flight dwell on old current',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a', 'b', 'c', 'd', 'e'],
+          ),
+          mediaDisplay: display,
+          browseShuffleSeed: 0,
+          browseLayer2Dwell: const Duration(milliseconds: 500),
+        ),
+      );
+      final ids = await pumpUntilFeedIds(tester);
+      expect(ids, ['e', 'c', 'd', 'b', 'a']);
+      final lastId = ids.last;
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
+      await tester.pump();
+      for (var i = 0; i < 10; i++) {
+        if (display.previewCalls.contains(lastId)) {
+          break;
+        }
+        await tester.pump();
+      }
+      expect(display.previewCalls, contains(lastId));
+      expect(display.displayCalls, isNot(contains(lastId)));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(display.displayCalls, isNot(contains(lastId)));
+      container.read(browseSessionProvider.notifier).advanceToNextRound();
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await tester.pump();
+      final after = container.read(browseSessionProvider).requireValue;
+      expect(after.orderedAssetIds.first, isNot(lastId));
+      // Old current had ~200 ms of dwell left. That timer must not fire Layer 2
+      // after the round rebuild (new PageView key, old State disposed).
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(display.displayCalls, isNot(contains(lastId)));
+    },
+  );
+
   test('U-14.4b Layer 2 maps assetUnavailable to network fail', () async {
     final display = FakeMediaDisplayRepository();
     display.displayErrorById['a1'] = 'assetUnavailable';
@@ -3373,6 +3563,27 @@ void main() {
     await pumpAsyncWork(tester);
     expect(display.previewCalls.length, n);
   });
+}
+
+/// Session ids plus a built [PageView] (current [MediaFeedPage] mounted).
+///
+/// Provider [hasValue] can lead the widget by a frame. Dwell [Timer] starts
+/// in page [State.initState] — returning earlier makes a later `pump(500ms)`
+/// elapse before the clock exists.
+Future<List<String>> pumpUntilFeedIds(WidgetTester tester) async {
+  await tester.pump();
+  for (var i = 0; i < 40; i++) {
+    if (find.byType(PageView).evaluate().isNotEmpty) {
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      final async = container.read(browseSessionProvider);
+      if (async.hasValue && async.requireValue.orderedAssetIds.isNotEmpty) {
+        return async.requireValue.orderedAssetIds;
+      }
+    }
+    await tester.pump();
+  }
+  fail('feed ids never ready');
 }
 
 Future<List<String>> _feedOrderedIds(WidgetTester tester) async {

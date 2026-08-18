@@ -9,6 +9,7 @@ export 'package:waketok/app/browse/browse_session_providers.dart'
         BrowseSessionNotifier,
         BrowseSessionView,
         browseEmptyRetryDelaysProvider,
+        browseLayer2DwellProvider,
         browseSessionProvider,
         browseShuffleRandomFactoryProvider,
         browseSnapshotCacheProvider,
