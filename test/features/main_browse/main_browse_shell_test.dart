@@ -71,14 +71,28 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeed')), findsOneWidget);
   });
 
-  testWidgets('W-4 limited keeps banner on Main Browse', (tester) async {
+  testWidgets('W-4 limited has no banner on any main destination',
+      (tester) async {
     final repo =
         ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
 
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.byType(MainBrowseShellPage), findsOneWidget);
-    expect(find.byType(LimitedAccessBanner), findsOneWidget);
+
+    Future<void> expectNoBannerOn(String navLabel) async {
+      await tester.tap(find.text(navLabel));
+      await tester.pumpAndSettle();
+      expect(find.byType(LimitedAccessBanner), findsNothing);
+    }
+
+    // Default destination is Browse — assert before switching.
+    expect(find.byType(LimitedAccessBanner), findsNothing);
+    await expectNoBannerOn(l10n.mainBrowseNavClips);
+    await expectNoBannerOn(l10n.mainBrowseNavAuto);
+    await expectNoBannerOn(l10n.mainBrowseNavSettings);
+    await expectNoBannerOn(l10n.mainBrowseNavBrowse);
   });
 
   testWidgets('W-5 top selected source uses dark accent (immersive)',

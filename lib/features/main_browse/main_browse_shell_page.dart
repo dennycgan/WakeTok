@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/source_reference.dart';
-import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
@@ -75,13 +74,6 @@ class MainBrowseShellPage extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (access == PhotosAccess.limited)
-            Theme(
-              data: immersiveContent
-                  ? waketokTheme(Brightness.dark)
-                  : Theme.of(context),
-              child: const LimitedAccessBanner(),
-            ),
           Expanded(child: body),
           bottomBar,
         ],

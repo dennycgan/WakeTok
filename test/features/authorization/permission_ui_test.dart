@@ -120,7 +120,7 @@ void main() {
     expect(find.text(l10n.permissionBlockedTitleRestricted), findsOneWidget);
   });
 
-  testWidgets('W5 limited shell + banner; picker then resume stays on shell', (
+  testWidgets('W5 limited shell without banner; resume stays on shell', (
     tester,
   ) async {
     final repo = ControllablePhotosAuthorizationRepository(
@@ -130,28 +130,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(MainBrowseShellPage), findsOneWidget);
-    expect(find.byType(LimitedAccessBanner), findsOneWidget);
+    expect(find.byType(LimitedAccessBanner), findsNothing);
     expect(find.byType(PermissionRequestPage), findsNothing);
     expect(find.byType(PermissionBlockedPage), findsNothing);
 
-    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.limitedAccessManageSelection));
-    await tester.pumpAndSettle();
-    expect(repo.presentCalls, 1);
-
-    // Simulate return from system picker / foregrounding.
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump(const Duration(milliseconds: 350));
     await tester.pumpAndSettle();
 
     expect(find.byType(MainBrowseShellPage), findsOneWidget);
-    expect(find.byType(LimitedAccessBanner), findsOneWidget);
+    expect(find.byType(LimitedAccessBanner), findsNothing);
     expect(find.byType(PermissionRequestPage), findsNothing);
     expect(find.byType(PermissionBlockedPage), findsNothing);
   });
 
   testWidgets(
-    'W5b manage selection dismissal keeps Main Browse; picker completes',
+    'W5b debug library_smoke Limited banner presents picker; resume stays on smoke',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(
         PhotosAccess.limited,
@@ -160,12 +154,32 @@ void main() {
       await tester.pumpAndSettle();
 
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      await tester.tap(find.text(l10n.limitedAccessManageSelection));
+      await tester.tap(find.text(l10n.mainBrowseNavSettings));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
       await tester.pumpAndSettle();
 
-      expect(repo.presentCalls, 1);
-      expect(find.byType(MainBrowseShellPage), findsOneWidget);
+      expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
       expect(find.byType(LimitedAccessBanner), findsOneWidget);
+
+      await tester.tap(find.text(l10n.limitedAccessManageSelection));
+      await tester.pumpAndSettle();
+      expect(repo.presentCalls, 1);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
+      expect(find.byType(LimitedAccessBanner), findsOneWidget);
+      expect(find.byType(PermissionRequestPage), findsNothing);
+      expect(find.byType(PermissionBlockedPage), findsNothing);
+      // Shell stays under the pushed smoke route (offstage to the default
+      // finder). skipOffstage: false proves the gate did not leave Browse.
+      expect(
+        find.byType(MainBrowseShellPage, skipOffstage: false),
+        findsOneWidget,
+      );
     },
   );
 
