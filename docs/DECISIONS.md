@@ -2150,7 +2150,13 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-025: Cap 14 current-item iCloud fetch, visual preheating, and loading states
 
-- Status: Accepted (2026-08-15)
+- Status: Accepted (2026-08-15); the Decision 2 clause that
+  current-item Layer 2 starts with **no dwell** is narrowly
+  superseded by ADR-029 (2026-08-19; Cap 16.4 work `6ca736f`) for
+  **timing only**. Still binding: `isNetworkAccessAllowed = true`
+  including cellular (D1=A); Layer 1, ±1 preheat, Overlay file-size,
+  Live motion stay local-only; three-layer model and D2=B ±1 preheat
+  unchanged
 - Commit/PR anchor: 393ebc9
 - Plain summary (owner reads this):
   When you stop on a photo or video that lives in iCloud, WakeTok should
