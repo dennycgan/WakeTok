@@ -63,13 +63,13 @@
       and stable Item Ordering Semantics
       (ADR-022; CFG `f53d455`; derive `ba81abc`;
       Queue `77571a9`; guard `a14d748`; accept `2e167bf`)
-- [~] Endless Shuffle, Queue Stability, and Session Continuity
-      (Cap 13; **parked / blocked at 13.6** — gate-foundation defect;
-      bar not lowered; see Parked capability below)
-- [ ] <-- YOU ARE HERE: Current-item iCloud media fetch, visual
+- [~] <-- YOU ARE HERE: Endless Shuffle, Queue Stability, and Session Continuity
+      (Cap 13; 13.6 now executable at the unchanged V-hard bar;
+      Instruments not run in 14.7)
+- [x] Current-item iCloud media fetch, visual
       preheating, and loading states
-      (Cap 14 / ADR-025 Accepted, work `393ebc9`; restores 13.6
-      *executability*, does not run 13.6 Instruments)
+      (Cap 14 / ADR-025 Accepted, work `393ebc9`; 13.6 executability
+      restored; Instruments not run in 14.7)
 - [ ] Feed swipe Layer 1→2 handoff polish and duplicate current-item
       Layer 2 request (Cap 15). Scope: local-fast Layer 2 exposing
       still/video swipe-in flash; listen+build double generation bump
@@ -132,8 +132,8 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Current-item iCloud media fetch, visual
-preheating, and loading states (Cap 14)
+Active capability: Endless Shuffle, Queue Stability, and Session
+Continuity (Cap 13)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -143,73 +143,13 @@ preheating, and loading states (Cap 14)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 >
-> **Intentional deviation (ADR-025 D5 / D11):** Cap 13 is incomplete so it
-> cannot enter PHASE_HISTORY. It is **Parked** in the next section — not
-> expanded here. Only Cap 14 phases are ACTIVE.
-
-- [x] 14.1 Contract freeze: ADR-025 Proposed (no Accepted date, no
-      fake anchor); Capability Roadmap reorder; Parked Cap 13;
-      Known debt Picks it up → Cap 14; Auto-play lookahead row renamed
-- [x] 14.2 Host Layer 1: `requestPreview` (local still + video poster)
-      + cancel (work `393ebc9`)
-- [x] 14.3 Host Layer 2: current-item `requestDisplayAsset` /
-      `requestPlayableVideo` may use network + cancel
-      (work `ce8807f`; ADR-006 Status narrow supersede this docs
-      commit)
-- [x] 14.4 Feed three-layer UI + ARB; retire
-      `mainBrowseFeedICloudOnly` (work `9cf22a5`)
-- [x] 14.4b First-launch cellular retry + failure-reason copy
-      (work `eddb7c3`); Overlay file-size refresh after Layer 2
-      (work `900581e`; Kafka same-page size PASS)
-- [x] 14.4c Browse↔Settings keep-alive: unconditional IndexedStack
-      Theme wrap (work `6178f9e`; Kafka non-head still+video
-      Settings round-trip PASS); resume activation latch;
-      off-current `_startLoad` identity lock + neutral placeholder
-- [x] 14.4d Video item loop + replay on return-to-ended
-      (work `8189543` / ADR-026; Kafka: in-item loop, return-to-ended
-      replay, mid-play seek preserve, dead-file preview reload,
-      Live play-once; ADR-006 D4 background plan-end still no loop)
-- [x] 14.4e Leave Browse resets queue (work `fe660dd` / ADR-027;
-      Kafka: Settings/Clips leave → new Shuffle + index 0;
-      AppLifecycle does not reset; APP-8/8b/8c)
-- [x] 14.5 ±1 local-only visual preheat + cancel on leaving the window
-      (work `fa09b00`; Kafka: neighbour Layer 1 more often present;
-      video neighbour poster / no audio; two-step skip does not
-      cap-3-evict the current preview)
-- [x] 14.6 Limited first-launch All: keep resolve-loading on successful
-      empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
-      (work `37821ec` + `7329081`; Kafka Profile: grant Limited → All
-      shows loading then content, not empty copy; resume during picker
-      does not start All resolve; `requestAccess` complete restarts
-      Browse)
-- [x] 14.6b Item load chrome: LIVE badge + Layer 2 / Live-prepare
-      spinner bottom-right (`_FeedCornerChrome`; display =
-      `_layer2InFlight || _livePreparing` with same-setState handoff).
-      Non-Live spinner uses a zero-width badge strut so vertical
-      slot matches Live. Library resolve loading stays centered.
-      Overlay `trailingInset` 123 (measured). Does not change 13.6
-      risk (UI/presentation only; no Host request timing /
-      concurrency / dedupe). Not Cap 15. Work `16ed6e3`; Kafka
-      Profile PASS
-- [x] 14.6c Default Fit (contain / resizeAspect / scaleAspectFit)
-      + portrait-only (`Info.plist` + `SystemChrome`). Not the
-      Fit/Fill/Crop rail. Work `24debf4` / ADR-028; Kafka Profile
-      PASS
-- [ ] 14.7 Cap 14 close-out docs: Cap 14 `[x]`; **return YOU ARE HERE
-      to Cap 13**; 13.6 unblocked as executable at the **unchanged**
-      V-hard bar; **do not run Instruments in 14.7**
-      (ADR-025 Accepted is the docs commit **after 14.2**, not 14.7)
-
-## Parked capability: Cap 13 (Endless Shuffle, Queue Stability, and Session Continuity)
-
-> Not ACTIVE. Do not treat these lines as the Phase Roadmap. Do not
-> rewrite 13.6 FAIL tables. Do not lower, Conditional-Pass, or split
-> the hitch bar. Re-opened only when Cap 14 close-out returns YOU ARE
-> HERE here (ADR-025 D6 / D12).
+> ADR-025 D5 / D11 (two open capabilities; Cap 13 **Parked**) **ended
+> at 14.7**. Cap 13 is the ACTIVE Phase Roadmap again. Do not restore
+> the Parked section.
 
 - [x] 13.1–13.5, 13.8 — see git / ADR-023 / ADR-024 (13.8e `7edc99c`)
-- [ ] 13.6 Acceptance — **blocked** (gate-foundation defect; NOT
-      "no hang found", NOT "skipped for now"): unit
+- [ ] 13.6 Acceptance — **executable** at the unchanged V-hard bar
+      (NOT "no hang found", NOT "skipped for now"): unit
       SHUF/CONT/STAB/ROUND + APP/W-SHUF/W-END + architecture green;
       Instruments Profile Hang retest on iPhone 13 Pro (Kafka, UDID
       `00008110-001114420AEA801E`) — same V-hard as ADR-014 Cap 7.7a
@@ -218,49 +158,45 @@ preheating, and loading states (Cap 14)
       last item to start next Shuffle round**; not Conditional Pass);
       does not clear Release hang Known debt; no new PoC gate; no
       Checkpoint recovery test.
-      **Why blocked:** the gate's own preconditions are still incomplete,
-      so the Instruments run is not interpretable — Feed three-layer UI
-      and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
-      copy panel). Remaining Cap 14: close-out docs (14.7). Limited
-      first-launch All empty is `37821ec` + `7329081`; item-load
-      chrome is `16ed6e3`. Host Layer 2 is
-      `ce8807f`; video loop/replay is
-      `8189543`; leave-Browse reset is `fe660dd`; ±1 preheat is
-      `fa09b00`. Shuffle still scatters iCloud pages through the
+      The prior Profile V-hard **FAIL**
+      (`docs/acceptance/cap13-13.6-notes.md`) and the inexecutable
+      stop (`docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md`)
+      are **not** overturned by 14.7. They remain the last
+      actually-run result. This docs change only moves
+      **inexecutable → executable**; it does **not** change FAIL to
+      Pass, Conditional Pass, or skipped.
+      **Why now executable:** Cap 14 is `[x]` (14.7). Gate
+      preconditions that made 13.6 uninterpretable are paid:
+      14.2 Host Layer 1 `393ebc9`; 14.3 Host Layer 2 network
+      `ce8807f`; 14.4 Feed three-layer UI + Retry→Layer 2 `9cf22a5`
+      (iCloud-only is no longer a copy panel); 14.4b `eddb7c3` +
+      `900581e`;
+      14.4c `6178f9e`; 14.4d `8189543`; 14.4e `fe660dd`;
+      ±1 preheat `fa09b00`; Limited first-launch All
+      `37821ec` + `7329081`; item-load chrome `16ed6e3`;
+      default Fit + portrait `24debf4` / ADR-028 (chrome 13.6 will
+      measure). Shuffle still scatters iCloud pages through the
       Queue. The bar is **not** lowered, **not** Conditional Pass,
-      **not** split. Evidence:
-      `docs/acceptance/cap13-13.6-notes.md` (Profile V-hard FAIL) +
-      `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md` (campaign
-      stopped as inexecutable; hypotheses A–D untested — no
-      hang-window stack). Cap 14 restores **executability**; the
-      re-run remains this 13.6 phase after YOU ARE HERE returns.
-- [ ] 13.7 Cap close-out (stays last; cannot run while 13.6 is
-      blocked): STATE Cap `[x]` + PHASE_HISTORY;
+      **not** split. Hypotheses A–D remain untested — no
+      hang-window stack. The Instruments run is this 13.6 phase.
+- [ ] 13.7 Cap close-out (stays last; cannot run until 13.6
+      PASSes): STATE Cap `[x]` + PHASE_HISTORY;
       Phase Roadmap → Cap 15 feed swipe Layer 1→2 handoff polish and
       duplicate current-item Layer 2 (not Build a Pool; that stays
       after Cap 15). Cap 14 will already be `[x]`; Auto-play Presets
       stay later. Cap 15 must not start between 14.7 and 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 14.7 close-out docs — Cap 14 `[x]`; return YOU ARE HERE to Cap 13
-- Sub-steps done: 14.4 `9cf22a5`; 14.4b `eddb7c3` + `900581e`
-      (Kafka same-page Overlay size PASS); 14.4c `6178f9e`
-      (Kafka Settings round-trip PASS); 14.4d `8189543`
-      (Kafka loop / return-to-ended / Live play-once PASS);
-      14.4e `fe660dd` (Kafka leave-Browse reset PASS);
-      14.5 `fa09b00` (Kafka ±1 preheat PASS);
-      14.6 `37821ec` + `7329081` (Kafka Limited first-launch All PASS);
-      14.6b `16ed6e3` (Kafka item-load chrome bottom-right PASS)
-- Next step: 14.7 STATE Cap `[x]` + Parked Cap 13 YOU ARE HERE; do not
-      run Instruments
-- Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
-      narrow supersede (`ce8807f`) — Layer 1 / ±1 preheat / file-size /
-      Live motion stay local-only; ADR-015/018 Overlay size local-only;
-      ADR-023 D10 13.6 V-hard unchanged;
-      ADR-024 empty Snapshot not cached;
-      ADR-026 foreground video item-loop + return-to-ended replay
-      (`8189543`) — ADR-006 D4 plan-end no loop unchanged;
-      ADR-027 leave Browse ends Consumption Session (`fe660dd`)
+- Goal (one line): Cap 13.6 Instruments Profile Hang retest (Kafka;
+      unchanged V-hard; not run in 14.7)
+- Sub-steps done: 13.1–13.5, 13.8 (`7edc99c` / ADR-023 / ADR-024);
+      Cap 14 `[x]` (14.7)
+- Next step: run 13.6 Instruments on iPhone 13 Pro (Kafka); do not
+      start Cap 15; do not lower / Conditional-Pass / split the bar
+- Related decisions: ADR-023 D10 13.6 V-hard unchanged; ADR-025
+      Accepted (`393ebc9`); ADR-006 Status narrow supersede
+      (`ce8807f`); ADR-028 Fit + portrait (`24debf4`); ADR-024 empty
+      Snapshot not cached; ADR-026 / ADR-027 unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md

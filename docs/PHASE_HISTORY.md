@@ -522,3 +522,78 @@ Known debt: no Cap 12 table-row adds or clears. Same-asset playhead
 All↔Videos remains Cap 13 (not paid here). Prior debts unchanged
 (Location, playhead, file-size disclaimer, Release hang, UX-1/UX-2,
 Portfolio scan, etc.).
+
+## Current-item iCloud media fetch, visual
+preheating, and loading states
+— completed 2026-08-18
+
+- [x] 14.1 Contract freeze: ADR-025 Proposed (no Accepted date, no
+      fake anchor); Capability Roadmap reorder; Parked Cap 13;
+      Known debt Picks it up → Cap 14; Auto-play lookahead row renamed
+- [x] 14.2 Host Layer 1: `requestPreview` (local still + video poster)
+      + cancel (work `393ebc9`)
+- [x] 14.3 Host Layer 2: current-item `requestDisplayAsset` /
+      `requestPlayableVideo` may use network + cancel
+      (work `ce8807f`; ADR-006 Status narrow supersede this docs
+      commit)
+- [x] 14.4 Feed three-layer UI + ARB; retire
+      `mainBrowseFeedICloudOnly` (work `9cf22a5`)
+- [x] 14.4b First-launch cellular retry + failure-reason copy
+      (work `eddb7c3`); Overlay file-size refresh after Layer 2
+      (work `900581e`; Kafka same-page size PASS)
+- [x] 14.4c Browse↔Settings keep-alive: unconditional IndexedStack
+      Theme wrap (work `6178f9e`; Kafka non-head still+video
+      Settings round-trip PASS); resume activation latch;
+      off-current `_startLoad` identity lock + neutral placeholder
+- [x] 14.4d Video item loop + replay on return-to-ended
+      (work `8189543` / ADR-026; Kafka: in-item loop, return-to-ended
+      replay, mid-play seek preserve, dead-file preview reload,
+      Live play-once; ADR-006 D4 background plan-end still no loop)
+- [x] 14.4e Leave Browse resets queue (work `fe660dd` / ADR-027;
+      Kafka: Settings/Clips leave → new Shuffle + index 0;
+      AppLifecycle does not reset; APP-8/8b/8c)
+- [x] 14.5 ±1 local-only visual preheat + cancel on leaving the window
+      (work `fa09b00`; Kafka: neighbour Layer 1 more often present;
+      video neighbour poster / no audio; two-step skip does not
+      cap-3-evict the current preview)
+- [x] 14.6 Limited first-launch All: keep resolve-loading on successful
+      empty + bounded re-resolve (3 extra attempts, 500/1000/2000 ms)
+      (work `37821ec` + `7329081`; Kafka Profile: grant Limited → All
+      shows loading then content, not empty copy; resume during picker
+      does not start All resolve; `requestAccess` complete restarts
+      Browse)
+- [x] 14.6b Item load chrome: LIVE badge + Layer 2 / Live-prepare
+      spinner bottom-right (`_FeedCornerChrome`; display =
+      `_layer2InFlight || _livePreparing` with same-setState handoff).
+      Non-Live spinner uses a zero-width badge strut so vertical
+      slot matches Live. Library resolve loading stays centered.
+      Overlay `trailingInset` 123 (measured). Does not change 13.6
+      risk (UI/presentation only; no Host request timing /
+      concurrency / dedupe). Not Cap 15. Work `16ed6e3`; Kafka
+      Profile PASS
+- [x] 14.6c Default Fit (contain / resizeAspect / scaleAspectFit)
+      + portrait-only (`Info.plist` + `SystemChrome`). Not the
+      Fit/Fill/Crop rail. Work `24debf4` / ADR-028; Kafka Profile
+      PASS
+- [x] 14.7 Cap 14 close-out docs: Cap 14 `[x]`; return YOU ARE HERE
+      to Cap 13; 13.6 unblocked as executable at the unchanged
+      V-hard bar; Instruments not run in 14.7
+      (ADR-025 Accepted is the docs commit after 14.2, not 14.7)
+      — docs (this commit)
+
+Limited Access product chrome unmount (work `eb4473f`, docs
+`816816b`) landed after 14.6b and is **not** a numbered Cap 14
+phase. See Known debt: iOS Photos permission / Limited Access
+product chrome unmounted from Main Browse.
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-025 (Accepted, anchor `393ebc9`); ADR-006 Status
+narrow supersede (anchor `ce8807f`); ADR-026 (Accepted, anchor
+`8189543`); ADR-027 (Accepted, anchor `fe660dd`); ADR-028
+(Accepted, anchor `24debf4`).
+Known debt: Limited Access product chrome unmounted (`eb4473f`);
+iCloud video no Layer 1 poster (MVP-acceptable); Cap 15 Layer 1→2
+handoff + duplicate Layer 2 rows unchanged. Do not rewrite 13.6
+FAIL tables. Prior debts unchanged (Release hang, Location,
+file-size disclaimer, UX-1, Portfolio scan, etc.).
