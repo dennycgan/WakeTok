@@ -664,7 +664,7 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     self.host = host
     container = PlaybackSurfaceContainer(frame: frame)
     container.backgroundColor = .black
-    playerLayer.videoGravity = .resizeAspectFill
+    playerLayer.videoGravity = .resizeAspect
     container.playerLayer = playerLayer
     container.layer.addSublayer(playerLayer)
     super.init()

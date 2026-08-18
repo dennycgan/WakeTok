@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
@@ -14,8 +15,11 @@ import 'package:waketok/platform/live_photo_gateway.dart';
 import 'package:waketok/platform/photo_library_gateway.dart';
 import 'package:waketok/platform/playback_gateway.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   final gateway = PhotoLibraryGateway();
   final playback = PlaybackGateway();
   final livePhoto = LivePhotoGateway();

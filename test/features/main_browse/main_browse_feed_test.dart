@@ -77,6 +77,24 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedStill_c')), findsOneWidget);
   });
 
+  testWidgets('W-14.6c still Image.file uses BoxFit.contain', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final images = tester.widgetList<Image>(find.byType(Image));
+    final fileImages = images.where((image) => image.image is FileImage);
+    expect(fileImages, isNotEmpty);
+    for (final image in fileImages) {
+      expect(image.fit, BoxFit.contain);
+    }
+  });
+
   testWidgets('W-F3 empty resolve shows empty ARB', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(

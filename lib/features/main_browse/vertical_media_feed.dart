@@ -1845,7 +1845,7 @@ class _ReloadableFileImageState extends State<_ReloadableFileImage> {
     return Image.file(
       File(widget.path),
       key: ValueKey<String>(widget.path),
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
         if (!_postedBroken) {
           _postedBroken = true;

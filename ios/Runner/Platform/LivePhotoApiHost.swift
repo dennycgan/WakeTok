@@ -249,7 +249,7 @@ final class LivePhotoSurfaceView: NSObject, FlutterPlatformView, PHLivePhotoView
     self.host = host
     super.init()
     liveView.frame = frame
-    liveView.contentMode = .scaleAspectFill
+    liveView.contentMode = .scaleAspectFit
     liveView.clipsToBounds = true
     liveView.delegate = self
     disableDefaultPlaybackGesture()
