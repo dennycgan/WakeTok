@@ -141,6 +141,11 @@ class PlaybackGateway
   Future<void> clearPlaybackPool() => _api.clearPlaybackPool();
 
   @override
+  Future<void> cancelInFlightPrepare(String assetIdentifier) {
+    return _api.cancelInFlightPrepare(assetIdentifier);
+  }
+
+  @override
   void onPlaybackRuntimeEvent(pigeon.PlaybackRuntimeEventDto event) {
     if (_runtimeController.isClosed) {
       return;

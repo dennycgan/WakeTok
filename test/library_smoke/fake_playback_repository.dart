@@ -87,4 +87,9 @@ class FakePlaybackRepository implements PlaybackRepository {
   Future<void> clearPlaybackPool() async {
     _record('clearPlaybackPool');
   }
+
+  @override
+  Future<void> cancelInFlightPrepare(String assetIdentifier) async {
+    _record('cancelInFlightPrepare:$assetIdentifier');
+  }
 }

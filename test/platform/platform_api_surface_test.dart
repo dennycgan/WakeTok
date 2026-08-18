@@ -23,6 +23,7 @@ void main() {
     'notifyDisplaySurfaceReady',
     'updateNowPlayingMetadata',
     'clearPlaybackPool',
+    'cancelInFlightPrepare',
   };
 
   const expectedPlaybackFlutterMethods = <String>{
@@ -125,6 +126,7 @@ void main() {
         'syncPlanPosition',
         'notifyDisplaySurfaceReady',
         'clearPlaybackPool',
+        'cancelInFlightPrepare',
       ]),
     );
     expect(
@@ -378,6 +380,7 @@ void main() {
     await api.notifyDisplaySurfaceReady('a');
     await api.updateNowPlayingMetadata();
     await api.clearPlaybackPool();
+    await api.cancelInFlightPrepare('a');
   });
 
   test('T7 LivePhoto Host methods succeed under mock (no-op path)', () async {

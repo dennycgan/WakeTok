@@ -1795,6 +1795,27 @@ class PlaybackApi {
     )
     ;
   }
+
+  /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
+  /// [assetIdentifier] even when it is still the current id (leave
+  /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+  Future<void> cancelInFlightPrepare(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.cancelInFlightPrepare$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).

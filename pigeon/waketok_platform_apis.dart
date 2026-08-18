@@ -500,6 +500,11 @@ abstract class PlaybackApi {
   /// Completes only after the pool is safe for the caller (Dart awaits before
   /// LivePhotoApi). Idempotent. Does not reset mute preference.
   void clearPlaybackPool();
+
+  /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
+  /// [assetIdentifier] even when it is still the current id (leave
+  /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+  void cancelInFlightPrepare(String assetIdentifier);
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).

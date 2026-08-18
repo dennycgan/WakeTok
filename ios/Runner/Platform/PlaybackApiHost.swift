@@ -118,6 +118,22 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  /// Cap 16.2 / ADR-029: cancel in-flight prepare for [assetIdentifier]
+  /// even when it is still `currentAssetIdentifier` (no next `load()`).
+  func cancelInFlightPrepare(assetIdentifier: String) throws {
+    let work = { [weak self] in
+      guard let self else { return }
+      let result = self.currentPrepareTable.invalidate(assetId: assetIdentifier)
+      self.cancelImageRequestIfNeeded(result.requestId)
+      self.preparingAssetIds.remove(assetIdentifier)
+    }
+    if Thread.isMainThread {
+      work()
+    } else {
+      DispatchQueue.main.sync(execute: work)
+    }
+  }
+
   func seek(positionSeconds: Double) throws {
     let time = CMTime(seconds: positionSeconds, preferredTimescale: 600)
     DispatchQueue.main.async { [weak self] in

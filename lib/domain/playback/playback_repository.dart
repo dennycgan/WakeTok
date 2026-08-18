@@ -29,6 +29,10 @@ abstract class PlaybackRepository {
   /// Cap 9 / ADR-019: release active+warming AVPlayers before Live motion.
   Future<void> clearPlaybackPool();
 
+  /// Cap 16.2 / ADR-029: cancel in-flight Host prepare for [assetIdentifier]
+  /// even if that id is still current. No-op if none.
+  Future<void> cancelInFlightPrepare(String assetIdentifier);
+
   /// Native → Dart runtime observe (may be empty until host emits).
   Stream<PlaybackRuntimeEvent> get runtimeEvents;
 

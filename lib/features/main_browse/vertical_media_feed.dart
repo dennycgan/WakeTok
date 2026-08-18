@@ -746,7 +746,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // pause because _startLoad runs and skips the isCurrent-only branch.
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
     if (leftCurrent) {
-      unawaited(ref.read(playbackRepositoryProvider).pause());
+      final playback = ref.read(playbackRepositoryProvider);
+      _playbackRepo = playback;
+      unawaited(playback.pause());
+      unawaited(playback.cancelInFlightPrepare(widget.assetIdentifier));
       _displayRepo ??= ref.read(mediaDisplayRepositoryProvider);
       // Shared currentDisplayGate is bumped by the parent
       // [_activateCurrentItem] when the new current page is assigned.
@@ -851,9 +854,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     unawaited(_cancelLiveSubscriptions());
     unawaited(_cancelCurrentItemPhotoKit(widget.assetIdentifier));
     final playback = _playbackRepo;
-    if (_media?.kind == FeedPageMediaKind.video &&
-        widget.isCurrent &&
-        playback != null) {
+    if (widget.isCurrent && playback != null) {
+      unawaited(playback.cancelInFlightPrepare(widget.assetIdentifier));
       unawaited(playback.pause());
     }
     final live = _liveRepo;

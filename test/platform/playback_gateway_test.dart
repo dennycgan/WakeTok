@@ -33,6 +33,7 @@ void main() {
       'notifyDisplaySurfaceReady',
       'updateNowPlayingMetadata',
       'clearPlaybackPool',
+      'cancelInFlightPrepare',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockDecodedMessageHandler<Object?>(
@@ -53,6 +54,7 @@ void main() {
       'notifyDisplaySurfaceReady',
       'updateNowPlayingMetadata',
       'clearPlaybackPool',
+      'cancelInFlightPrepare',
     ]) {
       mockVoid(m);
     }
@@ -79,6 +81,7 @@ void main() {
     await gateway.notifyDisplaySurfaceReady('v1');
     await gateway.updateNowPlayingMetadata();
     await gateway.clearPlaybackPool();
+    await gateway.cancelInFlightPrepare('v1');
   });
 
   test('T-P3 FlutterApi runtime event maps into stream', () async {

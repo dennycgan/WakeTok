@@ -1638,6 +1638,10 @@ protocol PlaybackApi {
   /// Completes only after the pool is safe for the caller (Dart awaits before
   /// LivePhotoApi). Idempotent. Does not reset mute preference.
   func clearPlaybackPool() throws
+  /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
+  /// [assetIdentifier] even when it is still the current id (leave
+  /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+  func cancelInFlightPrepare(assetIdentifier: String) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1810,6 +1814,24 @@ class PlaybackApiSetup {
       }
     } else {
       clearPlaybackPoolChannel.setMessageHandler(nil)
+    }
+    /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
+    /// [assetIdentifier] even when it is still the current id (leave
+    /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+    let cancelInFlightPrepareChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.cancelInFlightPrepare\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      cancelInFlightPrepareChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        do {
+          try api.cancelInFlightPrepare(assetIdentifier: assetIdentifierArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      cancelInFlightPrepareChannel.setMessageHandler(nil)
     }
   }
 }

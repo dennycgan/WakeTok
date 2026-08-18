@@ -527,6 +527,10 @@ void main() {
 
     expect(find.byKey(const Key('mainBrowseFeedStill_still')), findsOneWidget);
     expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+    expect(
+      playback.calls.where((c) => c == 'cancelInFlightPrepare:v1'),
+      isNotEmpty,
+    );
   });
 
   testWidgets(
@@ -565,6 +569,43 @@ void main() {
         findsOneWidget,
       );
       expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+      expect(
+        playback.calls.where((c) => c == 'cancelInFlightPrepare:v1'),
+        isNotEmpty,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-16.2 leave Browse (Settings) cancels in-flight prepare',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final playback = FakePlaybackRepository();
+      final display = FakeMediaDisplayRepository();
+      display.displayErrorById['v1'] = 'unsupportedMedia';
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+
+      playback.calls.clear();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+
+      expect(
+        playback.calls.where((c) => c == 'cancelInFlightPrepare:v1'),
+        isNotEmpty,
+      );
     },
   );
 
