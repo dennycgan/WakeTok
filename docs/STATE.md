@@ -154,14 +154,15 @@ Active capability: Cancel and dwell current-item Layer 2 fetch (Cap 16)
 - [x] 16.2 Host `cancelInFlightPrepare` + Dart leave/dispose/leave
       Browse (#1+#4); `flutter test` including `test/architecture/`
       (work `d273358`)
-- [ ] 16.3 Plan ≠ download: `setPlaybackPlan` must not `prepareActive`;
+- [x] 16.3 Plan ≠ download: `setPlaybackPlan` must not `prepareActive`;
       `load` completes on success/fail/cancel; feed drops
       `requestPlayableVideo` download; that API is duration-only
       (#2). Pre-check: production `load` caller is only
       `feed_page_media.dart` `_loadVideo`; debug probe also awaits
       `load`; Live Photo does not. Re-align `_layer2InFlight` with
       the new `load` completion (video still clears on
-      `onSurfaceReady`; cancel must complete `load`).
+      `onSurfaceReady`; cancel must complete `load`)
+      (work `df021b8`)
 - [ ] 16.4 Dart dwell N=500 ms (initial; still + video Layer 2);
       Retry bypasses; keep `_layer2InFlight` true during dwell
 - [ ] 16.5 Device: storage replication + All/Videos hitch notes
@@ -189,16 +190,16 @@ Endless Shuffle, Queue Stability, and Session Continuity
       during Cap 16 or before 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 16.3 one networked video fetch; `load` reports
-      success/fail/cancel
-- Sub-steps done: 16.1 contract freeze; 16.2 leave-cancel (`d273358`)
-- Next step: `setPlaybackPlan` must not `prepareActive`; `load`
-      completes on playable/fail/cancel; feed drops
-      `requestPlayableVideo` as a download. Do not Time Profiler.
+- Goal (one line): Cap 16.4 Dart dwell N=500 ms before Layer 2
+- Sub-steps done: 16.1 contract freeze; 16.2 leave-cancel (`d273358`);
+      16.3 one networked `load` (`df021b8`)
+- Next step: dwell 500 ms on still + video Layer 2; Retry bypasses;
+      keep `_layer2InFlight` true during dwell. Do not Time Profiler.
       Do not lower the 13.6 bar
 - Related decisions: ADR-029 Accepted (`d273358`); ADR-025 D4 leave-
-      cancel implemented in 16.2; ADR-025 D2 timing narrow-supersede
-      Status note waits for 16.4; ADR-023 D10 hitch bar unchanged
+      cancel implemented in 16.2; dual video `requestAVAsset` removed
+      in 16.3; ADR-025 D2 timing narrow-supersede Status note waits
+      for 16.4; ADR-023 D10 hitch bar unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -383,8 +384,8 @@ Endless Shuffle, Queue Stability, and Session Continuity
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. iCloud-only blank size **before** local data exists is ADR-015/018 (never download solely for size; Photos Info is not a public-SDK ground truth). Same-page refresh after Layer 2 landed `900581e`. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | Main Browse Screen | First cold start: All current item fails until Retry because the 无线数据 dialog appears after Layer 2 has already been issued | China-SKU app-level first-network prompt (国行 App Store vs NZ: Pictok same split). Dart `HttpClient` pre-feed probe does **not** trigger it. Lifecycle auto-retry landed `eddb7c3`. Kafka first-launch retest still pending. | Later Cap / owner device confirm; native `URLSession` pre-trigger is a separate optional row | ADR-025 |
 | Main Browse Screen | Optional native `URLSession` (CFNetwork) pre-feed to show 无线数据 on the loading screen instead of after first Layer 2 fail | Dart sockets do not trip the China-SKU prompt. Not required for doom-scroll once B auto-retries (`eddb7c3`). Pictok 国行 still shows the prompt in the feed. | Later Cap / optional | ADR-025 |
-| Main Browse Screen | **Leave-current does not stop PhotoKit iCloud video materialization; Browse continuously fills device storage; cannot reclaim from the system Photos library** | User-visible, independent of hitch. Optimize iPhone Storage **on** still loses: download rate beats system reclaim. 2026-08-18 replication: Videos V1 ~75 s, wait only first+last iCloud videos to play, flick the rest on cover → disk **200.2 → 207.38 GB (~+7 GB)**. Two watched videos ≠ +7 GB. WakeTok JPEG temps are bounded; growth is Photos library cache from dual `requestAVAsset` (`requestPlayableVideo` + `prepareActive`, both `network=true` / `.highQualityFormat`). Leave calls `pause()` + `cancelPlayableVideo`; `prepareActive` is cancelled only inside the **next** `load()` / `replaceCurrentItem`. Fast skip can leave the previous prepare running. App has **no public API** to delete Photos-library downloads (kickoff forbids an app-owned persistent media cache). Reclaim = iOS idle / reboot. Makes the 13.6 six-Run matrix physically unrepeatable on a 256 GB phone; once full, SpringBoard itself hitches so any App’s hitch numbers are meaningless. **Second 13.6 gate-foundation defect** (Cap 14 was the first). Settings same-id leave is a narrower sibling (row below). | Cancel and dwell current-item Layer 2 fetch (Cap 16) | ADR-025 D4 / ADR-029 / ADR-006 |
-| Main Browse Screen | Tab leave does not cancel `PlaybackApiHost.prepareActive` iCloud video download | `pause()` only pauses the player. `replaceCurrentItem` cancels PHImageRequest only when the asset id **changes**. After ADR-027, leave Browse already flips `isCurrent` false; the hole is no following `load()` to cancel prepare. Same Host API as the Photos-cache-fill row (`cancelInFlightPrepare`). | Cancel and dwell current-item Layer 2 fetch (Cap 16) | ADR-025 D4 / ADR-029 / ADR-006 |
+| Main Browse Screen | **Leave-current did not stop PhotoKit iCloud video materialization; Browse continuously fills device storage; cannot reclaim from the system Photos library** | User-visible, independent of hitch. Optimize iPhone Storage **on** still loses: download rate beats system reclaim. 2026-08-18 replication: Videos V1 ~75 s, wait only first+last iCloud videos to play, flick the rest on cover → disk **200.2 → 207.38 GB (~+7 GB)**. Two watched videos ≠ +7 GB. WakeTok JPEG temps are bounded; growth is Photos library cache. **16.2** leave-cancel (`d273358`); **16.3** one networked `load` (`df021b8`; `requestPlayableVideo` is duration-only). Remaining: no dwell yet — becoming current still starts Layer 2 immediately (16.4); 16.5 measures storage. A late `cancel` after leave may still let A briefly enter prepare (not proven zero disk). App has **no public API** to delete Photos-library downloads (kickoff forbids an app-owned persistent media cache). Reclaim = iOS idle / reboot. Makes the 13.6 six-Run matrix physically unrepeatable on a 256 GB phone; once full, SpringBoard itself hitches so any App’s hitch numbers are meaningless. **Second 13.6 gate-foundation defect** (Cap 14 was the first). | Cancel and dwell current-item Layer 2 fetch (Cap 16) | ADR-025 D4 / ADR-029 / ADR-006 |
+| Main Browse Screen | Tab leave does not cancel `PlaybackApiHost.prepareActive` iCloud video download | **Closed by 16.2** (`d273358`): `cancelInFlightPrepare` on leave current / dispose / leave Browse, including same-id. Remaining storage-fill gap is dwell (16.4), not missing leave-cancel. | Closed by Cap 16.2 (ADR-029) | ADR-025 D4 / ADR-029 / ADR-006 |
 | Main Browse Screen | Profile/Debug may prompt Local Network (“查找本地网络中的设备”) before Photos | Flutter observatory / mDNS, not product PhotoKit. Release expected not to show it. | Do not fix in product; observe on Release | — |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
