@@ -70,15 +70,16 @@
       preheating, and loading states
       (Cap 14 / ADR-025 Accepted, work `393ebc9`; **first** 13.6
       foundation paid — iCloud copy-panel unreadability)
-- [~] <-- YOU ARE HERE: Cancel and dwell current-item Layer 2 fetch
-      (Cap 16 / ADR-029 Proposed; not Cap 15; 13.6 bar unchanged)
 - [ ] Feed swipe Layer 1→2 handoff polish and duplicate current-item
       Layer 2 request (Cap 15). Scope: local-fast Layer 2 exposing
       still/video swipe-in flash; listen+build double generation bump
-      that may duplicate Layer 2. **Start only after Cap 13 close-out
-      (13.7).** Must not run during Cap 16 or between 16 close-out and
-      13.6. Design input is a **clean** 13.6 Instruments Profile
-      retest after Cap 16, not device notes alone.
+      that may duplicate Layer 2. **Not next.** Start only after Cap
+      13 close-out (13.7). Must not run during Cap 16 or between 16
+      close-out and 13.6. Design input is a **clean** 13.6 Instruments
+      Profile retest after Cap 16, not device notes alone.
+- [~] <-- YOU ARE HERE: Cancel and dwell current-item Layer 2 fetch
+      (Cap 16 / ADR-029 Accepted, work `d273358`; not Cap 15; 13.6
+      bar unchanged)
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
       (**deferred past Cap 14** — does not unblock 13.6)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
@@ -150,8 +151,9 @@ Active capability: Cancel and dwell current-item Layer 2 fetch (Cap 16)
 - [x] 16.1 Contract freeze: ADR-029 Proposed (no Accepted date, no
       fake anchor); Capability Roadmap insert; Parked Cap 13; Known
       debt Picks it up → Cap 16
-- [ ] 16.2 Host `cancelInFlightPrepare` + Dart leave/dispose/leave
+- [x] 16.2 Host `cancelInFlightPrepare` + Dart leave/dispose/leave
       Browse (#1+#4); `flutter test` including `test/architecture/`
+      (work `d273358`)
 - [ ] 16.3 Plan ≠ download: `setPlaybackPlan` must not `prepareActive`;
       `load` completes on success/fail/cancel; feed drops
       `requestPlayableVideo` download; that API is duration-only
@@ -167,8 +169,8 @@ Active capability: Cancel and dwell current-item Layer 2 fetch (Cap 16)
       not bypass in code unless a later ADR). Cap 16 `[x]` does
       **not** require 13.6 PASS
 - [ ] 16.6 Cap close-out: YOU ARE HERE returns to Cap 13; 13.6
-      still FAIL/blocked until retest. ADR-029 Accepted after 16.2;
-      ADR-025 D2 Status note after 16.4 (not this phase’s first job)
+      still FAIL/blocked until retest. ADR-029 Accepted (16.2 docs,
+      anchor `d273358`); ADR-025 D2 Status note after 16.4
 
 ## Parked capability: Cap 13
 Endless Shuffle, Queue Stability, and Session Continuity
@@ -187,14 +189,16 @@ Endless Shuffle, Queue Stability, and Session Continuity
       during Cap 16 or before 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 16.2 cancel in-flight `prepareActive` on leave
-- Sub-steps done: 16.1 contract freeze (ADR-029 Proposed)
-- Next step: Host `cancelInFlightPrepare` + Dart leave/dispose; then
-      `flutter test` including architecture. Do not Time Profiler.
+- Goal (one line): Cap 16.3 one networked video fetch; `load` reports
+      success/fail/cancel
+- Sub-steps done: 16.1 contract freeze; 16.2 leave-cancel (`d273358`)
+- Next step: `setPlaybackPlan` must not `prepareActive`; `load`
+      completes on playable/fail/cancel; feed drops
+      `requestPlayableVideo` as a download. Do not Time Profiler.
       Do not lower the 13.6 bar
-- Related decisions: ADR-029 Proposed; ADR-025 D4 implement-complete in
-      16.2; ADR-025 D2 timing narrow-supersede when 029 Accepted;
-      ADR-023 D10 hitch bar unchanged
+- Related decisions: ADR-029 Accepted (`d273358`); ADR-025 D4 leave-
+      cancel implemented in 16.2; ADR-025 D2 timing narrow-supersede
+      Status note waits for 16.4; ADR-023 D10 hitch bar unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -315,7 +319,7 @@ Endless Shuffle, Queue Stability, and Session Continuity
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
   ADR-024; 14.6 Kafka Profile PASS
 - ADR-001 … ADR-029: docs/DECISIONS.md (ADR-029 Cap 16 cancel and
-  dwell current-item Layer 2 — **Proposed**, no anchor yet; ADR-028
+  dwell current-item Layer 2 — **Accepted**, anchor `d273358`; ADR-028
   default Fit +
   portrait-only — **Accepted**, anchor `24debf4`; ADR-027 Cap 14.4e leave Browse
   ends Consumption Session — **Accepted**, anchor `fe660dd`; ADR-026

@@ -2531,8 +2531,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-029: Cap 16 cancel and dwell current-item Layer 2 fetch
 
-- Status: Proposed
-- Commit/PR anchor: (none until the first implementing work commit)
+- Status: Accepted (2026-08-19)
+  <!-- Accepted date from `git log -1 --format=%cs d273358` → 2026-08-19 -->
+- Commit/PR anchor: d273358
 - Plain summary (owner reads this):
   Stopping on a photo or video should not start an iCloud download
   until you have stayed there briefly. Leaving the item (including
