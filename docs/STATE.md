@@ -64,12 +64,15 @@
       (ADR-022; CFG `f53d455`; derive `ba81abc`;
       Queue `77571a9`; guard `a14d748`; accept `2e167bf`)
 - [~] <-- YOU ARE HERE: Endless Shuffle, Queue Stability, and Session Continuity
-      (Cap 13; 13.6 now executable at the unchanged V-hard bar;
-      Instruments not run in 14.7)
+      (Cap 13; 13.6 Profile retest **FAIL** after Cap 14; blocked on
+      a **second** gate-foundation defect — uncanceled Layer 2 video
+      fetch filling the device; bar unchanged; not Cap 15)
 - [x] Current-item iCloud media fetch, visual
       preheating, and loading states
-      (Cap 14 / ADR-025 Accepted, work `393ebc9`; 13.6 executability
-      restored; Instruments not run in 14.7)
+      (Cap 14 / ADR-025 Accepted, work `393ebc9`; **first** 13.6
+      foundation paid — iCloud copy-panel unreadability; **second**
+      foundation still open — uncanceled Layer 2 video fetch fills
+      the device)
 - [ ] Feed swipe Layer 1→2 handoff polish and duplicate current-item
       Layer 2 request (Cap 15). Scope: local-fast Layer 2 exposing
       still/video swipe-in flash; listen+build double generation bump
@@ -148,37 +151,28 @@ Continuity (Cap 13)
 > the Parked section.
 
 - [x] 13.1–13.5, 13.8 — see git / ADR-023 / ADR-024 (13.8e `7edc99c`)
-- [ ] 13.6 Acceptance — **executable** at the unchanged V-hard bar
-      (NOT "no hang found", NOT "skipped for now"): unit
-      SHUF/CONT/STAB/ROUND + APP/W-SHUF/W-END + architecture green;
-      Instruments Profile Hang retest on iPhone 13 Pro (Kafka, UDID
-      `00008110-001114420AEA801E`) — same V-hard as ADR-014 Cap 7.7a
-      (mean hitch < 25 ms/s AND zero Severe Hang on production chrome
-      with Shuffle-driven feed **including Manual Endless: swipe past
-      last item to start next Shuffle round**; not Conditional Pass);
-      does not clear Release hang Known debt; no new PoC gate; no
-      Checkpoint recovery test.
-      The prior Profile V-hard **FAIL**
-      (`docs/acceptance/cap13-13.6-notes.md`) and the inexecutable
-      stop (`docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md`)
-      are **not** overturned by 14.7. They remain the last
-      actually-run result. This docs change only moves
-      **inexecutable → executable**; it does **not** change FAIL to
-      Pass, Conditional Pass, or skipped.
-      **Why now executable:** Cap 14 is `[x]` (14.7). Gate
-      preconditions that made 13.6 uninterpretable are paid:
-      14.2 Host Layer 1 `393ebc9`; 14.3 Host Layer 2 network
-      `ce8807f`; 14.4 Feed three-layer UI + Retry→Layer 2 `9cf22a5`
-      (iCloud-only is no longer a copy panel); 14.4b `eddb7c3` +
-      `900581e`;
-      14.4c `6178f9e`; 14.4d `8189543`; 14.4e `fe660dd`;
-      ±1 preheat `fa09b00`; Limited first-launch All
-      `37821ec` + `7329081`; item-load chrome `16ed6e3`;
-      default Fit + portrait `24debf4` / ADR-028 (chrome 13.6 will
-      measure). Shuffle still scatters iCloud pages through the
-      Queue. The bar is **not** lowered, **not** Conditional Pass,
-      **not** split. Hypotheses A–D remain untested — no
-      hang-window stack. The Instruments run is this 13.6 phase.
+- [ ] 13.6 Acceptance — **blocked** on a **second** gate-foundation
+      defect (same class as Cap 14’s iCloud-copy unreadability; **not**
+      a guess-patch to make hitch numbers look better). Cap 14 paid
+      **readability** (Layer 1+2+3). The 2026-08-18 Profile retest on
+      Kafka (`docs/acceptance/cap13-13.6-retest-notes.md`, HEAD
+      `8505379`) is **FAIL** at the unchanged V-hard bar (mean hitch
+      < 25 ms/s AND zero Severe Hang; not Conditional Pass; not split).
+      **All 3/3 FAIL by mean hitch (~68.9 / 64.4 / 65.1 ms/s) while
+      disk still had headroom** — All ran first; do **not** blame All
+      on disk-full. Videos 3/3 FAIL by mean; V3 labelled Severe Hang
+      with the device at 255.22 / 256 GB. Endless **not run** (device
+      full; no interpretive value — not a skipped gate).
+      Leave-current does not cancel `prepareActive`; each Videos Run
+      can add ~7 GB to the Photos library cache; Optimize iPhone
+      Storage does not keep up; only idle/reboot reclaims. The six-Run
+      matrix cannot be repeated on a 256 GB phone. Do not Time Profiler
+      until leave-cancel is real. Original FAIL tables
+      (`docs/acceptance/cap13-13.6-notes.md`) stay frozen; 13.6b
+      A–D tables stay frozen with a 2026-08-18 disk-confounder append.
+      Do not mark 13.6 `[x]`. Do not start 13.7. Do not start Cap 15.
+      Do not lower the bar. Next named repair (not Cap 15) awaits
+      owner board of the design draft.
 - [ ] 13.7 Cap close-out (stays last; cannot run until 13.6
       PASSes): STATE Cap `[x]` + PHASE_HISTORY;
       Phase Roadmap → Cap 15 feed swipe Layer 1→2 handoff polish and
@@ -187,16 +181,18 @@ Continuity (Cap 13)
       stay later. Cap 15 must not start between 14.7 and 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.6 Instruments Profile Hang retest (Kafka;
-      unchanged V-hard; not run in 14.7)
-- Sub-steps done: 13.1–13.5, 13.8 (`7edc99c` / ADR-023 / ADR-024);
-      Cap 14 `[x]` (14.7)
-- Next step: run 13.6 Instruments on iPhone 13 Pro (Kafka); do not
-      start Cap 15; do not lower / Conditional-Pass / split the bar
-- Related decisions: ADR-023 D10 13.6 V-hard unchanged; ADR-025
-      Accepted (`393ebc9`); ADR-006 Status narrow supersede
-      (`ce8807f`); ADR-028 Fit + portrait (`24debf4`); ADR-024 empty
-      Snapshot not cached; ADR-026 / ADR-027 unchanged
+- Goal (one line): Board the **second** 13.6 gate-foundation repair
+      (cancel / bound current-item Layer 2 video fetch) — design only;
+      no code this turn
+- Sub-steps done: 13.1–13.5, 13.8; Cap 14 `[x]`; 13.6 retest FAIL
+      recorded (`cap13-13.6-retest-notes.md`); 13.6b disk-confounder
+      append; Known debt row for Photos-cache fill
+- Next step: owner boards the repair scope + ADR draft (not Cap 15);
+      then code. Do not Time Profiler first. Do not lower the 13.6 bar
+- Related decisions: ADR-023 D10 13.6 V-hard unchanged; ADR-025 D4
+      leave-cancel already Accepted (implement half-done); ADR-025 D2
+      Layer 2 network-unconditional — dwell threshold would narrow-
+      supersede; ADR-006 / ADR-026 / ADR-027 / ADR-028 unchanged
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -353,8 +349,12 @@ Continuity (Cap 13)
 - Acceptance notes (Cap 13.6 Profile V-hard FAIL — do not rewrite the
   FAIL tables): docs/acceptance/cap13-13.6-notes.md
 - Acceptance notes (Cap 13.6b hang campaign stopped as inexecutable;
-  Limited All empty draft 3 + resolution):
+  Limited All empty draft 3 + resolution; 2026-08-18 disk-confounder
+  append — do not rewrite A–D tables):
   docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md
+- Acceptance notes (Cap 13.6 Profile retest after Cap 14 — FAIL;
+  All independent of disk-full; second foundation defect):
+  docs/acceptance/cap13-13.6-retest-notes.md
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
@@ -375,7 +375,8 @@ Continuity (Cap 13)
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. iCloud-only blank size **before** local data exists is ADR-015/018 (never download solely for size; Photos Info is not a public-SDK ground truth). Same-page refresh after Layer 2 landed `900581e`. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | Main Browse Screen | First cold start: All current item fails until Retry because the 无线数据 dialog appears after Layer 2 has already been issued | China-SKU app-level first-network prompt (国行 App Store vs NZ: Pictok same split). Dart `HttpClient` pre-feed probe does **not** trigger it. Lifecycle auto-retry landed `eddb7c3`. Kafka first-launch retest still pending. | Later Cap / owner device confirm; native `URLSession` pre-trigger is a separate optional row | ADR-025 |
 | Main Browse Screen | Optional native `URLSession` (CFNetwork) pre-feed to show 无线数据 on the loading screen instead of after first Layer 2 fail | Dart sockets do not trip the China-SKU prompt. Not required for doom-scroll once B auto-retries (`eddb7c3`). Pictok 国行 still shows the prompt in the feed. | Later Cap / optional | ADR-025 |
-| Main Browse Screen | Tab leave does not cancel `PlaybackApiHost.prepareActive` iCloud video download | `pause()` only pauses the player. `replaceCurrentItem` cancels PHImageRequest only when the asset id **changes**. Browse→Settings keeps the same id, so `requestAVAsset` (`isNetworkAccessAllowed = true`) can keep running. `cancelPlayableVideo` covers PhotoLibrary duration only. Needs a Host entry to cancel the **current** prepare even when id is unchanged (ADR-025 D4). | Later Cap (id-unchanged prepare cancel; feed keep-alive is `6178f9e`) | ADR-025 / ADR-006 |
+| Main Browse Screen | **Leave-current does not stop PhotoKit iCloud video materialization; Browse continuously fills device storage; cannot reclaim from the system Photos library** | User-visible, independent of hitch. Optimize iPhone Storage **on** still loses: download rate beats system reclaim. 2026-08-18 replication: Videos V1 ~75 s, wait only first+last iCloud videos to play, flick the rest on cover → disk **200.2 → 207.38 GB (~+7 GB)**. Two watched videos ≠ +7 GB. WakeTok JPEG temps are bounded; growth is Photos library cache from dual `requestAVAsset` (`requestPlayableVideo` + `prepareActive`, both `network=true` / `.highQualityFormat`). Leave calls `pause()` + `cancelPlayableVideo`; `prepareActive` is cancelled only inside the **next** `load()` / `replaceCurrentItem`. Fast skip can leave the previous prepare running. App has **no public API** to delete Photos-library downloads (kickoff forbids an app-owned persistent media cache). Reclaim = iOS idle / reboot. Makes the 13.6 six-Run matrix physically unrepeatable on a 256 GB phone; once full, SpringBoard itself hitches so any App’s hitch numbers are meaningless. **Second 13.6 gate-foundation defect** (Cap 14 was the first). Settings same-id leave is a narrower sibling (row below). | Next named capability after owner boards the 13.6 second-foundation repair (**not** Cap 15) | ADR-025 D4 (Accepted; implementation incomplete) / ADR-006 |
+| Main Browse Screen | Tab leave does not cancel `PlaybackApiHost.prepareActive` iCloud video download | `pause()` only pauses the player. `replaceCurrentItem` cancels PHImageRequest only when the asset id **changes**. Browse→Settings keeps the same id, so `requestAVAsset` (`isNetworkAccessAllowed = true`) can keep running. `cancelPlayableVideo` covers PhotoLibrary duration only. Needs a Host entry to cancel the **current** prepare even when id is unchanged (ADR-025 D4). Narrower than the Photos-cache-fill row above (swipe leave is worse). | Same repair as the Photos-cache-fill row (not Cap 15) | ADR-025 / ADR-006 |
 | Main Browse Screen | Profile/Debug may prompt Local Network (“查找本地网络中的设备”) before Photos | Flutter observatory / mDNS, not product PhotoKit. Release expected not to show it. | Do not fix in product; observe on Release | — |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
 | POC-03 | Real physical-clip integration after POC-09 (≥3 exported clips locked queue) | Bundle WAV proved service shape only; confirm Photos-backed segments, order, Now Playing, no Dart per transition | Production Background Audio (prerequisite: Generated Clip Source available after Physical Clip Export Core + Photos import) | ADR-002 |
