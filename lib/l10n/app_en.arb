@@ -54,7 +54,7 @@
   },
   "libraryRowPhotos": "Photos",
   "@libraryRowPhotos": {
-    "description": "Totals row label for photos"
+    "description": "Browse top source + library totals row for the Photos media-type source (still images + Live Photo, not camera-only)"
   },
   "libraryRowVideos": "Videos",
   "@libraryRowVideos": {

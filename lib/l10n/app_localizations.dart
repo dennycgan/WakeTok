@@ -177,7 +177,7 @@ abstract class AppLocalizations {
   /// **'All'**
   String get libraryRowAll;
 
-  /// Totals row label for photos
+  /// Browse top source + library totals row for the Photos media-type source (still images + Live Photo, not camera-only)
   ///
   /// In en, this message translates to:
   /// **'Photos'**
