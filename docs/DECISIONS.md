@@ -2471,3 +2471,58 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     visible; recorded as Known debt, not a 14.4e defect.
   - ADR-023 D6 same-asset Host playhead sharing unchanged.
   - Does **not** supersede ADR-023 D8 or ADR-014 Decision 4.
+
+---
+
+## ADR-028: Default Fit presentation + portrait-only
+
+- Status: Accepted (2026-08-18)
+  <!-- Accepted date from `git log -1 --format=%cs 24debf4` → 2026-08-18 -->
+- Commit/PR anchor: 24debf4
+- Plain summary (owner reads this):
+  Browse always shows the whole picture (Fit), like opening an item in
+  iOS Photos — not a cropped fill. The app stays portrait even if the
+  phone’s orientation lock is off. If a later version adds Fill or
+  9:16 Crop, those are extras; Fit stays the default.
+- Context / what problem forced this:
+  Production Browse shipped Fill (`BoxFit.cover` /
+  `resizeAspectFill` / `scaleAspectFill`) with no ADR. Kickoff lists
+  Fit / Fill / 9:16 Crop as a later rail. Fill hides edges; that is
+  not acceptable for MVP. Measuring 13.6 on Fill then switching to Fit
+  would force a second hitch campaign. Flutter’s template also allowed
+  iPhone landscape; that is not a doom-scroll product.
+- Decision (what was chosen):
+  1. **Fit is the permanent default**, whether or not the
+     “Share, Mute, Fit / Fill / 9:16 Crop…” capability ever ships.
+     Default means: still `BoxFit.contain`, video
+     `AVLayerVideoGravity.resizeAspect`, Live
+     `UIView.ContentMode.scaleAspectFit`. Fill and 9:16 Crop, if added
+     later, are **optional modes**, not co-equal defaults. Last-used
+     Fill/Crop must **not** become the cold-start default unless a
+     **new** ADR overturns this.
+  2. **Portrait-only for MVP.** `Info.plist` (iPhone and iPad) allows
+     only `UIInterfaceOrientationPortrait`. Dart also calls
+     `SystemChrome.setPreferredOrientations([portraitUp])`. The system
+     Portrait Orientation Lock does not change this: the app does not
+     follow landscape.
+  3. **Not the three-mode rail.** Overlay / LIVE / spinner stay
+     viewport-positioned. No `DisplayModePreference` in 14.6c.
+- Rejected alternatives (why not B):
+  - Leave Fill until the three-mode Cap — rejected; 13.6 would
+    measure chrome we will not ship.
+  - Equal three-way default / last-selected as default — rejected;
+    Fit is the product default.
+  - Plist-only or Dart-only orientation — rejected; UIKit launch vs
+    Flutter runtime both need the mask.
+  - Copy iOS Photos rotation (landscape when lock is off) —
+    rejected; WakeTok stays portrait.
+- Consequences / constraints accepted:
+  - Letterboxing on non-matching aspect; chrome may sit on black
+    bars (accepted).
+  - When the Capability Roadmap item **Share, Mute, Fit / Fill /
+    9:16 Crop, 2x gesture, tap-to-pause/resume** lands, add UI for
+    Fill / 9:16 Crop as optionals; **do not** change the Fit default
+    without a new ADR.
+  - Landscape / CarPlay would need a new ADR; not implied by this
+    one.
+  - Architecture tests lock the three constants and plist.
