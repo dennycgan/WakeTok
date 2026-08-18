@@ -50,7 +50,8 @@
       cross-source playhead Accepted ADR-023 / Cap 13.5)
 - [x] Live Photo rendering and static fallback (POC-08)
       (ADR-019; POC-08 PASS Cap 9.7; mute persist `4aa93b0`;
-      UX-1/UX-2 Known debt; notes `cap9-9.7-poc08-notes.md`)
+      UX-1 Known debt; UX-2 closed 14.6b `16ed6e3`;
+      notes `cap9-9.7-poc08-notes.md`)
 - [x] Asset Source and Source Pool Definition
       domain models
       (ADR-020; kinds `8c99d46`; SPD `6aa35dc`; ordering `954d7e0`)
@@ -179,6 +180,15 @@ preheating, and loading states (Cap 14)
       shows loading then content, not empty copy; resume during picker
       does not start All resolve; `requestAccess` complete restarts
       Browse)
+- [x] 14.6b Item load chrome: LIVE badge + Layer 2 / Live-prepare
+      spinner bottom-right (`_FeedCornerChrome`; display =
+      `_layer2InFlight || _livePreparing` with same-setState handoff).
+      Non-Live spinner uses a zero-width badge strut so vertical
+      slot matches Live. Library resolve loading stays centered.
+      Overlay `trailingInset` 123 (measured). Does not change 13.6
+      risk (UI/presentation only; no Host request timing /
+      concurrency / dedupe). Not Cap 15. Work `16ed6e3`; Kafka
+      Profile PASS
 - [ ] 14.7 Cap 14 close-out docs: Cap 14 `[x]`; **return YOU ARE HERE
       to Cap 13**; 13.6 unblocked as executable at the **unchanged**
       V-hard bar; **do not run Instruments in 14.7**
@@ -206,7 +216,8 @@ preheating, and loading states (Cap 14)
       so the Instruments run is not interpretable — Feed three-layer UI
       and Retry→Layer 2 landed `9cf22a5` (iCloud-only is no longer a
       copy panel). Remaining Cap 14: close-out docs (14.7). Limited
-      first-launch All empty is `37821ec` + `7329081`. Host Layer 2 is
+      first-launch All empty is `37821ec` + `7329081`; item-load
+      chrome is `16ed6e3`. Host Layer 2 is
       `ce8807f`; video loop/replay is
       `8189543`; leave-Browse reset is `fe660dd`; ±1 preheat is
       `fa09b00`. Shuffle still scatters iCloud pages through the
@@ -232,7 +243,8 @@ preheating, and loading states (Cap 14)
       (Kafka loop / return-to-ended / Live play-once PASS);
       14.4e `fe660dd` (Kafka leave-Browse reset PASS);
       14.5 `fa09b00` (Kafka ±1 preheat PASS);
-      14.6 `37821ec` + `7329081` (Kafka Limited first-launch All PASS)
+      14.6 `37821ec` + `7329081` (Kafka Limited first-launch All PASS);
+      14.6b `16ed6e3` (Kafka item-load chrome bottom-right PASS)
 - Next step: 14.7 STATE Cap `[x]` + Parked Cap 13 YOU ARE HERE; do not
       run Instruments
 - Related decisions: ADR-025 Accepted (`393ebc9`); ADR-006 Status
@@ -297,6 +309,9 @@ preheating, and loading states (Cap 14)
   when a still remains; `mainBrowseFeedICloudOnly` retired;
   Feed ±1 neighbour `requestPreview` / `releasePreview` two-phase
   window (Cap 14.5 `fa09b00`);
+  Item-load chrome bottom-right (Cap 14.6b `16ed6e3`: LIVE badge +
+  Layer 2 / Live-prepare spinner; library resolve loading stays
+  centered);
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
@@ -305,7 +320,8 @@ preheating, and loading states (Cap 14)
   `lib/domain/live_photo/` + `LivePhotoGateway` +
   `livePhotoRepositoryProvider` (Cap 9.3 `afd3181`); Feed play-once +
   `LiveHostOpSerial` (Cap 9.4 `c86dd6e`); preparing spinner +
-  `gatedFlagUpdate` (Cap 9.5 `042c59d`); `sharedMuteProvider` + mute
+  `gatedFlagUpdate` (Cap 9.5 `042c59d`); 14.6b `16ed6e3` moves badge
+  + preparing spinner to bottom-right (UX-2 closed); `sharedMuteProvider` + mute
   re-apply (Cap 9.6 `8c0f4ca`); video host mute persist (Cap 9.7
   `4aa93b0` / ADR-019)
 - Presentation Metadata: lib/domain/presentation/,
@@ -440,5 +456,5 @@ preheating, and loading states (Cap 14)
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | Device-verified Limited 6-video set (2026-08-18): Videos and All behave the same — first view is spinner-only (no blur cover), then Layer 2 network play succeeds. **Not** a Cap 14.5 preheat regression: ±1 uses local-only `requestPreview` (ADR-025 D2). Limited picker grid thumbs are system PhotosUI (smaller, may use network) — **not** Host Layer 1. Layer 2 success does **not** backfill a poster; off-current video also renders `pendingVideo` black on peek. Host `previewTargetSize` **1080×1080 px** (`PhotoLibraryService`, Cap 14.2 `393ebc9`) was **not rigorously validated in ADR-025** — implementation default only (POC-04 long-edge 1080 precedent); a larger local-only box may reduce iCloud hit rate vs grid-thumb tier. MVP-acceptable; fix paths need owner-scoped ADR (smaller thumb-first target, limited-network poster, and/or demoted-video peek frame). | Later Cap polish or Final real-device performance, memory, accessibility, privacy, and error-state hardening (owner schedules; not Cap 14.7) | ADR-025 / ADR-006 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
-| Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | Cap 9.7 layout observation; move badge+spinner to bottom-right | Main Browse / Live chrome polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
+| Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | **Closed by 14.6b** (`16ed6e3`). Badge + item Layer 2 / Live-prepare spinner share `_FeedCornerChrome` at bottom-right; Overlay `trailingInset` 123. Library resolve loading stays centered. Q7 play-once hide/show unchanged. Kafka Profile PASS. UX-1 untouched. | Closed by Cap 14.6b | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
 | Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** | **Closed by 14.6** (`37821ec` + `7329081`). Bounded re-resolve on successful empty remains; Kafka showed the empty All was started by resume `currentStatus()=.limited` **before** `requestAuthorization` completed. Skip that invalidate while `requestAccess` is in flight, then `restartSession` when the grant completes. Kafka Profile: loading then selected media, not empty copy. ADR-024 empty-not-cached remains as tab-switch backup. | Closed by Cap 14.6 (ADR-025 D8 + grant-complete restart) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
