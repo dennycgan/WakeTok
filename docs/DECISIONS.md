@@ -2526,3 +2526,142 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Landscape / CarPlay would need a new ADR; not implied by this
     one.
   - Architecture tests lock the three constants and plist.
+
+---
+
+## ADR-029: Cap 16 cancel and dwell current-item Layer 2 fetch
+
+- Status: Proposed
+- Commit/PR anchor: (none until the first implementing work commit)
+- Plain summary (owner reads this):
+  Stopping on a photo or video should not start an iCloud download
+  until you have stayed there briefly. Leaving the item (including
+  opening Settings) must stop that download. WakeTok still cannot
+  delete files iOS already put in the Photos library; it can only
+  download less and cancel sooner. The hitch pass bar does not change.
+- Context / what problem forced this:
+  Cap 13.6 Profile retest after Cap 14
+  (`docs/acceptance/cap13-13.6-retest-notes.md`, HEAD `8505379`) is
+  **FAIL** at the unchanged V-hard bar. All 3/3 failed by mean hitch
+  (~68.9 / 64.4 / 65.1 ms/s) **with disk headroom**. Videos filled
+  the device. Replication: ~75 s Videos V1, wait only first+last
+  iCloud videos to play, flick the rest on cover → **200.2 → 207.38 GB
+  (~+7 GB)**. Two watched videos ≠ +7 GB. Optimize iPhone Storage was
+  on; reboot reclaims; download rate beats reclaim while Browse runs.
+  This is 13.6’s **second** gate-foundation defect (Cap 14 paid
+  copy-panel unreadability). The six-Run matrix cannot be repeated on
+  a 256 GB phone; a full device makes any App’s hitch numbers
+  meaningless.
+  ADR-025 Decision 4 already requires: leaving the current item
+  cancels in-flight Layer 2. Implementation cancels
+  `requestPlayableVideo` / `requestDisplayAsset` but **not**
+  `PlaybackApiHost.prepareActive` until the **next** `load()` /
+  `replaceCurrentItem` (and only when the id changes). Leave Browse
+  (ADR-027) sets `isCurrent` false with **no** following `load()`, so
+  prepare keeps running.
+  Becoming current video starts **two** networked
+  `.highQualityFormat` `requestAVAsset` calls: `requestPlayableVideo`
+  (feed awaits it, discards `durationSeconds`; this is also the only
+  Dart-visible iCloud-video failure path) and `prepareActive` (via
+  `setPlaybackPlan` **and** `load`; the second is de-duped).
+  ADR-025 Decision 2 says current-item Layer 2 uses
+  `isNetworkAccessAllowed = true` with **no dwell**. PhotoKit
+  `cancelImageRequest` is best-effort once a transfer has begun, so
+  cancel-on-leave alone will not stop skip-downloads.
+- Decision (what was chosen):
+  1. **Capability identity.** Title: **Cancel and dwell current-item
+     Layer 2 fetch** (Cap 16). Not Cap 15 (swipe Layer 1→2 handoff).
+     Do not use “Doom Scroll” in the capability name, this ADR’s
+     title, code identifiers, ARB keys, or test names.
+  2. **Narrow supersede of ADR-025 Decision 2 — timing only.**
+     Current-item Layer 2 still uses `isNetworkAccessAllowed = true`,
+     including cellular (ADR-025 D1=A unchanged). It must **not**
+     start until the item has been current for **N milliseconds**.
+     **N = 500 ms is an initial value to be adjusted after on-device
+     acceptance, not a derived constant.** Applies to **still and
+     video** current-item Layer 2 (`requestDisplayAsset` and
+     `prepareActive` / `load`). Layer 1, ±1 preheat, Overlay file-size,
+     and Live **motion** stay local-only. Retry bypasses the dwell.
+     Endless new-round first item uses the **same** dwell (not a
+     bypass); 16.5 records whether last-item overscroll feels slow.
+  3. **Leave-cancel completes ADR-025 Decision 4 (no new ADR for
+     this bullet).** Leaving current (swipe, leave Browse / Settings /
+     Clips / Auto, dispose) must immediately: cancel the dwell timer;
+     cancel PhotoLibrary Layer 2; **and** cancel in-flight
+     `prepareActive` **without comparing the next id**. Host gains
+     `cancelInFlightPrepare`. Background / lock remain ADR-006
+     detach+pause (out of scope).
+  4. **One networked video fetch; `load` reports completion.**
+     Feed must not `await requestPlayableVideo` as a download.
+     `requestPlayableVideo` remains for debug probe: Host returns
+     `PHAsset.duration` / type checks and must **not**
+     `requestAVAsset`. **`setPlaybackPlan` records the plan only —
+     it must not call `prepareActive`.** `load` is the single
+     networked prepare and completes on success, mapped failure
+     (same codes as today’s playable path), or cancel. Swallowing
+     a nil `AVAsset` in the PhotoKit callback without completing
+     `load` is forbidden (that would drop Retry).
+  5. **16.3 pre-check (callers of `PlaybackApi.load`).** Production
+     `lib/`: only `_loadVideo` in `feed_page_media.dart`. Debug:
+     `playback_pipeline_probe.dart` (also awaits `load`; a later
+     completion is **more** correct). Live Photo uses
+     `clearPlaybackPool` + `requestLivePhoto`, **not** `load`.
+     Tests/fakes/gateway/generated/Host are wrappers. Probe and
+     fakes must follow the new completion contract.
+  6. **16.3 `_layer2InFlight` (UI vs data).** Today: true before
+     `loadFeedPageLayer2`; stills clear it when Layer 2 returns;
+     **video keeps it true until Platform View `onSurfaceReady`**.
+     Extending `load` until playable keeps the spinner up for the
+     real download (today the long wait was the extra
+     `requestPlayableVideo`). `onSurfaceReady` remains the attach
+     clear — do not assume try/catch preserves spinner. Cancel must
+     complete `load` or the spinner sticks. 16.4 must keep
+     `_layer2InFlight` true during the dwell, not only during Host
+     I/O.
+  7. **Storage / hitch close-out.** This Cap `[x]` when cancel +
+     single fetch + dwell land and device notes record: skip-heavy
+     Videos growth is explainable as watched items (not a hard GB
+     bar); N=500 keep/adjust; All×3 and Videos×3 hitch **measured**.
+     **Does not** mark 13.6 `[x]`. Hitch bar unchanged (ADR-023 D10 /
+     ADR-014): mean < 25 ms/s AND zero Severe Hang; not Conditional
+     Pass; not split; not discussed in this Cap.
+  8. **Roadmap.** Insert Cap 16 after Cap 14. Park Cap 13 (13.6
+     blocked, 13.7 last). Cap 15 starts only after 13.7. Two open
+     capabilities = same STATE deviation as ADR-025 D11.
+  9. **Docs workflow.** 16.1 appends this entry as **Proposed**.
+     After **16.2** work, a docs commit flips this ADR to Accepted
+     (anchor = 16.2 sha; `git log -1 --format=%cs`). ADR-025
+     Decision 2 Status note (timing narrow-supersede) waits for
+     **16.4** dwell to land — not the 16.2 docs commit. Cap 16
+     close-out returns YOU ARE HERE to Cap 13; does not run
+     Instruments as this Cap’s last phase (13.6 owns the retest).
+- Rejected alternatives (why not B):
+  - Guess-patch hitch inside Cap 13 / start Cap 15 between 14.7 and
+    13.6 — rejected; wrong class of work.
+  - Cancel-only, no dwell — rejected; PhotoKit cancel is best-effort.
+  - Dwell video only — rejected; All stills also start networked
+    `requestDisplayAsset`; still leave-cancel is already correct.
+  - Delete Photos-library cache at session end — rejected; no public
+    API; kickoff forbids an app-owned persistent media cache.
+  - Lower or Conditional-Pass the 13.6 bar in this Cap — rejected;
+    current “feels OK” is storage-contaminated; ADR-001-class bar
+    changes need a separate campaign.
+  - Hard MB/GB storage gate — rejected; two fully watched 4K items
+    can be multi-GB legally.
+  - New FlutterApi display stream for prepare failure — rejected;
+    `load` completion is enough; does not reopen ADR-025 D7.
+  - Bypass dwell on Endless new-round first item — not chosen up
+    front; default is the same 500 ms; observe in 16.5.
+- Consequences / constraints accepted:
+  - PhotoKit may still finish a transfer that had already begun.
+  - Watched originals stay in the Photos library until iOS reclaims.
+  - Background / lock may still download.
+  - iCloud video with no Layer 1 poster: black + spinner also covers
+    the 500 ms dwell (existing Known debt).
+  - Cap 7.7a ~5–7 ms/s was local-only; this Cap does not promise that
+    number, only that leaked concurrent downloads stop.
+  - Architecture guards (ADR-009/010/012) stay green on every `lib/`
+    touch. Dwell N lives in Dart, not Swift. Features do not import
+    `lib/platform` or `lib/data`.
+  - 13.6 hitch after this Cap includes dwell + one Layer 2 fetch;
+    that is the product surface, not a reason to lower the bar.
