@@ -1323,9 +1323,12 @@ class PhotoLibraryApi {
     ;
   }
 
-  /// Cap 14.3 Layer 2 playable video (current item).
-  /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
-  /// [requestDisplayAsset].
+  /// Duration / type metadata only (Cap 16.3). Fetches the PHAsset and
+  /// returns [PlayableVideoDto.durationSeconds] from `PHAsset.duration`.
+  /// Does **not** call `requestAVAsset` (no download). Production feed
+  /// current-item video fetch is [PlaybackApi.load]. Debug probe may
+  /// still call this. Same missing / non-video codes as before
+  /// ([ErrorCode.assetUnavailable] / [ErrorCode.unsupportedMedia]).
   Future<PlayableVideoDto> requestPlayableVideo(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPlayableVideo$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1591,6 +1594,9 @@ class PlaybackApi {
 
   final String pigeonVar_messageChannelSuffix;
 
+  /// Cap 16.3 / ADR-029: current-item video prepare. Completes when
+  /// playable, failed, or cancelled. The single networked `requestAVAsset`.
+  /// Must not return without completing (including cancel / pool clear).
   Future<void> load(PlaybackItemDto item) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.load$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1699,7 +1705,9 @@ class PlaybackApi {
     ;
   }
 
-  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff configureQueue.
+  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff
+  /// configureQueue. Cap 16.3: plan bookkeeping only — must **not**
+  /// `prepareActive` / `replaceCurrentItem`.
   Future<void> setPlaybackPlan(PlaybackPlanDto plan) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.setPlaybackPlan$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1718,7 +1726,8 @@ class PlaybackApi {
     ;
   }
 
-  /// Dart-to-native only; Swift does not ack.
+  /// Dart-to-native only; Swift does not ack. Cap 16.3: feed index only;
+  /// must **not** `prepareActive` / `replaceCurrentItem`.
   Future<void> syncPlanPosition(String assetIdentifier, int feedIndex) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.syncPlanPosition$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1737,7 +1746,9 @@ class PlaybackApi {
     ;
   }
 
-  /// PV ready: native adopts existing player (no stop/recreate) and clears restore guard.
+  /// PV ready: native adopts existing player (no stop/recreate) and
+  /// clears restore guard. Cap 16.3: attach only — must **not**
+  /// `prepareActive` (that would be a second download).
   Future<void> notifyDisplaySurfaceReady(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.notifyDisplaySurfaceReady$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1778,6 +1789,8 @@ class PlaybackApi {
   /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
   /// Completes only after the pool is safe for the caller (Dart awaits before
   /// LivePhotoApi). Idempotent. Does not reset mute preference.
+  /// Cap 16.3: must complete any in-flight [load] (do not only bump epoch
+  /// and drop the Pigeon completion).
   Future<void> clearPlaybackPool() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.clearPlaybackPool$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1799,6 +1812,9 @@ class PlaybackApi {
   /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
   /// [assetIdentifier] even when it is still the current id (leave
   /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+  /// Cap 16.3: must also complete that id's pending [load] Future
+  /// ([ErrorCode.operationCancelled]). Id-keyed — never cancels a
+  /// different asset's in-flight [load].
   Future<void> cancelInFlightPrepare(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.cancelInFlightPrepare$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(

@@ -628,7 +628,8 @@ void main() {
     );
 
     expect(display.displayCalls, isEmpty);
-    expect(display.playableCalls, ['v1']);
+    expect(display.playableCalls, isEmpty);
+    expect(playback.calls, ['setPlaybackPlan:feed-v1-0', 'load:v1']);
     expect(media?.kind, FeedPageMediaKind.video);
   });
 
@@ -675,7 +676,8 @@ void main() {
     );
 
     expect(display.displayCalls, ['vid']);
-    expect(display.playableCalls, ['vid']);
+    expect(display.playableCalls, isEmpty);
+    expect(playback.calls, ['setPlaybackPlan:feed-vid-1', 'load:vid']);
     expect(media?.kind, FeedPageMediaKind.video);
   });
 
@@ -703,9 +705,89 @@ void main() {
     );
 
     expect(display.displayCalls, isEmpty);
-    expect(display.playableCalls, ['vid']);
+    expect(display.playableCalls, isEmpty);
+    expect(playback.calls, ['setPlaybackPlan:feed-vid-1', 'load:vid']);
     expect(media?.kind, FeedPageMediaKind.video);
     expect(media?.display, poster);
+  });
+
+  test('U-16.3a load iCloudDownloadFailed maps to download fail', () async {
+    final playback = FakePlaybackRepository();
+    playback.loadErrorById['v1'] = 'iCloudDownloadFailed';
+    final gate = FeedMediaRequestGate();
+    final media = await loadFeedPageLayer2(
+      gate: gate,
+      generation: gate.begin(),
+      sourceKind: AssetSourceKind.mediaTypeVideos,
+      assetIdentifier: 'v1',
+      feedIndex: 0,
+      isCurrent: true,
+      layer1: null,
+      displayRepository: FakeMediaDisplayRepository(),
+      playbackRepository: playback,
+    );
+    expect(media?.kind, FeedPageMediaKind.failed);
+    expect(media?.failureReason, FeedFailureReason.download);
+  });
+
+  test('U-16.3b load operationCancelled is null not failed', () async {
+    final playback = FakePlaybackRepository();
+    playback.loadErrorById['v1'] = 'operationCancelled';
+    final gate = FeedMediaRequestGate();
+    final media = await loadFeedPageLayer2(
+      gate: gate,
+      generation: gate.begin(),
+      sourceKind: AssetSourceKind.mediaTypeVideos,
+      assetIdentifier: 'v1',
+      feedIndex: 0,
+      isCurrent: true,
+      layer1: null,
+      displayRepository: FakeMediaDisplayRepository(),
+      playbackRepository: playback,
+    );
+    expect(media, isNull);
+  });
+
+  test('U-16.3c load assetUnavailable maps to network fail', () async {
+    final playback = FakePlaybackRepository();
+    playback.loadErrorById['v1'] = 'assetUnavailable';
+    final gate = FeedMediaRequestGate();
+    final media = await loadFeedPageLayer2(
+      gate: gate,
+      generation: gate.begin(),
+      sourceKind: AssetSourceKind.mediaTypeVideos,
+      assetIdentifier: 'v1',
+      feedIndex: 0,
+      isCurrent: true,
+      layer1: null,
+      displayRepository: FakeMediaDisplayRepository(),
+      playbackRepository: playback,
+    );
+    expect(media?.kind, FeedPageMediaKind.failed);
+    expect(media?.failureReason, FeedFailureReason.network);
+  });
+
+  test('U-16.3d clearPlaybackPool completes in-flight load', () async {
+    final playback = FakePlaybackRepository();
+    playback.loadGates['v1'] = Completer<void>();
+    final item = PlaybackItem(
+      assetIdentifier: 'v1',
+      feedIndex: 0,
+      mediaKind: PlaybackMediaKind.video,
+    );
+    final pending = playback.load(item);
+    final completed = expectLater(
+      pending,
+      throwsA(
+        isA<PlatformException>().having(
+          (e) => e.code,
+          'code',
+          'operationCancelled',
+        ),
+      ),
+    );
+    await playback.clearPlaybackPool();
+    await completed;
   });
 
   test('U-14.4b Layer 2 maps assetUnavailable to network fail', () async {
@@ -2522,12 +2604,14 @@ void main() {
       mediaKind: PlaybackMediaKind.video,
       localFilePath: '/tmp/fake_preview_v1.jpg',
     );
-    display.playableGates['v1'] = Completer<void>();
+    final playback = FakePlaybackRepository();
+    playback.loadGates['v1'] = Completer<void>();
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
         mediaDisplay: display,
+        playback: playback,
       ),
     );
     await pumpAsyncWork(tester);
@@ -2539,7 +2623,7 @@ void main() {
     );
     expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsNothing);
 
-    display.playableGates['v1']!.complete();
+    playback.loadGates['v1']!.complete();
     await pumpAsyncWork(tester);
     expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
     // Post-frame onSurfaceReady may already have dropped the poster.
@@ -2821,13 +2905,15 @@ void main() {
       mediaKind: PlaybackMediaKind.video,
       localFilePath: '/tmp/fake_preview_v1.jpg',
     );
-    display.playableGates['v1'] = Completer<void>();
+    final playback = FakePlaybackRepository();
+    playback.loadGates['v1'] = Completer<void>();
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
         mediaDisplay: display,
+        playback: playback,
         presentationMetadata: presentation,
       ),
     );
@@ -2835,7 +2921,7 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsNothing);
     expect(find.text(sizeCopy), findsNothing);
 
-    display.playableGates['v1']!.complete();
+    playback.loadGates['v1']!.complete();
     await pumpAsyncWork(tester);
     expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
     expect(find.text(sizeCopy), findsOneWidget);

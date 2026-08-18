@@ -374,9 +374,12 @@ abstract class PhotoLibraryApi {
   /// delete a display JPEG already on disk.
   void cancelDisplayAsset(String assetIdentifier);
 
-  /// Cap 14.3 Layer 2 playable video (current item).
-  /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
-  /// [requestDisplayAsset].
+  /// Duration / type metadata only (Cap 16.3). Fetches the PHAsset and
+  /// returns [PlayableVideoDto.durationSeconds] from `PHAsset.duration`.
+  /// Does **not** call `requestAVAsset` (no download). Production feed
+  /// current-item video fetch is [PlaybackApi.load]. Debug probe may
+  /// still call this. Same missing / non-video codes as before
+  /// ([ErrorCode.assetUnavailable] / [ErrorCode.unsupportedMedia]).
   @async
   PlayableVideoDto requestPlayableVideo(String assetIdentifier);
 
@@ -472,6 +475,10 @@ abstract class PhotoLibraryApi {
 /// observePlaybackState → [PlaybackFlutterApi.onPlaybackRuntimeEvent].
 @HostApi()
 abstract class PlaybackApi {
+  /// Cap 16.3 / ADR-029: current-item video prepare. Completes when
+  /// playable, failed, or cancelled. The single networked `requestAVAsset`.
+  /// Must not return without completing (including cancel / pool clear).
+  @async
   void load(PlaybackItemDto item);
 
   void play();
@@ -484,13 +491,18 @@ abstract class PlaybackApi {
 
   void setMute(bool muted);
 
-  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff configureQueue.
+  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff
+  /// configureQueue. Cap 16.3: plan bookkeeping only — must **not**
+  /// `prepareActive` / `replaceCurrentItem`.
   void setPlaybackPlan(PlaybackPlanDto plan);
 
-  /// Dart-to-native only; Swift does not ack.
+  /// Dart-to-native only; Swift does not ack. Cap 16.3: feed index only;
+  /// must **not** `prepareActive` / `replaceCurrentItem`.
   void syncPlanPosition(String assetIdentifier, int feedIndex);
 
-  /// PV ready: native adopts existing player (no stop/recreate) and clears restore guard.
+  /// PV ready: native adopts existing player (no stop/recreate) and
+  /// clears restore guard. Cap 16.3: attach only — must **not**
+  /// `prepareActive` (that would be a second download).
   void notifyDisplaySurfaceReady(String assetIdentifier);
 
   /// Stub until Production Background Audio (ADR-002).
@@ -499,11 +511,16 @@ abstract class PlaybackApi {
   /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
   /// Completes only after the pool is safe for the caller (Dart awaits before
   /// LivePhotoApi). Idempotent. Does not reset mute preference.
+  /// Cap 16.3: must complete any in-flight [load] (do not only bump epoch
+  /// and drop the Pigeon completion).
   void clearPlaybackPool();
 
   /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
   /// [assetIdentifier] even when it is still the current id (leave
   /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+  /// Cap 16.3: must also complete that id's pending [load] Future
+  /// ([ErrorCode.operationCancelled]). Id-keyed — never cancels a
+  /// different asset's in-flight [load].
   void cancelInFlightPrepare(String assetIdentifier);
 }
 

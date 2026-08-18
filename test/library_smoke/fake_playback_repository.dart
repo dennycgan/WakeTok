@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/services.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
 
@@ -7,6 +8,12 @@ class FakePlaybackRepository implements PlaybackRepository {
   FakePlaybackRepository();
 
   final List<String> calls = <String>[];
+
+  /// Per-id delayed completion for [load] (Cap 16.3 video Layer 2).
+  final Map<String, Completer<void>> loadGates = <String, Completer<void>>{};
+
+  /// Forced [PlatformException.code] per asset id for [load].
+  final Map<String, String> loadErrorById = <String, String>{};
 
   /// Shared host timeline with [FakeLivePhotoRepository.lifecycleLog].
   List<String>? lifecycleLog;
@@ -33,6 +40,14 @@ class FakePlaybackRepository implements PlaybackRepository {
   @override
   Future<void> load(PlaybackItem item) async {
     _record('load:${item.assetIdentifier}');
+    final code = loadErrorById[item.assetIdentifier];
+    if (code != null) {
+      throw PlatformException(code: code, message: 'fake');
+    }
+    final gate = loadGates[item.assetIdentifier];
+    if (gate != null) {
+      await gate.future;
+    }
   }
 
   @override
@@ -86,6 +101,15 @@ class FakePlaybackRepository implements PlaybackRepository {
   @override
   Future<void> clearPlaybackPool() async {
     _record('clearPlaybackPool');
+    final error = PlatformException(
+      code: 'operationCancelled',
+      message: 'Playback load cancelled',
+    );
+    for (final gate in loadGates.values) {
+      if (!gate.isCompleted) {
+        gate.completeError(error);
+      }
+    }
   }
 
   @override

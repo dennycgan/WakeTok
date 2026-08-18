@@ -1144,9 +1144,12 @@ protocol PhotoLibraryApi {
   /// Aborts an in-flight [requestDisplayAsset]. No-op if none. Does **not**
   /// delete a display JPEG already on disk.
   func cancelDisplayAsset(assetIdentifier: String) throws
-  /// Cap 14.3 Layer 2 playable video (current item).
-  /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
-  /// [requestDisplayAsset].
+  /// Duration / type metadata only (Cap 16.3). Fetches the PHAsset and
+  /// returns [PlayableVideoDto.durationSeconds] from `PHAsset.duration`.
+  /// Does **not** call `requestAVAsset` (no download). Production feed
+  /// current-item video fetch is [PlaybackApi.load]. Debug probe may
+  /// still call this. Same missing / non-video codes as before
+  /// ([ErrorCode.assetUnavailable] / [ErrorCode.unsupportedMedia]).
   func requestPlayableVideo(assetIdentifier: String, completion: @escaping (Result<PlayableVideoDto, Error>) -> Void)
   /// Aborts an in-flight [requestPlayableVideo]. No-op if none.
   func cancelPlayableVideo(assetIdentifier: String) throws
@@ -1382,9 +1385,12 @@ class PhotoLibraryApiSetup {
     } else {
       cancelDisplayAssetChannel.setMessageHandler(nil)
     }
-    /// Cap 14.3 Layer 2 playable video (current item).
-    /// `isNetworkAccessAllowed` is true. Same Layer 2 error mapping as
-    /// [requestDisplayAsset].
+    /// Duration / type metadata only (Cap 16.3). Fetches the PHAsset and
+    /// returns [PlayableVideoDto.durationSeconds] from `PHAsset.duration`.
+    /// Does **not** call `requestAVAsset` (no download). Production feed
+    /// current-item video fetch is [PlaybackApi.load]. Debug probe may
+    /// still call this. Same missing / non-video codes as before
+    /// ([ErrorCode.assetUnavailable] / [ErrorCode.unsupportedMedia]).
     let requestPlayableVideoChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPlayableVideo\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestPlayableVideoChannel.setMessageHandler { message, reply in
@@ -1620,27 +1626,40 @@ class PhotoLibraryApiSetup {
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol PlaybackApi {
-  func load(item: PlaybackItemDto) throws
+  /// Cap 16.3 / ADR-029: current-item video prepare. Completes when
+  /// playable, failed, or cancelled. The single networked `requestAVAsset`.
+  /// Must not return without completing (including cancel / pool clear).
+  func load(item: PlaybackItemDto, completion: @escaping (Result<Void, Error>) -> Void)
   func play() throws
   func pause() throws
   func seek(positionSeconds: Double) throws
   func setRate(rate: Double) throws
   func setMute(muted: Bool) throws
-  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff configureQueue.
+  /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff
+  /// configureQueue. Cap 16.3: plan bookkeeping only — must **not**
+  /// `prepareActive` / `replaceCurrentItem`.
   func setPlaybackPlan(plan: PlaybackPlanDto) throws
-  /// Dart-to-native only; Swift does not ack.
+  /// Dart-to-native only; Swift does not ack. Cap 16.3: feed index only;
+  /// must **not** `prepareActive` / `replaceCurrentItem`.
   func syncPlanPosition(assetIdentifier: String, feedIndex: Int64) throws
-  /// PV ready: native adopts existing player (no stop/recreate) and clears restore guard.
+  /// PV ready: native adopts existing player (no stop/recreate) and
+  /// clears restore guard. Cap 16.3: attach only — must **not**
+  /// `prepareActive` (that would be a second download).
   func notifyDisplaySurfaceReady(assetIdentifier: String) throws
   /// Stub until Production Background Audio (ADR-002).
   func updateNowPlayingMetadata() throws
   /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
   /// Completes only after the pool is safe for the caller (Dart awaits before
   /// LivePhotoApi). Idempotent. Does not reset mute preference.
+  /// Cap 16.3: must complete any in-flight [load] (do not only bump epoch
+  /// and drop the Pigeon completion).
   func clearPlaybackPool() throws
   /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
   /// [assetIdentifier] even when it is still the current id (leave
   /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+  /// Cap 16.3: must also complete that id's pending [load] Future
+  /// ([ErrorCode.operationCancelled]). Id-keyed — never cancels a
+  /// different asset's in-flight [load].
   func cancelInFlightPrepare(assetIdentifier: String) throws
 }
 
@@ -1650,16 +1669,21 @@ class PlaybackApiSetup {
   /// Sets up an instance of `PlaybackApi` to handle messages through the `binaryMessenger`.
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: PlaybackApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Cap 16.3 / ADR-029: current-item video prepare. Completes when
+    /// playable, failed, or cancelled. The single networked `requestAVAsset`.
+    /// Must not return without completing (including cancel / pool clear).
     let loadChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.load\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       loadChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let itemArg = args[0] as! PlaybackItemDto
-        do {
-          try api.load(item: itemArg)
-          reply(wrapResult(nil))
-        } catch {
-          reply(wrapError(error))
+        api.load(item: itemArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {
@@ -1736,7 +1760,9 @@ class PlaybackApiSetup {
     } else {
       setMuteChannel.setMessageHandler(nil)
     }
-    /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff configureQueue.
+    /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff
+    /// configureQueue. Cap 16.3: plan bookkeeping only — must **not**
+    /// `prepareActive` / `replaceCurrentItem`.
     let setPlaybackPlanChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.setPlaybackPlan\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       setPlaybackPlanChannel.setMessageHandler { message, reply in
@@ -1752,7 +1778,8 @@ class PlaybackApiSetup {
     } else {
       setPlaybackPlanChannel.setMessageHandler(nil)
     }
-    /// Dart-to-native only; Swift does not ack.
+    /// Dart-to-native only; Swift does not ack. Cap 16.3: feed index only;
+    /// must **not** `prepareActive` / `replaceCurrentItem`.
     let syncPlanPositionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.syncPlanPosition\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       syncPlanPositionChannel.setMessageHandler { message, reply in
@@ -1769,7 +1796,9 @@ class PlaybackApiSetup {
     } else {
       syncPlanPositionChannel.setMessageHandler(nil)
     }
-    /// PV ready: native adopts existing player (no stop/recreate) and clears restore guard.
+    /// PV ready: native adopts existing player (no stop/recreate) and
+    /// clears restore guard. Cap 16.3: attach only — must **not**
+    /// `prepareActive` (that would be a second download).
     let notifyDisplaySurfaceReadyChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.notifyDisplaySurfaceReady\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       notifyDisplaySurfaceReadyChannel.setMessageHandler { message, reply in
@@ -1802,6 +1831,8 @@ class PlaybackApiSetup {
     /// Cap 9 / ADR-019: release active+warming AVPlayers and clear plan.
     /// Completes only after the pool is safe for the caller (Dart awaits before
     /// LivePhotoApi). Idempotent. Does not reset mute preference.
+    /// Cap 16.3: must complete any in-flight [load] (do not only bump epoch
+    /// and drop the Pigeon completion).
     let clearPlaybackPoolChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.clearPlaybackPool\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       clearPlaybackPoolChannel.setMessageHandler { _, reply in
@@ -1818,6 +1849,9 @@ class PlaybackApiSetup {
     /// Cap 16.2 / ADR-029: cancel in-flight `prepareActive` for
     /// [assetIdentifier] even when it is still the current id (leave
     /// Browse / same-id). Does not wait for the next [load]. No-op if none.
+    /// Cap 16.3: must also complete that id's pending [load] Future
+    /// ([ErrorCode.operationCancelled]). Id-keyed — never cancels a
+    /// different asset's in-flight [load].
     let cancelInFlightPrepareChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.cancelInFlightPrepare\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       cancelInFlightPrepareChannel.setMessageHandler { message, reply in

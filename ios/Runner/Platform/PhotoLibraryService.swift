@@ -755,58 +755,15 @@ final class PhotoLibraryService: PhotoLibraryApi {
         )
         return
       }
-
-      let start = playableRequests.registerStart(
-        assetId: assetIdentifier,
-        completion: completion
-      )
-      if let previousId = start.previousRequestId {
-        PHImageManager.default().cancelImageRequest(previousId)
-      }
-      if let superseded = start.supersededCompletion {
-        DispatchQueue.main.async {
-          superseded(
-            .failure(
-              self.fail(
-                .operationCancelled,
-                message: "Playable video request replaced"
-              )
-            )
+      // Cap 16.3: duration / type only. No requestAVAsset (no download).
+      completion(
+        .success(
+          PlayableVideoDto(
+            assetIdentifier: assetIdentifier,
+            durationSeconds: Double(asset.duration)
           )
-        }
-      }
-
-      let generation = start.generation
-      let options = PHVideoRequestOptions()
-      options.isNetworkAccessAllowed = true
-      options.deliveryMode = .highQualityFormat
-      options.progressHandler = { [weak self] _, _, _, _ in
-        self?.playableRequests.markTransferBegan(
-          assetId: assetIdentifier,
-          generation: generation
         )
-      }
-
-      let requestId = PHImageManager.default().requestAVAsset(
-        forVideo: asset,
-        options: options
-      ) { [weak self] avAsset, _, info in
-        self?.handlePlayableResult(
-          assetIdentifier: assetIdentifier,
-          generation: generation,
-          fallbackDuration: Double(asset.duration),
-          avAsset: avAsset,
-          info: info
-        )
-      }
-
-      if let toCancel = playableRequests.bindRequestId(
-        assetId: assetIdentifier,
-        generation: generation,
-        requestId: requestId
-      ) {
-        PHImageManager.default().cancelImageRequest(toCancel)
-      }
+      )
     } catch {
       completion(.failure(error))
     }
@@ -1236,74 +1193,6 @@ final class PhotoLibraryService: PhotoLibraryApi {
     )
   }
 
-  private func handlePlayableResult(
-    assetIdentifier: String,
-    generation: UInt64,
-    fallbackDuration: Double,
-    avAsset: AVAsset?,
-    info: [AnyHashable: Any]?
-  ) {
-    let infoDict = info ?? [:]
-    let cancelled = (infoDict[PHImageCancelledKey] as? Bool) == true
-
-    if let avAsset, !cancelled {
-      let take = playableRequests.takeForDelivery(
-        assetId: assetIdentifier,
-        generation: generation
-      )
-      if !take.accepted {
-        return
-      }
-      if let requestId = take.requestIdToCancel {
-        PHImageManager.default().cancelImageRequest(requestId)
-      }
-      let duration: Double?
-      if let urlAsset = avAsset as? AVURLAsset {
-        let seconds = CMTimeGetSeconds(urlAsset.duration)
-        duration = seconds.isFinite ? seconds : nil
-      } else {
-        let seconds = CMTimeGetSeconds(avAsset.duration)
-        duration = seconds.isFinite ? seconds : fallbackDuration
-      }
-      finishPlayable(
-        assetIdentifier: assetIdentifier,
-        generation: generation,
-        result: .success(
-          PlayableVideoDto(
-            assetIdentifier: assetIdentifier,
-            durationSeconds: duration
-          )
-        )
-      )
-      return
-    }
-
-    if playableRequests.shouldDropCallback(
-      assetId: assetIdentifier,
-      generation: generation
-    ) {
-      return
-    }
-
-    let transferBegan = playableRequests.didTransferBegin(
-      assetId: assetIdentifier,
-      generation: generation
-    )
-    finishPlayable(
-      assetIdentifier: assetIdentifier,
-      generation: generation,
-      result: .failure(
-        layer2Failure(
-          cancelled: cancelled,
-          transferBegan: transferBegan,
-          cancelledMessage: "Playable video request cancelled",
-          failedMessage: "Playable video download failed",
-          unavailableMessage: "Failed to load playable video"
-        )
-      )
-    )
-  }
-
   private func finishDisplay(
     assetIdentifier: String,
     generation: UInt64,
@@ -1311,22 +1200,6 @@ final class PhotoLibraryService: PhotoLibraryApi {
   ) {
     DispatchQueue.main.async {
       guard let completion = self.displayRequests.takeCompletionIfCurrent(
-        assetId: assetIdentifier,
-        generation: generation
-      ) else {
-        return
-      }
-      completion(result)
-    }
-  }
-
-  private func finishPlayable(
-    assetIdentifier: String,
-    generation: UInt64,
-    result: Result<PlayableVideoDto, Error>
-  ) {
-    DispatchQueue.main.async {
-      guard let completion = self.playableRequests.takeCompletionIfCurrent(
         assetId: assetIdentifier,
         generation: generation
       ) else {

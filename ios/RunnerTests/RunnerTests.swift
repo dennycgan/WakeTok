@@ -205,6 +205,22 @@ final class PlaybackCurrentItemReplaceTests: XCTestCase {
     let toCancel = host.replaceCurrentItem("B")
     XCTAssertEqual(toCancel, 77)
   }
+
+  func testClearPlaybackPoolCompletesPendingLoad() {
+    let host = PlaybackApiHost()
+    let exp = expectation(description: "load Future must resolve")
+    host.debugEnqueueLoadCompletion("v1") { result in
+      guard case .failure(let error) = result else {
+        XCTFail("expected cancelled, got \(result)")
+        return
+      }
+      let pigeon = error as? PigeonError
+      XCTAssertEqual(pigeon?.code, "operationCancelled")
+      exp.fulfill()
+    }
+    XCTAssertNoThrow(try host.clearPlaybackPool())
+    waitForExpectations(timeout: 1.0)
+  }
 }
 
 final class VideoPlaybackPolicyTests: XCTestCase {

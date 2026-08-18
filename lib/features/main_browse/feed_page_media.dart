@@ -124,7 +124,6 @@ Future<FeedPageMedia?> loadFeedPageLayer2({
       feedIndex: feedIndex,
       isCurrent: isCurrent,
       poster: layer1?.display,
-      displayRepository: displayRepository,
       playbackRepository: playbackRepository,
     );
   }
@@ -155,7 +154,6 @@ Future<FeedPageMedia?> loadFeedPageLayer2({
           feedIndex: feedIndex,
           isCurrent: isCurrent,
           poster: layer1?.display,
-          displayRepository: displayRepository,
           playbackRepository: playbackRepository,
         );
       }
@@ -180,17 +178,12 @@ Future<FeedPageMedia?> _loadVideo({
   required int feedIndex,
   required bool isCurrent,
   required DisplayAsset? poster,
-  required MediaDisplayRepository displayRepository,
   required PlaybackRepository playbackRepository,
 }) async {
   if (!isCurrent) {
     return FeedPageMedia.pendingVideo(assetIdentifier);
   }
   try {
-    await displayRepository.requestPlayableVideo(assetIdentifier);
-    if (!gate.isCurrent(generation)) {
-      return null;
-    }
     final item = PlaybackItem(
       assetIdentifier: assetIdentifier,
       feedIndex: feedIndex,

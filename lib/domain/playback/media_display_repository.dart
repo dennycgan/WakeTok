@@ -2,8 +2,10 @@ import 'package:waketok/domain/playback/playback_models.dart';
 
 /// Still/video presentation over PhotoLibraryApi (Cap 7.3 + Cap 14.2/14.3).
 ///
-/// [requestDisplayAsset] / [requestPlayableVideo] are Cap 14.3 Layer 2
-/// (network allowed). They never emit channel `iCloudDownloadRequired`.
+/// [requestDisplayAsset] is Cap 14.3 Layer 2 (network allowed).
+/// [requestPlayableVideo] is duration / type metadata only (Cap 16.3) —
+/// it does not download; current-item video fetch is [PlaybackRepository.load].
+/// Layer 2 never emits channel `iCloudDownloadRequired`.
 /// Terminal download failure is `iCloudDownloadFailed`; abort / same-id
 /// supersede is `operationCancelled` (non-terminal).
 ///

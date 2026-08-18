@@ -65,6 +65,10 @@ final class PlaybackApiHost: PlaybackApi {
     label: "com.dennycgan.waketok.playback.prepare.warm"
   )
   private let currentPrepareTable = PhotoKitRequestTable<() -> Void>()
+  /// Cap 16.3: pending Pigeon `load` completions, keyed by asset id.
+  /// Fan-out when a second `load` arrives while the same id is preparing.
+  /// Main-thread only.
+  private var loadCompletions: [String: [(Result<Void, Error>) -> Void]] = [:]
 
   init() {
     bgObserver = NotificationCenter.default.addObserver(
@@ -95,11 +99,73 @@ final class PlaybackApiHost: PlaybackApi {
 
   // MARK: - PlaybackApi
 
-  func load(item: PlaybackItemDto) throws {
-    cancelImageRequestIfNeeded(replaceCurrentItem(item.assetIdentifier))
-    currentFeedIndex = item.feedIndex
-    prepareActive(assetId: item.assetIdentifier)
-    warmNextIfPossible()
+  /// Cap 16.3: the single networked current-item fetch. Completes the
+  /// Pigeon Future on playable / mapped failure / cancel.
+  ///
+  /// Timing vs `cancelInFlightPrepare(A)` then `load(B)` (Dart may
+  /// `unawaited` cancel): Host API bodies run on the iOS platform (main)
+  /// thread. Dart sends cancel(A) before load(B) on the same isolate, so
+  /// cancel's synchronous work (table invalidate, `cancelImageRequest`,
+  /// `preparingAssetIds.remove`, complete A's `load`) typically finishes
+  /// before B starts. Different Pigeon methods are different channels —
+  /// we do **not** rely on cross-channel FIFO alone.
+  ///
+  /// What this guarantees: no hanging `load` Future; id-keyed cancel never
+  /// cancels B; stale A deliveries are dropped (generation +
+  /// `currentAssetIdentifier == token`). `prepareActive` has no global
+  /// "slot occupied by another id" mutex. Dart does not need to await
+  /// cancel before `load(B)`.
+  ///
+  /// What it does **not** claim: the two arrival orders are equivalent.
+  /// A late cancel(A) still completes A's Future, but A may have briefly
+  /// entered `prepareActive` / PhotoKit transfer before being cancelled.
+  /// 16.3 does not close that tail window; 16.5 observes whether it shows
+  /// up in storage numbers.
+  func load(
+    item: PlaybackItemDto,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    let work = { [weak self] in
+      guard let self else {
+        completion(
+          .failure(
+            PigeonError(
+              code: String(describing: ErrorCode.unknown),
+              message: "Playback host deallocated",
+              details: nil
+            )
+          )
+        )
+        return
+      }
+      let id = item.assetIdentifier
+      self.enqueueLoadCompletion(assetId: id, completion: completion)
+      let previousId = self.currentAssetIdentifier
+      self.cancelImageRequestIfNeeded(self.replaceCurrentItem(id))
+      if let previousId, previousId != id {
+        self.finishLoad(
+          assetId: previousId,
+          result: .failure(
+            self.fail(
+              .operationCancelled,
+              message: "Playback load superseded"
+            )
+          )
+        )
+      }
+      self.currentFeedIndex = item.feedIndex
+      if self.activeAssetId == id, self.activePlayer != nil {
+        self.surfaceView?.attach(player: self.activePlayer)
+        self.registerItemEndObserverIfNeeded()
+        self.consumePendingPlayIfNeeded()
+        self.finishLoad(assetId: id, result: .success(()))
+        self.warmNextIfPossible()
+        return
+      }
+      self.prepareActive(assetId: id)
+      self.warmNextIfPossible()
+    }
+    self.runOnMain(work)
   }
 
   func play() throws {
@@ -120,18 +186,26 @@ final class PlaybackApiHost: PlaybackApi {
 
   /// Cap 16.2 / ADR-029: cancel in-flight prepare for [assetIdentifier]
   /// even when it is still `currentAssetIdentifier` (no next `load()`).
+  /// Cap 16.3: also completes that id's pending `load` with
+  /// `operationCancelled`. Id-keyed — a late cancel(A) after `load(B)`
+  /// does not cancel B.
   func cancelInFlightPrepare(assetIdentifier: String) throws {
     let work = { [weak self] in
       guard let self else { return }
       let result = self.currentPrepareTable.invalidate(assetId: assetIdentifier)
       self.cancelImageRequestIfNeeded(result.requestId)
       self.preparingAssetIds.remove(assetIdentifier)
+      self.finishLoad(
+        assetId: assetIdentifier,
+        result: .failure(
+          self.fail(
+            .operationCancelled,
+            message: "Playback load cancelled"
+          )
+        )
+      )
     }
-    if Thread.isMainThread {
-      work()
-    } else {
-      DispatchQueue.main.sync(execute: work)
-    }
+    runOnMain(work)
   }
 
   func seek(positionSeconds: Double) throws {
@@ -155,24 +229,12 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   func setPlaybackPlan(plan: PlaybackPlanDto) throws {
+    // Cap 16.3: plan bookkeeping only. Must not prepareActive / replace.
     self.plan = plan
-    let idx = Int(plan.currentIndex)
-    guard idx >= 0, idx < plan.orderedItems.count else {
-      return
-    }
-    let item = plan.orderedItems[idx]
-    cancelImageRequestIfNeeded(replaceCurrentItem(item.assetIdentifier))
-    currentFeedIndex = item.feedIndex
-    prepareActive(assetId: item.assetIdentifier)
-    warmNextIfPossible()
   }
 
   func syncPlanPosition(assetIdentifier: String, feedIndex: Int64) throws {
-    cancelImageRequestIfNeeded(replaceCurrentItem(assetIdentifier))
-    if restoreGuardActive {
-      currentFeedIndex = feedIndex
-      return
-    }
+    // Cap 16.3: index only. Must not prepareActive / replaceCurrentItem.
     currentFeedIndex = feedIndex
     if let plan {
       self.plan = PlaybackPlanDto(
@@ -181,18 +243,15 @@ final class PlaybackApiHost: PlaybackApi {
         currentIndex: feedIndex
       )
     }
-    prepareActive(assetId: assetIdentifier)
-    warmNextIfPossible()
+    _ = assetIdentifier
   }
 
   func notifyDisplaySurfaceReady(assetIdentifier: String) throws {
     restoreGuardActive = false
-    if activeAssetId != assetIdentifier {
-      prepareActive(assetId: assetIdentifier)
-    } else {
-      DispatchQueue.main.async { [weak self] in
-        self?.adoptActivePlayerOntoSurface()
-      }
+    // Cap 16.3: attach only. prepareActive here would be a second download.
+    guard activeAssetId == assetIdentifier else { return }
+    DispatchQueue.main.async { [weak self] in
+      self?.adoptActivePlayerOntoSurface()
     }
   }
 
@@ -208,13 +267,10 @@ final class PlaybackApiHost: PlaybackApi {
     // does not bump clearEpoch. clearPlaybackPool still invalidates in-flight
     // prepare/warm via epoch — stale callbacks must no-op after clear.
     let work = { [weak self] in
-      self?.performClearPlaybackPool()
+      guard let self else { return }
+      self.performClearPlaybackPool()
     }
-    if Thread.isMainThread {
-      work()
-    } else {
-      DispatchQueue.main.sync(execute: work)
-    }
+    runOnMain(work)
   }
 
   // MARK: - Surface / pool
@@ -244,6 +300,9 @@ final class PlaybackApiHost: PlaybackApi {
     clearEpoch &+= 1
     pendingPlay = false
     preparingAssetIds.removeAll()
+    // Cap 16.3: complete in-flight load Futures. Do not only bump epoch
+    // and drop the Pigeon completion (Live Photo pre-empt would hang
+    // `await load()` / `_layer2InFlight`).
     if let current = currentAssetIdentifier {
       let result = currentPrepareTable.invalidate(assetId: current)
       cancelImageRequestIfNeeded(result.requestId)
@@ -258,6 +317,7 @@ final class PlaybackApiHost: PlaybackApi {
     currentAssetIdentifier = nil
     currentFeedIndex = 0
     surfaceView?.attach(player: nil)
+    finishAllLoadsCancelled()
     // Do not reset `muted` — Dart preference remains; next player re-applies.
   }
 
@@ -305,6 +365,61 @@ final class PlaybackApiHost: PlaybackApi {
     PHImageManager.default().cancelImageRequest(requestId)
   }
 
+  private func runOnMain(_ work: @escaping () -> Void) {
+    if Thread.isMainThread {
+      work()
+    } else {
+      DispatchQueue.main.sync(execute: work)
+    }
+  }
+
+  private func fail(_ code: ErrorCode, message: String) -> PigeonError {
+    PigeonError(code: String(describing: code), message: message, details: nil)
+  }
+
+  /// Same mapping as `PhotoLibraryService.layer2Failure` (do not invent codes).
+  private func layer2Failure(
+    cancelled: Bool,
+    transferBegan: Bool,
+    cancelledMessage: String,
+    failedMessage: String,
+    unavailableMessage: String
+  ) -> PigeonError {
+    if cancelled {
+      return fail(.operationCancelled, message: cancelledMessage)
+    }
+    if transferBegan {
+      return fail(.iCloudDownloadFailed, message: failedMessage)
+    }
+    return fail(.assetUnavailable, message: unavailableMessage)
+  }
+
+  private func enqueueLoadCompletion(
+    assetId: String,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    loadCompletions[assetId, default: []].append(completion)
+  }
+
+  private func finishLoad(assetId: String, result: Result<Void, Error>) {
+    let comps = loadCompletions.removeValue(forKey: assetId) ?? []
+    for completion in comps {
+      completion(result)
+    }
+  }
+
+  private func finishAllLoadsCancelled() {
+    let ids = Array(loadCompletions.keys)
+    for id in ids {
+      finishLoad(
+        assetId: id,
+        result: .failure(
+          fail(.operationCancelled, message: "Playback load cancelled")
+        )
+      )
+    }
+  }
+
   private func prepareActive(assetId: String) {
     if activeAssetId == assetId, activePlayer != nil {
       DispatchQueue.main.async { [weak self] in
@@ -313,6 +428,7 @@ final class PlaybackApiHost: PlaybackApi {
         self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
       }
+      finishLoad(assetId: assetId, result: .success(()))
       return
     }
     if warmingAssetId == assetId, let warming = warmingPlayer {
@@ -331,11 +447,11 @@ final class PlaybackApiHost: PlaybackApi {
         self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
       }
+      finishLoad(assetId: assetId, result: .success(()))
       return
     }
-    // Same asset already being prepared (e.g. load then
-    // notifyDisplaySurfaceReady) — do not build a duplicate player that
-    // would pause/replace the first one mid-playback.
+    // Same asset already being prepared — wait on that prepare's
+    // completion list. Do not early-return the new Pigeon Future.
     if preparingAssetIds.contains(assetId) {
       return
     }
@@ -356,6 +472,15 @@ final class PlaybackApiHost: PlaybackApi {
           self.preparingAssetIds.remove(token)
           guard self.clearEpoch == epoch else { return }
           self.adoptPreparedPlayer(nil, token: token)
+          self.finishLoad(
+            assetId: token,
+            result: .failure(
+              self.fail(
+                .unsupportedMedia,
+                message: "Not a video asset"
+              )
+            )
+          )
         }
         return
       }
@@ -384,12 +509,32 @@ final class PlaybackApiHost: PlaybackApi {
           PHImageManager.default().cancelImageRequest(toCancel)
         }
         let cancelled = ((info ?? [:])[PHImageCancelledKey] as? Bool) == true
+        let transferBegan = self.currentPrepareTable.didTransferBegin(
+          assetId: token,
+          generation: generation
+        )
         DispatchQueue.main.async {
           self.preparingAssetIds.remove(token)
           guard self.clearEpoch == epoch else { return }
-          guard !cancelled, let avAsset else { return }
+          if cancelled || avAsset == nil {
+            self.finishLoad(
+              assetId: token,
+              result: .failure(
+                self.layer2Failure(
+                  cancelled: cancelled,
+                  transferBegan: transferBegan,
+                  cancelledMessage: "Playback load cancelled",
+                  failedMessage: "Playback download failed",
+                  unavailableMessage: "Failed to load playable video"
+                )
+              )
+            )
+            return
+          }
+          guard let avAsset else { return }
           let player = AVPlayer(playerItem: AVPlayerItem(asset: avAsset))
           self.adoptPreparedPlayer(player, token: token)
+          self.finishLoad(assetId: token, result: .success(()))
         }
       }
 
@@ -628,6 +773,13 @@ final class PlaybackApiHost: PlaybackApi {
       generation: start.generation,
       requestId: requestId
     )
+  }
+
+  func debugEnqueueLoadCompletion(
+    _ assetId: String,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    enqueueLoadCompletion(assetId: assetId, completion: completion)
   }
   #endif
 }
