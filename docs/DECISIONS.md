@@ -2694,8 +2694,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-030: Retire Instruments numeric hitch/hang gates; close SwiftUI fail path
 
 - Status: Accepted (2026-08-19)
-  <!-- Accepted date = this docs commit (`git log -1 --format=%cs`) -->
-- Commit/PR anchor: (this docs commit)
+  <!-- Accepted date from `git log -1 --format=%cs 740bd99` → 2026-08-19 -->
+- Commit/PR anchor: 740bd99
 - Plain summary (owner reads this):
   WakeTok no longer uses any Instruments hitch or hang **number** as a
   Pass/Fail shipping gate. Mean hitch and Severe Hang from Animation

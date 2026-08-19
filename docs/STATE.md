@@ -177,7 +177,7 @@ Continuity (Cap 13)
 - Next step: 13.7 docs — Cap 13 `[x]`, PHASE_HISTORY snapshot, YOU
       ARE HERE → Cap 15 phases (owner-approved). Do not start Cap 15
       code. Do not mark Layer 1 miss solved
-- Related decisions: ADR-030 Accepted (this docs commit); ADR-023
+- Related decisions: ADR-030 Accepted (`740bd99`); ADR-023
       D10 superseded for close-out; ADR-029 Accepted (`d273358`)
 
 ## Contract pointers (don't memorize, go read the source)
@@ -303,7 +303,7 @@ Continuity (Cap 13)
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
   ADR-024; 14.6 Kafka Profile PASS
 - ADR-001 … ADR-030: docs/DECISIONS.md (ADR-030 retires Instruments
-  numeric hitch/hang gates — **Accepted**, this docs commit; ADR-029
+  numeric hitch/hang gates — **Accepted**, anchor `740bd99`; ADR-029
   Cap 16 cancel and dwell current-item Layer 2 — **Accepted**,
   anchor `d273358`; ADR-028
   default Fit +
