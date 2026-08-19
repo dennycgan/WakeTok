@@ -597,3 +597,43 @@ iCloud video no Layer 1 poster (MVP-acceptable); Cap 15 Layer 1→2
 handoff + duplicate Layer 2 rows unchanged. Do not rewrite 13.6
 FAIL tables. Prior debts unchanged (Release hang, Location,
 file-size disclaimer, UX-1, Portfolio scan, etc.).
+
+## Cancel and dwell current-item Layer 2 fetch
+— completed 2026-08-19
+
+- [x] 16.1 Contract freeze: ADR-029 Proposed (no Accepted date, no
+      fake anchor); Capability Roadmap insert; Parked Cap 13; Known
+      debt Picks it up → Cap 16
+      — docs: `4e5d57b`
+- [x] 16.2 Host `cancelInFlightPrepare` + Dart leave/dispose/leave
+      Browse (#1+#4); `flutter test` including `test/architecture/`
+      — work: `d273358`; docs (ADR-029 Accepted): `2bafa1e`
+- [x] 16.3 Plan ≠ download: `setPlaybackPlan` must not `prepareActive`;
+      `load` completes on success/fail/cancel; feed drops
+      `requestPlayableVideo` download; that API is duration-only
+      (#2). Re-align `_layer2InFlight` with the new `load` completion
+      — work: `df021b8`; docs: `6d56444`
+- [x] 16.4 Dart dwell N=500 ms (initial; still + video Layer 2);
+      Retry / resume-failed bypass; neighbour promote and Endless
+      first item do not; keep `_layer2InFlight` true during dwell
+      — work: `6ca736f`; docs (ADR-025 D2 timing note): `1bfbf53`
+- [x] 16.5 Device: storage replication + All/Videos hitch notes
+      (bar unchanged; Endless round PASS; N=500 dwell-feel
+      unverified). Cap 16 `[x]` does **not** require 13.6 PASS
+      — docs: `8312c5d`; notes `docs/acceptance/cap16-16.5-notes.md`
+- [x] 16.6 Cap close-out: YOU ARE HERE returns to Cap 13; 13.6
+      still FAIL until retest (now executable). ADR-029 Accepted
+      (16.2 docs, anchor `d273358`); ADR-025 D2 timing note landed
+      with 16.4
+      — docs (this commit)
+
+WT16 throwaway probe logs were never committed; removed from the
+working tree at close-out.
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-029 (Accepted, anchor `d273358`).
+Known debt: product storage leak path paid; 13.6 hitch still FAIL
+(`c43bed7`); Layer 1 miss centered spinner → Cap 15; do not rewrite
+13.6 FAIL tables. Prior debts unchanged (Release hang, Location,
+file-size disclaimer, UX-1, Portfolio scan, etc.).

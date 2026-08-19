@@ -63,9 +63,10 @@
       and stable Item Ordering Semantics
       (ADR-022; CFG `f53d455`; derive `ba81abc`;
       Queue `77571a9`; guard `a14d748`; accept `2e167bf`)
-- [~] Endless Shuffle, Queue Stability, and Session Continuity
-      (Cap 13; **Parked** while Cap 16 pays the second 13.6
-      gate-foundation defect; 13.6 retest FAIL `c43bed7`; bar unchanged)
+- [~] <-- YOU ARE HERE: Endless Shuffle, Queue Stability, and Session Continuity
+      (Cap 13; 13.6 last result FAIL `c43bed7`; Cap 16 `[x]` paid the
+      second foundation; retest executable at unchanged V-hard bar;
+      16.5 notes are **not** a 13.6 Pass)
 - [x] Current-item iCloud media fetch, visual
       preheating, and loading states
       (Cap 14 / ADR-025 Accepted, work `393ebc9`; **first** 13.6
@@ -74,12 +75,14 @@
       Layer 2 request (Cap 15). Scope: local-fast Layer 2 exposing
       still/video swipe-in flash; listen+build double generation bump
       that may duplicate Layer 2. **Not next.** Start only after Cap
-      13 close-out (13.7). Must not run during Cap 16 or between 16
-      close-out and 13.6. Design input is a **clean** 13.6 Instruments
-      Profile retest after Cap 16, not device notes alone.
-- [~] <-- YOU ARE HERE: Cancel and dwell current-item Layer 2 fetch
-      (Cap 16 / ADR-029 Accepted, work `d273358`; not Cap 15; 13.6
-      bar unchanged)
+      13 close-out (13.7). Must not run between 16 close-out and 13.6.
+      Design input is a **clean** 13.6 Instruments Profile retest,
+      not 16.5 device notes alone.
+- [x] Cancel and dwell current-item Layer 2 fetch
+      (Cap 16 / ADR-029 Accepted, work `d273358`; notes
+      `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
+      foundation paid on the product path; 13.6 bar unchanged;
+      not a 13.6 Pass)
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
       (**deferred past Cap 14** — does not unblock 13.6)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
@@ -135,7 +138,8 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Cancel and dwell current-item Layer 2 fetch (Cap 16)
+Active capability: Endless Shuffle, Queue Stability, and Session
+Continuity (Cap 13)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -145,66 +149,40 @@ Active capability: Cancel and dwell current-item Layer 2 fetch (Cap 16)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 >
-> ADR-029: two open capabilities. Cap 13 is **Parked** (section below).
-> Do not treat Cap 16 as Cap 15. Hitch V-hard bar is unchanged.
-
-- [x] 16.1 Contract freeze: ADR-029 Proposed (no Accepted date, no
-      fake anchor); Capability Roadmap insert; Parked Cap 13; Known
-      debt Picks it up → Cap 16
-- [x] 16.2 Host `cancelInFlightPrepare` + Dart leave/dispose/leave
-      Browse (#1+#4); `flutter test` including `test/architecture/`
-      (work `d273358`)
-- [x] 16.3 Plan ≠ download: `setPlaybackPlan` must not `prepareActive`;
-      `load` completes on success/fail/cancel; feed drops
-      `requestPlayableVideo` download; that API is duration-only
-      (#2). Pre-check: production `load` caller is only
-      `feed_page_media.dart` `_loadVideo`; debug probe also awaits
-      `load`; Live Photo does not. Re-align `_layer2InFlight` with
-      the new `load` completion (video still clears on
-      `onSurfaceReady`; cancel must complete `load`)
-      (work `df021b8`)
-- [x] 16.4 Dart dwell N=500 ms (initial; still + video Layer 2);
-      Retry / resume-failed bypass; neighbour promote and Endless
-      first item do not; keep `_layer2InFlight` true during dwell
-      (work `6ca736f`)
-- [x] 16.5 Device: storage replication + All/Videos hitch notes
-      (bar unchanged; notes
-      `docs/acceptance/cap16-16.5-notes.md`). No-Instruments
-      Videos +0.18 GB / All +0.02 GB PASS. Hitch A1/A2/tier-2
-      ~60–72 ms/s FAIL vs 13.6, does not fail 16.5. Endless round
-      PASS; dwell feel not isolated (iCloud-only first items).
-      Cap 16 `[x]` does **not** require 13.6 PASS
-- [ ] 16.6 Cap close-out: YOU ARE HERE returns to Cap 13; 13.6
-      still FAIL/blocked until retest. ADR-029 Accepted (16.2 docs,
-      anchor `d273358`); ADR-025 D2 timing note landed with 16.4
-
-## Parked capability: Cap 13
-Endless Shuffle, Queue Stability, and Session Continuity
+> ADR-029 two-open-capabilities / Cap 13 **Parked** **ended at 16.6**.
+> Cap 13 is the ACTIVE Phase Roadmap again. Do not restore the Parked
+> section. Do not treat Cap 16 as Cap 15. Hitch V-hard bar is unchanged.
 
 - [x] 13.1–13.5, 13.8 — see git / ADR-023 / ADR-024 (13.8e `7edc99c`)
-- [ ] 13.6 Acceptance — **blocked** on the **second** gate-foundation
-      defect until Cap 16 `[x]`. Unchanged V-hard bar (mean hitch
-      < 25 ms/s AND zero Severe Hang; not Conditional Pass; not split).
-      2026-08-18 retest FAIL: `docs/acceptance/cap13-13.6-retest-notes.md`
-      (`c43bed7`; tested HEAD `8505379`). All 3/3 FAIL by mean with
-      disk headroom. Original FAIL tables
+- [ ] 13.6 Acceptance — last Profile result **FAIL**
+      (`docs/acceptance/cap13-13.6-retest-notes.md`, `c43bed7`;
+      tested HEAD `8505379`). Original FAIL tables
       (`docs/acceptance/cap13-13.6-notes.md`) stay frozen.
+      **Now executable** at the unchanged V-hard bar (mean hitch
+      < 25 ms/s AND zero Severe Hang; not Conditional Pass; not
+      split). Cap 16 `[x]` paid the second gate-foundation
+      **product** leak (leave-cancel `d273358`; one `load`
+      `df021b8`; dwell `6ca736f`; no-Instruments storage PASS
+      `docs/acceptance/cap16-16.5-notes.md`). 16.5 hitch numbers
+      (~60–72 ms/s) are **not** a 13.6 campaign and do **not**
+      change FAIL to Pass. Do not Time Profiler. Do not start
+      Cap 15. The Instruments six-Run retest is this 13.6 phase.
 - [ ] 13.7 Cap close-out (stays last; cannot run until 13.6 PASSes):
       STATE Cap `[x]` + PHASE_HISTORY; Phase Roadmap → Cap 15.
       Cap 14 and Cap 16 will already be `[x]`. Cap 15 must not start
-      during Cap 16 or before 13.6.
+      between 16 close-out and 13.6.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 16.6 close-out (YOU ARE HERE back to Cap 13)
-- Sub-steps done: 16.1 contract freeze; 16.2 leave-cancel (`d273358`);
-      16.3 one networked `load` (`df021b8`); 16.4 dwell (`6ca736f`);
-      16.5 device notes (`docs/acceptance/cap16-16.5-notes.md`)
-- Next step: 16.6 Cap close-out — YOU ARE HERE returns to Cap 13;
-      13.6 still FAIL/blocked until retest. Do not Time Profiler.
-      Do not lower the 13.6 bar. Delete uncommitted WT16 logs after
-      16.5 acceptance (not part of the docs commit)
-- Related decisions: ADR-029 Accepted (`d273358`); ADR-025 D2 timing
-      narrow-supersede noted on 16.4; ADR-023 D10 hitch bar unchanged
+- Goal (one line): Cap 13.6 Instruments Profile Hang retest (Kafka;
+      last FAIL `c43bed7`; Cap 16 paid product storage foundation)
+- Sub-steps done: 13.1–13.5, 13.8 (`7edc99c` / ADR-023 / ADR-024);
+      Cap 14 `[x]` (14.7); Cap 16 `[x]` (16.6)
+- Next step: run 13.6 Instruments on iPhone 13 Pro (Kafka); do not
+      start Cap 15; do not lower / Conditional-Pass / split the bar;
+      do not treat `cap16-16.5-notes.md` as a 13.6 Pass
+- Related decisions: ADR-023 D10 13.6 V-hard unchanged; ADR-029
+      Accepted (`d273358`); ADR-025 D2 timing noted on 16.4;
+      ADR-025 Accepted (`393ebc9`)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -262,6 +240,9 @@ Endless Shuffle, Queue Stability, and Session Continuity
   Item-load chrome bottom-right (Cap 14.6b `16ed6e3`: LIVE badge +
   Layer 2 / Live-prepare spinner; library resolve loading stays
   centered);
+  Cap 16 leave-cancel `cancelInFlightPrepare` (`d273358` / ADR-029)
+  + one networked `load` (`df021b8`) + Dart dwell 500 ms
+  (`6ca736f`); notes `docs/acceptance/cap16-16.5-notes.md`;
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
@@ -391,7 +372,7 @@ Endless Shuffle, Queue Stability, and Session Continuity
 | Media Info Overlay | File-size disclaimer copy (kickoff ADR-W §5) unset | Size is logical resource bytes — not device disk / iCloud quota / optimized-local / immediate free-on-delete. iCloud-only blank size **before** local data exists is ADR-015/018 (never download solely for size; Photos Info is not a public-SDK ground truth). Same-page refresh after Layer 2 landed `900581e`. Not an eng Decision gap; needs user-visible copy landing | Settings and localisation completion (or Cap 8.5/8.6 if a short on-media note is added) | kickoff ADR-W |
 | Main Browse Screen | First cold start: All current item fails until Retry because the 无线数据 dialog appears after Layer 2 has already been issued | China-SKU app-level first-network prompt (国行 App Store vs NZ: Pictok same split). Dart `HttpClient` pre-feed probe does **not** trigger it. Lifecycle auto-retry landed `eddb7c3`. Kafka first-launch retest still pending. | Later Cap / owner device confirm; native `URLSession` pre-trigger is a separate optional row | ADR-025 |
 | Main Browse Screen | Optional native `URLSession` (CFNetwork) pre-feed to show 无线数据 on the loading screen instead of after first Layer 2 fail | Dart sockets do not trip the China-SKU prompt. Not required for doom-scroll once B auto-retries (`eddb7c3`). Pictok 国行 still shows the prompt in the feed. | Later Cap / optional | ADR-025 |
-| Main Browse Screen | **Leave-current did not stop PhotoKit iCloud video materialization; Browse continuously fills device storage; cannot reclaim from the system Photos library** | User-visible, independent of hitch. Optimize iPhone Storage **on** still loses: download rate beats system reclaim. 2026-08-18 replication: Videos V1 ~75 s, wait only first+last iCloud videos to play, flick the rest on cover → disk **200.2 → 207.38 GB (~+7 GB)**. Two watched videos ≠ +7 GB. WakeTok JPEG temps are bounded; growth is Photos library cache. **16.2** leave-cancel (`d273358`); **16.3** one networked `load` (`df021b8`; `requestPlayableVideo` is duration-only); **16.4** dwell 500 ms (`6ca736f`). **16.5** (`docs/acceptance/cap16-16.5-notes.md`): no-Instruments Videos **+0.18 GB** / All **+0.02 GB** PASS vs that leak. Instruments GB is **系统数据 / purgeable**, not Settings 照片 (idle attach ~+1.8 GB System Data; Photos 10.17→10.16 across reboot). Do **not** rewrite the 13.6 +7.18 GB as 100% Instruments (product cancel was also missing then). A late `cancel` after leave may still let A briefly enter prepare (not proven zero disk). App has **no public API** to delete Photos-library downloads (kickoff forbids an app-owned persistent media cache). Reclaim = iOS idle / reboot. Makes the 13.6 six-Run matrix physically unrepeatable on a 256 GB phone; once full, SpringBoard itself hitches so any App’s hitch numbers are meaningless. **Second 13.6 gate-foundation defect** (Cap 14 was the first) — product leak path paid; hitch bar still FAIL. | Cancel and dwell current-item Layer 2 fetch (Cap 16) | ADR-025 D4 / ADR-029 / ADR-006 |
+| Main Browse Screen | **Leave-current did not stop PhotoKit iCloud video materialization; Browse continuously fills device storage; cannot reclaim from the system Photos library** | User-visible, independent of hitch. Optimize iPhone Storage **on** still loses: download rate beats system reclaim. 2026-08-18 replication: Videos V1 ~75 s, wait only first+last iCloud videos to play, flick the rest on cover → disk **200.2 → 207.38 GB (~+7 GB)**. Two watched videos ≠ +7 GB. WakeTok JPEG temps are bounded; growth is Photos library cache. **16.2** leave-cancel (`d273358`); **16.3** one networked `load` (`df021b8`; `requestPlayableVideo` is duration-only); **16.4** dwell 500 ms (`6ca736f`). **16.5** (`docs/acceptance/cap16-16.5-notes.md`): no-Instruments Videos **+0.18 GB** / All **+0.02 GB** PASS vs that leak. Instruments GB is **系统数据 / purgeable**, not Settings 照片 (idle attach ~+1.8 GB System Data; Photos 10.17→10.16 across reboot). Do **not** rewrite the 13.6 +7.18 GB as 100% Instruments (product cancel was also missing then). A late `cancel` after leave may still let A briefly enter prepare (not proven zero disk). App has **no public API** to delete Photos-library downloads (kickoff forbids an app-owned persistent media cache). Reclaim = iOS idle / reboot. **Second 13.6 gate-foundation defect** (Cap 14 was the first) — **product leak path paid by Cap 16**; hitch bar still FAIL until 13.6 retest. | Closed by Cap 16 (ADR-029); 13.6 hitch retest still open | ADR-025 D4 / ADR-029 / ADR-006 |
 | Main Browse Screen | Tab leave does not cancel `PlaybackApiHost.prepareActive` iCloud video download | **Closed by 16.2** (`d273358`): `cancelInFlightPrepare` on leave current / dispose / leave Browse, including same-id. Dwell landed in 16.4 (`6ca736f`). 16.5 measured no-Instruments storage PASS; remaining Instruments GB is System Data (notes), not missing leave-cancel. | Closed by Cap 16.2 (ADR-029) | ADR-025 D4 / ADR-029 / ADR-006 |
 | Main Browse Screen | Profile/Debug may prompt Local Network (“查找本地网络中的设备”) before Photos | Flutter observatory / mDNS, not product PhotoKit. Release expected not to show it. | Do not fix in product; observe on Release | — |
 | POC-03 | WeChat/VoIP interrupt: no auto-resume on lock screen or iOS home without opening app | Q1=B: 3.3 PASS when shouldResume + poll/foreground resumes; suspended lock/home path deferred | Production Background Audio | ADR-002 |
@@ -414,7 +395,7 @@ Endless Shuffle, Queue Stability, and Session Continuity
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | Noticed while asserting 14.5 mid-preheat `displayCalls == 1` (actual 2). The extra request is generation-gated and discarded, but a duplicate `requestDisplayAsset` / `requestPlayableVideo` can already be in flight (cellular cost, same class of waste as ADR-025 D4 leave-cancel). Correctness is gated; count is not. Do not fix in 14.5. | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-025 / ADR-010 |
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | ADR-025 defined wait: `_loading` is spinner-only until `requestPreview` returns; Overlay metadata can land first. 14.4e `restartSession` remounts PageView at index 0, so this window is **more often visible** than keep-session resume. Not a defect; polish = keep last still across remount or shorten spinner-only. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-025 / ADR-027 |
-| Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | 16.5 Endless Limited: middle pages are black + **center** spinner until Layer 2. **Owner: must fix** (unify to `_FeedCornerChrome` on `feedBackground`). Not a 14.6b regression; UX-2 (`16ed6e3`) does not close this. Do not fix in 16.5 notes. Cap 15 must not start during Cap 16 or before 13.6 — pickup is Cap 15. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-019 |
+| Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | 16.5 Endless Limited: middle pages are black + **center** spinner until Layer 2. **Owner: must fix** (unify to `_FeedCornerChrome` on `feedBackground`). Not a 14.6b regression; UX-2 (`16ed6e3`) does not close this. Cap 15 must not start between 16 close-out and 13.6 — pickup is Cap 15. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-019 |
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | Device-verified Limited 6-video set (2026-08-18): Videos and All behave the same — first view is spinner-only (no blur cover), then Layer 2 network play succeeds. **Not** a Cap 14.5 preheat regression: ±1 uses local-only `requestPreview` (ADR-025 D2). Limited picker grid thumbs are system PhotosUI (smaller, may use network) — **not** Host Layer 1. Layer 2 success does **not** backfill a poster; off-current video also renders `pendingVideo` black on peek. Host `previewTargetSize` **1080×1080 px** (`PhotoLibraryService`, Cap 14.2 `393ebc9`) was **not rigorously validated in ADR-025** — implementation default only (POC-04 long-edge 1080 precedent); a larger local-only box may reduce iCloud hit rate vs grid-thumb tier. MVP-acceptable; fix paths need owner-scoped ADR (smaller thumb-first target, limited-network poster, and/or demoted-video peek frame). | Later Cap polish or Final real-device performance, memory, accessibility, privacy, and error-state hardening (owner schedules; not Cap 14.7) | ADR-025 / ADR-006 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
