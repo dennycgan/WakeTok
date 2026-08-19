@@ -74,12 +74,13 @@
       foundation paid — iCloud copy-panel unreadability)
 - [ ] <-- YOU ARE HERE: Feed swipe Layer 1→2 handoff polish and
       duplicate current-item Layer 2 request (Cap 15). Scope:
-      local-fast Layer 2 exposing still/video swipe-in flash;
-      listen+build double generation bump that may duplicate
-      Layer 2; Layer 1 miss / black cover. Phase Roadmap awaiting
-      owner-approved phases. 13.6 close does **not** mark these
-      solved. Design input is not “re-run the old Instruments
-      six-Run matrix”.
+      still/video swipe-in flash; listen+build double generation
+      bump; Layer 1 miss centered spinner + leave-Browse return
+      (399+398); iCloud video no Layer 1 poster (400; A1 vs C
+      from 15.1 M3). 13.6 close does **not** mark these solved.
+      Design input is not “re-run the old Instruments six-Run
+      matrix”. ADR-031 Proposed in 15.2; Accepted is the docs
+      commit after the 15.3 work sha (not 15.9).
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -142,7 +143,6 @@
 ## Phase Roadmap (active capability only)
 Active capability: Feed swipe Layer 1→2 handoff polish and
 duplicate current-item Layer 2 request (Cap 15)
-(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -152,28 +152,93 @@ duplicate current-item Layer 2 request (Cap 15)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 >
-> Cap 13 `[x]` closed 2026-08-19 (13.6 under ADR-030 §5 — not an
-> Instruments numeric Pass). Cap 14 and Cap 16 already `[x]`. Do
-> not restore Cap 13 Parked. Do not start Cap 15 code until the
-> owner approves this Phase Roadmap. Layer 1 miss / swipe flash /
-> duplicate Layer 2 / iCloud no-poster stay Known debt.
+> Owner-approved 2026-08-19. Diagnosis before contract freeze is a
+> deliberate deviation from 14.1/16.1 (Q1/Q3 need device evidence;
+> record in ADR-031). Probe is throwaway, never committed (16.5 /
+> POC-10). Release never carries probe. Temporary Host
+> `previewTargetSize` experiment must be reverted before 15.2
+> (`git status` clean). Do not remount Limited banner
+> (`eb4473f` / `816816b`). Do not use “Doom Scroll” in capability
+> names / ADRs / identifiers.
 
-Awaiting owner-approved phases for Cap 15 (Layer 1→2 handoff
-polish, duplicate Layer 2, centered Layer 1-miss spinner, iCloud
-video no Layer 1 poster). Planning review happens in a later
-conversation before this placeholder is replaced. Do not invent
-numbered phases. Do not start Cap 15 code.
+- [~] 15.1 Device diagnosis probe — throwaway, never committed;
+      Debug+Profile only, never Release; restore any Host
+      `previewTargetSize` experiment before leaving this phase.
+      Measurement list M1–M7 (M3 stills/videos split; mixed or
+      unclear M3 → default C, no forced A1). Captures the 15.8
+      “before” column. Evidence:
+      `docs/acceptance/cap15-15.1-notes.md`
+- [ ] 15.2 Contract freeze — ADR-031 **Proposed** (no Accepted
+      date, no fake anchor). Records diagnosis-before-contract
+      deviation. Locks Q2=A (delay-before-show only if M5 warrants
+      it; do not add by default), Q3=A, Q5=B. Q1 from M3: A1
+      (shrink `previewTargetSize` only) or C, **split by media
+      type**; A2 two-tier / Layer 1 network = non-goals. 393
+      related-but-not-equivalent to Q3=A — observe in M6 / 15.8,
+      do not assume closed. **ADR-031 Accepted is the docs commit
+      after the 15.3 work sha, not 15.9** (same timing as ADR-025
+      after 14.2). Three-axis no-Cap-16-regression invariant, all
+      the same gate language as ADR-030 (observable failure
+      signals + qualitative judgement; no isolated numeric hard
+      bars): (1) networked Layer 2 — must not add fetches that
+      cannot be explained by items that actually became current
+      and completed dwell; duplicate in-flight downloads are a
+      fail; local `requestPreview` is **not** under ADR-029 §4;
+      (2) device storage — 16.5 Videos +0.18 GB / All +0.02 GB
+      are **comparison baselines**, not hard caps; growth must
+      remain explainable as watched items (same 16.5 protocol,
+      no Instruments); (3) peak memory — must not introduce
+      unbounded or material peak-memory growth; under the locked
+      protocol, peak must not regress beyond measurement noise,
+      and jetsam / force-quit / sustained climb are fail signals.
+      If gapless causes a discernible rise, 15.5 must offset it
+      (e.g. viewport-sized decode) or that implementation does
+      not pass. Non-goal: remount Limited banner on Main Browse
+- [ ] 15.3 Layer 1-miss chrome unified to `_FeedCornerChrome`
+      (debt 399+398); delay-before-show **only if M5 warrants it**.
+      After landing, check whether UX-1 (debt 402) is incidental;
+      owner judges at 15.8. **First Cap 15 work commit**; next
+      docs commit flips ADR-031 to Accepted (anchor = 15.3 sha)
+- [ ] 15.4 Single current-item activation (debt 396)
+      (scope depends on 15.1 M1+M2: verify-only + regression
+      test only if **both** networked Layer 2 count and
+      `requestPreview` / Host supersede-cancel count are 1;
+      otherwise a real fix)
+- [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills)
+      (approach depends on 15.1 M4: gapless-only vs gapless +
+      sized decode; keep the 14.4d broken-file reload latch
+      across asset change)
+- [ ] 15.6 Layer 1 local-hit tier, A1 only (debt 400)
+      (may be dropped if M3 shows no usable gain at a smaller
+      target; stills and videos may diverge — stills A1 +
+      videos C is allowed. Host change follows 14.2 spec: pure
+      logic unit-tested; PhotoKit path declared un-exercised in
+      the work commit message)
+- [ ] 15.7 Video leave-current frame retention (debt 394 video
+      peek-black); does not change the ADR-006 1+1 player /
+      Platform View contract
+- [ ] 15.8 Device acceptance — ADR-030 §5 owner daily-use
+      confirmation + per-debt before/after table (incl. 393 and
+      UX-1 verdicts) + storage comparison on the 16.5 protocol
+      (explainable-as-watched, not ≤ a GB number) + peak-memory
+      comparison vs the 15.1 M4 baseline (noise-tolerant; jetsam
+      / force-quit / sustained climb fail)
+- [ ] 15.9 Cap close-out docs (STATE + PHASE_HISTORY). Does
+      **not** flip ADR-031 Accepted (that is the docs commit
+      after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13 closed; next Cap scope / Phase Roadmap
-      (Cap 15 placeholder)
-- Sub-steps done: 13.7 close-out (STATE Cap `[x]` + PHASE_HISTORY);
-      13.6 closer ADR-030 §5 (2026-08-19) — not an Instruments Pass
-- Next step: owner kickoff review + approve Cap 15 Phase Roadmap;
-      then replace placeholder. Do not start Cap 15 code. Do not
-      mark Layer 1 miss / black cover / swipe flash solved
-- Related decisions: ADR-030 Accepted (`740bd99`); ADR-023
-      D10 superseded for close-out; ADR-029 Accepted (`d273358`)
+- Goal (one line): Cap 15.1 device diagnosis probe (throwaway;
+      evidence in `docs/acceptance/cap15-15.1-notes.md`)
+- Sub-steps done: owner-approved Cap 15 Phase Roadmap (this
+      STATE write)
+- Next step: owner confirms Set-L (Limited 6-video iCloud set)
+      and Set-F (Full All/Videos pool) still usable; then land
+      throwaway probe and record M1–M7. Do not commit probe.
+      Do not start 15.2 until `git status` is clean
+- Related decisions: ADR-030 Accepted (`740bd99`); ADR-029
+      Accepted (`d273358`); ADR-025 Accepted (`393ebc9`);
+      ADR-031 Proposed in 15.2
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -390,12 +455,12 @@ numbered phases. Do not start Cap 15 code.
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK | Final real-device performance, memory, accessibility, privacy, and error-state hardening (or when Apple exposes a public API) | — |
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
-| Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`). See also the 14.5 swipe-**in** Layer 1→2 handoff row (local vs iCloud); this row is swipe-**away** residue on the shared Platform View. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 |
+| Main Browse Screen | Video page swipe may flash one frame of the previous video | Shared 1+1 AVPlayer + single Platform View (ADR-006); Cap 7.7 observe-only (always-on; orthogonal to hang — see `cap7-7.7-notes.md`). See also the 14.5 swipe-**in** Layer 1→2 handoff row (local vs iCloud); this row is swipe-**away** residue on the shared Platform View. **Related to but not equivalent to Cap 15 Q3=A** (leave-page Dart poster vs shared Platform View residue). Cap 15 observes in 15.1 M6 / 15.8; close only if 15.8 confirms it disappeared. Pickup stays Final unless 15.8 closes it. | Final real-device performance, memory, accessibility, privacy, and error-state hardening (Cap 15 observes) | ADR-006 |
 | Main Browse Screen | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** swipe-in may flash one black frame as the preview JPEG is replaced by the full JPEG (`Image.file` path swap). **14.6c Fit (`24debf4`):** same still mechanism; Kafka: the flash is inside the fitted image (letterbox stays), not a full-viewport black frame. **Video (swipe to next, local):** (1) half-screen next poster; (2) half-screen black; (3) sometimes one frame of the *previous* playing video; (4) a second black **only if** (3) appeared; (5) then the new video plays. **Video (swipe away and back while the previous player is still the active slot, e.g. next still iCloud-spinning):** half-screen poster, then one flash to the *mid-play* frame and resume — not a restart. Two mechanisms under one visibility window — stills mainly `Image.file` decode/path; video also 1+1 player reuse + neighbour still→Platform View. One patch will not fix both. Related to but not the same as “Video page swipe may flash one frame of the previous video” (that row is swipe-away residue). | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-006 / ADR-025 |
 | Main Browse Screen | Swiping back to a video restarts from 0 after the next item has taken the active 1+1 slot; mid-play resume still happens while that slot is not yet taken | Pool is current + next only; no session-level playhead. Next local almost always occupies `activePlayer` immediately → return rebuilds a new player at 0. Next iCloud occupies only after `requestAVAsset` completes → return before that hits ADR-026 `playOnly` (same live player). **MVP accepts restart-from-0 once the next item has occupied the slot.** That acceptance does **not** mean “always restart on leave”, and must **not** weaken ADR-026 (`actionOnBecomeCurrent`: seek 0 only when at-end; mid-play re-enter `play()` while the player still exists). Do not add session playhead storage in Cap 14. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 / ADR-026 |
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | Noticed while asserting 14.5 mid-preheat `displayCalls == 1` (actual 2). The extra request is generation-gated and discarded, but a duplicate `requestDisplayAsset` / `requestPlayableVideo` can already be in flight (cellular cost, same class of waste as ADR-025 D4 leave-cancel). Correctness is gated; count is not. Do not fix in 14.5. | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-025 / ADR-010 |
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
-| Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | ADR-025 defined wait: `_loading` is spinner-only until `requestPreview` returns; Overlay metadata can land first. 14.4e `restartSession` remounts PageView at index 0, so this window is **more often visible** than keep-session resume. Not a defect; polish = keep last still across remount or shorten spinner-only. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-025 / ADR-027 |
+| Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | ADR-025 defined wait: `_loading` is spinner-only until `requestPreview` returns; Overlay metadata can land first. 14.4e `restartSession` remounts PageView at index 0, so this window is **more often visible** than keep-session resume. Not a defect; polish = unify miss chrome with 399 (`_FeedCornerChrome`) in Cap 15.3. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-027 |
 | Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | 16.5 Endless Limited: middle pages are black + **center** spinner until Layer 2. **Owner: must fix** (unify to `_FeedCornerChrome` on `feedBackground`). Not a 14.6b regression; UX-2 (`16ed6e3`) does not close this. Pickup is Cap 15. 13.6 close does **not** mark this solved. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-019 |
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | Device-verified Limited 6-video set (2026-08-18): Videos and All behave the same — first view is spinner-only (no blur cover), then Layer 2 network play succeeds. **Not** a Cap 14.5 preheat regression: ±1 uses local-only `requestPreview` (ADR-025 D2). Limited picker grid thumbs are system PhotosUI (smaller, may use network) — **not** Host Layer 1. Layer 2 success does **not** backfill a poster; off-current video also renders `pendingVideo` black on peek. Host `previewTargetSize` **1080×1080 px** (`PhotoLibraryService`, Cap 14.2 `393ebc9`) was **not rigorously validated in ADR-025** — implementation default only (POC-04 long-edge 1080 precedent); a larger local-only box may reduce iCloud hit rate vs grid-thumb tier. MVP-acceptable; fix paths need owner-scoped ADR (smaller thumb-first target, limited-network poster, and/or demoted-video peek frame). | Feed swipe Layer 1→2 handoff polish (Cap 15). 13.6 close does **not** mark this solved | ADR-025 / ADR-006 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
