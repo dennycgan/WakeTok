@@ -48,7 +48,9 @@
 
 ## ADR-001: POC-04 Flutter media feed architecture gate — Conditional Pass
 
-- Status: Accepted (2026-07-28)
+- Status: Accepted (2026-07-28); hitch **hard-gate reading** (mean
+  hitch < 25 ms/s AND no Severe Hang) and the hang-triggered SwiftUI /
+  all-native re-eval fail path are superseded by ADR-030 (2026-08-19)
 - Commit/PR anchor: 3ff7f58
 - Plain summary (owner reads this):
   We keep building WakeTok’s feed in Flutter with native iOS video (Platform View),
@@ -936,8 +938,12 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   session; the rest of Decision 5 remains binding (independent Host
   predicates per built-in, no Dart derivation of Photos / Videos from
   All’s id list, `ResolvedSourceDto` carries ids only), and so does
-  the Cap 7.6 rule that failures are never stored; Decisions 1, 6–7
-  and the Cap 7 Profile V-hard / Release hang split remain binding
+  the Cap 7.6 rule that failures are never stored; Decisions 1 and 6
+  remain binding; Decision 7’s Cap 7.7 **fail path** (SwiftUI /
+  all-native re-eval) and the Instruments numeric pair as a
+  **shipping gate for later Caps** are superseded by ADR-030
+  (2026-08-19); Cap 7.7a Profile PASS and the Release hang Known debt
+  remain binding
 - Commit/PR anchor: 5ef2e8a
 - Plain summary (owner reads this):
   Cap 7 Main Browse drives a vertical feed from Cap 6 built-in
@@ -1878,7 +1884,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-023: Cap 13 Endless Shuffle + Queue Stability + in-session Continuity lock
 
-- Status: Accepted (2026-08-13)
+- Status: Accepted (2026-08-13); D10’s 13.6 must-pass Instruments
+  V-hard (mean hitch < 25 ms/s AND zero Severe Hang) is superseded
+  for close-out by ADR-030 (2026-08-19)
 - Commit/PR anchor: f0187b4
 - Plain summary (owner reads this):
   Cap 13 makes kickoff General/Mixed default Shuffle the real Main Browse
@@ -2542,7 +2550,10 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-029: Cap 16 cancel and dwell current-item Layer 2 fetch
 
-- Status: Accepted (2026-08-19)
+- Status: Accepted (2026-08-19); Decision 7’s unchanged Instruments
+  numeric hitch/hang shipping gate (and “does not mark 13.6 `[x]`”)
+  is superseded for 13.6 close-out by ADR-030 (2026-08-19); Cap 16
+  product cancel / dwell / single-fetch remains binding
   <!-- Accepted date from `git log -1 --format=%cs d273358` → 2026-08-19 -->
 - Commit/PR anchor: d273358
 - Plain summary (owner reads this):
@@ -2677,3 +2688,130 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     `lib/platform` or `lib/data`.
   - 13.6 hitch after this Cap includes dwell + one Layer 2 fetch;
     that is the product surface, not a reason to lower the bar.
+
+---
+
+## ADR-030: Retire Instruments numeric hitch/hang gates; close SwiftUI fail path
+
+- Status: Accepted (2026-08-19)
+  <!-- Accepted date = this docs commit (`git log -1 --format=%cs`) -->
+- Commit/PR anchor: (this docs commit)
+- Plain summary (owner reads this):
+  WakeTok no longer uses any Instruments hitch or hang **number** as a
+  Pass/Fail shipping gate. Mean hitch and Severe Hang from Animation
+  Hitches are diagnostic only. Cap 13.6 closes on everyday
+  uninstrumented use: no hard freeze, no app-not-responding, no
+  force-quit, no crash — not on beating 25 ms/s. A SwiftUI rewrite is
+  out of the feasible set because a later Android client is still
+  planned, not because any hitch number passed.
+- Context / what problem forced this:
+  ADR-001 set mean hitch **< 25 ms/s** AND **no Severe Hang**. ADR-014
+  Decision 7 and ADR-023 D10 reused that pair as a must-pass Profile
+  V-hard gate (Cap 7.7 / Cap 13.6). Frozen FAIL tables stay
+  (`docs/acceptance/cap13-13.6-notes.md`,
+  `docs/acceptance/cap13-13.6-retest-notes.md`).
+  Cap 16 paid the product storage leak; 16.5 showed Animation Hitches
+  sessions correlating with GB-class **系统数据** growth and Photos
+  flat. The same template on Kafka failed Photo-App-A and Video-App-B
+  on the old bar. Owner daily **uninstrumented** Video-App-B on this
+  iPhone 13 Pro is smooth.
+  **Mean hitch is not a clean leftover metric.** Video-App-B, For You,
+  ~77 s assertive scroll, Hangs threshold >500 ms, no reboot between
+  Runs (Run 2 continued in the same Instruments session):
+
+  | Run | Mean hitch | Labelled Severe Hang | Session |
+  |-----|------------|----------------------|---------|
+  | 1 | ≈28.2 ms/s | 2.64 s | after reboot |
+  | 2 | ≈40.5 ms/s | 4.33 s | still attached; System Data already +~10 GB from Run 1 |
+
+  Same protocol and similar duration; For You items are not
+  bit-identical. Mean hitch and Hang both worsened as attach time and
+  System Data grew. That is the same **session-duration** pattern as
+  storage, not proof of one Instruments file format, and not a reason
+  to keep mean hitch as Pass/Fail after dropping Hang.
+  A one-shot uninstrumented smoothness bake-off vs Photo-App-A is
+  **not** the closer: the peer app is a finished product; WakeTok is
+  mid-roadmap; the snapshot would expire on the next feature; and with
+  Instruments numbers retired there is no numeric backstop.
+  Separately, ADR-001 left a SwiftUI re-eval trigger if production
+  feed cannot clear Severe Hang; ADR-014 Decision 7 pointed Cap 7.7
+  fail at that discussion. Close that trigger on planning grounds.
+- Decision (what was chosen):
+  1. **No Instruments numeric Pass/Fail for feed close-out.** Retire
+     **both** mean hitch < 25 ms/s **and** zero Severe Hang as shipping
+     gates (Cap 13.6 and any later Cap that inherited that pair). Do
+     not replace them with another Instruments number (including a
+     raised ms/s bar). Historical FAIL tables are not rewritten and are
+     not “the product is still unfixed on that bar.”
+  2. **Instruments stays a diagnostic.** Animation Hitches, Hangs, Time
+     Profiler, and other templates may still be used to inspect a
+     trace. No reading from those traces is a Pass/Fail closer. This
+     ADR does not claim traces are fabricated or that Instruments is
+     useless.
+  3. **Storage clause (correlation, not file-format proof).** Attached
+     Animation Hitches sessions on WakeTok, Photo-App-A, and
+     Video-App-B showed GB-class **系统数据** growth with Photos flat.
+     Not Photos-library download by the app under test. Not unique
+     proof of an Instruments file format.
+  4. **Comparator roles (protocol evidence only).** Photo-App-A and
+     Video-App-B show the old bar has no discriminating power under
+     this protocol. They are **not** a 13.6 smoothness bake-off.
+     Video-App-B labelled Hang diagnoses the **attach protocol**;
+     owner everyday uninstrumented Video-App-B is smooth.
+  5. **13.6 closer = everyday availability (no competitor pair).**
+     Close Cap 13.6 when the owner confirms that **normal daily Manual
+     Browse on Kafka, without Instruments, and without an assertive
+     lab stress-scroll**, does not show: hard freeze (app ignores
+     input), app-not-responding, required force-quit, or crash. Jank
+     that is not those events does not fail this closer. Layer 1 miss
+     / black cover is **out** (Known debt / Cap 15). No Photo-App-A vs
+     WakeTok uninstrumented pair; that step is **cancelled**, not
+     deferred.
+     **Owner confirmation (2026-08-19):** As of today, everyday
+     uninstrumented WakeTok use on Kafka has not shown hard freeze,
+     app-not-responding, force-quit, or crash.
+  6. **SwiftUI fail path closed (independent of §1–5).** ADR-001’s
+     hang-triggered SwiftUI / all-native re-eval is **withdrawn**.
+     ADR-014 Decision 7’s fail path pointing at that discussion is
+     **withdrawn**. Feasible UI stack remains Flutter + Swift-native
+     media. SwiftUI / all-native iOS rewrite is **out of WakeTok’s
+     feasible set** because the owner still plans a later Android
+     client (ADR-001 already kept Flutter for that). Android is not a
+     Capability Roadmap line. Future poor traces **do not** reopen
+     SwiftUI. Not because calibration “passed” the old bar (it did not).
+- Rejected alternatives (why not B):
+  - Keep mean hitch as a numeric gate after dropping only Severe Hang
+    — rejected; Video-App-B Run 1→2 shows mean hitch moving with
+    attach duration / System Data, not as an independent clean score.
+  - Keep ADR-023 D10 Instruments V-hard as 13.6 must-pass — rejected;
+    Photo-App-A and Video-App-B fail it; Video-App-B is smooth off-tool.
+  - Lower the ms/s number and keep a hard Instruments gate — rejected;
+    same protocol still grows System Data and can induce Hang.
+  - Ban all Instruments use — rejected; diagnosis remains allowed.
+  - Close 13.6 on an uninstrumented Photo-App-A vs WakeTok score —
+    rejected; unfair (finished peer vs mid-roadmap), not durable
+    (expires on the next feature), and has no numeric backstop once
+    Instruments numbers are retired.
+  - Use Video-App-B everyday smoothness as WakeTok’s product bar —
+    rejected; different content and network; 13.6 asks only whether
+    WakeTok is usable day-to-day.
+  - Leave ADR-001 SwiftUI fail path armed until hang debt is “cleared”
+    — rejected; out of the feasible set for Android planning.
+  - Rewrite frozen 13.6 FAIL tables — rejected; evidence stays.
+- Consequences / constraints accepted:
+  - **ADR-001** hitch hard-gate reading and hang-triggered SwiftUI
+    re-eval are superseded (Status line). First-frame PASS, Platform
+    View default, Texture rejection, Flutter-for-Android option remain.
+  - **ADR-014** Decision 7 fail path and later-Cap Instruments numeric
+    shipping gate are superseded (Status line). Cap 7.7a Profile PASS
+    and Release hang Known debt stay untouched.
+  - **ADR-023** D10 13.6 must-pass Instruments V-hard is superseded for
+    close-out (Status line). Do not read old FAIL as Conditional Pass
+    of the old bar.
+  - Cap 13.6 `[x]` uses §5 owner confirmation (2026-08-19), not an
+    Instruments numeric Pass. Cap 13 `[x]` still waits for 13.7.
+  - Layer 1 black cover / missing poster stays Known debt → Cap 15.
+  - Competitor codes only in committed docs; local map gitignored.
+  - Accepted date / anchor = the docs commit that appends this entry
+    (no product-code work commit).
+
