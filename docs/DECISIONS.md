@@ -3,6 +3,11 @@
 > Major technical/engineering decisions. Each entry is immutable: never edit or
 > delete its reasoning. To overturn a decision, write a NEW entry and only flip
 > the old entry's Status line to "Superseded by ADR-xxx".
+> Historical entries may have specific third-party product names replaced with
+> anonymized codenames per privacy policy (see
+> `docs/private/competitor-codenames.md`, gitignored). This is a textual
+> substitution only and does not alter any decision's reasoning, evidence, or
+> Status. All other content remains immutable per the rule above.
 > The top "Plain summary" line is for the project owner to verify — it must be
 > understandable without deep technical knowledge.
 > Workflow: draft the ADR in chat -> owner approves the draft -> append here
@@ -1188,11 +1193,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   the media with a light text shadow. The bottom bar stays opaque dark but uses
   a compact custom icon+label row (48 logical pixels) so Material 3 NavigationBar
   SafeArea no longer inflates the grey block; height feels closer to
-  Douyin/TikTok’s compact bar while keeping destination labels.
+  Video-App-B’s compact bar while keeping destination labels.
 - Context / what problem forced this:
   Cap 8.2 work `a721bdc` (ADR-015 Decision 7) paid the “opaque top bar eating
   media” debt with a Stack overlay and `mediaScrim` fill. Owner real-device
-  comparison against Douyin/TikTok showed the scrim still reads as a grey color
+  comparison against Video-App-B showed the scrim still reads as a grey color
   band over media; the reference UI floats tab labels with no background block,
   relying on text shadow for contrast on bright frames. Separately, Material 3
   `NavigationBar` paints SafeArea *inside* its Material, so setting `height`
@@ -1225,7 +1230,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      Material (W-9 / W-11).
 - Rejected alternatives (why not B):
   - Keep / only lower `mediaScrim` alpha — rejected (still a visible color band;
-    fails Douyin-style floating labels).
+    fails Video-App-B-style floating labels).
   - Edit ADR-015 Decision 7 in place to replace scrim wording — rejected
     (Accepted entries are immutable; supersede via new ADR).
   - Broad “supersedes ADR-015 Decision 7” without clause scope — rejected
@@ -1236,7 +1241,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     rejected (inner SafeArea still paints a tall grey block on device; owner
     acceptance failed until the custom row landed).
   - Hide destination labels (`alwaysHide`) for a thinner bar — rejected (owner
-    requires labels; accept remaining thickness vs Douyin).
+    requires labels; accept remaining thickness vs Video-App-B).
   - Hard-code shadow / height `Color(0x…)` or `48` inside `lib/features/**` —
     rejected (ADR-009 token discipline; architecture `Color(0x` guard; tests
     must share the same token values).

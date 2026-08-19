@@ -32,7 +32,7 @@ part to preserve a cross-platform UI option for a future Android version
 
 ## Core engineering challenge: Flutter feed performance on a real device
 
-The product needs a TikTok-like vertical feed over the user’s own library.
+The product needs a vertical feed over the user’s own library.
 The hard question was whether **Flutter UI + native iOS video** could meet a
 measurable hitch budget on **iPhone 13 Pro** before any production domain layer.
 
