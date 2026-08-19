@@ -63,34 +63,34 @@
       and stable Item Ordering Semantics
       (ADR-022; CFG `f53d455`; derive `ba81abc`;
       Queue `77571a9`; guard `a14d748`; accept `2e167bf`)
-- [~] <-- YOU ARE HERE: Endless Shuffle, Queue Stability, and Session Continuity
-      (Cap 13; 13.6 `[x]` ADR-030 everyday availability, owner
-      2026-08-19 — not an Instruments numeric Pass. FAIL tables
-      frozen; they are not the current bar. Next: 13.7. Cap 15
-      after 13.7. Layer 1 miss **not** closed)
+- [x] Endless Shuffle, Queue Stability, and Session Continuity
+      (Cap 13 / ADR-023 Accepted `f0187b4`; ADR-024 `1f8a240`;
+      13.6 closed under ADR-030 §5 everyday availability, owner
+      2026-08-19 — not an Instruments numeric Pass; FAIL tables
+      frozen)
 - [x] Current-item iCloud media fetch, visual
       preheating, and loading states
       (Cap 14 / ADR-025 Accepted, work `393ebc9`; **first** 13.6
       foundation paid — iCloud copy-panel unreadability)
-- [ ] Feed swipe Layer 1→2 handoff polish and duplicate current-item
-      Layer 2 request (Cap 15). Scope: local-fast Layer 2 exposing
-      still/video swipe-in flash; listen+build double generation bump
-      that may duplicate Layer 2. **Not next.** Start only after Cap
-      13 close-out (13.7). **Not next until 13.7.** Layer 1 miss /
-      swipe flash / duplicate Layer 2 stay this Cap — 13.6 close does
-      **not** mark them solved. Design input is not “re-run the old
-      Instruments six-Run matrix”.
+- [ ] <-- YOU ARE HERE: Feed swipe Layer 1→2 handoff polish and
+      duplicate current-item Layer 2 request (Cap 15). Scope:
+      local-fast Layer 2 exposing still/video swipe-in flash;
+      listen+build double generation bump that may duplicate
+      Layer 2; Layer 1 miss / black cover. Phase Roadmap awaiting
+      owner-approved phases. 13.6 close does **not** mark these
+      solved. Design input is not “re-run the old Instruments
+      six-Run matrix”.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
       foundation paid on the product path; 13.6 closed under
       ADR-030 everyday availability, not an Instruments Pass)
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
-      (**deferred past Cap 14** — does not unblock 13.7)
+      (**deferred past Cap 14**)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
-      (**deferred past Cap 14** — does not unblock 13.7)
+      (**deferred past Cap 14**)
 - [ ] Auto-play Presets and Mode Eligibility Rule
-      (**deferred past Cap 14** — does not unblock 13.7)
+      (**deferred past Cap 14**)
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
       (renamed so “iCloud Fallback” is Auto-play / ADR-O, not Cap 14)
@@ -140,8 +140,9 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Endless Shuffle, Queue Stability, and Session
-Continuity (Cap 13)
+Active capability: Feed swipe Layer 1→2 handoff polish and
+duplicate current-item Layer 2 request (Cap 15)
+(awaiting owner-approved phases)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > When the active capability changes, replace this entire Phase Roadmap with the
@@ -151,32 +152,26 @@ Continuity (Cap 13)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 >
-> ADR-029 two-open-capabilities / Cap 13 **Parked** **ended at 16.6**.
-> Cap 13 is the ACTIVE Phase Roadmap again. Do not restore the Parked
-> section. Do not treat Cap 16 as Cap 15. Instruments numeric hitch /
-> hang pair is **not** a shipping gate (ADR-030). Protocol:
-> `docs/acceptance/cap13-13.6-measurement-reeval-protocol.md`.
+> Cap 13 `[x]` closed 2026-08-19 (13.6 under ADR-030 §5 — not an
+> Instruments numeric Pass). Cap 14 and Cap 16 already `[x]`. Do
+> not restore Cap 13 Parked. Do not start Cap 15 code until the
+> owner approves this Phase Roadmap. Layer 1 miss / swipe flash /
+> duplicate Layer 2 / iCloud no-poster stay Known debt.
 
-- [x] 13.1–13.5, 13.8 — see git / ADR-023 / ADR-024 (13.8e `7edc99c`)
-- [x] 13.6 Acceptance — closed under **ADR-030 §5** (owner
-      2026-08-19: Kafka everyday uninstrumented WakeTok; no hard
-      freeze / ANR / force-quit / crash). **Not** an Instruments
-      numeric Pass. FAIL tables stay frozen
-      (`docs/acceptance/cap13-13.6-notes.md`,
-      `docs/acceptance/cap13-13.6-retest-notes.md`, `c43bed7`);
-      ADR-030 replaces them as the current closer — they do **not**
-      represent the current bar.
-- [ ] 13.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
-      Phase Roadmap → Cap 15. Cap 14 and Cap 16 already `[x]`.
-      Cap 15 must not start before 13.7. Layer 1 miss stays Cap 15.
+Awaiting owner-approved phases for Cap 15 (Layer 1→2 handoff
+polish, duplicate Layer 2, centered Layer 1-miss spinner, iCloud
+video no Layer 1 poster). Planning review happens in a later
+conversation before this placeholder is replaced. Do not invent
+numbered phases. Do not start Cap 15 code.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 13.7 close-out (STATE Cap `[x]` + PHASE_HISTORY)
-- Sub-steps done: 13.1–13.6, 13.8; Cap 14 `[x]`; Cap 16 `[x]`;
-      13.6 closer ADR-030 §5 (2026-08-19)
-- Next step: 13.7 docs — Cap 13 `[x]`, PHASE_HISTORY snapshot, YOU
-      ARE HERE → Cap 15 phases (owner-approved). Do not start Cap 15
-      code. Do not mark Layer 1 miss solved
+- Goal (one line): Cap 13 closed; next Cap scope / Phase Roadmap
+      (Cap 15 placeholder)
+- Sub-steps done: 13.7 close-out (STATE Cap `[x]` + PHASE_HISTORY);
+      13.6 closer ADR-030 §5 (2026-08-19) — not an Instruments Pass
+- Next step: owner kickoff review + approve Cap 15 Phase Roadmap;
+      then replace placeholder. Do not start Cap 15 code. Do not
+      mark Layer 1 miss / black cover / swipe flash solved
 - Related decisions: ADR-030 Accepted (`740bd99`); ADR-023
       D10 superseded for close-out; ADR-029 Accepted (`d273358`)
 
@@ -401,7 +396,7 @@ Continuity (Cap 13)
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | Noticed while asserting 14.5 mid-preheat `displayCalls == 1` (actual 2). The extra request is generation-gated and discarded, but a duplicate `requestDisplayAsset` / `requestPlayableVideo` can already be in flight (cellular cost, same class of waste as ADR-025 D4 leave-cancel). Correctness is gated; count is not. Do not fix in 14.5. | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-025 / ADR-010 |
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | ADR-025 defined wait: `_loading` is spinner-only until `requestPreview` returns; Overlay metadata can land first. 14.4e `restartSession` remounts PageView at index 0, so this window is **more often visible** than keep-session resume. Not a defect; polish = keep last still across remount or shorten spinner-only. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-025 / ADR-027 |
-| Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | 16.5 Endless Limited: middle pages are black + **center** spinner until Layer 2. **Owner: must fix** (unify to `_FeedCornerChrome` on `feedBackground`). Not a 14.6b regression; UX-2 (`16ed6e3`) does not close this. Cap 15 must not start until 13.7 — pickup is Cap 15. 13.6 close does **not** mark this solved. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-019 |
+| Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | 16.5 Endless Limited: middle pages are black + **center** spinner until Layer 2. **Owner: must fix** (unify to `_FeedCornerChrome` on `feedBackground`). Not a 14.6b regression; UX-2 (`16ed6e3`) does not close this. Pickup is Cap 15. 13.6 close does **not** mark this solved. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-019 |
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | Device-verified Limited 6-video set (2026-08-18): Videos and All behave the same — first view is spinner-only (no blur cover), then Layer 2 network play succeeds. **Not** a Cap 14.5 preheat regression: ±1 uses local-only `requestPreview` (ADR-025 D2). Limited picker grid thumbs are system PhotosUI (smaller, may use network) — **not** Host Layer 1. Layer 2 success does **not** backfill a poster; off-current video also renders `pendingVideo` black on peek. Host `previewTargetSize` **1080×1080 px** (`PhotoLibraryService`, Cap 14.2 `393ebc9`) was **not rigorously validated in ADR-025** — implementation default only (POC-04 long-edge 1080 precedent); a larger local-only box may reduce iCloud hit rate vs grid-thumb tier. MVP-acceptable; fix paths need owner-scoped ADR (smaller thumb-first target, limited-network poster, and/or demoted-video peek frame). | Feed swipe Layer 1→2 handoff polish (Cap 15). 13.6 close does **not** mark this solved | ADR-025 / ADR-006 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |

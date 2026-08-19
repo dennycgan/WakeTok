@@ -637,3 +637,81 @@ Known debt: product storage leak path paid; 13.6 hitch still FAIL
 (`c43bed7`); Layer 1 miss centered spinner → Cap 15; do not rewrite
 13.6 FAIL tables. Prior debts unchanged (Release hang, Location,
 file-size disclaimer, UX-1, Portfolio scan, etc.).
+
+## Endless Shuffle, Queue Stability, and Session Continuity
+— completed 2026-08-19
+
+- [x] 13.1 Contract freeze: owner review D1–D9=A; ADR-023 Proposed
+      (Browse Shuffle product apply; slim ConsumptionSession;
+      zero Checkpoint/SQLite; Manual Shuffle = full Snapshot;
+      injectable Random + first≠last retry; playhead debt
+      reclassified Accepted not bug-fix; tab = new Session;
+      composition-seam guard update); Out-of-scope locked
+      — docs `879681b`
+- [x] 13.2 Domain: Endless Shuffle in `buildSessionQueue`
+      (Fisher–Yates + round reshuffle + first≠last best-effort;
+      injectable Random; Cap 12 UnsupportedError removed)
+      — work `f0187b4`; docs (ADR-023 Accepted): `577864e`
+- [x] 13.3 Domain: Queue Stability + in-session Continuity
+      (rebuild mapping; slim ConsumptionSession; no
+      SessionCheckpoint persistence)
+      — work `78f6d9d`; docs `c67be56`
+- [x] 13.4 Product apply: Main Browse Mixed → derive + Shuffle
+      Queue; supersede ADR-014 Sequential product default via
+      ADR-023; composition / guard update (D9=A)
+      — work `10a5735`; docs `d1f2884`
+- [x] 13.5 Playhead debt reclassification (D6=A): Known debt row
+      reworded Accepted behaviour — not a bug fix (D8=A: tab =
+      new Session; cross-tab Continuity not in Cap 13); no
+      PlaybackApiHost code change
+      — docs `3b476af`
+- [x] 13.6 Acceptance — closed under **ADR-030 §5** (everyday
+      availability, owner 2026-08-19); **not** an Instruments
+      numeric Pass. FAIL tables stay frozen
+      (`docs/acceptance/cap13-13.6-notes.md`,
+      `docs/acceptance/cap13-13.6-retest-notes.md`); they do
+      **not** represent the current bar.
+      Timeline while the old V-hard gate was still the closer:
+      FAIL `1842c39` → 13.6b hang campaign stopped as
+      inexecutable `c97d350` → Profile retest FAIL `c43bed7` →
+      close `740bd99` (anchor fill `9845493`).
+- [x] 13.8 Browse empty / failure feed + claim Endless gesture
+      (opened after 13.6 blocked; does **not** close or relax
+      13.6). Listed here in the order it ran, not renumbered
+      ahead of 13.6.
+      - [x] 13.8a claim the Endless last-page gesture already on
+            `main` — work `e8564ce`
+      - [x] 13.8b mapped `unauthorized` / `unavailable` with empty
+            coalesced ids now shows the resolve-failed panel +
+            Retry instead of empty copy (**13.4 regression**) —
+            work `1f8a240`
+      - [x] 13.8c never cache an empty coalesced Snapshot
+            (**Cap 13 scope expansion** — fixes pre-13.4 ADR-014
+            D5 behaviour; not part of the 13.4 regression) —
+            work `1f8a240`
+      - [x] 13.8d Acceptance: APP-6/APP-7 + W-F4b/W-S1b and full
+            `flutter test` green; device Kafka Profile Limited
+            first-launch All → Photos/Videos → All has content
+            **without force-quit** = PASS; `unauthorized` path
+            unit-only by owner decision; no Instruments in 13.8
+      - [x] 13.8e docs: ADR-024 + ADR-014 D5 cache-clause narrow
+            supersede; 13.6 blocked reason; Known debt row for
+            Limited first-launch All
+            — docs `7edc99c`
+- [x] 13.7 Cap close-out: STATE Cap `[x]` + PHASE_HISTORY;
+      Phase Roadmap → Cap 15 placeholder (owner-approved phases
+      later). Cap 14 and Cap 16 already `[x]`. Do not start Cap
+      15 code. Layer 1 miss / black cover / swipe flash stay
+      Known debt → Cap 15.
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-023 (Accepted, anchor `f0187b4`); ADR-024
+(Accepted, anchor `1f8a240`); ADR-030 (Accepted, anchor
+`740bd99`).
+Known debt: 13.6 closer is ADR-030 §5, not an Instruments Pass;
+do not rewrite 13.6 FAIL tables. Layer 1 miss / iCloud no-poster /
+swipe flash / duplicate Layer 2 → Cap 15. Prior debts unchanged
+(Release hang, Location, file-size disclaimer, UX-1, Portfolio
+scan, etc.).
