@@ -14,7 +14,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
   private static let maxPageSize: Int = 500
 
   /// Layer 1 preview: `PHImageManager` targetSize bounding box (pixels).
-  private static let previewTargetSize = CGSize(width: 1080, height: 1080)
+  /// Cap 15.6 / ADR-031 Q1=A1: 512×512 (was 1080; local-only hit rate).
+  private static let previewTargetSize = CGSize(width: 512, height: 512)
   private static let previewJpegQuality: CGFloat = 0.8
 
   private let previewRequests = PreviewImageRequestTable()

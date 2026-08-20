@@ -73,6 +73,27 @@ void main() {
     expect(source.contains('setPreferredOrientations'), isTrue);
     expect(source.contains('DeviceOrientation.portraitUp'), isTrue);
   });
+
+  test('presentation: Layer 1 previewTargetSize is 512×512 (15.6 / ADR-031 A1)',
+      () {
+    final source = File(
+      '${packageRoot.path}/ios/Runner/Platform/PhotoLibraryService.swift',
+    ).readAsStringSync();
+    expect(
+      source.contains(
+        'previewTargetSize = CGSize(width: 512, height: 512)',
+      ),
+      isTrue,
+      reason: 'ADR-031 Q1=A1 production box is 512×512',
+    );
+    expect(
+      source.contains(
+        'previewTargetSize = CGSize(width: 1080, height: 1080)',
+      ),
+      isFalse,
+      reason: 'Must not revert Layer 1 box to 1080×1080',
+    );
+  });
 }
 
 Directory _findPackageRoot() {
