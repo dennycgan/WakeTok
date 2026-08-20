@@ -158,14 +158,14 @@ duplicate current-item Layer 2 request (Cap 15)
 > ADRs / identifiers.
 
 - [x] 15.1 Device diagnosis probe — throwaway probe **never
-      committed**; evidence `docs/acceptance/cap15-15.1-notes.md`.
-      Kafka 2026-08-20 Debug. M3 A1 (stills + videos); M2 ≠ 1 so
-      15.4 is a real fix; Q2 no delay-before-show
-- [x] 15.2 Contract freeze — ADR-031 **Proposed** (no Accepted
-      date, no fake anchor). Diagnosis-before-contract recorded.
-      Q1=A1 512×512; Q2=A no delay-before-show; Q3=A; Q5=B; 393
-      related-not-equivalent; 15.4 real fix; M1/M2 Debug limit;
-      M3 order protocol not executed (index odd/even only).
+      committed**; evidence `docs/acceptance/cap15-15.1-notes.md`
+      (`300d47b`). Kafka 2026-08-20 Debug. M3 A1 (stills + videos);
+      M2 ≠ 1 so 15.4 is a real fix; Q2 no delay-before-show
+- [x] 15.2 Contract freeze — ADR-031 **Proposed** (`300d47b`; no
+      Accepted date, no fake anchor). Diagnosis-before-contract
+      recorded. Q1=A1 512×512; Q2=A no delay-before-show; Q3=A;
+      Q5=B; 393 related-not-equivalent; 15.4 real fix; M1/M2 Debug
+      limit; M3 order protocol not executed (index odd/even only).
       Peak-memory baseline is a **hard gate before 15.5**, not
       optional. Three-axis Cap 16 invariant (ADR-030 language).
       Non-goal: Limited banner remount
