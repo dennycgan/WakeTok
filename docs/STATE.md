@@ -76,10 +76,12 @@
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; iCloud video no Layer 1 poster
       (400; **A1** 512×512). 399+398 chrome closed 15.3
-      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 13.6 close
-      does **not** mark remaining debts solved. ADR-031 **Accepted**
-      (anchor `4767ec4`, not 15.9). Notes
-      `docs/acceptance/cap15-15.1-notes.md`.
+      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5 D11
+      peak-memory **before** locked
+      (`docs/acceptance/cap15-15.5-notes.md`; handoff peak ≈261 MB,
+      not cold-start 395.6). 13.6 close does **not** mark remaining
+      debts solved. ADR-031 **Accepted** (anchor `4767ec4`, not
+      15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -181,9 +183,11 @@ duplicate current-item Layer 2 request (Cap 15)
       `page_changed`, zero `preview_supersede`; M1 one
       `layer2_load_start` per become-current
 - [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
-      **Blocked** until pre-15.5 peak-memory + Layer 2 bytes/decode
-      size on current `Image.file` + path `ValueKey` (ADR-031 D11).
-      Keep 14.4d broken-file latch across asset change
+      ADR-031 D11 **before** baseline locked (Kafka Profile
+      still-only; notes `cap15-15.5-notes.md`): compare after to
+      `still_handoff_peak≈261` + plateau (~157–175), **not**
+      cold-start `session_high` 395.6. Keep 14.4d broken-file
+      latch across asset change. Work commit awaits design OK
 - [ ] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
       (debt 400). Fit visual QA on device, not miss-rate only.
       14.2 Host spec: pure logic unit-tested; PhotoKit path
@@ -204,11 +208,12 @@ duplicate current-item Layer 2 request (Cap 15)
 - Goal (one line): Cap 15.5 still Layer 1→2 gapless handoff (debt
       394 stills)
 - Sub-steps done: 15.1 notes; 15.2 ADR-031 Proposed; 15.3 chrome
-      `4767ec4`; 15.4 activation `ce18a33`
-- Next step: **Blocked** — record pre-15.5 peak-memory + Layer 2
-      bytes/decode on current `Image.file` + path `ValueKey` before
-      any 15.5 work commit (ADR-031 D11). Do not commit WT15 probe
-      source
+      `4767ec4`; 15.4 activation `ce18a33`; 15.5 D11 before
+      baseline locked (`cap15-15.5-notes.md`)
+- Next step: owner-approved **design** for gapless still handoff,
+      then work commit. After ship: re-measure under the same notes
+      protocol vs `still_handoff_peak≈261` + plateau. Do not commit
+      WT15 probe source
 - Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
       Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
       ADR-025 Accepted (`393ebc9`)
@@ -390,6 +395,9 @@ duplicate current-item Layer 2 request (Cap 15)
 - Acceptance notes (Cap 16.5 storage + hitch; Instruments numbers
   are not a 13.6 Pass — ADR-030):
   docs/acceptance/cap16-16.5-notes.md
+- Acceptance notes (Cap 15.5 D11 peak-memory **before** baseline;
+  still-only Profile; handoff peak ≈261 not cold-start 395.6):
+  docs/acceptance/cap15-15.5-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
