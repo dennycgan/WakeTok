@@ -2819,9 +2819,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-031: Cap 15 feed Layer 1→2 handoff polish
 
-- Status: Proposed (no Accepted date, no fake anchor)
-- Commit/PR anchor: (Accepted is the docs commit after the 15.3 work sha,
-  same timing as ADR-025 after 14.2 — not 15.9)
+- Status: Accepted (2026-08-20)
+  <!-- Accepted date from `git log -1 --format=%cs 4767ec4` → 2026-08-20 -->
+- Commit/PR anchor: 4767ec4
 - Plain summary (owner reads this):
   Swiping the feed should keep a recognisable still or video cover, put
   the wait spinner with the other item chrome (bottom-right), and not

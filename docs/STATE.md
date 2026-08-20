@@ -75,11 +75,10 @@
 - [ ] <-- YOU ARE HERE: Feed swipe Layer 1→2 handoff polish and
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; listen+build double generation
-      bump; Layer 1 miss centered spinner + leave-Browse return
-      (399+398); iCloud video no Layer 1 poster (400; **A1** 512×512).
-      13.6 close does **not** mark these solved. ADR-031 **Proposed**
-      (15.2); Accepted is the docs commit after the 15.3 work sha
-      (not 15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
+      bump; iCloud video no Layer 1 poster (400; **A1** 512×512).
+      399+398 chrome closed 15.3 `4767ec4`. 13.6 close does **not**
+      mark remaining debts solved. ADR-031 **Accepted** (anchor
+      `4767ec4`, not 15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -169,11 +168,11 @@ duplicate current-item Layer 2 request (Cap 15)
       Peak-memory baseline is a **hard gate before 15.5**, not
       optional. Three-axis Cap 16 invariant (ADR-030 language).
       Non-goal: Limited banner remount
-- [ ] 15.3 Layer 1-miss chrome unified to `_FeedCornerChrome`
-      (debt 399+398); **no** delay-before-show. After landing,
-      check whether UX-1 (debt 402) is incidental; owner judges at
-      15.8. **First Cap 15 work commit**; next docs commit flips
-      ADR-031 to Accepted (anchor = 15.3 sha)
+- [x] 15.3 Layer 1-miss chrome unified to `_FeedCornerChrome`
+      (debt 399+398); **no** delay-before-show. Work `4767ec4`;
+      ADR-031 Accepted in this docs commit (anchor `4767ec4`).
+      UX-1 (402) incidental; owner judges at 15.8. Kafka device
+      chrome PASS (miss corner; library loading still centered)
 - [ ] 15.4 Single current-item activation (debt 396) — **real
       fix** (M2 `preview_supersede` ≠ 1), not verify-only
 - [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
@@ -197,13 +196,13 @@ duplicate current-item Layer 2 request (Cap 15)
       after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 15.3 unify Layer 1-miss chrome to
-      `_FeedCornerChrome` (399+398)
-- Sub-steps done: 15.1 notes; 15.2 ADR-031 Proposed
-- Next step: 15.3 work commit; then docs commit Accepts ADR-031
-      (anchor = 15.3 sha). Do not start 15.5 until memory baseline.
-      Do not commit WT15 probe source
-- Related decisions: ADR-031 Proposed; ADR-030
+- Goal (one line): Cap 15.4 single current-item activation (debt 396)
+- Sub-steps done: 15.1 notes; 15.2 ADR-031 Proposed; 15.3 chrome
+      `4767ec4` + ADR-031 Accepted
+- Next step: 15.4 real fix (M2 `preview_supersede` ≠ 1). Do not
+      start 15.5 until memory baseline. Do not commit WT15 probe
+      source
+- Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
       Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
       ADR-025 Accepted (`393ebc9`)
 
@@ -261,8 +260,9 @@ duplicate current-item Layer 2 request (Cap 15)
   Feed ±1 neighbour `requestPreview` / `releasePreview` two-phase
   window (Cap 14.5 `fa09b00`);
   Item-load chrome bottom-right (Cap 14.6b `16ed6e3`: LIVE badge +
-  Layer 2 / Live-prepare spinner; library resolve loading stays
-  centered);
+  Layer 2 / Live-prepare spinner; Cap 15.3 `4767ec4`: Layer 1-miss
+  `_loading` uses the same `_FeedCornerChrome`; library resolve
+  loading stays centered);
   Cap 16 leave-cancel `cancelInFlightPrepare` (`d273358` / ADR-029)
   + one networked `load` (`df021b8`) + Dart dwell 500 ms
   (`6ca736f`); notes `docs/acceptance/cap16-16.5-notes.md`;
@@ -329,7 +329,8 @@ duplicate current-item Layer 2 request (Cap 15)
   (empty ids with `unauthorized` / `unavailable` status →
   resolve-failed panel + Retry, not empty copy); work `1f8a240` /
   ADR-024; 14.6 Kafka Profile PASS
-- ADR-001 … ADR-030: docs/DECISIONS.md (ADR-030 retires Instruments
+- ADR-001 … ADR-031: docs/DECISIONS.md (ADR-031 Cap 15 Layer 1→2
+  handoff polish — **Accepted**, anchor `4767ec4`; ADR-030 retires Instruments
   numeric hitch/hang gates — **Accepted**, anchor `740bd99`; ADR-029
   Cap 16 cancel and dwell current-item Layer 2 — **Accepted**,
   anchor `d273358`; ADR-028
@@ -427,8 +428,8 @@ duplicate current-item Layer 2 request (Cap 15)
 | Main Browse Screen | Swiping back to a video restarts from 0 after the next item has taken the active 1+1 slot; mid-play resume still happens while that slot is not yet taken | Pool is current + next only; no session-level playhead. Next local almost always occupies `activePlayer` immediately → return rebuilds a new player at 0. Next iCloud occupies only after `requestAVAsset` completes → return before that hits ADR-026 `playOnly` (same live player). **MVP accepts restart-from-0 once the next item has occupied the slot.** That acceptance does **not** mean “always restart on leave”, and must **not** weaken ADR-026 (`actionOnBecomeCurrent`: seek 0 only when at-end; mid-play re-enter `play()` while the player still exists). Do not add session playhead storage in Cap 14. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 / ADR-026 |
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | Noticed while asserting 14.5 mid-preheat `displayCalls == 1` (actual 2). The extra request is generation-gated and discarded, but a duplicate `requestDisplayAsset` / `requestPlayableVideo` can already be in flight (cellular cost, same class of waste as ADR-025 D4 leave-cancel). Correctness is gated; count is not. Do not fix in 14.5. | Feed swipe Layer 1→2 handoff polish and duplicate current-item Layer 2 request (Cap 15) | ADR-025 / ADR-010 |
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
-| Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | ADR-025 defined wait: `_loading` is spinner-only until `requestPreview` returns; Overlay metadata can land first. 14.4e `restartSession` remounts PageView at index 0, so this window is **more often visible** than keep-session resume. Not a defect; polish = unify miss chrome with 399 (`_FeedCornerChrome`) in Cap 15.3. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-027 |
-| Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | 16.5 Endless Limited: middle pages are black + **center** spinner until Layer 2. **Owner: must fix** (unify to `_FeedCornerChrome` on `feedBackground`). Not a 14.6b regression; UX-2 (`16ed6e3`) does not close this. Pickup is Cap 15. 13.6 close does **not** mark this solved. | Feed swipe Layer 1→2 handoff polish (Cap 15) | ADR-025 / ADR-019 |
+| Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): same `_loading` miss chrome as 399, now `_FeedCornerChrome` not centered. Black wait until Layer 1 still exists (ADR-025); 14.4e remount at index 0 can still land on a miss head (Shuffle). Kafka 2026-08-20 device: miss = corner spinner; library loading still centered. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-027 / ADR-031 |
+| Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): miss page is `feedBackground` + `_FeedCornerChrome`; no delay-before-show; new ARB `mainBrowseFeedLayer1Loading`. Library resolve `mainBrowseFeedLoading` stays centered. Kafka device PASS. UX-1 (402) not in this close. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-019 / ADR-031 |
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | Device-verified Limited 6-video set (2026-08-18): Videos and All behave the same — first view is spinner-only (no blur cover), then Layer 2 network play succeeds. **Not** a Cap 14.5 preheat regression: ±1 uses local-only `requestPreview` (ADR-025 D2). Limited picker grid thumbs are system PhotosUI (smaller, may use network) — **not** Host Layer 1. Layer 2 success does **not** backfill a poster; off-current video also renders `pendingVideo` black on peek. Host `previewTargetSize` **1080×1080 px** (`PhotoLibraryService`, Cap 14.2 `393ebc9`) was **not rigorously validated in ADR-025** — implementation default only (POC-04 long-edge 1080 precedent); a larger local-only box may reduce iCloud hit rate vs grid-thumb tier. MVP-acceptable; fix paths need owner-scoped ADR (smaller thumb-first target, limited-network poster, and/or demoted-video peek frame). | Feed swipe Layer 1→2 handoff polish (Cap 15). 13.6 close does **not** mark this solved | ADR-025 / ADR-006 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
