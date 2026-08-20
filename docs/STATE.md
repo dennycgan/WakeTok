@@ -76,10 +76,12 @@
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; iCloud video no Layer 1 poster
       (400; **A1** 512×512). 399+398 chrome closed 15.3
-      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5 D11
-      peak-memory **before** locked
-      (`docs/acceptance/cap15-15.5-notes.md`; handoff peak ≈261 MB,
-      not cold-start 395.6). 13.6 close does **not** mark remaining
+      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5
+      gapless shipped; Round 3 Memory Report reading looked
+      obviously too high vs Round 2 historical log → sized decode
+      (plan B) next (`cap15-15.5-notes.md`; 261/354 are historical
+      readings only — not a MB gate; Round 4 qualitative; no
+      same-asset rematch). 13.6 close does **not** mark remaining
       debts solved. ADR-031 **Accepted** (anchor `4767ec4`, not
       15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
@@ -183,11 +185,14 @@ duplicate current-item Layer 2 request (Cap 15)
       `page_changed`, zero `preview_supersede`; M1 one
       `layer2_load_start` per become-current
 - [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
-      ADR-031 D11 **before** baseline locked (Kafka Profile
-      still-only; notes `cap15-15.5-notes.md`): compare after to
-      `still_handoff_peak≈261` + plateau (~157–175), **not**
-      cold-start `session_high` 395.6. Keep 14.4d broken-file
-      latch across asset change. Work commit awaits design OK
+      Gapless work `32928a8` / `8cedea4` (visual PASS). Round 2/3
+      Memory Report ≈261 / ≈354 are **historical readings** (one-shot
+      D10 trigger for sized decode), **not** a scientific baseline or
+      MB pass bar. Round 4 after plan B: qualitative only — peak
+      character vs Round 3’s obviously-high look; no jetsam /
+      force-quit / sustained climb; Fit not soft; **no** same-asset
+      rematch across Shuffle rounds. Keep 14.4d broken-file latch.
+      Plan B work commit next (LayoutBuilder × DPR cache size).
 - [ ] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
       (debt 400). Fit visual QA on device, not miss-rate only.
       14.2 Host spec: pure logic unit-tested; PhotoKit path
@@ -198,22 +203,22 @@ duplicate current-item Layer 2 request (Cap 15)
 - [ ] 15.8 Device acceptance — ADR-030 §5 owner daily-use
       confirmation + per-debt before/after table (incl. 393 and
       UX-1 verdicts) + storage on the 16.5 protocol
-      (explainable-as-watched) + peak memory vs **pre-15.5**
-      baseline. All M7 / Limited Endless `_loading` optional here
+      (explainable-as-watched) + peak-memory narrative per
+      `cap15-15.5-notes.md` (qualitative; no MB hard bar). All M7 /
+      Limited Endless `_loading` optional here
 - [ ] 15.9 Cap close-out docs (STATE + PHASE_HISTORY). Does
       **not** flip ADR-031 Accepted (that is the docs commit
       after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 15.5 still Layer 1→2 gapless handoff (debt
-      394 stills)
-- Sub-steps done: 15.1 notes; 15.2 ADR-031 Proposed; 15.3 chrome
-      `4767ec4`; 15.4 activation `ce18a33`; 15.5 D11 before
-      baseline locked (`cap15-15.5-notes.md`)
-- Next step: owner-approved **design** for gapless still handoff,
-      then work commit. After ship: re-measure under the same notes
-      protocol vs `still_handoff_peak≈261` + plateau. Do not commit
-      WT15 probe source
+      394 stills) — sized decode (plan B) after Round 3 trigger
+- Sub-steps done: 15.1–15.4; gapless `32928a8`/`8cedea4`; Round 3
+      visual PASS + obviously-high memory → plan B
+      (`cap15-15.5-notes.md`); Round 4 criteria qualitative
+- Next step: plan B work commit (`cacheWidth`/`cacheHeight` via
+      LayoutBuilder × DPR). Then Round 4 device session (qualitative;
+      no MB ≤ N; no same-asset rematch). Do not commit WT15 probe
 - Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
       Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
       ADR-025 Accepted (`393ebc9`)
@@ -395,8 +400,9 @@ duplicate current-item Layer 2 request (Cap 15)
 - Acceptance notes (Cap 16.5 storage + hitch; Instruments numbers
   are not a 13.6 Pass — ADR-030):
   docs/acceptance/cap16-16.5-notes.md
-- Acceptance notes (Cap 15.5 D11 peak-memory **before** baseline;
-  still-only Profile; handoff peak ≈261 not cold-start 395.6):
+- Acceptance notes (Cap 15.5 peak-memory rounds; 261/354 historical
+  trigger readings only; Round 4 qualitative — no MB gate, no
+  same-asset rematch):
   docs/acceptance/cap15-15.5-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
