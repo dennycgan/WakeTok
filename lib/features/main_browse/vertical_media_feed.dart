@@ -2080,26 +2080,47 @@ class _ReloadableFileImageState extends State<_ReloadableFileImage> {
     // Cap 15.5: no path ValueKey (reuse Element/State across L1→L2 path
     // swap) + gaplessPlayback so Flutter keeps the prior frame until the
     // new FileImage decodes (default false clears _imageInfo on provider
-    // change even when State is retained).
-    return Image.file(
-      File(widget.path),
-      gaplessPlayback: true,
-      fit: BoxFit.contain,
-      errorBuilder: (context, error, stackTrace) {
-        if (!_postedBroken) {
-          _postedBroken = true;
-          final onBroken = widget.onFileBroken;
-          if (onBroken != null) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                onBroken();
+    // change even when State is retained). Viewport-sized decode via
+    // ResizeImage + fit policy (Image.file cacheWidth/Height defaults to
+    // ResizeImagePolicy.exact and would stretch non-matching aspect ratios).
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        final boxW = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        final boxH = constraints.hasBoundedHeight
+            ? constraints.maxHeight
+            : MediaQuery.sizeOf(context).height;
+        final cacheWidth = (boxW * dpr).round().clamp(1, 0x7FFFFFFF);
+        final cacheHeight = (boxH * dpr).round().clamp(1, 0x7FFFFFFF);
+        return Image(
+          image: ResizeImage(
+            FileImage(File(widget.path)),
+            width: cacheWidth,
+            height: cacheHeight,
+            policy: ResizeImagePolicy.fit,
+            allowUpscaling: false,
+          ),
+          gaplessPlayback: true,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            if (!_postedBroken) {
+              _postedBroken = true;
+              final onBroken = widget.onFileBroken;
+              if (onBroken != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    onBroken();
+                  }
+                });
               }
-            });
-          }
-        }
-        return ColoredBox(
-          key: const Key('mainBrowseFeedStillBrokenPlaceholder'),
-          color: widget.color,
+            }
+            return ColoredBox(
+              key: const Key('mainBrowseFeedStillBrokenPlaceholder'),
+              color: widget.color,
+            );
+          },
         );
       },
     );

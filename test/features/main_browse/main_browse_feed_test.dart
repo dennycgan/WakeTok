@@ -88,7 +88,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final images = tester.widgetList<Image>(find.byType(Image));
-    final fileImages = images.where((image) => image.image is FileImage);
+    final fileImages = images.where((image) {
+      final provider = image.image;
+      if (provider is FileImage) return true;
+      if (provider is ResizeImage) return provider.imageProvider is FileImage;
+      return false;
+    });
     expect(fileImages, isNotEmpty);
     for (final image in fileImages) {
       expect(image.fit, BoxFit.contain);
@@ -132,6 +137,12 @@ void main() {
       final imageL1 = tester.widget<Image>(imageFinder);
       expect(imageL1.gaplessPlayback, isTrue);
       expect(imageL1.key, isNull);
+      expect(imageL1.image, isA<ResizeImage>());
+      final resizeL1 = imageL1.image! as ResizeImage;
+      expect(resizeL1.width, isNotNull);
+      expect(resizeL1.height, isNotNull);
+      expect(resizeL1.policy, ResizeImagePolicy.fit);
+      expect(resizeL1.allowUpscaling, isFalse);
       final stateL1 = (tester.element(imageFinder) as StatefulElement).state;
 
       display.displayGates['a1']!.complete();
@@ -141,9 +152,15 @@ void main() {
       final imageL2 = tester.widget<Image>(imageFinder);
       expect(imageL2.gaplessPlayback, isTrue);
       expect(imageL2.key, isNull);
-      expect(imageL2.image, isA<FileImage>());
+      expect(imageL2.image, isA<ResizeImage>());
+      final resizeL2 = imageL2.image! as ResizeImage;
+      expect(resizeL2.width, isNotNull);
+      expect(resizeL2.height, isNotNull);
+      expect(resizeL2.policy, ResizeImagePolicy.fit);
+      expect(resizeL2.allowUpscaling, isFalse);
+      expect(resizeL2.imageProvider, isA<FileImage>());
       expect(
-        (imageL2.image! as FileImage).file.path,
+        (resizeL2.imageProvider as FileImage).file.path,
         '/tmp/waketok_15_5_l2.jpg',
       );
       final stateL2 = (tester.element(imageFinder) as StatefulElement).state;
@@ -188,6 +205,8 @@ void main() {
       expect(image.gaplessPlayback, isTrue);
       expect(image.key, isNull);
       expect(image.errorBuilder, isNotNull);
+      expect(image.image, isA<ResizeImage>());
+      expect((image.image! as ResizeImage).policy, ResizeImagePolicy.fit);
 
       final placeholder = image.errorBuilder!(
         tester.element(imageFinder),
@@ -204,6 +223,58 @@ void main() {
         const Key('mainBrowseFeedStillBrokenPlaceholder'),
       );
       expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'W-15.5c still Image cache size matches LayoutBuilder box × DPR',
+    (tester) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      display.previewsById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/waketok_15_5c.jpg',
+      );
+      display.displaysById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/waketok_15_5c.jpg',
+      );
+
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      final imageFinder = find.descendant(
+        of: find.byKey(const Key('mainBrowseFeedStill_a1')),
+        matching: find.byType(Image),
+      );
+      expect(imageFinder, findsOneWidget);
+      final image = tester.widget<Image>(imageFinder);
+      expect(image.image, isA<ResizeImage>());
+      final resize = image.image! as ResizeImage;
+
+      // Pin fit policy: Image.file cache* defaults to exact and stretches.
+      expect(resize.policy, ResizeImagePolicy.fit);
+      expect(resize.allowUpscaling, isFalse);
+
+      final box = tester.renderObject<RenderBox>(imageFinder);
+      final dpr = tester.view.devicePixelRatio;
+      expect(resize.width, (box.size.width * dpr).round());
+      expect(resize.height, (box.size.height * dpr).round());
+      expect(resize.width, greaterThan(0));
+      expect(resize.height, greaterThan(0));
     },
   );
 

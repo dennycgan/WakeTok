@@ -76,14 +76,13 @@
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; iCloud video no Layer 1 poster
       (400; **A1** 512×512). 399+398 chrome closed 15.3
-      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5
-      gapless shipped; Round 3 Memory Report reading looked
-      obviously too high vs Round 2 historical log → sized decode
-      (plan B) next (`cap15-15.5-notes.md`; 261/354 are historical
-      readings only — not a MB gate; Round 4 qualitative; no
-      same-asset rematch). 13.6 close does **not** mark remaining
-      debts solved. ADR-031 **Accepted** (anchor `4767ec4`, not
-      15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
+      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5 gapless
+      + sized decode (`ResizeImagePolicy.fit`); Round 4 **PASS** on
+      Kafka (`cap15-15.5-notes.md`; 261/354 historical only; S2≈334 =
+      isolated iCloud overlap, not sized-decode regression). 13.6 close
+      does **not** mark remaining debts solved. ADR-031 **Accepted**
+      (anchor `4767ec4`, not 15.9). Notes
+      `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -185,14 +184,14 @@ duplicate current-item Layer 2 request (Cap 15)
       `page_changed`, zero `preview_supersede`; M1 one
       `layer2_load_start` per become-current
 - [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
-      Gapless work `32928a8` / `8cedea4` (visual PASS). Round 2/3
-      Memory Report ≈261 / ≈354 are **historical readings** (one-shot
-      D10 trigger for sized decode), **not** a scientific baseline or
-      MB pass bar. Round 4 after plan B: qualitative only — peak
-      character vs Round 3’s obviously-high look; no jetsam /
-      force-quit / sustained climb; Fit not soft; **no** same-asset
-      rematch across Shuffle rounds. Keep 14.4d broken-file latch.
-      Plan B work commit next (LayoutBuilder × DPR cache size).
+      Gapless `32928a8`/`8cedea4`. Sized decode: LayoutBuilder × DPR
+      via `ResizeImage` + **`ResizeImagePolicy.fit`** (not `Image.file`
+      cache* / `exact` — that stretched). Round 4 **PASS** (Kafka
+      Profile): no Fit flash; Photos spot-check aspect OK; no jetsam /
+      force-quit / sustained climb; peak character not Round-3-systemic.
+      S2≈334 = slow iCloud + gapless + preheat **overlap** (pre-existing
+      shape; not a plan B regression) — see `cap15-15.5-notes.md`.
+      Keep 14.4d latch. Work commit pending owner OK.
 - [ ] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
       (debt 400). Fit visual QA on device, not miss-rate only.
       14.2 Host spec: pure logic unit-tested; PhotoKit path
@@ -204,21 +203,20 @@ duplicate current-item Layer 2 request (Cap 15)
       confirmation + per-debt before/after table (incl. 393 and
       UX-1 verdicts) + storage on the 16.5 protocol
       (explainable-as-watched) + peak-memory narrative per
-      `cap15-15.5-notes.md` (qualitative; no MB hard bar). All M7 /
-      Limited Endless `_loading` optional here
+      `cap15-15.5-notes.md` (qualitative; no MB hard bar). Watch
+      repeated same-id `display_start` stacking with slow iCloud.
+      All M7 / Limited Endless `_loading` optional here
 - [ ] 15.9 Cap close-out docs (STATE + PHASE_HISTORY). Does
       **not** flip ADR-031 Accepted (that is the docs commit
       after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 15.5 still Layer 1→2 gapless handoff (debt
-      394 stills) — sized decode (plan B) after Round 3 trigger
-- Sub-steps done: 15.1–15.4; gapless `32928a8`/`8cedea4`; Round 3
-      visual PASS + obviously-high memory → plan B
-      (`cap15-15.5-notes.md`); Round 4 criteria qualitative
-- Next step: plan B work commit (`cacheWidth`/`cacheHeight` via
-      LayoutBuilder × DPR). Then Round 4 device session (qualitative;
-      no MB ≤ N; no same-asset rematch). Do not commit WT15 probe
+      394 stills) — Round 4 PASS; work commit pending
+- Sub-steps done: gapless; plan B `fit` policy; Round 4 device PASS
+      (notes `cap15-15.5-notes.md`)
+- Next step: owner OK → work commit (code + notes + STATE). Then
+      15.6. Do not commit WT15 probe
 - Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
       Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
       ADR-025 Accepted (`393ebc9`)
