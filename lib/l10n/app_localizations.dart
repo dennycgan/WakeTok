@@ -597,6 +597,12 @@ abstract class AppLocalizations {
   /// **'Could not load. Allow wireless data, then retry.'**
   String get mainBrowseFeedNetworkFailed;
 
+  /// VoiceOver on Layer 1 miss: feed page has no still or poster yet (Cap 15.3)
+  ///
+  /// In en, this message translates to:
+  /// **'Loading item'**
+  String get mainBrowseFeedLayer1Loading;
+
   /// Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight
   ///
   /// In en, this message translates to:

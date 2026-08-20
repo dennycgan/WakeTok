@@ -1188,6 +1188,11 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedLoading')), findsOneWidget);
     expect(find.text(l10n.mainBrowseFeedLoading), findsOneWidget);
     expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+    expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsNothing);
+    expect(
+      find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+      findsNothing,
+    );
 
     sources.gate.complete();
     await tester.pumpAndSettle();
@@ -2308,6 +2313,85 @@ void main() {
         greaterThan(spinner.height),
         reason: 'zero-width LIVE badge strut must raise the spinner',
       );
+    },
+  );
+
+  testWidgets(
+    'W-15.3 Layer 1 miss uses corner chrome, not centered or library loading',
+    (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final display = FakeMediaDisplayRepository();
+      display.previewGates['a1'] = Completer<void>();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoadingChrome')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoadingSpinner')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('mainBrowseFeedLoading')), findsNothing);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Chrome')),
+        findsNothing,
+      );
+      expect(
+        find.bySemanticsLabel(l10n.mainBrowseFeedLayer1Loading),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel(l10n.mainBrowseLiveBadge), findsNothing);
+      expect(
+        find.bySemanticsLabel(l10n.mainBrowseFeedLayer3Loading),
+        findsNothing,
+      );
+
+      final spinner = tester.getRect(
+        find.byKey(const Key('mainBrowseFeedPageLoadingSpinner')),
+      );
+      final chrome = tester.getRect(
+        find.byKey(const Key('mainBrowseFeedPageLoadingChrome')),
+      );
+      final feed = tester.getRect(find.byKey(const Key('mainBrowseFeed')));
+      expect(
+        spinner.center.dx,
+        greaterThan(feed.center.dx),
+        reason: 'Layer 1 miss spinner must be right of feed center, not centered',
+      );
+      expect(
+        spinner.center.dy,
+        greaterThan(feed.center.dy),
+        reason: 'Layer 1 miss spinner must be below feed center, not centered',
+      );
+      expect(feed.right - chrome.right, closeTo(12, 1));
+      expect(feed.bottom - chrome.bottom, closeTo(12, 1));
+      expect(
+        spinner.center.dy,
+        closeTo(chrome.center.dy, 1),
+        reason: 'miss spinner must share the Live badge-row vertical slot',
+      );
+      expect(
+        chrome.height,
+        greaterThan(spinner.height),
+        reason: 'zero-width LIVE badge strut must raise the spinner',
+      );
+
+      display.previewGates['a1']!.complete();
+      await tester.pumpAndSettle();
     },
   );
 

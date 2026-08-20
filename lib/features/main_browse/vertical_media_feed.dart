@@ -1573,9 +1573,25 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
 
     if (_loading) {
-      return Center(
+      // Layer 1 miss only. Library resolve uses when(loading:) +
+      // mainBrowseFeedLoading and stays centered. Do not merge this
+      // branch into _mediaStack (off-current empty / pendingVideo).
+      return ColoredBox(
         key: const Key('mainBrowseFeedPageLoading'),
-        child: CircularProgressIndicator(color: tokens.brandGold),
+        color: tokens.feedBackground,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _FeedCornerChrome(
+              color: tokens.brandGold,
+              strutBadgeLabel: l10n.mainBrowseLiveBadge,
+              showSpinner: true,
+              rowKey: const Key('mainBrowseFeedPageLoadingChrome'),
+              spinnerKey: const Key('mainBrowseFeedPageLoadingSpinner'),
+              semanticsLabel: l10n.mainBrowseFeedLayer1Loading,
+            ),
+          ],
+        ),
       );
     }
 
@@ -1833,6 +1849,9 @@ class _FeedCornerChrome extends StatelessWidget {
       child: IgnorePointer(
         child: Semantics(
           container: true,
+          // Spinner rows (Layer 1 miss, Layer 2, Live prepare) own the
+          // label; this drops descendant Text including the zero-width
+          // LIVE strut so VoiceOver does not announce "LIVE".
           excludeSemantics: showSpinner,
           label: showSpinner ? semanticsLabel : null,
           child: Row(
