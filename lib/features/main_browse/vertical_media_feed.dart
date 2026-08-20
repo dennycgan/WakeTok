@@ -55,10 +55,10 @@ class VerticalMediaFeed extends ConsumerStatefulWidget {
   const VerticalMediaFeed({super.key});
 
   @override
-  ConsumerState<VerticalMediaFeed> createState() => _VerticalMediaFeedState();
+  ConsumerState<VerticalMediaFeed> createState() => VerticalMediaFeedState();
 }
 
-class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
+class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   PageController? _pageController;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
@@ -86,6 +86,10 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   /// Theme wrap.
   bool _browseResumeLatch = false;
 
+  /// [currentDisplayGate] generation when [_browseResumeLatch] armed.
+  /// Build skips a second [beginCurrentItem] if listen already bumped.
+  int? _generationWhenLatchArmed;
+
   /// Cap 14.5: neighbour indices allowed to `requestPreview`. Never larger
   /// than the last release-safe window (phase A shrinks; phase B expands).
   Set<int> _allowedPreheatIndices = <int>{};
@@ -99,6 +103,9 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   int? _preheatTrackedLength;
   int? _preheatTrackedEpoch;
   List<String> _preheatIdSnapshot = const [];
+
+  @visibleForTesting
+  int get debugActivationBeginCount => _activation.debugBeginCount;
 
   @override
   void initState() {
@@ -138,7 +145,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
 
   /// Hard constraint: metadata + current-display [begin] in one synchronous call.
   /// No [setState] — [build] assigns fields then reads them in the same frame.
-  void _beginCurrentItemActivation(String assetId) {
+  void _beginCurrentItemActivation(String assetId, {required String source}) {
     final gens = _activation.beginCurrentItem();
     final cached = _overlayCache[assetId];
     _activeAssetId = assetId;
@@ -153,7 +160,7 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
         _activeDisplayGeneration == _activation.currentDisplayGate.generation) {
       return;
     }
-    _beginCurrentItemActivation(assetId);
+    _beginCurrentItemActivation(assetId, source: 'page_changed');
     setState(() {});
   }
 
@@ -348,6 +355,8 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     final browseActive = destination == MainBrowseDestination.browse;
     if (browseActive && !_browseWasActive) {
       _browseResumeLatch = true;
+      _generationWhenLatchArmed =
+          _activation.currentDisplayGate.generation;
     }
     _browseWasActive = browseActive;
 
@@ -460,11 +469,18 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           // (IndexedStack). Bump display+metadata together so in-flight
           // loads cannot share the pre-leave generation (14.4c A/C).
           // Recreate is covered by _activeDisplayGeneration == null.
-          if (_browseResumeLatch ||
-              _activeAssetId != currentId ||
-              _activeDisplayGeneration == null) {
-            _beginCurrentItemActivation(currentId);
+          if (_browseResumeLatch) {
             _browseResumeLatch = false;
+            final alreadyBumpedThisResume =
+                _generationWhenLatchArmed != null &&
+                _activation.currentDisplayGate.generation !=
+                    _generationWhenLatchArmed;
+            if (!alreadyBumpedThisResume) {
+              _beginCurrentItemActivation(currentId, source: 'build_sync');
+            }
+          } else if (_activeAssetId != currentId ||
+              _activeDisplayGeneration == null) {
+            _beginCurrentItemActivation(currentId, source: 'build_sync');
           }
           return Stack(
             fit: StackFit.expand,
@@ -491,7 +507,6 @@ class _VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                   itemCount: ids.length,
                   onPageChanged: (i) {
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
-                    _activateCurrentItem(ids[i]);
                   },
                   itemBuilder: (context, index) {
                     final isCurrent = browseActive && index == feedIndex;
@@ -676,7 +691,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Layer 2 in-flight (any item) or Live motion prepare — corner spinner.
   bool get _showItemLoadSpinner => _layer2InFlight || _showLiveLoadSpinner;
 
-  /// One in-flight preview reload per broken path (errorBuilder storms).
+  /// Cap 15.4: in-flight neighbour Layer 1; validity is [_localGate] only.
+  Future<FeedPageMedia?>? _layer1Future;
+  int? _layer1LocalGen;
+
   bool _previewReloadInFlight = false;
   String? _previewReloadTriedPath;
   StreamSubscription<LivePhotoReadyEvent>? _liveReadySub;
@@ -741,11 +759,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.isCurrent && widget.isCurrent) {
-      _localGate.begin();
       _armLayer2DwellTimer();
     }
     if (oldWidget.isPreheatNeighbor && !widget.isPreheatNeighbor) {
-      _localGate.begin();
+      if (!widget.isCurrent) {
+        _localGate.begin();
+        _layer1Future = null;
+        _layer1LocalGen = null;
+      }
     }
     // Leaving current must always pause — even when generation/asset props
     // change in the same update (parent clears assignedDisplayGeneration when
@@ -1320,6 +1341,88 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     );
   }
 
+  bool _canJoinInFlightLayer1() {
+    final gen = _layer1LocalGen;
+    final future = _layer1Future;
+    if (future == null || gen == null) {
+      return false;
+    }
+    if (!_localGate.isCurrent(gen)) {
+      return false;
+    }
+    final display = _media?.display;
+    if (display != null && display.assetIdentifier == widget.assetIdentifier) {
+      return false;
+    }
+    return true;
+  }
+
+  void _applyLayer1StillIdempotent(
+    FeedPageMedia? layer1, {
+    required bool layer2Follows,
+  }) {
+    final display = layer1?.display;
+    if (display == null) {
+      if (layer2Follows && !_layer2InFlight) {
+        setState(() => _layer2InFlight = true);
+      }
+      return;
+    }
+    final sameStill =
+        _media?.display?.assetIdentifier == display.assetIdentifier &&
+        _media?.display?.localFilePath == display.localFilePath &&
+        !_loading;
+    if (sameStill && (!layer2Follows || _layer2InFlight)) {
+      return;
+    }
+    setState(() {
+      _media = layer1;
+      _loading = false;
+      if (layer2Follows) {
+        _layer2InFlight = true;
+      }
+    });
+  }
+
+  Future<void> _runLayer2AfterJoinedLayer1({
+    required FeedMediaRequestGate currentGate,
+    required int currentGeneration,
+    required FeedPageMedia? layer1,
+    required bool bypassDwell,
+  }) async {
+    if (layer1 != null) {
+      _applyLayer1StillIdempotent(layer1, layer2Follows: true);
+    } else {
+      setState(() => _layer2InFlight = true);
+    }
+    await _awaitLayer2Dwell(bypassDwell: bypassDwell);
+    if (!mounted ||
+        !currentGate.isCurrent(currentGeneration) ||
+        !widget.isCurrent) {
+      return;
+    }
+    final displayRepo = ref.read(mediaDisplayRepositoryProvider);
+    final playbackRepo = ref.read(playbackRepositoryProvider);
+    _displayRepo = displayRepo;
+    final layer2 = await loadFeedPageLayer2(
+      gate: currentGate,
+      generation: currentGeneration,
+      sourceKind: widget.sourceKind,
+      assetIdentifier: widget.assetIdentifier,
+      feedIndex: widget.feedIndex,
+      isCurrent: widget.isCurrent,
+      layer1: layer1,
+      displayRepository: displayRepo,
+      playbackRepository: playbackRepo,
+    );
+    await _applyLayer2Result(
+      gate: currentGate,
+      generation: currentGeneration,
+      layer1: layer1,
+      layer2: layer2,
+    );
+  }
+
   Future<void> _startLoad({bool bypassDwell = false}) async {
     final startedOffCurrent = !widget.isCurrent;
     FeedMediaRequestGate? gate;
@@ -1369,27 +1472,42 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (!widget.isPreheatNeighbor) {
         return;
       }
+      if (_canJoinInFlightLayer1()) {
+        final layer1 = await _layer1Future;
+        if (!mounted || !_localGate.isCurrent(_layer1LocalGen!)) {
+          return;
+        }
+        if (widget.isCurrent) {
+          return;
+        }
+        if (!widget.isPreheatNeighbor) {
+          return;
+        }
+        _applyLayer1StillIdempotent(layer1, layer2Follows: false);
+        return;
+      }
       final localGen = _localGate.begin();
+      _layer1LocalGen = localGen;
       final displayRepo = ref.read(mediaDisplayRepositoryProvider);
       _displayRepo = displayRepo;
-      final layer1 = await loadFeedPageLayer1(
+      final future = loadFeedPageLayer1(
         gate: _localGate,
         generation: localGen,
         assetIdentifier: widget.assetIdentifier,
         displayRepository: displayRepo,
       );
-      if (!mounted ||
-          !_localGate.isCurrent(localGen) ||
-          widget.isCurrent ||
-          !widget.isPreheatNeighbor) {
+      _layer1Future = future;
+      final layer1 = await future;
+      if (!mounted || !_localGate.isCurrent(localGen)) {
         return;
       }
-      if (layer1?.display != null) {
-        setState(() {
-          _media = layer1;
-          _loading = false;
-        });
+      if (widget.isCurrent) {
+        return;
       }
+      if (!widget.isPreheatNeighbor) {
+        return;
+      }
+      _applyLayer1StillIdempotent(layer1, layer2Follows: false);
       return;
     }
 
@@ -1411,6 +1529,36 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
       }
       await _retryLayer2Only();
+      return;
+    }
+
+    if (_canJoinInFlightLayer1()) {
+      final joinGate = gate!;
+      final joinGeneration = generation!;
+      if (_media?.display == null) {
+        setState(() {
+          _layer2Failed = false;
+          _layer2FailureReason = null;
+          _layer2InFlight = false;
+          _surfaceReady = false;
+          _liveMotionMounted = false;
+          _loading = true;
+          _media = null;
+        });
+      }
+      final joined = await _layer1Future;
+      if (!mounted || !_localGate.isCurrent(_layer1LocalGen!)) {
+        return;
+      }
+      if (!joinGate.isCurrent(joinGeneration) || !widget.isCurrent) {
+        return;
+      }
+      await _runLayer2AfterJoinedLayer1(
+        currentGate: joinGate,
+        currentGeneration: joinGeneration,
+        layer1: joined,
+        bypassDwell: bypassDwell,
+      );
       return;
     }
 

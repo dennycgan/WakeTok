@@ -3601,11 +3601,10 @@ void main() {
       }
       await pumpAsyncWork(tester);
 
-      // In-flight neighbour preview is dropped by _localGate; current
-      // Layer 1 issues exactly one more requestPreview (no reuse yet).
+      // Cap 15.4: join neighbour Layer 1; do not issue a second preview.
       expect(
         display.previewCalls.where((id) => id == neighbor).length,
-        previewsForNeighbor + 1,
+        previewsForNeighbor,
       );
       expect(display.displayCalls, contains(neighbor));
 
@@ -3622,6 +3621,125 @@ void main() {
         '/tmp/full_$neighbor.jpg',
       );
       expect(page.debugMedia?.displayLayer, FeedDisplayLayer.full);
+    },
+  );
+
+  testWidgets(
+    'W-15.4a promote joins neighbour preview; Layer 2 once',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final neighbor = ids[1];
+      final previewsForNeighbor = display.previewCalls
+          .where((id) => id == neighbor)
+          .length;
+      expect(previewsForNeighbor, greaterThan(0));
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(
+        display.previewCalls.where((id) => id == neighbor).length,
+        previewsForNeighbor,
+      );
+      expect(display.displayCalls.where((id) => id == neighbor).length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.4b become-current begins activation once',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final feed = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final begins = feed.debugActivationBeginCount;
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      expect(feed.debugActivationBeginCount, begins + 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.4d join then leave ±1 window releases preview and does not write',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final gateA1 = Completer<void>();
+      final gateA2 = Completer<void>();
+      final gateA3 = Completer<void>();
+      final gateA4 = Completer<void>();
+      display.previewGates['a1'] = gateA1;
+      display.previewGates['a2'] = gateA2;
+      display.previewGates['a3'] = gateA3;
+      display.previewGates['a4'] = gateA4;
+      for (final id in ['a1', 'a2', 'a3', 'a4']) {
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: '/tmp/preview_$id.jpg',
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1', 'a2', 'a3', 'a4'],
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final current = ids[0];
+      final neighbor = ids[1];
+      final currentGate = display.previewGates[current]!;
+      currentGate.complete();
+      await pumpAsyncWork(tester);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pump();
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(3);
+      await pumpAsyncWork(tester);
+
+      expect(display.releasePreviewCalls, contains(neighbor));
+      display.previewGates[neighbor]!.complete();
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls, isNot(contains(neighbor)));
+
+      final neighborPages = find.byWidgetPredicate(
+        (w) => w is MediaFeedPage && w.assetIdentifier == neighbor,
+        skipOffstage: false,
+      );
+      if (neighborPages.evaluate().isNotEmpty) {
+        final page = tester.state<MediaFeedPageState>(neighborPages);
+        expect(
+          page.debugMedia?.display?.localFilePath,
+          isNot('/tmp/preview_$neighbor.jpg'),
+        );
+      }
     },
   );
 

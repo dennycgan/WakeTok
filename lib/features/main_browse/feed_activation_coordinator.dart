@@ -8,7 +8,11 @@ class FeedActivationCoordinator {
   final FeedMediaRequestGate metadataGate = FeedMediaRequestGate();
   final FeedMediaRequestGate currentDisplayGate = FeedMediaRequestGate();
 
+  /// Cap 15.4: widget tests assert one [beginCurrentItem] per become-current.
+  int debugBeginCount = 0;
+
   ({int metadata, int display}) beginCurrentItem() {
+    debugBeginCount++;
     return (
       metadata: metadataGate.begin(),
       display: currentDisplayGate.begin(),
