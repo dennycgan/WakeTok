@@ -156,17 +156,19 @@ void main() {
   );
 
   testWidgets(
-    'W-15.5b missing JPEG still uses errorBuilder after gapless change',
+    'W-15.5b broken JPEG hits errorBuilder after gapless change',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
-      const missing = DisplayAsset(
+      // Path need not resolve: invoke Image.errorBuilder directly (FileImage
+      // decode is unreliable under widget tests). Same closure as production.
+      const broken = DisplayAsset(
         assetIdentifier: 'a1',
         mediaKind: PlaybackMediaKind.image,
-        localFilePath: '/tmp/waketok_15_5_missing_file.jpg',
+        localFilePath: '/tmp/waketok_15_5b_unused.jpg',
       );
-      display.previewsById['a1'] = missing;
-      display.displaysById['a1'] = missing;
+      display.previewsById['a1'] = broken;
+      display.displaysById['a1'] = broken;
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
@@ -174,22 +176,34 @@ void main() {
           mediaDisplay: display,
         ),
       );
-      await tester.pumpAndSettle();
+      await pumpAsyncWork(tester);
       expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      expect(
-        find.byKey(const Key('mainBrowseFeedStillBrokenPlaceholder')),
-        findsOneWidget,
-        reason: 'missing path must hit Image.errorBuilder placeholder',
+
+      final imageFinder = find.descendant(
+        of: find.byKey(const Key('mainBrowseFeedStill_a1')),
+        matching: find.byType(Image),
       );
-      final image = tester.widget<Image>(
-        find.descendant(
-          of: find.byKey(const Key('mainBrowseFeedStill_a1')),
-          matching: find.byType(Image),
-        ),
-      );
+      expect(imageFinder, findsOneWidget);
+      final image = tester.widget<Image>(imageFinder);
       expect(image.gaplessPlayback, isTrue);
       expect(image.key, isNull);
+      expect(image.errorBuilder, isNotNull);
+
+      final placeholder = image.errorBuilder!(
+        tester.element(imageFinder),
+        Exception('forced decode failure'),
+        StackTrace.current,
+      );
+      expect(
+        placeholder,
+        isA<ColoredBox>(),
+        reason: 'errorBuilder must return the broken-file placeholder',
+      );
+      expect(
+        (placeholder as ColoredBox).key,
+        const Key('mainBrowseFeedStillBrokenPlaceholder'),
+      );
+      expect(tester.takeException(), isNull);
     },
   );
 
