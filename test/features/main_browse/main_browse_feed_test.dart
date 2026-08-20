@@ -95,6 +95,104 @@ void main() {
     }
   });
 
+  testWidgets(
+    'W-15.5a L1→L2 reuses Image State with gaplessPlayback and no path key',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      display.previewsById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/waketok_15_5_l1.jpg',
+      );
+      display.displaysById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/waketok_15_5_l2.jpg',
+      );
+      display.displayGates['a1'] = Completer<void>();
+
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      final still = find.byKey(const Key('mainBrowseFeedStill_a1'));
+      expect(still, findsOneWidget);
+      final imageFinder = find.descendant(
+        of: still,
+        matching: find.byType(Image),
+      );
+      expect(imageFinder, findsOneWidget);
+
+      final imageL1 = tester.widget<Image>(imageFinder);
+      expect(imageL1.gaplessPlayback, isTrue);
+      expect(imageL1.key, isNull);
+      final stateL1 = (tester.element(imageFinder) as StatefulElement).state;
+
+      display.displayGates['a1']!.complete();
+      await pumpAsyncWork(tester);
+
+      expect(imageFinder, findsOneWidget);
+      final imageL2 = tester.widget<Image>(imageFinder);
+      expect(imageL2.gaplessPlayback, isTrue);
+      expect(imageL2.key, isNull);
+      expect(imageL2.image, isA<FileImage>());
+      expect(
+        (imageL2.image! as FileImage).file.path,
+        '/tmp/waketok_15_5_l2.jpg',
+      );
+      final stateL2 = (tester.element(imageFinder) as StatefulElement).state;
+      expect(
+        identical(stateL1, stateL2),
+        isTrue,
+        reason: 'L1→L2 path swap must reuse Image State (gapless)',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.5b missing JPEG still uses errorBuilder after gapless change',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      const missing = DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/waketok_15_5_missing_file.jpg',
+      );
+      display.previewsById['a1'] = missing;
+      display.displaysById['a1'] = missing;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      expect(
+        find.byKey(const Key('mainBrowseFeedStillBrokenPlaceholder')),
+        findsOneWidget,
+        reason: 'missing path must hit Image.errorBuilder placeholder',
+      );
+      final image = tester.widget<Image>(
+        find.descendant(
+          of: find.byKey(const Key('mainBrowseFeedStill_a1')),
+          matching: find.byType(Image),
+        ),
+      );
+      expect(image.gaplessPlayback, isTrue);
+      expect(image.key, isNull);
+    },
+  );
+
   testWidgets('W-F3 empty resolve shows empty ARB', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(

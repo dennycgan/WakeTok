@@ -2077,9 +2077,13 @@ class _ReloadableFileImageState extends State<_ReloadableFileImage> {
 
   @override
   Widget build(BuildContext context) {
+    // Cap 15.5: no path ValueKey (reuse Element/State across L1→L2 path
+    // swap) + gaplessPlayback so Flutter keeps the prior frame until the
+    // new FileImage decodes (default false clears _imageInfo on provider
+    // change even when State is retained).
     return Image.file(
       File(widget.path),
-      key: ValueKey<String>(widget.path),
+      gaplessPlayback: true,
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
         if (!_postedBroken) {
@@ -2093,7 +2097,10 @@ class _ReloadableFileImageState extends State<_ReloadableFileImage> {
             });
           }
         }
-        return ColoredBox(color: widget.color);
+        return ColoredBox(
+          key: const Key('mainBrowseFeedStillBrokenPlaceholder'),
+          color: widget.color,
+        );
       },
     );
   }
