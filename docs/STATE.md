@@ -76,13 +76,13 @@
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; iCloud video no Layer 1 poster
       (400; **A1** 512×512). 399+398 chrome closed 15.3
-      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5 gapless
-      + sized decode (`ResizeImagePolicy.fit`); Round 4 **PASS** on
-      Kafka (`cap15-15.5-notes.md`; 261/354 historical only; S2≈334 =
-      isolated iCloud overlap, not sized-decode regression). 13.6 close
-      does **not** mark remaining debts solved. ADR-031 **Accepted**
-      (anchor `4767ec4`, not 15.9). Notes
-      `docs/acceptance/cap15-15.1-notes.md`.
+      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5 closed
+      `6c7d3de` (gapless + `ResizeImagePolicy.fit`; Round 4 PASS —
+      `cap15-15.5-notes.md`; 261/354 historical only; S2≈334 =
+      isolated iCloud overlap, not sized-decode regression). Next
+      15.6 A1 512. 13.6 close does **not** mark remaining debts
+      solved. ADR-031 **Accepted** (anchor `4767ec4`, not 15.9).
+      Notes `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -183,19 +183,19 @@ duplicate current-item Layer 2 request (Cap 15)
       Kafka 2026-08-20 Debug WT15 (uncommitted): M1+2 five
       `page_changed`, zero `preview_supersede`; M1 one
       `layer2_load_start` per become-current
-- [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
-      Gapless `32928a8`/`8cedea4`. Sized decode: LayoutBuilder × DPR
-      via `ResizeImage` + **`ResizeImagePolicy.fit`** (not `Image.file`
-      cache* / `exact` — that stretched). Round 4 **PASS** (Kafka
-      Profile): no Fit flash; Photos spot-check aspect OK; no jetsam /
-      force-quit / sustained climb; peak character not Round-3-systemic.
-      S2≈334 = slow iCloud + gapless + preheat **overlap** (pre-existing
-      shape; not a plan B regression) — see `cap15-15.5-notes.md`.
-      Keep 14.4d latch. Work commit pending owner OK.
+- [x] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
+      Work `6c7d3de` (gapless `32928a8`/`8cedea4` + sized decode
+      `ResizeImagePolicy.fit`). Kafka Round 4 **PASS**: Fit flash
+      none; aspect vs iOS Photos spot-check OK; no jetsam /
+      force-quit / sustained climb. Memory not Round-3-systemic; do
+      **not** bite ≈261. S2≈334 = pre-existing slow iCloud + gapless
+      + preheat overlap (not a sized-decode regression) —
+      `cap15-15.5-notes.md`. Keep 14.4d latch. Debt 394 **video**
+      remains 15.7.
 - [ ] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
-      (debt 400). Fit visual QA on device, not miss-rate only.
-      14.2 Host spec: pure logic unit-tested; PhotoKit path
-      un-exercised in work commit message
+      (debt 400; ADR-031 Q1=A1). Fit visual QA on device, not
+      miss-rate only. 14.2 Host spec: pure logic unit-tested;
+      PhotoKit path un-exercised in work commit message
 - [ ] 15.7 Video leave-current frame retention (debt 394 video
       peek-black); does not change the ADR-006 1+1 player /
       Platform View contract
@@ -211,12 +211,12 @@ duplicate current-item Layer 2 request (Cap 15)
       after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 15.5 still Layer 1→2 gapless handoff (debt
-      394 stills) — Round 4 PASS; work commit pending
-- Sub-steps done: gapless; plan B `fit` policy; Round 4 device PASS
-      (notes `cap15-15.5-notes.md`)
-- Next step: owner OK → work commit (code + notes + STATE). Then
-      15.6. Do not commit WT15 probe
+- Goal (one line): Cap 15.6 Layer 1 local-hit A1 — Host
+      `previewTargetSize` **512×512** (debt 400; ADR-031 Q1=A1)
+- Sub-steps done: 15.5 closed (`6c7d3de`; Round 4 notes
+      `cap15-15.5-notes.md`)
+- Next step: owner-approved design / Host change for 512 box +
+      Fit visual QA on device. Do not commit WT15 probe
 - Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
       Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
       ADR-025 Accepted (`393ebc9`)
@@ -398,9 +398,8 @@ duplicate current-item Layer 2 request (Cap 15)
 - Acceptance notes (Cap 16.5 storage + hitch; Instruments numbers
   are not a 13.6 Pass — ADR-030):
   docs/acceptance/cap16-16.5-notes.md
-- Acceptance notes (Cap 15.5 peak-memory rounds; 261/354 historical
-  trigger readings only; Round 4 qualitative — no MB gate, no
-  same-asset rematch):
+- Acceptance notes (Cap 15.5 closed `6c7d3de`; Round 4 PASS;
+  261/354 historical only; S2≈334 pre-existing iCloud overlap):
   docs/acceptance/cap15-15.5-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
