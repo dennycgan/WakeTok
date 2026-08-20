@@ -76,11 +76,10 @@
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; listen+build double generation
       bump; Layer 1 miss centered spinner + leave-Browse return
-      (399+398); iCloud video no Layer 1 poster (400; A1 vs C
-      from 15.1 M3). 13.6 close does **not** mark these solved.
-      Design input is not “re-run the old Instruments six-Run
-      matrix”. ADR-031 Proposed in 15.2; Accepted is the docs
-      commit after the 15.3 work sha (not 15.9).
+      (399+398); iCloud video no Layer 1 poster (400; **A1** 512×512).
+      13.6 close does **not** mark these solved. ADR-031 **Proposed**
+      (15.2); Accepted is the docs commit after the 15.3 work sha
+      (not 15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -152,93 +151,61 @@ duplicate current-item Layer 2 request (Cap 15)
 > explicit owner approval of the phases. An explicit awaiting-scope placeholder
 > is allowed at Cap close-out (see state-decisions-maintenance).
 >
-> Owner-approved 2026-08-19. Diagnosis before contract freeze is a
-> deliberate deviation from 14.1/16.1 (Q1/Q3 need device evidence;
-> record in ADR-031). Probe is throwaway, never committed (16.5 /
-> POC-10). Release never carries probe. Temporary Host
-> `previewTargetSize` experiment must be reverted before 15.2
-> (`git status` clean). Do not remount Limited banner
-> (`eb4473f` / `816816b`). Do not use “Doom Scroll” in capability
-> names / ADRs / identifiers.
+> Owner-approved 2026-08-19; 15.2 freeze 2026-08-20 (ADR-031
+> Proposed). Diagnosis before contract is a deliberate deviation
+> from 14.1/16.1. Throwaway probe never committed. Do not remount
+> Limited banner. Do not use “Doom Scroll” in capability names /
+> ADRs / identifiers.
 
-- [~] 15.1 Device diagnosis probe — throwaway, never committed;
-      Debug+Profile only, never Release; restore any Host
-      `previewTargetSize` experiment before leaving this phase.
-      Measurement list M1–M7 (M3 stills/videos split; mixed or
-      unclear M3 → default C, no forced A1). Captures the 15.8
-      “before” column. Evidence:
-      `docs/acceptance/cap15-15.1-notes.md`
-- [ ] 15.2 Contract freeze — ADR-031 **Proposed** (no Accepted
-      date, no fake anchor). Records diagnosis-before-contract
-      deviation. Locks Q2=A (delay-before-show only if M5 warrants
-      it; do not add by default), Q3=A, Q5=B. Q1 from M3: A1
-      (shrink `previewTargetSize` only) or C, **split by media
-      type**; A2 two-tier / Layer 1 network = non-goals. 393
-      related-but-not-equivalent to Q3=A — observe in M6 / 15.8,
-      do not assume closed. **ADR-031 Accepted is the docs commit
-      after the 15.3 work sha, not 15.9** (same timing as ADR-025
-      after 14.2). Three-axis no-Cap-16-regression invariant, all
-      the same gate language as ADR-030 (observable failure
-      signals + qualitative judgement; no isolated numeric hard
-      bars): (1) networked Layer 2 — must not add fetches that
-      cannot be explained by items that actually became current
-      and completed dwell; duplicate in-flight downloads are a
-      fail; local `requestPreview` is **not** under ADR-029 §4;
-      (2) device storage — 16.5 Videos +0.18 GB / All +0.02 GB
-      are **comparison baselines**, not hard caps; growth must
-      remain explainable as watched items (same 16.5 protocol,
-      no Instruments); (3) peak memory — must not introduce
-      unbounded or material peak-memory growth; under the locked
-      protocol, peak must not regress beyond measurement noise,
-      and jetsam / force-quit / sustained climb are fail signals.
-      If gapless causes a discernible rise, 15.5 must offset it
-      (e.g. viewport-sized decode) or that implementation does
-      not pass. Non-goal: remount Limited banner on Main Browse
+- [x] 15.1 Device diagnosis probe — throwaway probe **never
+      committed**; evidence `docs/acceptance/cap15-15.1-notes.md`.
+      Kafka 2026-08-20 Debug. M3 A1 (stills + videos); M2 ≠ 1 so
+      15.4 is a real fix; Q2 no delay-before-show
+- [x] 15.2 Contract freeze — ADR-031 **Proposed** (no Accepted
+      date, no fake anchor). Diagnosis-before-contract recorded.
+      Q1=A1 512×512; Q2=A no delay-before-show; Q3=A; Q5=B; 393
+      related-not-equivalent; 15.4 real fix; M1/M2 Debug limit;
+      M3 order protocol not executed (index odd/even only).
+      Peak-memory baseline is a **hard gate before 15.5**, not
+      optional. Three-axis Cap 16 invariant (ADR-030 language).
+      Non-goal: Limited banner remount
 - [ ] 15.3 Layer 1-miss chrome unified to `_FeedCornerChrome`
-      (debt 399+398); delay-before-show **only if M5 warrants it**.
-      After landing, check whether UX-1 (debt 402) is incidental;
-      owner judges at 15.8. **First Cap 15 work commit**; next
-      docs commit flips ADR-031 to Accepted (anchor = 15.3 sha)
-- [ ] 15.4 Single current-item activation (debt 396)
-      (scope depends on 15.1 M1+M2: verify-only + regression
-      test only if **both** networked Layer 2 count and
-      `requestPreview` / Host supersede-cancel count are 1;
-      otherwise a real fix)
-- [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills)
-      (approach depends on 15.1 M4: gapless-only vs gapless +
-      sized decode; keep the 14.4d broken-file reload latch
-      across asset change)
-- [ ] 15.6 Layer 1 local-hit tier, A1 only (debt 400)
-      (may be dropped if M3 shows no usable gain at a smaller
-      target; stills and videos may diverge — stills A1 +
-      videos C is allowed. Host change follows 14.2 spec: pure
-      logic unit-tested; PhotoKit path declared un-exercised in
-      the work commit message)
+      (debt 399+398); **no** delay-before-show. After landing,
+      check whether UX-1 (debt 402) is incidental; owner judges at
+      15.8. **First Cap 15 work commit**; next docs commit flips
+      ADR-031 to Accepted (anchor = 15.3 sha)
+- [ ] 15.4 Single current-item activation (debt 396) — **real
+      fix** (M2 `preview_supersede` ≠ 1), not verify-only
+- [ ] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
+      **Blocked** until pre-15.5 peak-memory + Layer 2 bytes/decode
+      size on current `Image.file` + path `ValueKey` (ADR-031 D11).
+      Keep 14.4d broken-file latch across asset change
+- [ ] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
+      (debt 400). Fit visual QA on device, not miss-rate only.
+      14.2 Host spec: pure logic unit-tested; PhotoKit path
+      un-exercised in work commit message
 - [ ] 15.7 Video leave-current frame retention (debt 394 video
       peek-black); does not change the ADR-006 1+1 player /
       Platform View contract
 - [ ] 15.8 Device acceptance — ADR-030 §5 owner daily-use
       confirmation + per-debt before/after table (incl. 393 and
-      UX-1 verdicts) + storage comparison on the 16.5 protocol
-      (explainable-as-watched, not ≤ a GB number) + peak-memory
-      comparison vs the 15.1 M4 baseline (noise-tolerant; jetsam
-      / force-quit / sustained climb fail)
+      UX-1 verdicts) + storage on the 16.5 protocol
+      (explainable-as-watched) + peak memory vs **pre-15.5**
+      baseline. All M7 / Limited Endless `_loading` optional here
 - [ ] 15.9 Cap close-out docs (STATE + PHASE_HISTORY). Does
       **not** flip ADR-031 Accepted (that is the docs commit
       after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 15.1 device diagnosis probe (throwaway;
-      evidence in `docs/acceptance/cap15-15.1-notes.md`)
-- Sub-steps done: owner-approved Cap 15 Phase Roadmap (this
-      STATE write)
-- Next step: owner confirms Set-L (Limited 6-video iCloud set)
-      and Set-F (Full All/Videos pool) still usable; then land
-      throwaway probe and record M1–M7. Do not commit probe.
-      Do not start 15.2 until `git status` is clean
-- Related decisions: ADR-030 Accepted (`740bd99`); ADR-029
-      Accepted (`d273358`); ADR-025 Accepted (`393ebc9`);
-      ADR-031 Proposed in 15.2
+- Goal (one line): Cap 15.3 unify Layer 1-miss chrome to
+      `_FeedCornerChrome` (399+398)
+- Sub-steps done: 15.1 notes; 15.2 ADR-031 Proposed
+- Next step: 15.3 work commit; then docs commit Accepts ADR-031
+      (anchor = 15.3 sha). Do not start 15.5 until memory baseline.
+      Do not commit WT15 probe source
+- Related decisions: ADR-031 Proposed; ADR-030
+      Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
+      ADR-025 Accepted (`393ebc9`)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md

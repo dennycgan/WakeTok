@@ -2815,3 +2815,164 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Accepted date / anchor = the docs commit that appends this entry
     (no product-code work commit).
 
+---
+
+## ADR-031: Cap 15 feed Layer 1→2 handoff polish
+
+- Status: Proposed (no Accepted date, no fake anchor)
+- Commit/PR anchor: (Accepted is the docs commit after the 15.3 work sha,
+  same timing as ADR-025 after 14.2 — not 15.9)
+- Plain summary (owner reads this):
+  Swiping the feed should keep a recognisable still or video cover, put
+  the wait spinner with the other item chrome (bottom-right), and not
+  download extra copies of the same photo. Shrinking the local preview
+  size should make iCloud-optimised items show a cover more often.
+  Leaving a video should not go to a black page when a cover already
+  exists. This does not change the one player / one Platform View
+  contract, does not let Layer 1 use the network, and does not put the
+  Limited banner back on Main Browse.
+- Context / what problem forced this:
+  Cap 15 is the active capability after Cap 13/14/16 close. Known debt:
+  still/video swipe-in flash (394); listen+build double generation
+  (396); Layer 1 miss centered spinner (399) plus leave-Browse return
+  (398); iCloud video no Layer 1 poster (400). 13.6 close does not mark
+  these solved. Design input is not a re-run of the Instruments six-Run
+  matrix (ADR-030). Evidence: docs/acceptance/cap15-15.1-notes.md
+  (2026-08-20, Kafka, Debug WT15 throwaway — never committed).
+- Process deviation (must be explicit):
+  Cap 15 uses **diagnosis before contract freeze** (15.1 then 15.2).
+  This is a deliberate deviation from 14.1/16.1. Reason: Q1 and Q3
+  needed device evidence (same class of failure as 14.4c IndexedStack
+  dispose, 14.6 Host typed-fetch, 13.6 Instruments pollution).
+- Decision (what was chosen):
+  1. **Capability identity.** Title: Feed swipe Layer 1→2 handoff
+     polish and duplicate current-item Layer 2 request (Cap 15). Do
+     not use “Doom Scroll” in the capability name, this ADR, code
+     identifiers, ARB keys, or test names.
+  2. **Q1 = A1 (from 15.1 M3).** Shrink Host `previewTargetSize`.
+     Layer 1 stays `networkAccessAllowed = false` (ADR-025 D2).
+     **Q1=B (Layer 1 network) is rejected** — would reopen Cap 16’s
+     download path. **A2 (two-tier small-then-large on the production
+     preview table) is a non-goal** — Host `previewRequests` is
+     same-assetId supersede; A2 needs a contract ADR. 15.1 clean
+     samples (videos n=4, stills n=3, split tables): 1080 miss /
+     512 and 256 hit; not mixed → not default C. Contaminated
+     `4/L0/001` (Layer 2 before M3) excluded from A1 evidence.
+     **Initial production box = 512×512** (not 256): same miss-fix,
+     better Fit quality; no search for a 512–1080 threshold. 15.6
+     device visual QA on Fit (14.6c) is required, not miss-rate
+     alone. Host change follows 14.2: unit-test pure logic; PhotoKit
+     path declared un-exercised in the work commit message. Extra
+     local `requestPreview` calls are **not** under ADR-029 §4
+     (that rule is networked Layer 2). A1 is one local request at
+     the new size, not two.
+  3. **M3 order-contamination (honest limit).** The locked 15.1
+     protocol (same asset both orders, or process restart between
+     tiers) **was not executed**. The throwaway driver only
+     alternated tier order by queue index (even: 1080→256→512;
+     odd: 512→1080→256). That is **not** the locked protocol.
+     A1 is adopted because every clean sample showed the same
+     direction under both those index orders; cache-pollution
+     artefacts usually look mixed. Residual risk: PhotoKit cache
+     from an earlier tier on the same process. Do not write 15.1
+     as if counterbalancing was completed.
+  4. **Q2 = A.** Item-level Layer 1-miss chrome unifies to
+     `_FeedCornerChrome` (debts 399+398). Library resolve loading
+     stays centered. **Delay-before-show is not added:** Full M5-A
+     had almost no `_loading`; Limited miss windows were seconds,
+     not <50 ms flashes. UX-1 (402) is a 15.8 incidental check,
+     not a Cap 15 goal.
+  5. **Q3 = A.** On leave-current, keep poster / last still in the
+     **leaving page’s Dart widget state**. Do **not** change the
+     ADR-006 1+1 player + single Platform View contract (Background
+     Audio / lock screen still pending). Debt 393 (swipe-away residue
+     on the shared surface) is **related but not equivalent** —
+     masking by Layer 1 blur + dwell is not closure. 15.8 observes;
+     close 393 only if confirmed gone. Do not invent a Layer 1
+     network path to unmask 393.
+  6. **Q4.** Pull 398 (same `_loading` as 399). Do not pull 395
+     (restart-from-0 after the slot is taken — already accepted
+     MVP). 402 not in scope; 15.8 incidental only.
+  7. **Q5 = B.** Per-debt observable before/after (15.1 notes vs
+     15.8) **and** ADR-030 §5 owner daily-use. App logs / owner
+     observation, not Instruments numeric gates. ADR-030 retired
+     hitch/hang **hard bars**, not all measurement.
+  8. **15.4 (396) is a real fix.** Verify-only required M1=1 **and**
+     M2=1. 15.1: one networked `layer2_load_start` per
+     become-current (M1); **`preview_supersede` on every Videos
+     page_changed in m1m2 (M2 ≠ 1).** Dual `requestPreview` is
+     also structural (current + ±1 preheat, same-id Host table),
+     not only a race.
+  9. **M1/M2 Debug methodology limit.** Counts were collected on
+     **Debug**, not Profile. 16.5 locked Profile for timed runs;
+     Debug JIT/asserts are not timing-grade. Direction (real fix)
+     is adopted by **risk asymmetry**: slower Debug is more likely
+     to widen than hide the race; a slightly eager 15.4 is safer
+     than a false verify-only. If Profile device behaviour after
+     15.4 **materially** contradicts this (e.g. M2 already 1 on
+     Profile with no supersede), that is a **new finding**, not a
+     silent rewrite of 15.1. Do not treat Debug M1/M2 as equal to
+     Profile timing evidence.
+  10. **Three-axis no-Cap-16-regression invariant** (same gate
+      language as ADR-030: observable failure + qualitative
+      judgement; no isolated numeric hard bars):
+      (1) **Networked Layer 2** — must not add fetches that cannot
+      be explained by items that became current and completed
+      dwell; duplicate in-flight downloads fail.
+      (2) **Device storage** — 16.5 Videos +0.18 GB / All +0.02 GB
+      are comparison baselines, not caps. Growth must stay
+      explainable as watched items (16.5 protocol, no Instruments).
+      15.1 Full Videos M7: Photos 10.18→10.18 GB; total −0.92 GB
+      in 系统数据 — Photos-flat, not a leak.
+      (3) **Peak memory** — no unbounded or material peak growth
+      beyond measurement noise; jetsam / force-quit / sustained
+      climb fail. If gapless causes a discernible rise, 15.5 must
+      offset (e.g. viewport-sized decode) or that implementation
+      does not pass.
+  11. **Peak-memory baseline is a hard gate before 15.5 starts,
+      not an optional 15.1 leftover.** 15.2 may freeze without
+      it. **No 15.5 work commit** until Kafka (or the floor
+      device) records a before peak (Xcode Memory gauge,
+      indicative) on the **current** still L1→L2 path (`Image.file`
+      + path `ValueKey`, no gapless yet), plus Layer 2 file bytes
+      and decode pixel size for the same waited-L2 stills. That
+      session’s notes are the 15.8 memory “before” column. Missing
+      this baseline makes the memory invariant untestable.
+  12. **15.5 approach.** Waited Full stills: Fit-interior flash
+      3/3. Enable gapless by removing the path `ValueKey` that
+      currently destroys `_ImageState`; keep 14.4d `_postedBroken`
+      across **asset** change. Sized decode if the pre-15.5
+      memory/decode numbers warrant it.
+  13. **Acceptance (15.8).** Owner daily-use (ADR-030 §5) +
+      per-debt before/after table (incl. 393 and UX-1 verdicts) +
+      storage on 16.5 protocol (explainable-as-watched) + peak
+      memory vs the **pre-15.5** baseline. All-tab M7 and Limited
+      Endless first-item `_loading` may be filled at 15.8; they
+      do not block 15.2.
+  14. **Docs timing.** 15.2 appends this entry as **Proposed**.
+      After **15.3** work, a docs commit flips Accepted (anchor =
+      15.3 sha; `git log -1 --format=%cs`). 15.9 close-out does
+      **not** flip Accepted.
+  15. **Non-goals.** Remount Limited Access product chrome on
+      Main Browse (`eb4473f` / `816816b`). Layer 1 network.
+      Two-tier preview Host contract (A2). Session playhead /
+      mid-play resume across 1+1 slot occupancy (395). Changing
+      dwell N. Instruments hitch/hang numeric Pass.
+- Rejected alternatives (why not B):
+  - Freeze ADR before 15.1 — rejected; Q1/Q3 need device data.
+  - Q1=B Layer 1 network — rejected; reopens Cap 16.
+  - Q1=C keep 1080 — rejected; 15.1 clean samples show usable
+    local hits at 512/256.
+  - A2 two-tier production previews — rejected; same-id supersede.
+  - Q3=B change 1+1 / Platform View — rejected; Background Audio
+    contract not yet specified.
+  - 15.4 verify-only — rejected; M2 ≠ 1.
+  - Delay-before-show spinner — rejected by M5 distribution.
+  - Treat Debug M1/M2 as Profile-grade without a caveat —
+    rejected; must disclose.
+  - Treat “393 not visible” as closed — rejected; masked.
+- Consequences:
+  15.3 is the first Cap 15 work commit. 15.6 Host 512 box + Fit
+  visual QA. 15.5 blocked on memory before-measure. Probe source
+  stays out of git; 15.1 notes land in the 15.2 docs commit.
+
