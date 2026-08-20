@@ -75,14 +75,15 @@
 - [ ] <-- YOU ARE HERE: Feed swipe Layer 1→2 handoff polish and
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; iCloud video no Layer 1 poster
-      (400; **A1** 512×512). 399+398 chrome closed 15.3
-      `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5 closed
-      `6c7d3de` (gapless + `ResizeImagePolicy.fit`; Round 4 PASS —
-      `cap15-15.5-notes.md`; 261/354 historical only; S2≈334 =
-      isolated iCloud overlap, not sized-decode regression). Next
-      15.6 A1 512. 13.6 close does **not** mark remaining debts
-      solved. ADR-031 **Accepted** (anchor `4767ec4`, not 15.9).
-      Notes `docs/acceptance/cap15-15.1-notes.md`.
+      (400; 15.6 A1 512 landed `52e775c` — Limited hit-rate lever;
+      Full never-black is a different PhotoKit tier; Limited residual
+      miss remains — `cap15-15.6-notes.md`). 399+398 chrome closed
+      15.3 `4767ec4`. 396 activation closed 15.4 `ce18a33`. 15.5
+      closed `6c7d3de` (gapless + `ResizeImagePolicy.fit`; Round 4
+      PASS — `cap15-15.5-notes.md`). Next **15.7** video leave-frame.
+      13.6 close does **not** mark remaining debts solved. ADR-031
+      **Accepted** (anchor `4767ec4`, not 15.9). Notes
+      `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -192,10 +193,16 @@ duplicate current-item Layer 2 request (Cap 15)
       + preheat overlap (not a sized-decode regression) —
       `cap15-15.5-notes.md`. Keep 14.4d latch. Debt 394 **video**
       remains 15.7.
-- [ ] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
-      (debt 400; ADR-031 Q1=A1). Fit visual QA on device, not
-      miss-rate only. 14.2 Host spec: pure logic unit-tested;
-      PhotoKit path un-exercised in work commit message
+- [x] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
+      (debt 400; ADR-031 Q1=A1). Work `52e775c`. Kafka Protocol B
+      (Full vs Limited same 16 ids): Full 16/16 ok all ~120; Limited
+      13×512-edge ok + 3 miss. **Inferred:** Full falls back to a
+      fixed ~120 thumb tier; Limited searches by `targetSize` (no
+      same fallback). 512 helps **Limited** hit-rate; Full never-black
+      is largely independent of 512/1080. Debt 400 **open** (Limited
+      residual miss = PhotoKit Limited + local-only; Host cannot
+      invent pixels). Notes `cap15-15.6-notes.md`. Optional later:
+      trial `deliveryMode = .fastFormat` (unvalidated).
 - [ ] 15.7 Video leave-current frame retention (debt 394 video
       peek-black); does not change the ADR-006 1+1 player /
       Platform View contract
@@ -211,15 +218,16 @@ duplicate current-item Layer 2 request (Cap 15)
       after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 15.6 Layer 1 local-hit A1 — Host
-      `previewTargetSize` **512×512** (debt 400; ADR-031 Q1=A1)
-- Sub-steps done: 15.5 closed (`6c7d3de`; Round 4 notes
-      `cap15-15.5-notes.md`)
-- Next step: owner-approved design / Host change for 512 box +
-      Fit visual QA on device. Do not commit WT15 probe
+- Goal (one line): Cap 15.7 Video leave-current frame retention
+      (debt 394 video peek-black)
+- Sub-steps done: 15.6 closed (`52e775c`; notes
+      `cap15-15.6-notes.md` — Full/Limited PhotoKit tier model;
+      debt 400 remains open)
+- Next step: owner-approved design for 15.7 (do not change
+      ADR-006 1+1 player / Platform View contract)
 - Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
       Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
-      ADR-025 Accepted (`393ebc9`)
+      ADR-025 Accepted (`393ebc9`); ADR-006
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -401,6 +409,9 @@ duplicate current-item Layer 2 request (Cap 15)
 - Acceptance notes (Cap 15.5 closed `6c7d3de`; Round 4 PASS;
   261/354 historical only; S2≈334 pre-existing iCloud overlap):
   docs/acceptance/cap15-15.5-notes.md
+- Acceptance notes (Cap 15.6 closed `52e775c`; Protocol B Full/Limited
+  preview-tier model; debt 400 open):
+  docs/acceptance/cap15-15.6-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
@@ -450,7 +461,7 @@ duplicate current-item Layer 2 request (Cap 15)
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): same `_loading` miss chrome as 399, now `_FeedCornerChrome` not centered. Black wait until Layer 1 still exists (ADR-025); 14.4e remount at index 0 can still land on a miss head (Shuffle). Kafka 2026-08-20 device: miss = corner spinner; library loading still centered. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-027 / ADR-031 |
 | Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): miss page is `feedBackground` + `_FeedCornerChrome`; no delay-before-show; new ARB `mainBrowseFeedLayer1Loading`. Library resolve `mainBrowseFeedLoading` stays centered. Kafka device PASS. UX-1 (402) not in this close. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-019 / ADR-031 |
-| Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | Device-verified Limited 6-video set (2026-08-18): Videos and All behave the same — first view is spinner-only (no blur cover), then Layer 2 network play succeeds. **Not** a Cap 14.5 preheat regression: ±1 uses local-only `requestPreview` (ADR-025 D2). Limited picker grid thumbs are system PhotosUI (smaller, may use network) — **not** Host Layer 1. Layer 2 success does **not** backfill a poster; off-current video also renders `pendingVideo` black on peek. Host `previewTargetSize` **1080×1080 px** (`PhotoLibraryService`, Cap 14.2 `393ebc9`) was **not rigorously validated in ADR-025** — implementation default only (POC-04 long-edge 1080 precedent); a larger local-only box may reduce iCloud hit rate vs grid-thumb tier. MVP-acceptable; fix paths need owner-scoped ADR (smaller thumb-first target, limited-network poster, and/or demoted-video peek frame). | Feed swipe Layer 1→2 handoff polish (Cap 15). 13.6 close does **not** mark this solved | ADR-025 / ADR-006 |
+| Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`52e775c`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. | Cap 15.8 owner table (formal debt 400 close); optional `.fastFormat` experiment / Limited miss UI phase | ADR-025 / ADR-006 / ADR-031 |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture, tap-to-pause/resume (non-workspace-area tap toggles play/pause with a center play/pause affordance) | ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
 | Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | **Closed by 14.6b** (`16ed6e3`). Badge + item Layer 2 / Live-prepare spinner share `_FeedCornerChrome` at bottom-right; Overlay `trailingInset` 123. Library resolve loading stays centered. Q7 play-once hide/show unchanged. Kafka Profile PASS. UX-1 untouched. | Closed by Cap 14.6b | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
