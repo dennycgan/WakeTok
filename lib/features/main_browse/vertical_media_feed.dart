@@ -784,18 +784,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // [_activateCurrentItem] when the new current page is assigned.
       // This branch does not bump that gate; G2 uses [widget.isCurrent].
       unawaited(_cancelCurrentItemPhotoKit(widget.assetIdentifier));
-      if (_media?.display != null) {
-        setState(() {
-          _media = FeedPageMedia.still(
-            _media!.display!,
-            layer: _media!.displayLayer ?? FeedDisplayLayer.preview,
-          );
-          _surfaceReady = false;
-          _layer2InFlight = false;
-          _layer2Failed = false;
-          _layer2FailureReason = null;
-        });
-      } else if (_media?.kind == FeedPageMediaKind.video) {
+      // Cap 15.7: keep video+poster kind so [_StillPage] stays in the
+      // same Stack slot. Do not flip to still (destroys Image State) or
+      // pendingVideo when a poster already exists.
+      if (_media?.kind == FeedPageMediaKind.video &&
+          _media?.display == null) {
         setState(() {
           _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
           _surfaceReady = false;
@@ -805,6 +798,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         });
       } else {
         setState(() {
+          _surfaceReady = false;
           _layer2InFlight = false;
           _layer2Failed = false;
           _layer2FailureReason = null;
@@ -1368,6 +1362,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
       return;
     }
+    // Cap 15.7: neighbour Layer 1 must not overwrite video+poster with a
+    // still-kind [layer1]. Keep the leaving page as video; skip the write.
+    if (_media?.kind == FeedPageMediaKind.video &&
+        _media?.display != null &&
+        !widget.isCurrent) {
+      return;
+    }
     final sameStill =
         _media?.display?.assetIdentifier == display.assetIdentifier &&
         _media?.display?.localFilePath == display.localFilePath &&
@@ -1461,7 +1462,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _liveMotionMounted = false;
         if (_media?.display != null) {
           _loading = false;
-        } else if (widget.sourceKind == AssetSourceKind.mediaTypeVideos) {
+        } else if (_media?.kind == FeedPageMediaKind.video ||
+            _media?.kind == FeedPageMediaKind.pendingVideo ||
+            widget.sourceKind == AssetSourceKind.mediaTypeVideos) {
           _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
           _loading = false;
         } else {
@@ -1784,31 +1787,35 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       ),
       FeedPageMediaKind.video => _mediaStack(
         still: null,
-        video: _VideoPage(
-          assetIdentifier: media.videoAssetId!,
-          onSurfaceReady: () async {
-            if (!mounted) {
-              return;
-            }
-            setState(() {
-              _surfaceReady = true;
-              _layer2InFlight = false;
-            });
-            if (widget.isCurrent) {
-              widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
-            }
-            await ref
-                .read(playbackRepositoryProvider)
-                .notifyDisplaySurfaceReady(media.videoAssetId!);
-            await _syncPlaybackActive();
-          },
-        ),
-        poster: (!_surfaceReady && media.display != null)
+        video: widget.isCurrent
+            ? _VideoPage(
+                assetIdentifier: media.videoAssetId!,
+                onSurfaceReady: () async {
+                  if (!mounted) {
+                    return;
+                  }
+                  setState(() {
+                    _surfaceReady = true;
+                    _layer2InFlight = false;
+                  });
+                  if (widget.isCurrent) {
+                    widget.onCurrentLayer2MediaReady?.call(
+                      widget.assetIdentifier,
+                    );
+                  }
+                  await ref
+                      .read(playbackRepositoryProvider)
+                      .notifyDisplaySurfaceReady(media.videoAssetId!);
+                  await _syncPlaybackActive();
+                },
+              )
+            : null,
+        poster: media.display != null
             ? _StillPage(
                 display: media.display!,
                 liveLabel: l10n.mainBrowseLiveBadge,
                 layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-                showLoadSpinner: _layer2InFlight,
+                showLoadSpinner: widget.isCurrent && _layer2InFlight,
                 onPreviewFileBroken: _onPreviewFileBroken,
               )
             : null,
@@ -1840,9 +1847,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (video != null) video,
-        if (still != null) still,
+        // Cap 15.7: poster at index 0 so leaving (video child dropped)
+        // does not shift the Image Element. Video paints after = on top.
         if (poster != null) poster,
+        if (still != null) still,
+        if (video != null) video,
         if (_layer2InFlight && still == null && poster == null)
           _FeedCornerChrome(
             color: tokens.brandGold,

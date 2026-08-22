@@ -3083,8 +3083,7 @@ void main() {
     playback.loadGates['v1']!.complete();
     await pumpAsyncWork(tester);
     expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
-    // Post-frame onSurfaceReady may already have dropped the poster.
-    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedStill_v1')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsNothing);
   });
 
@@ -3948,6 +3947,224 @@ void main() {
     await pumpAsyncWork(tester);
     expect(display.previewCalls.length, n);
   });
+
+  testWidgets(
+    'W-15.7a video keeps Layer 1 poster after surface ready',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      display.previewsById['v1'] = const DisplayAsset(
+        assetIdentifier: 'v1',
+        mediaKind: PlaybackMediaKind.video,
+        localFilePath: '/tmp/fake_preview_v1.jpg',
+      );
+      display.displayErrorById['v1'] = 'unsupportedMedia';
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      expect(find.byKey(const Key('mainBrowseFeedStill_v1')), findsOneWidget);
+      expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'W-15.7b leave current keeps poster Image State (not pendingVideo)',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      for (final id in const ['v1', 'v2']) {
+        display.displayErrorById[id] = 'unsupportedMedia';
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.video,
+          localFilePath: '/tmp/fake_preview_$id.jpg',
+        );
+      }
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final leaving = ids[0];
+
+      final still = find.byKey(
+        Key('mainBrowseFeedStill_$leaving'),
+        skipOffstage: false,
+      );
+      expect(still, findsOneWidget);
+      final imageFinder = find.descendant(
+        of: still,
+        matching: find.byType(Image),
+        skipOffstage: false,
+      );
+      expect(imageFinder, findsOneWidget);
+      final stateBefore =
+          (tester.element(imageFinder) as StatefulElement).state;
+
+      playback.calls.clear();
+      await tester.drag(find.byType(PageView), const Offset(0, -280));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(mainBrowseFeedIndexProvider), 1);
+
+      expect(
+        find.byKey(
+          Key('mainBrowseFeedVideoPending_$leaving'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
+      expect(still, findsOneWidget);
+      expect(imageFinder, findsOneWidget);
+      final stateAfter =
+          (tester.element(imageFinder) as StatefulElement).state;
+      expect(
+        identical(stateBefore, stateAfter),
+        isTrue,
+        reason: 'leave-current must reuse Image State (peek poster)',
+      );
+      expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+      expect(
+        playback.calls.where((c) => c == 'cancelInFlightPrepare:$leaving'),
+        isNotEmpty,
+      );
+
+      final page = tester.state<MediaFeedPageState>(
+        find.byWidgetPredicate(
+          (w) => w is MediaFeedPage && w.assetIdentifier == leaving,
+          skipOffstage: false,
+        ),
+      );
+      expect(page.debugMedia?.kind, FeedPageMediaKind.video);
+      expect(
+        page.debugMedia?.display?.localFilePath,
+        '/tmp/fake_preview_$leaving.jpg',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.7c leave current without poster may become pendingVideo',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      for (final id in const ['v1', 'v2']) {
+        display.previewErrorById[id] = 'iCloudDownloadRequired';
+        display.displayErrorById[id] = 'unsupportedMedia';
+      }
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final leaving = ids[0];
+
+      expect(find.byKey(Key('mainBrowseFeedStill_$leaving')), findsNothing);
+      expect(find.byKey(Key('mainBrowseFeedVideo_$leaving')), findsOneWidget);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(
+        find.byKey(
+          Key('mainBrowseFeedVideoPending_$leaving'),
+          skipOffstage: false,
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          Key('mainBrowseFeedStill_$leaving'),
+          skipOffstage: false,
+        ),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.7d neighbour Layer 1 must not flip off-current video+poster to still',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      for (final id in const ['v1', 'v2']) {
+        display.displayErrorById[id] = 'unsupportedMedia';
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.video,
+          localFilePath: '/tmp/fake_preview_$id.jpg',
+        );
+      }
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final leaving = ids[0];
+
+      final secondPreheat = Completer<void>();
+      display.previewGates[leaving] = secondPreheat;
+      display.previewGateAfterCall[leaving] =
+          display.previewCalls.where((id) => id == leaving).length + 1;
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(
+        display.previewCalls.where((id) => id == leaving).length,
+        greaterThanOrEqualTo(display.previewGateAfterCall[leaving]!),
+      );
+
+      secondPreheat.complete();
+      await pumpAsyncWork(tester);
+
+      final page = tester.state<MediaFeedPageState>(
+        find.byWidgetPredicate(
+          (w) => w is MediaFeedPage && w.assetIdentifier == leaving,
+          skipOffstage: false,
+        ),
+      );
+      expect(page.debugMedia?.kind, FeedPageMediaKind.video);
+      expect(
+        page.debugMedia?.display?.localFilePath,
+        '/tmp/fake_preview_$leaving.jpg',
+      );
+    },
+  );
 }
 
 /// Session ids plus a built [PageView] (current [MediaFeedPage] mounted).

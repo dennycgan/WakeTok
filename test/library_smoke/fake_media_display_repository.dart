@@ -23,6 +23,10 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   /// Per-id delayed completion for preview requests.
   final Map<String, Completer<void>> previewGates = <String, Completer<void>>{};
 
+  /// When set, [requestPreview] waits on [previewGates] only after this many
+  /// calls for that id (1-based). Used by W-15.7d to hold a *second* preheat.
+  final Map<String, int> previewGateAfterCall = <String, int>{};
+
   /// Per-id delayed completion for playable-video requests.
   final Map<String, Completer<void>> playableGates =
       <String, Completer<void>>{};
@@ -95,7 +99,11 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
     previewCalls.add(assetIdentifier);
     previewLifecycleLog.add('preview:$assetIdentifier');
     final gate = previewGates[assetIdentifier];
-    if (gate != null) {
+    final after = previewGateAfterCall[assetIdentifier];
+    final callCount = previewCalls.where((id) => id == assetIdentifier).length;
+    final shouldWait = gate != null &&
+        (after == null || callCount >= after);
+    if (shouldWait) {
       await gate.future;
     }
     final perIdError = previewErrorById[assetIdentifier];
