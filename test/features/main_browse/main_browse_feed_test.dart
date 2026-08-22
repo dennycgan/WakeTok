@@ -4165,6 +4165,136 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'W-15.10a still revisit skips second L2 display via Session token',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1', 'a2', 'a3'],
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.10b leave during in-flight L2 does not mint Session token',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final gateA = Completer<void>();
+      final gateB = Completer<void>();
+      display.displayGates['a1'] = gateA;
+      display.displayGates['a2'] = gateB;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(browseL2ReadySessionProvider)[head], isNull);
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      expect(container.read(browseL2ReadySessionProvider)[head], isNull);
+
+      gateA.complete();
+      gateB.complete();
+      await pumpAsyncWork(tester);
+    },
+  );
+
+  testWidgets(
+    'W-15.10c video revisit fast path keeps poster without L1 loading gate',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      for (final id in const ['v1', 'v2']) {
+        display.displayErrorById[id] = 'unsupportedMedia';
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.video,
+          localFilePath: '/tmp/fake_preview_$id.jpg',
+        );
+      }
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      await pumpAsyncWork(tester);
+      expect(playback.calls.any((c) => c.startsWith('load:')), isTrue);
+
+      final previewsBefore =
+          display.previewCalls.where((id) => id == head).length;
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(browseL2ReadySessionProvider)[head]?.kind,
+        FeedL2ReadyKind.video,
+      );
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+
+      // Neighbour preheat may add previews; become-current fast path must not
+      // open the full-page L1 loading gate.
+      expect(
+        display.previewCalls.where((id) => id == head).length,
+        greaterThanOrEqualTo(previewsBefore),
+      );
+      expect(
+        find.byKey(Key('mainBrowseFeedStill_$head'), skipOffstage: false),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
+        findsNothing,
+      );
+    },
+  );
 }
 
 /// Session ids plus a built [PageView] (current [MediaFeedPage] mounted).

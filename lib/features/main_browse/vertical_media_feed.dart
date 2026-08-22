@@ -1453,6 +1453,24 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       generation = assigned;
     }
 
+    if (!startedOffCurrent) {
+      final l2Ready = ref.read(browseL2ReadySessionProvider)[widget.assetIdentifier];
+      if (l2Ready != null) {
+        final reusePageLayer1 =
+            _media?.display != null &&
+            _media!.display!.assetIdentifier == widget.assetIdentifier;
+        if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
+            (l2Ready.kind == FeedL2ReadyKind.video && !reusePageLayer1)) {
+          await _startLoadFromL2Ready(
+            l2Ready: l2Ready,
+            gate: gate!,
+            generation: generation!,
+          );
+          return;
+        }
+      }
+    }
+
     if (startedOffCurrent) {
       setState(() {
         _layer2InFlight = false;
@@ -1681,6 +1699,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _layer2Failed = false;
         _layer2FailureReason = null;
       });
+      _recordL2ReadySession(layer2: layer2, layer1: layer1);
       await _syncPlaybackActive();
       return;
     }
@@ -1699,8 +1718,122 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _livePreparing = true;
       }
     });
+    _recordL2ReadySession(layer2: layer2, layer1: layer1);
     widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
     await _maybeBeginLiveMotion();
+  }
+
+  void _recordL2ReadySession({
+    required FeedPageMedia layer2,
+    FeedPageMedia? layer1,
+  }) {
+    final id = widget.assetIdentifier;
+    switch (layer2.kind) {
+      case FeedPageMediaKind.still:
+        if (layer2.displayLayer == FeedDisplayLayer.full &&
+            layer2.display != null) {
+          ref.read(browseL2ReadySessionProvider.notifier).record(
+            FeedL2ReadyEntry(
+              assetIdentifier: id,
+              kind: FeedL2ReadyKind.stillFull,
+              cover: layer2.display,
+            ),
+          );
+        }
+      case FeedPageMediaKind.video:
+        final poster = layer1?.display ?? _media?.display;
+        ref.read(browseL2ReadySessionProvider.notifier).record(
+          FeedL2ReadyEntry(
+            assetIdentifier: id,
+            kind: FeedL2ReadyKind.video,
+            cover: poster,
+          ),
+        );
+      case FeedPageMediaKind.pendingVideo:
+      case FeedPageMediaKind.failed:
+        break;
+    }
+  }
+
+  /// Cap 15.10: Session L2-ready fast path — skip L1 (+ dwell); still shows
+  /// sharp; video keeps poster until [onSurfaceReady].
+  Future<void> _startLoadFromL2Ready({
+    required FeedL2ReadyEntry l2Ready,
+    required FeedMediaRequestGate gate,
+    required int generation,
+  }) async {
+    // Still revisit must not await a held Live cancel chain — leave already
+    // queued cancel; 14.6b needs preparing chrome while cancel is in flight.
+    final cancelHost = l2Ready.kind == FeedL2ReadyKind.stillFull
+        ? _liveMotionMounted
+        : (_liveMotionMounted || _isLiveStillMedia(_media));
+    await _teardownLiveMotion(cancelHost: cancelHost);
+    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      return;
+    }
+
+    if (l2Ready.kind == FeedL2ReadyKind.stillFull && l2Ready.cover != null) {
+      final liveStill =
+          l2Ready.cover!.mediaKind == PlaybackMediaKind.livePhoto;
+      setState(() {
+        _layer2Failed = false;
+        _layer2FailureReason = null;
+        _layer2InFlight = false;
+        _surfaceReady = false;
+        _liveMotionMounted = false;
+        _loading = false;
+        _media = FeedPageMedia.still(
+          l2Ready.cover!,
+          layer: FeedDisplayLayer.full,
+        );
+        if (liveStill && widget.isCurrent) {
+          _livePreparing = true;
+        }
+      });
+      widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
+      await _maybeBeginLiveMotion();
+      return;
+    }
+
+    if (l2Ready.kind == FeedL2ReadyKind.video) {
+      setState(() {
+        _layer2Failed = false;
+        _layer2FailureReason = null;
+        _surfaceReady = false;
+        _liveMotionMounted = false;
+        _loading = false;
+        _layer2InFlight = true;
+        _media = FeedPageMedia.video(
+          widget.assetIdentifier,
+          poster: l2Ready.cover,
+        );
+      });
+      await _awaitLayer2Dwell(bypassDwell: true);
+      if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+        return;
+      }
+      final displayRepo = ref.read(mediaDisplayRepositoryProvider);
+      final playbackRepo = ref.read(playbackRepositoryProvider);
+      _displayRepo = displayRepo;
+      final layer1 = _media;
+      final layer2 = await loadFeedPageLayer2(
+        gate: gate,
+        generation: generation,
+        sourceKind: widget.sourceKind,
+        assetIdentifier: widget.assetIdentifier,
+        feedIndex: widget.feedIndex,
+        isCurrent: widget.isCurrent,
+        layer1: layer1,
+        displayRepository: displayRepo,
+        playbackRepository: playbackRepo,
+      );
+      await _applyLayer2Result(
+        gate: gate,
+        generation: generation,
+        layer1: layer1,
+        layer2: layer2,
+      );
+    }
   }
 
   /// Play when this page is current + surface ready. Never pause from here.

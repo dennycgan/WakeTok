@@ -4,6 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 
+export 'package:waketok/app/browse/browse_l2_ready_session.dart'
+    show
+        BrowseL2ReadySession,
+        FeedL2ReadyEntry,
+        FeedL2ReadyKind,
+        browseL2ReadySessionProvider;
 export 'package:waketok/app/browse/browse_session_providers.dart'
     show
         BrowseSessionNotifier,

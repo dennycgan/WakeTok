@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
@@ -182,6 +183,7 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   /// spinner). [_loadGen] plus [Ref.mounted] guard writes across the async gap
   /// so a superseded restart cannot overwrite a newer load (Cap 14.6).
   Future<void> restartSession() async {
+    ref.read(browseL2ReadySessionProvider.notifier).clear();
     final gen = ++_loadGen;
     final source = ref.read(mainBrowseSelectedSourceProvider);
     state = const AsyncLoading();
