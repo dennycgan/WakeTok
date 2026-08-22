@@ -75,14 +75,13 @@
 - [ ] <-- YOU ARE HERE: Feed swipe Layer 1→2 handoff polish and
       duplicate current-item Layer 2 request (Cap 15). Scope:
       still/video swipe-in flash; iCloud video no Layer 1 poster
-      (400). **15.8 closed** (`cap15-15.8-notes.md` — §5 PASS;
-      393/400 still open). **Next 15.10** Session L2-ready skip
-      Layer 1 on revisit (owner 2026-08-22; design
-      `cap15-15.10-local-l2-skip-l1-design.md`). **393 explore
-      paused** until 15.10. **15.9 close-out after 15.10** — Cap 15
-      does **not** close now. 13.6 close does **not** mark remaining
-      debts solved. ADR-031 **Accepted** (anchor `4767ec4`, not 15.9).
-      Notes `docs/acceptance/cap15-15.1-notes.md`.
+      (400). **15.10 closed** (`750ddd6` / `cap15-15.10-notes.md`).
+      **Next 15.9** close-out (STATE + PHASE_HISTORY). **393 explore
+      paused** — redefine peek+settle scope before resume; do not
+      resume on pre-pause explore doc alone. 393/400 still open. Cap 15
+      does **not** close until 15.9. 13.6 close does **not** mark
+      remaining debts solved. ADR-031 **Accepted** (anchor `4767ec4`,
+      not 15.9). Notes `docs/acceptance/cap15-15.1-notes.md`.
 - [x] Cancel and dwell current-item Layer 2 fetch
       (Cap 16 / ADR-029 Accepted, work `d273358`; notes
       `docs/acceptance/cap16-16.5-notes.md`; **second** 13.6
@@ -219,29 +218,29 @@ duplicate current-item Layer 2 request (Cap 15)
       **qualitative only** (no numeric before/after this session —
       weaker than 16.5/15.1 protocol; see notes). 393/400 still
       open. 393 explore **paused** for 15.10.
-- [ ] 15.10 Session L2-ready skip Layer 1 on revisit — local /
+- [x] 15.10 Session L2-ready skip Layer 1 on revisit — local /
       already-L2-completed items must not blur-first on second+
       become-current in the same Browse Session. **v1: revisit only**
       (no public PhotoKit pre-check — STATE Known debt
-      `locallyAvailable` KVC). Design
-      `cap15-15.10-local-l2-skip-l1-design.md`. Cap 16 invariants
-      mandatory. ADR-025 narrow supersede in docs after work.
-      Unblocks 393 explore matrix. Does not fix 400/393/395.
+      `locallyAvailable` KVC). Work `750ddd6`. Kafka 2026-08-22
+      Profile PASS — `cap15-15.10-notes.md`. Cap 16 M7 PASS
+      qualitative-only (no numeric re-record). ADR-025 narrow supersede
+      (this docs commit). 393/400 still open. 393 explore **paused**
+      (scope gap: peek phase — see notes §G).
 - [ ] 15.9 Cap close-out docs (STATE + PHASE_HISTORY). **After
       15.10.** Does **not** flip ADR-031 Accepted (that is the docs
       commit after 15.3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 15.10 Session L2-ready skip Layer 1 on
-      revisit (design sign-off → implementation)
-- Sub-steps done: 15.8 closed (`cap15-15.8-notes.md`; §5 PASS;
-      per-debt table; 393 still open, explore paused)
-- Next step: owner sign-off
-      `cap15-15.10-local-l2-skip-l1-design.md` (§1 scope, Cap 16
-      invariants, ADR-025 supersede) → **OK start coding**
-- Related decisions: ADR-031 Accepted (`4767ec4`); ADR-030
-      Accepted (`740bd99`); ADR-029 Accepted (`d273358`);
-      ADR-025 Accepted (`393ebc9`); ADR-006
+- Goal (one line): Cap 15.9 close-out (STATE Cap `[x]` + PHASE_HISTORY)
+      after 15.10
+- Sub-steps done: 15.10 closed (`cap15-15.10-notes.md`; work `750ddd6`;
+      §5 + core §8 PASS; 393 still open, explore paused pending scope
+      redefine)
+- Next step: owner OK for Cap 15 capability close-out (15.9)
+- Related decisions: ADR-025 (`393ebc9`, narrow supersede 15.10);
+      ADR-031 Accepted (`4767ec4`); ADR-030 Accepted (`740bd99`);
+      ADR-029 Accepted (`d273358`); ADR-006
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -468,9 +467,9 @@ duplicate current-item Layer 2 request (Cap 15)
 | iOS Photos permission | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK. Host uses KVC **list-time only** (`PhotoLibraryService.mapAvailability`). **Cap 15.10 v1** does **not** adopt this for feed become-current skip-L1 — product path = Session L2-ready memory on **revisit** only. Expanding KVC to feed gating requires explicit owner re-board of this row. | Final hardening (or Cap 15.10+ if re-scoped) | — |
 | Cap 6 / library_smoke | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
-| Main Browse Screen | Video page swipe may flash the previous video — **with audio** (severity residual) | Shared 1+1 AVPlayer + single Platform View (ADR-006). **Severity raised (Kafka 2026-08-22, after 15.7):** when both pages are local / already playable, peek still shows the next poster (15.7 PASS), but on **full settle** the shared surface can continue the **previous** item’s picture **and sound** for a few frames (same progress), then snap to the correct item. **15.8:** still open (`cap15-15.8-notes.md`). **393 explore PAUSED** — Cap **15.10** local/L2-ready skip L1 first (`cap15-15.10-local-l2-skip-l1-design.md`). Explore path: Dart mask+mute±attach-ack (`cap15-debt393-explore-scope.md`); overturn Q3=B only if explore fails (**owner re-board**). Do not close from “not seen this run.” | Cap 15.10 then 393 explore | ADR-006 / ADR-031 |
-| Main Browse Screen | Local / L2-ready items still blur-first on revisit (Session) | **Owner 2026-08-22 (15.8):** When Layer 2 is already obtainable (local or prior L2 success in Session), UI still shows Layer 1 blur (+ video spinner) before sharp/play. Distinct from **400** (no L1) and **393** (shared PV wrong A/V). **v1 scope locked:** Session **revisit only** — no public PhotoKit “local before L2” API (STATE `locallyAvailable` KVC = list-time / Final hardening). Cap **15.10**; design `cap15-15.10-local-l2-skip-l1-design.md`. Pauses 393 explore until landed. | Cap 15.10 | ADR-025 / ADR-029 |
-| Main Browse Screen | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** **Closed by 15.5** (`6c7d3de`) for local still→still gapless. **Video peek-black:** **Closed by 15.7** (`b21b9fc`) when L1 poster exists. **Video settle wrong A/V:** debt **393** (still open; explore paused). **Revisit blur-first when L2-ready:** new row above (**15.10**). **400** unchanged. | Cap 15.10; 393 explore after | ADR-006 / ADR-025 / ADR-031 |
+| Main Browse Screen | Video page swipe may flash the previous video — **with audio** (severity residual) | Shared 1+1 AVPlayer + single Platform View (ADR-006). **Severity raised (Kafka 2026-08-22, after 15.7):** when both pages are local / already playable, peek still shows the next poster (15.7 PASS), but on **full settle** the shared surface can continue the **previous** item’s picture **and sound** for a few frames (same progress), then snap to the correct item. **15.8:** still open (`cap15-15.8-notes.md`). **15.10 device (`750ddd6`, `cap15-15.10-notes.md`):** local→local Videos — peek poster OK, then **peek-phase black gap** (empty surface, distinct from settle wrong-A/V); settle ~0.5 s previous picture+audio (393 still open). Same ADR-006 pool family as Cap 7.7 observe-only / 13.6b ghost-frame notes. **393 explore PAUSED** — redefine scope (**peek + settle**) before resume; do not resume on pre-pause explore doc alone. Explore path: Dart mask+mute±attach-ack (`cap15-debt393-explore-scope.md` — **stale scope** until peek phase added); overturn Q3=B only if explore fails (**owner re-board**). Do not close from “not seen this run.” | 393 explore after scope redefine | ADR-006 / ADR-031 |
+| Main Browse Screen | Local / L2-ready items still blur-first on revisit (Session) | **Closed by 15.10** (`750ddd6`): Session L2-ready token skips Layer 1 on revisit; still sharp / video poster-until-play. Kafka PASS (`cap15-15.10-notes.md`). **v1 revisit only** — no list-time KVC on become-current (STATE `locallyAvailable` row unchanged). | Closed by Cap 15.10 | ADR-025 |
+| Main Browse Screen | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** **Closed by 15.5** (`6c7d3de`) for local still→still gapless. **Video peek-black (leave-side poster loss):** **Closed by 15.7** (`b21b9fc`) when L1 poster exists. **Revisit blur-first when L2-ready:** **Closed by 15.10** (`750ddd6`). **15.10 cross-ref:** entering-peek **black gap after blur poster** during swipe — residual under 393 / handoff-gap tracking; **does not reopen** 15.7 closed status. **Video settle wrong A/V:** debt **393** (still open; explore paused). **400** unchanged. | 393 explore after scope redefine | ADR-006 / ADR-025 / ADR-031 |
 | Main Browse Screen | Swiping back to a video restarts from 0 after the next item has taken the active 1+1 slot; mid-play resume still happens while that slot is not yet taken | Pool is current + next only; no session-level playhead. Next local almost always occupies `activePlayer` immediately → return rebuilds a new player at 0. Next iCloud occupies only after `requestAVAsset` completes → return before that hits ADR-026 `playOnly` (same live player). **MVP accepts restart-from-0 once the next item has occupied the slot.** That acceptance does **not** mean “always restart on leave”, and must **not** weaken ADR-026 (`actionOnBecomeCurrent`: seek 0 only when at-end; mid-play re-enter `play()` while the player still exists). Do not add session playhead storage in Cap 14. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 / ADR-026 |
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | **Closed by 15.4** (`ce18a33` / ADR-031 D8): join in-flight Layer 1 on neighbour→current promote; no second `requestPreview` on the same id (`preview_supersede`). Kafka M1+2: zero supersede on five miss `page_changed`; one `layer2_load_start` each. W-15.4 widget tests. | Closed by Cap 15.4 (ADR-031) | ADR-025 / ADR-010 / ADR-031 |
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |

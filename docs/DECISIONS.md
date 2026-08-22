@@ -2166,10 +2166,15 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 - Status: Accepted (2026-08-15); the Decision 2 clause that
   current-item Layer 2 starts with **no dwell** is narrowly
   superseded by ADR-029 (2026-08-19; Cap 16.4 work `6ca736f`) for
-  **timing only**. Still binding: `isNetworkAccessAllowed = true`
-  including cellular (D1=A); Layer 1, ±1 preheat, Overlay file-size,
-  Live motion stay local-only; three-layer model and D2=B ±1 preheat
-  unchanged
+  **timing only**; the Decision 2 clause that the current item
+  **shows Layer 1 when available** before Layer 2 is narrowly
+  superseded by Cap **15.10** (2026-08-22; work `750ddd6`) when
+  **Session L2-ready** proof exists — **revisit only** (skip L1
+  preview + dwell; video keeps poster until surface ready). First
+  visit, iCloud miss, and no-proof paths unchanged. Still binding:
+  `isNetworkAccessAllowed = true` including cellular (D1=A); Layer 1
+  local-only policy, ±1 preheat, Overlay file-size, Live motion stay
+  local-only; three-layer model and D2=B ±1 preheat unchanged
 - Commit/PR anchor: 393ebc9
 - Plain summary (owner reads this):
   When you stop on a photo or video that lives in iCloud, WakeTok should
