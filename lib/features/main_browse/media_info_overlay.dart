@@ -6,7 +6,7 @@ import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart'
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Media Info Overlay (Cap 8.5 / kickoff + PicTok-aligned Location row).
+/// Media Info Overlay (Cap 8.5 / kickoff + Photo-App-A-aligned Location row).
 ///
 /// Rows 1–3 keep fixed per-row height (empty still occupies so progressive
 /// metadata does not jump). Row 4 (Location) is dynamic: present only when

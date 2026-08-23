@@ -24,12 +24,16 @@ void main() {
     'updateNowPlayingMetadata',
     'clearPlaybackPool',
     'cancelInFlightPrepare',
+    'setTransitionAudioSuppressed',
+    'getPlaybackPoolEpoch',
   };
 
   const expectedPlaybackFlutterMethods = <String>{
     'onPlaybackRuntimeEvent',
     'onPlaybackRestoreRequired',
     'onPlaybackPlanEnded',
+    'onPlaybackSurfaceAttached',
+    'onPlaybackSurfaceReadyForDisplay',
   };
 
   const expectedLivePhotoHostMethods = <String>{
@@ -366,7 +370,11 @@ void main() {
     );
 
     for (final method in expectedPlaybackHostMethods) {
-      mockSuccess(playbackChannel(method), null);
+      if (method == 'getPlaybackPoolEpoch') {
+        mockSuccess(playbackChannel(method), 0);
+      } else {
+        mockSuccess(playbackChannel(method), null);
+      }
     }
 
     await api.load(item);
@@ -381,6 +389,8 @@ void main() {
     await api.updateNowPlayingMetadata();
     await api.clearPlaybackPool();
     await api.cancelInFlightPrepare('a');
+    await api.setTransitionAudioSuppressed(true);
+    await api.getPlaybackPoolEpoch();
   });
 
   test('T7 LivePhoto Host methods succeed under mock (no-op path)', () async {
@@ -407,6 +417,12 @@ final class _RecordingPlaybackFlutterApi implements PlaybackFlutterApi {
 
   @override
   void onPlaybackPlanEnded(int feedIndex, String assetIdentifier) {}
+
+  @override
+  void onPlaybackSurfaceAttached(PlaybackSurfaceAttachedDto event) {}
+
+  @override
+  void onPlaybackSurfaceReadyForDisplay(PlaybackSurfaceAttachedDto event) {}
 }
 
 final class _RecordingLivePhotoFlutterApi implements LivePhotoFlutterApi {

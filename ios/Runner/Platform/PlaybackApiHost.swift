@@ -12,6 +12,7 @@ import UIKit
 final class PlaybackApiHost: PlaybackApi {
   static let viewType = "waketok/playback_surface"
 
+  private let flutterApi: PlaybackFlutterApi
   private var plan: PlaybackPlanDto?
   private var currentAssetIdentifier: String?
   private var currentFeedIndex: Int64 = 0
@@ -30,6 +31,8 @@ final class PlaybackApiHost: PlaybackApi {
   /// loses mute when Dart setMute races before the AVPlayer exists.
   /// `clearPlaybackPool` does **not** reset this (preference stays).
   private var muted = false
+  /// Cap 15.11: temporary handoff mute — does not overwrite [muted].
+  private var transitionAudioSuppressed = false
   /// Asset ids with an in-flight prepareActive, so a second request for the
   /// same asset does not build a duplicate player that pauses the first one.
   private var preparingAssetIds = Set<String>()
@@ -70,7 +73,8 @@ final class PlaybackApiHost: PlaybackApi {
   /// Main-thread only.
   private var loadCompletions: [String: [(Result<Void, Error>) -> Void]] = [:]
 
-  init() {
+  init(binaryMessenger: FlutterBinaryMessenger) {
+    flutterApi = PlaybackFlutterApi(binaryMessenger: binaryMessenger)
     bgObserver = NotificationCenter.default.addObserver(
       forName: UIApplication.didEnterBackgroundNotification,
       object: nil,
@@ -86,6 +90,13 @@ final class PlaybackApiHost: PlaybackApi {
       self?.handleWillEnterForeground()
     }
   }
+
+  #if DEBUG
+  /// XCTest-only — Flutter attach-ack callbacks are discarded.
+  convenience init() {
+    self.init(binaryMessenger: NullFlutterBinaryMessenger())
+  }
+  #endif
 
   deinit {
     unregisterItemEndObserver()
@@ -139,8 +150,8 @@ final class PlaybackApiHost: PlaybackApi {
         return
       }
       let id = item.assetIdentifier
-      self.enqueueLoadCompletion(assetId: id, completion: completion)
       let previousId = self.currentAssetIdentifier
+            self.enqueueLoadCompletion(assetId: id, completion: completion)
       self.cancelImageRequestIfNeeded(self.replaceCurrentItem(id))
       if let previousId, previousId != id {
         self.finishLoad(
@@ -154,8 +165,8 @@ final class PlaybackApiHost: PlaybackApi {
         )
       }
       self.currentFeedIndex = item.feedIndex
-      if self.activeAssetId == id, self.activePlayer != nil {
-        self.surfaceView?.attach(player: self.activePlayer)
+            if self.activeAssetId == id, self.activePlayer != nil {
+        self.attachPlayerToSurface(self.activePlayer)
         self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
         self.finishLoad(assetId: id, result: .success(()))
@@ -171,7 +182,7 @@ final class PlaybackApiHost: PlaybackApi {
   func play() throws {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
-      // After background detach, layer may still be nil — re-adopt before play.
+            // After background detach, layer may still be nil — re-adopt before play.
       self.adoptActivePlayerOntoSurface()
       self.playActiveApplyingReenterPolicy()
     }
@@ -228,6 +239,17 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  func setTransitionAudioSuppressed(suppressed: Bool) throws {
+    transitionAudioSuppressed = suppressed
+        DispatchQueue.main.async { [weak self] in
+      self?.applyMuteToPlayers()
+    }
+  }
+
+  func getPlaybackPoolEpoch() throws -> Int64 {
+    Int64(clearEpoch)
+  }
+
   func setPlaybackPlan(plan: PlaybackPlanDto) throws {
     // Cap 16.3: plan bookkeeping only. Must not prepareActive / replace.
     self.plan = plan
@@ -235,8 +257,9 @@ final class PlaybackApiHost: PlaybackApi {
 
   func syncPlanPosition(assetIdentifier: String, feedIndex: Int64) throws {
     // Cap 16.3: index only. Must not prepareActive / replaceCurrentItem.
-    currentFeedIndex = feedIndex
-    if let plan {
+    let idxBefore = currentFeedIndex
+        currentFeedIndex = feedIndex
+        if let plan {
       self.plan = PlaybackPlanDto(
         planId: plan.planId,
         orderedItems: plan.orderedItems,
@@ -276,7 +299,7 @@ final class PlaybackApiHost: PlaybackApi {
   // MARK: - Surface / pool
 
   func bindSurface(_ view: PlaybackSurfaceView) {
-    surfaceView = view
+        surfaceView = view
     if view.boundAssetId == activeAssetId || view.boundAssetId == currentAssetIdentifier {
       adoptActivePlayerOntoSurface()
     }
@@ -289,14 +312,68 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
-  /// Applies persisted [muted] to active + warming players (Cap 9.6).
+  /// Applies persisted [muted] and Cap 15.11 transition guard suppression.
   private func applyMuteToPlayers() {
+    if transitionAudioSuppressed {
+      activePlayer?.isMuted = true
+      warmingPlayer?.isMuted = true
+      return
+    }
     activePlayer?.isMuted = muted
     warmingPlayer?.isMuted = muted
   }
 
+  /// Single attach entry for all active-player → surface paths (Cap 15.11).
+  /// Covers: [adoptPreparedPlayer], [adoptActivePlayerOntoSurface], warming
+  /// promotion in [prepareActive], and [load] fast-path reattach.
+  private func attachPlayerToSurface(_ player: AVPlayer?) {
+        surfaceView?.attach(player: player)
+    emitSurfaceAttachedAckIfNeeded(player: player)
+  }
+
+  /// Host → Dart attach-ack. Fires only when a non-nil [activePlayer] for
+  /// [currentAssetIdentifier] is bound to the shared Platform View.
+  private func emitSurfaceAttachedAckIfNeeded(player: AVPlayer?) {
+    guard let player,
+      player === activePlayer,
+      let assetId = activeAssetId,
+      assetId == currentAssetIdentifier
+    else {
+            return
+    }
+        flutterApi.onPlaybackSurfaceAttached(
+      event: PlaybackSurfaceAttachedDto(
+        assetIdentifier: assetId,
+        feedIndex: currentFeedIndex,
+        clearEpoch: Int64(clearEpoch)
+      )
+    ) { _ in }
+  }
+
+  /// Cap 15.11b: Host → Dart when [AVPlayerLayer.isReadyForDisplay] is true
+  /// for the current active player. Same identity triple as attach-ack.
+  func emitSurfaceReadyForDisplayIfNeeded() {
+    guard let player = activePlayer,
+      let assetId = activeAssetId,
+      assetId == currentAssetIdentifier,
+      let surfaceView,
+      surfaceView.boundAssetId == assetId,
+      surfaceView.playerLayerIsReadyForDisplay
+    else {
+            return
+    }
+        flutterApi.onPlaybackSurfaceReadyForDisplay(
+      event: PlaybackSurfaceAttachedDto(
+        assetIdentifier: assetId,
+        feedIndex: currentFeedIndex,
+        clearEpoch: Int64(clearEpoch)
+      )
+    ) { _ in }
+  }
+
   private func performClearPlaybackPool() {
     unregisterItemEndObserver()
+    transitionAudioSuppressed = false
     clearEpoch &+= 1
     pendingPlay = false
     preparingAssetIds.removeAll()
@@ -339,8 +416,8 @@ final class PlaybackApiHost: PlaybackApi {
 
   /// Puts [activePlayer] back on the Platform View layer and nudges a frame.
   private func adoptActivePlayerOntoSurface() {
-    guard let surfaceView else { return }
-    surfaceView.attach(player: activePlayer)
+    guard surfaceView != nil else { return }
+    attachPlayerToSurface(activePlayer)
     restoreGuardActive = false
   }
 
@@ -402,7 +479,23 @@ final class PlaybackApiHost: PlaybackApi {
   }
 
   private func finishLoad(assetId: String, result: Result<Void, Error>) {
-    let comps = loadCompletions.removeValue(forKey: assetId) ?? []
+    let ok: Bool
+    let err: String
+    if case .success = result {
+      ok = true
+      err = "ok"
+    } else if case .failure(let error) = result {
+      ok = false
+      if let pigeon = error as? PigeonError {
+        err = pigeon.code
+      } else {
+        err = String(describing: error)
+      }
+    } else {
+      ok = false
+      err = "unknown"
+    }
+        let comps = loadCompletions.removeValue(forKey: assetId) ?? []
     for completion in comps {
       completion(result)
     }
@@ -424,7 +517,7 @@ final class PlaybackApiHost: PlaybackApi {
     if activeAssetId == assetId, activePlayer != nil {
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
-        self.surfaceView?.attach(player: self.activePlayer)
+        self.attachPlayerToSurface(self.activePlayer)
         self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
       }
@@ -432,7 +525,7 @@ final class PlaybackApiHost: PlaybackApi {
       return
     }
     if warmingAssetId == assetId, let warming = warmingPlayer {
-      unregisterItemEndObserver()
+            unregisterItemEndObserver()
       activePlayer?.pause()
       activePlayer = warming
       activeAssetId = assetId
@@ -443,7 +536,7 @@ final class PlaybackApiHost: PlaybackApi {
       applyMuteToPlayers()
       DispatchQueue.main.async { [weak self] in
         guard let self else { return }
-        self.surfaceView?.attach(player: self.activePlayer)
+        self.attachPlayerToSurface(self.activePlayer)
         self.registerItemEndObserverIfNeeded()
         self.consumePendingPlayIfNeeded()
       }
@@ -552,7 +645,7 @@ final class PlaybackApiHost: PlaybackApi {
     // Stale completions must not attach: only the current plan item.
     guard currentAssetIdentifier == token else { return }
     if activeAssetId == token, activePlayer != nil {
-      surfaceView?.attach(player: activePlayer)
+      attachPlayerToSurface(activePlayer)
       registerItemEndObserverIfNeeded()
       consumePendingPlayIfNeeded()
       return
@@ -564,7 +657,7 @@ final class PlaybackApiHost: PlaybackApi {
     activeItemDidPlayToEnd = false
     endSeekInFlight = false
     applyMuteToPlayers()
-    surfaceView?.attach(player: player)
+    attachPlayerToSurface(player)
     registerItemEndObserverIfNeeded()
     consumePendingPlayIfNeeded()
   }
@@ -784,6 +877,29 @@ final class PlaybackApiHost: PlaybackApi {
   #endif
 }
 
+#if DEBUG
+private final class NullFlutterBinaryMessenger: NSObject, FlutterBinaryMessenger {
+  func send(onChannel channel: String, message: Data?) {}
+
+  func send(
+    onChannel channel: String,
+    message: Data?,
+    binaryReply callback: FlutterBinaryReply?
+  ) {
+    callback?(nil)
+  }
+
+  func setMessageHandlerOnChannel(
+    _ channel: String,
+    binaryMessageHandler handler: FlutterBinaryMessageHandler?
+  ) -> FlutterBinaryMessengerConnection {
+    0
+  }
+
+  func cleanUpConnection(_ connection: FlutterBinaryMessengerConnection) {}
+}
+#endif
+
 // MARK: - Platform View
 
 final class PlaybackPlatformViewFactory: NSObject, FlutterPlatformViewFactory {
@@ -826,6 +942,12 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
   private let playerLayer = AVPlayerLayer()
   let boundAssetId: String
   private weak var host: PlaybackApiHost?
+  /// Cap 15.11b: KVO edge → product ready-for-display event.
+  private var readyForDisplayObservation: NSKeyValueObservation?
+  private var lastReadyForDisplay: Bool?
+  private var didEmitReadyForDisplay = false
+
+  var playerLayerIsReadyForDisplay: Bool { playerLayer.isReadyForDisplay }
 
   init(frame: CGRect, assetId: String, host: PlaybackApiHost?) {
     boundAssetId = assetId
@@ -837,9 +959,11 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     container.layer.addSublayer(playerLayer)
     super.init()
     host?.bindSurface(self)
+    startReadyForDisplayProbe()
   }
 
   deinit {
+    readyForDisplayObservation?.invalidate()
     host?.unbindSurface(self)
   }
 
@@ -848,13 +972,41 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
   }
 
   func attach(player: AVPlayer?) {
+    // New player bind → allow a fresh ready-for-display emit.
+    didEmitReadyForDisplay = false
     playerLayer.player = player
     playerLayer.frame = container.bounds
-    // After background detach, force a compositor refresh so Play is not
-    // audio-only with a stuck black layer.
-    if let player {
-      let t = player.currentTime()
-      player.seek(to: t, toleranceBefore: .zero, toleranceAfter: .zero)
+    noteReadyForDisplayEdge(force: true)
+  }
+
+  private func startReadyForDisplayProbe() {
+    readyForDisplayObservation?.invalidate()
+    lastReadyForDisplay = playerLayer.isReadyForDisplay
+    readyForDisplayObservation = playerLayer.observe(
+      \.isReadyForDisplay,
+      options: [.new, .old]
+    ) { [weak self] _, change in
+      guard let self else { return }
+      let next = change.newValue ?? self.playerLayer.isReadyForDisplay
+      self.noteReadyForDisplayEdge(force: false, next: next)
+    }
+  }
+
+  private func noteReadyForDisplayEdge(
+    force: Bool,
+    next: Bool? = nil
+  ) {
+    let value = next ?? playerLayer.isReadyForDisplay
+    if !force, let prev = lastReadyForDisplay, prev == value {
+      return
+    }
+    lastReadyForDisplay = value
+    if value, !didEmitReadyForDisplay {
+      didEmitReadyForDisplay = true
+      host?.emitSurfaceReadyForDisplayIfNeeded()
+    }
+    if !value {
+      didEmitReadyForDisplay = false
     }
   }
 }

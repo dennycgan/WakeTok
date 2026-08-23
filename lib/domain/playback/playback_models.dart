@@ -59,6 +59,24 @@ class PlaybackRuntimeEvent {
 }
 
 /// Native asks Dart to sync the feed to [feedIndex] (Cap 7.5).
+/// Cap 15.11 / 15.11b: same wire triple for attach-ack **and** first-frame
+/// ready-for-display ([assetIdentifier] + [feedIndex] + [clearEpoch]).
+class PlaybackSurfaceAttachedEvent {
+  const PlaybackSurfaceAttachedEvent({
+    required this.assetIdentifier,
+    required this.feedIndex,
+    required this.clearEpoch,
+  });
+
+  final String assetIdentifier;
+  final int feedIndex;
+  final int clearEpoch;
+}
+
+/// Alias for first-frame events — same fields as attach-ack (shared trust model).
+typedef PlaybackSurfaceReadyForDisplayEvent = PlaybackSurfaceAttachedEvent;
+
+/// Native asks Dart to sync the feed to [feedIndex] (Cap 7.5).
 class PlaybackRestoreRequest {
   const PlaybackRestoreRequest({
     required this.feedIndex,

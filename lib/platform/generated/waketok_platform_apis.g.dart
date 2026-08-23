@@ -975,6 +975,63 @@ class PlaybackRuntimeEventDto {
   }
 }
 
+/// Cap 15.11: Host → Dart after [PlaybackApiHost] attaches [activePlayer]
+/// to the shared Platform View for [currentAssetIdentifier].
+class PlaybackSurfaceAttachedDto {
+  PlaybackSurfaceAttachedDto({
+    required this.assetIdentifier,
+    required this.feedIndex,
+    required this.clearEpoch,
+  });
+
+  String assetIdentifier;
+
+  int feedIndex;
+
+  int clearEpoch;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetIdentifier,
+      feedIndex,
+      clearEpoch,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static PlaybackSurfaceAttachedDto decode(Object result) {
+    result as List<Object?>;
+    return PlaybackSurfaceAttachedDto(
+      assetIdentifier: result[0]! as String,
+      feedIndex: result[1]! as int,
+      clearEpoch: result[2]! as int,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlaybackSurfaceAttachedDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(feedIndex, other.feedIndex) && _deepEquals(clearEpoch, other.clearEpoch);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlaybackSurfaceAttachedDto(assetIdentifier: $assetIdentifier, feedIndex: $feedIndex, clearEpoch: $clearEpoch)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -1046,6 +1103,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PlaybackRuntimeEventDto) {
       buffer.putUint8(149);
       writeValue(buffer, value.encode());
+    }    else if (value is PlaybackSurfaceAttachedDto) {
+      buffer.putUint8(150);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -1104,6 +1164,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlaybackPlanDto.decode(readValue(buffer)!);
       case 149:
         return PlaybackRuntimeEventDto.decode(readValue(buffer)!);
+      case 150:
+        return PlaybackSurfaceAttachedDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -1832,6 +1894,48 @@ class PlaybackApi {
     )
     ;
   }
+
+  /// Cap 15.11: temporary mute during shared-PV handoff guard. Does **not**
+  /// change persisted user mute ([setMute]); cleared by Dart after
+  /// [PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay] (first frame).
+  Future<void> setTransitionAudioSuppressed(bool suppressed) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.setTransitionAudioSuppressed$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[suppressed]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Cap 15.11: snapshot of Host [clearEpoch] at guard arm time (pool invalidation
+  /// generation — not Dart [FeedMediaRequestGate] display generation).
+  Future<int> getPlaybackPoolEpoch() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.getPlaybackPoolEpoch$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as int;
+  }
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).
@@ -1843,6 +1947,14 @@ abstract class PlaybackFlutterApi {
   void onPlaybackRestoreRequired(int feedIndex, String assetIdentifier);
 
   void onPlaybackPlanEnded(int feedIndex, String assetIdentifier);
+
+  /// Cap 15.11: [activePlayer] attached to Platform View for [assetIdentifier].
+  /// Attach ≠ first displayable frame — do not use as cover unwrap alone.
+  void onPlaybackSurfaceAttached(PlaybackSurfaceAttachedDto event);
+
+  /// Cap 15.11b: [AVPlayerLayer.isReadyForDisplay] became true for the current
+  /// plan id. Same DTO triple as attach-ack (assetId + feedIndex + clearEpoch).
+  void onPlaybackSurfaceReadyForDisplay(PlaybackSurfaceAttachedDto event);
 
   static void setUp(PlaybackFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
@@ -1902,6 +2014,48 @@ abstract class PlaybackFlutterApi {
           final String arg_assetIdentifier = args[1]! as String;
           try {
             api.onPlaybackPlanEnded(arg_feedIndex, arg_assetIdentifier);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.PlaybackFlutterApi.onPlaybackSurfaceAttached$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final PlaybackSurfaceAttachedDto arg_event = args[0]! as PlaybackSurfaceAttachedDto;
+          try {
+            api.onPlaybackSurfaceAttached(arg_event);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final PlaybackSurfaceAttachedDto arg_event = args[0]! as PlaybackSurfaceAttachedDto;
+          try {
+            api.onPlaybackSurfaceReadyForDisplay(arg_event);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

@@ -20,7 +20,7 @@ class PresentationOverlaySnapshot {
   final FileSizeSemantics? fileSizeSemantics;
 
   /// Resolved place name for Overlay row 4; null/empty collapses the row.
-  /// Cap 8 never fills this (Q1=B); field exists so layout can stay PicTok-aligned.
+  /// Cap 8 never fills this (Q1=B); field exists so layout can stay Photo-App-A-aligned.
   final String? locationLabel;
 
   PresentationOverlaySnapshot mergeBasics(PresentationMetadata meta) {

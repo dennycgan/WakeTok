@@ -317,6 +317,20 @@ class PlaybackRuntimeEventDto {
   ErrorCode? errorCode;
 }
 
+/// Cap 15.11: Host → Dart after [PlaybackApiHost] attaches [activePlayer]
+/// to the shared Platform View for [currentAssetIdentifier].
+class PlaybackSurfaceAttachedDto {
+  PlaybackSurfaceAttachedDto({
+    required this.assetIdentifier,
+    required this.feedIndex,
+    required this.clearEpoch,
+  });
+
+  String assetIdentifier;
+  int feedIndex;
+  int clearEpoch;
+}
+
 /// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
 @HostApi()
 abstract class PhotoLibraryApi {
@@ -522,6 +536,15 @@ abstract class PlaybackApi {
   /// ([ErrorCode.operationCancelled]). Id-keyed — never cancels a
   /// different asset's in-flight [load].
   void cancelInFlightPrepare(String assetIdentifier);
+
+  /// Cap 15.11: temporary mute during shared-PV handoff guard. Does **not**
+  /// change persisted user mute ([setMute]); cleared by Dart after
+  /// [PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay] (first frame).
+  void setTransitionAudioSuppressed(bool suppressed);
+
+  /// Cap 15.11: snapshot of Host [clearEpoch] at guard arm time (pool invalidation
+  /// generation — not Dart [FeedMediaRequestGate] display generation).
+  int getPlaybackPoolEpoch();
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).
@@ -532,6 +555,14 @@ abstract class PlaybackFlutterApi {
   void onPlaybackRestoreRequired(int feedIndex, String assetIdentifier);
 
   void onPlaybackPlanEnded(int feedIndex, String assetIdentifier);
+
+  /// Cap 15.11: [activePlayer] attached to Platform View for [assetIdentifier].
+  /// Attach ≠ first displayable frame — do not use as cover unwrap alone.
+  void onPlaybackSurfaceAttached(PlaybackSurfaceAttachedDto event);
+
+  /// Cap 15.11b: [AVPlayerLayer.isReadyForDisplay] became true for the current
+  /// plan id. Same DTO triple as attach-ack (assetId + feedIndex + clearEpoch).
+  void onPlaybackSurfaceReadyForDisplay(PlaybackSurfaceAttachedDto event);
 }
 
 /// Cap 9 Live Photo motion (ADR-019 / POC-08). Independent of [PlaybackApi]

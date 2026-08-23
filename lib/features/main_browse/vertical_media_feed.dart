@@ -25,6 +25,7 @@ import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
+import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// True when a vertical feed scroll is past the trailing edge (next-item
@@ -104,8 +105,101 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   int? _preheatTrackedEpoch;
   List<String> _preheatIdSnapshot = const [];
 
+  static const double _pvHandoffScrollEpsilon = 0.02;
+
+  bool _handlePvTransitionScroll(ScrollNotification notification) {
+    final controller = _pageController;
+    if (controller == null || !controller.hasClients || _ids.isEmpty) {
+      return false;
+    }
+    final page = controller.page;
+    if (page == null) {
+      return false;
+    }
+    // Cap 15.11b: always read the live feed index — never use a build-time
+    // captured value. After settle, ScrollUpdate can still arrive on the
+    // pre-rebuild listener while page already sits on the new index; a stale
+    // curIdx would re-arm toward the page we just settled on.
+    final feedIndex = ref.read(mainBrowseFeedIndexProvider);
+    if (notification is ScrollEndNotification ||
+        (notification is ScrollUpdateNotification &&
+            (page - feedIndex).abs() < _pvHandoffScrollEpsilon)) {
+      if ((page - feedIndex).abs() < _pvHandoffScrollEpsilon) {
+        ref.read(pvTransitionGuardProvider.notifier).maybeDisarmOnSettled(
+          feedIndex,
+        );
+      }
+      return false;
+    }
+    if (notification is! ScrollUpdateNotification &&
+        notification is! ScrollStartNotification) {
+      return false;
+    }
+    final delta = page - feedIndex;
+    if (delta.abs() < _pvHandoffScrollEpsilon) {
+      return false;
+    }
+    final targetIndex = delta > 0 ? feedIndex + 1 : feedIndex - 1;
+    if (targetIndex < 0 || targetIndex >= _ids.length) {
+      return false;
+    }
+    final displayGen = _activation.currentDisplayGate.generation;
+    unawaited(
+      ref.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: feedIndex,
+        targetFeedIndex: targetIndex,
+        sourceAssetId: _ids[feedIndex],
+        targetAssetId: _ids[targetIndex],
+        displayGeneration: displayGen,
+        displayGate: _activation.currentDisplayGate,
+      ),
+    );
+    return false;
+  }
+
   @visibleForTesting
   int get debugActivationBeginCount => _activation.debugBeginCount;
+
+  @visibleForTesting
+  PageController? get debugPageController => _pageController;
+
+  @visibleForTesting
+  FeedMediaRequestGate get debugCurrentDisplayGate =>
+      _activation.currentDisplayGate;
+
+  /// Invokes the same scroll arm path as [NotificationListener] (Cap 15.11 tests).
+  ///
+  /// [staleFeedIndexIgnored] is retained for call-site compatibility; arm/settle
+  /// math always reads [mainBrowseFeedIndexProvider] live (15.11b stale-curIdx).
+  @visibleForTesting
+  void debugDispatchPvScrollArm(int staleFeedIndexIgnored) {
+    final controller = _pageController;
+    if (controller == null || !controller.hasClients) {
+      return;
+    }
+    _handlePvTransitionScroll(
+      ScrollUpdateNotification(
+        metrics: controller.position,
+        context: context,
+        scrollDelta: 1,
+      ),
+    );
+  }
+
+  /// Scroll settled / end path → [PvTransitionGuardNotifier.maybeDisarmOnSettled].
+  @visibleForTesting
+  void debugDispatchPvScrollSettled(int settledFeedIndexIgnored) {
+    final controller = _pageController;
+    if (controller == null || !controller.hasClients) {
+      return;
+    }
+    _handlePvTransitionScroll(
+      ScrollEndNotification(
+        metrics: controller.position,
+        context: context,
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -352,6 +446,19 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     final source = ref.watch(mainBrowseSelectedSourceProvider);
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
+    ref.listen(mainBrowseFeedIndexProvider, (previous, next) {
+      if (previous != next) {
+        ref.read(pvTransitionGuardProvider.notifier).onFeedIndexChanged(next);
+      }
+    });
+    ref.listen(mainBrowseDestinationProvider, (previous, next) {
+      if (previous == MainBrowseDestination.browse &&
+          next != MainBrowseDestination.browse) {
+        unawaited(ref.read(pvTransitionGuardProvider.notifier).disarm(
+          reason: 'leave-browse',
+        ));
+      }
+    });
     final browseActive = destination == MainBrowseDestination.browse;
     if (browseActive && !_browseWasActive) {
       _browseResumeLatch = true;
@@ -493,6 +600,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                       queueLength: ids.length,
                     );
                   }
+                  _handlePvTransitionScroll(notification);
                   return false;
                 },
                 child: PageView.builder(
@@ -661,8 +769,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _loading = true;
   bool _surfaceReady = false;
   bool _layer2InFlight = false;
+  /// Which display-gate generation last armed [_layer2InFlight].
+  /// Abandon clears only when this still matches — never clobber a newer arm.
+  int? _layer2InFlightGeneration;
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
+  /// Cap 15.11b: hide video slot (Opacity 0) until first frame; no Stack reorder.
+  /// Armed only when the video child goes null→non-null (A→B relay), never on
+  /// L2-complete while guard defer / [_layer2InFlight] keep the slot empty.
+  bool _holdPosterUntilFirstFrame = false;
+  int? _holdPoolEpoch;
+  Timer? _holdPosterTimeout;
+  /// Tracks whether build last emitted a non-null video child (slot mounted).
+  bool _videoSlotMounted = false;
+  StreamSubscription<PlaybackSurfaceReadyForDisplayEvent>? _readyForDisplaySub;
   /// Cap 16.4: [Timer] from became-current. Cancel on leave / dispose.
   Timer? _layer2DwellTimer;
   Completer<void>? _layer2DwellCompleter;
@@ -674,6 +794,49 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @visibleForTesting
   FeedPageMedia? get debugMedia => _media;
+
+  @visibleForTesting
+  bool get debugSurfaceReady => _surfaceReady;
+
+  @visibleForTesting
+  bool get debugHoldPosterUntilFirstFrame => _holdPosterUntilFirstFrame;
+
+  @visibleForTesting
+  int? get debugHoldPoolEpoch => _holdPoolEpoch;
+
+  @visibleForTesting
+  bool get debugLayer2InFlight => _layer2InFlight;
+
+  @visibleForTesting
+  int? get debugLayer2InFlightGeneration => _layer2InFlightGeneration;
+
+  /// Arm Layer-2-in-flight for [generation] (canMountVideo / spinner owner).
+  void _armLayer2InFlight(int generation) {
+    _layer2InFlight = true;
+    _layer2InFlightGeneration = generation;
+  }
+
+  /// Complete or leave-current: drop ownership unconditionally.
+  void _clearLayer2InFlightUnconditional() {
+    _layer2InFlight = false;
+    _layer2InFlightGeneration = null;
+  }
+
+  /// Abandon **this** attempt only. Safe when gate/current/mounted failed
+  /// after arming — does not clear a newer generation's in-flight arm.
+  /// Also clears [_loading] (same early-return structural pair).
+  void _abandonLayer2Attempt(int generation, {required String reason}) {
+    if (_layer2InFlightGeneration != generation) {      return;
+    }    if (!mounted) {
+      _clearLayer2InFlightUnconditional();
+      _loading = false;
+      return;
+    }
+    setState(() {
+      _clearLayer2InFlightUnconditional();
+      _loading = false;
+    });
+  }
 
   bool _liveMotionMounted = false;
   bool _livePhotoReady = false;
@@ -705,11 +868,113 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   LivePhotoRepository? _liveRepo;
   PlaybackRepository? _playbackRepo;
   MediaDisplayRepository? _displayRepo;
+  PvTransitionGuardNotifier? _pvGuardNotifier;
+
+
+  PvHandoffPageSnapshot _pvHandoffSnapshot() {
+    final media = _media;
+    final poster = media?.display;
+    final isVideoWithPoster =
+        media?.kind == FeedPageMediaKind.video && poster != null;
+    final guard = ref.read(pvTransitionGuardProvider);
+    final deferVideoForHandoff = widget.isCurrent &&
+        guard.isCovering(widget.assetIdentifier);
+    return PvHandoffPageSnapshot(
+      isVideoWithPoster: isVideoWithPoster,
+      isCurrentSurfaceReady: widget.isCurrent &&
+          isVideoWithPoster &&
+          _surfaceReady &&
+          !deferVideoForHandoff,
+      posterPath: poster?.localFilePath,
+    );
+  }
+
+  void _syncPvHandoffSnapshot() {
+    _pvGuardNotifier ??= ref.read(pvTransitionGuardProvider.notifier);
+    _pvGuardNotifier!.updatePageSnapshot(
+      widget.assetIdentifier,
+      _pvHandoffSnapshot(),
+    );
+  }
+
+  void _clearPosterHold({required String reason}) {
+    _holdPosterTimeout?.cancel();
+    _holdPosterTimeout = null;
+    if (!_holdPosterUntilFirstFrame && _holdPoolEpoch == null) {
+      return;
+    }    _holdPosterUntilFirstFrame = false;
+    _holdPoolEpoch = null;
+    // Cap 15.11b: unmute only when THIS page's first-frame hold ends — not on
+    // leave/unmount (that would clear a handoff suppress armed for the target).
+    if (reason == 'ready-for-display' || reason == 'timeout') {
+      unawaited(
+        ref.read(pvTransitionGuardProvider.notifier).releaseTransitionAudio(
+          reason: 'poster-hold-$reason',
+        ),
+      );
+    }
+  }
+
+  /// Cap 15.11b A→B relay: sync-arm Opacity hold when the video slot is
+  /// about to mount (null→non-null). Safe to call from [build] (no setState).
+  /// Not [PvTransitionGuard]. Does **not** arm while defer / in-flight keep
+  /// the slot empty — those callers must not invoke this.
+  void _armPosterHoldOnVideoSlotMount() {
+    if (_holdPosterUntilFirstFrame) {
+      return;
+    }
+    if (!widget.isCurrent) {
+      return;
+    }
+    if (_media?.kind != FeedPageMediaKind.video || _media?.display == null) {
+      return;
+    }
+    _holdPosterUntilFirstFrame = true;
+    _holdPoolEpoch = null;    _holdPosterTimeout?.cancel();
+    _holdPosterTimeout = Timer(const Duration(seconds: 2), () {
+      if (!mounted || !_holdPosterUntilFirstFrame) {
+        return;
+      }      setState(() => _clearPosterHold(reason: 'timeout'));
+    });
+    unawaited(_fillPosterHoldEpoch());
+  }
+
+  Future<void> _fillPosterHoldEpoch() async {
+    final epoch =
+        await ref.read(playbackRepositoryProvider).getPlaybackPoolEpoch();
+    if (!mounted || !_holdPosterUntilFirstFrame) {
+      return;
+    }
+    if (_media?.kind != FeedPageMediaKind.video || _media?.display == null) {
+      return;
+    }
+    setState(() {
+      _holdPoolEpoch = epoch;
+    });  }
+
+  void _onSurfaceReadyForDisplay(PlaybackSurfaceReadyForDisplayEvent event) {
+    if (!_holdPosterUntilFirstFrame) {
+      return;
+    }
+    if (event.assetIdentifier != widget.assetIdentifier) {      return;
+    }
+    if (event.feedIndex != widget.feedIndex) {      return;
+    }
+    // Epoch must be captured before matching — never accept with pending null.
+    final holdEpoch = _holdPoolEpoch;
+    if (holdEpoch == null) {      return;
+    }
+    if (event.clearEpoch != holdEpoch) {      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() => _clearPosterHold(reason: 'ready-for-display'));
+  }
 
   @override
   void initState() {
-    super.initState();
-    _lastLifecycle = WidgetsBinding.instance.lifecycleState;
+    super.initState();    _lastLifecycle = WidgetsBinding.instance.lifecycleState;
     WidgetsBinding.instance.addObserver(this);
     if (widget.isCurrent) {
       _armLayer2DwellTimer();
@@ -753,14 +1018,25 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _liveRepo ??= ref.read(livePhotoRepositoryProvider);
     _playbackRepo ??= ref.read(playbackRepositoryProvider);
     _displayRepo ??= ref.read(mediaDisplayRepositoryProvider);
+    _readyForDisplaySub ??= ref
+        .read(playbackRepositoryProvider)
+        .surfaceReadyForDisplayEvents
+        .listen(_onSurfaceReadyForDisplay);
   }
 
   @override
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!oldWidget.isCurrent && widget.isCurrent) {
-      _armLayer2DwellTimer();
+    final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
+    if (!oldWidget.isCurrent && widget.isCurrent) {      _armLayer2DwellTimer();
+      final gen = widget.assignedDisplayGeneration;
+      if (gen != null) {
+        _holdVideoSurfaceForL2ReloadIfNeeded(gen);
+      }
     }
+    if (leftCurrent) {    }
+    if (oldWidget.isCurrent != widget.isCurrent ||
+        oldWidget.isPreheatNeighbor != widget.isPreheatNeighbor) {    }
     if (oldWidget.isPreheatNeighbor && !widget.isPreheatNeighbor) {
       if (!widget.isCurrent) {
         _localGate.begin();
@@ -772,7 +1048,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // change in the same update (parent clears assignedDisplayGeneration when
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
     // pause because _startLoad runs and skips the isCurrent-only branch.
-    final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
     if (leftCurrent) {
       final playback = ref.read(playbackRepositoryProvider);
       _playbackRepo = playback;
@@ -792,16 +1067,22 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         setState(() {
           _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
           _surfaceReady = false;
-          _layer2InFlight = false;
+          _clearLayer2InFlightUnconditional();
           _layer2Failed = false;
           _layer2FailureReason = null;
+          _loading = false;
+          _videoSlotMounted = false;
+          _clearPosterHold(reason: 'left-current');
         });
       } else {
         setState(() {
           _surfaceReady = false;
-          _layer2InFlight = false;
+          _clearLayer2InFlightUnconditional();
           _layer2Failed = false;
           _layer2FailureReason = null;
+          _loading = false;
+          _videoSlotMounted = false;
+          _clearPosterHold(reason: 'left-current');
         });
       }
       // Capture repo before async gaps; leave cancel must not depend on
@@ -871,6 +1152,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @override
   void dispose() {
+    _readyForDisplaySub?.cancel();
+    _readyForDisplaySub = null;
+    _holdPosterTimeout?.cancel();
+    _pvGuardNotifier?.removePageSnapshot(widget.assetIdentifier);
     WidgetsBinding.instance.removeObserver(this);
     _cancelLayer2DwellTimer();
     _liveMotionGate.begin(); // invalidate Live activation
@@ -1206,8 +1491,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _previewReloadInFlight = false;
       return;
     }
-    final assetId = widget.assetIdentifier;
-    try {
+    final assetId = widget.assetIdentifier;    try {
       final preview = await ref
           .read(mediaDisplayRepositoryProvider)
           .requestPreview(assetId);
@@ -1292,8 +1576,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     await pending.future;
   }
 
-  Future<void> _retryLayer2Only({bool bypassDwell = false}) async {
-    final FeedMediaRequestGate gate;
+  Future<void> _retryLayer2Only({bool bypassDwell = false}) async {    final FeedMediaRequestGate gate;
     final int generation;
     if (widget.isCurrent) {
       final shared = widget.currentDisplayGate;
@@ -1309,10 +1592,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _layer2Failed = false;
       _layer2FailureReason = null;
-      _layer2InFlight = true;
+      _armLayer2InFlight(generation);
     });
     await _awaitLayer2Dwell(bypassDwell: bypassDwell);
     if (!mounted || !widget.isCurrent || !gate.isCurrent(generation)) {
+      // B: dwell (or role/gate) abandoned this retry — not still waiting.
+      _abandonLayer2Attempt(generation, reason: 'retry-l2-early');
       return;
     }
     final layer1 = _media;
@@ -1354,11 +1639,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void _applyLayer1StillIdempotent(
     FeedPageMedia? layer1, {
     required bool layer2Follows,
+    int? layer2Generation,
   }) {
     final display = layer1?.display;
     if (display == null) {
-      if (layer2Follows && !_layer2InFlight) {
-        setState(() => _layer2InFlight = true);
+      if (layer2Follows && !_layer2InFlight && layer2Generation != null) {
+        setState(() => _armLayer2InFlight(layer2Generation));
       }
       return;
     }
@@ -1366,8 +1652,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // still-kind [layer1]. Keep the leaving page as video; skip the write.
     if (_media?.kind == FeedPageMediaKind.video &&
         _media?.display != null &&
-        !widget.isCurrent) {
-      return;
+        !widget.isCurrent) {      return;
     }
     final sameStill =
         _media?.display?.assetIdentifier == display.assetIdentifier &&
@@ -1375,12 +1660,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         !_loading;
     if (sameStill && (!layer2Follows || _layer2InFlight)) {
       return;
-    }
-    setState(() {
+    }    setState(() {
       _media = layer1;
       _loading = false;
-      if (layer2Follows) {
-        _layer2InFlight = true;
+      if (layer2Follows && layer2Generation != null) {
+        _armLayer2InFlight(layer2Generation);
       }
     });
   }
@@ -1392,14 +1676,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required bool bypassDwell,
   }) async {
     if (layer1 != null) {
-      _applyLayer1StillIdempotent(layer1, layer2Follows: true);
+      _applyLayer1StillIdempotent(
+        layer1,
+        layer2Follows: true,
+        layer2Generation: currentGeneration,
+      );
     } else {
-      setState(() => _layer2InFlight = true);
+      setState(() => _armLayer2InFlight(currentGeneration));
     }
     await _awaitLayer2Dwell(bypassDwell: bypassDwell);
     if (!mounted ||
         !currentGate.isCurrent(currentGeneration) ||
         !widget.isCurrent) {
+      // C: join→L2 abandoned after arm (dwell / gate / leave).
+      _abandonLayer2Attempt(currentGeneration, reason: 'join-l2-early');
       return;
     }
     final displayRepo = ref.read(mediaDisplayRepositoryProvider);
@@ -1424,8 +1714,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     );
   }
 
-  Future<void> _startLoad({bool bypassDwell = false}) async {
-    final startedOffCurrent = !widget.isCurrent;
+  Future<void> _startLoad({bool bypassDwell = false}) async {    final startedOffCurrent = !widget.isCurrent;
     FeedMediaRequestGate? gate;
     int? generation;
     if (!startedOffCurrent) {
@@ -1456,12 +1745,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!startedOffCurrent) {
       final l2Ready = ref.read(browseL2ReadySessionProvider)[widget.assetIdentifier];
       if (l2Ready != null) {
-        final reusePageLayer1 =
-            _media?.display != null &&
-            _media!.display!.assetIdentifier == widget.assetIdentifier;
         if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
-            (l2Ready.kind == FeedL2ReadyKind.video && !reusePageLayer1)) {
-          await _startLoadFromL2Ready(
+            l2Ready.kind == FeedL2ReadyKind.video) {          await _startLoadFromL2Ready(
             l2Ready: l2Ready,
             gate: gate!,
             generation: generation!,
@@ -1471,9 +1756,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
     }
 
-    if (startedOffCurrent) {
-      setState(() {
-        _layer2InFlight = false;
+    if (startedOffCurrent) {      setState(() {
+        _clearLayer2InFlightUnconditional();
         _layer2Failed = false;
         _layer2FailureReason = null;
         _surfaceReady = false;
@@ -1490,11 +1774,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _loading = false;
         }
       });
-      if (!widget.isPreheatNeighbor) {
-        return;
+      if (!widget.isPreheatNeighbor) {        return;
       }
-      if (_canJoinInFlightLayer1()) {
-        final layer1 = await _layer1Future;
+      if (_canJoinInFlightLayer1()) {        final layer1 = await _layer1Future;
         if (!mounted || !_localGate.isCurrent(_layer1LocalGen!)) {
           return;
         }
@@ -1506,8 +1788,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
         _applyLayer1StillIdempotent(layer1, layer2Follows: false);
         return;
-      }
-      final localGen = _localGate.begin();
+      }      final localGen = _localGate.begin();
       _layer1LocalGen = localGen;
       final displayRepo = ref.read(mediaDisplayRepositoryProvider);
       _displayRepo = displayRepo;
@@ -1536,8 +1817,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         widget.isCurrent &&
         _media?.display != null &&
         _media!.display!.assetIdentifier == widget.assetIdentifier;
-    if (reuseLayer1) {
-      await Future<void>.value();
+    if (reuseLayer1) {      await Future<void>.value();
       if (!mounted || !widget.isCurrent) {
         return;
       }
@@ -1553,14 +1833,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
 
-    if (_canJoinInFlightLayer1()) {
-      final joinGate = gate!;
+    if (_canJoinInFlightLayer1()) {      final joinGate = gate!;
       final joinGeneration = generation!;
       if (_media?.display == null) {
         setState(() {
           _layer2Failed = false;
           _layer2FailureReason = null;
-          _layer2InFlight = false;
+          _clearLayer2InFlightUnconditional();
           _surfaceReady = false;
           _liveMotionMounted = false;
           _loading = true;
@@ -1581,9 +1860,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         bypassDwell: bypassDwell,
       );
       return;
-    }
-
-    // Current full reload: await host cancel so a new Live request cannot
+    }    // Current full reload: await host cancel so a new Live request cannot
     // race leave (F4 / ADR-006). Neighbour reuseLayer1 skips this unless
     // Live flags leaked (above). Leave already queued cancel; maybeBegin
     // shares LiveHostOpSerial with that cancel.
@@ -1599,7 +1876,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _layer2Failed = false;
       _layer2FailureReason = null;
-      _layer2InFlight = false;
+      _clearLayer2InFlightUnconditional();
       _surfaceReady = false;
       _liveMotionMounted = false;
       if (_media?.display == null) {
@@ -1619,17 +1896,28 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       displayRepository: displayRepo,
     );
     if (!mounted || !currentGate.isCurrent(currentGeneration)) {
+      // L1 returned but this generation is already superseded — may not have
+      // armed inFlight yet; still drop [_loading] so we do not spin forever.
+      if (mounted) {
+        setState(() => _loading = false);
+      } else {
+        _loading = false;
+      }
+      _abandonLayer2Attempt(
+        currentGeneration,
+        reason: 'full-l1-stale-after-l1',
+      );
       return;
     }
     if (layer1 != null) {
       setState(() {
         _media = layer1;
         _loading = false;
-        _layer2InFlight = true;
+        _armLayer2InFlight(currentGeneration);
       });
     } else {
       setState(() {
-        _layer2InFlight = true;
+        _armLayer2InFlight(currentGeneration);
       });
     }
 
@@ -1637,6 +1925,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!mounted ||
         !currentGate.isCurrent(currentGeneration) ||
         !widget.isCurrent) {
+      // D: full-L1→dwell abandoned (gate / leave / unmount).
+      _abandonLayer2Attempt(currentGeneration, reason: 'full-l1-dwell-early');
       return;
     }
 
@@ -1664,17 +1954,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required int generation,
     required FeedPageMedia? layer1,
     required FeedPageMedia? layer2,
-  }) async {
-    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+  }) async {    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      // A: drop — this attempt no longer owns the page; clear only if owner.      _abandonLayer2Attempt(generation, reason: 'l2-result-stale');
       return;
     }
     if (layer2 == null) {
-      setState(() => _layer2InFlight = false);
+      setState(() {
+        _clearLayer2InFlightUnconditional();
+      });
       return;
     }
     if (layer2.kind == FeedPageMediaKind.failed) {
       setState(() {
-        _layer2InFlight = false;
+        _clearLayer2InFlightUnconditional();
         _layer2FailureReason =
             layer2.failureReason ?? FeedFailureReason.generic;
         if (_media?.display != null || layer1?.display != null) {
@@ -1695,11 +1987,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           poster: layer1?.display ?? _media?.display,
         );
         _loading = false;
-        _layer2InFlight = true;
+        // I: WIP — success clears inFlight so canMountVideo may mount.
+        // Do NOT keep true until surface-ready (HEAD) — that deadlocks
+        // canMountVideo.
+        _clearLayer2InFlightUnconditional();
         _layer2Failed = false;
         _layer2FailureReason = null;
-      });
-      _recordL2ReadySession(layer2: layer2, layer1: layer1);
+      });      _recordL2ReadySession(layer2: layer2, layer1: layer1);
+      // Cap 15.11b: do NOT arm poster-hold here — L2 complete can precede
+      // guard defer / remaining in-flight. Hold arms on video-slot mount.
       await _syncPlaybackActive();
       return;
     }
@@ -1709,7 +2005,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _media = layer2;
       _loading = false;
-      _layer2InFlight = false;
+      _clearLayer2InFlightUnconditional();
       _layer2Failed = false;
       _layer2FailureReason = null;
       // 14.6b: same-frame handoff so the Live spinner does not drop while
@@ -1755,6 +2051,24 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
   }
 
+  void _holdVideoSurfaceForL2ReloadIfNeeded(int generation) {
+    if (!widget.isCurrent) {
+      return;
+    }
+    final l2Ready =
+        ref.read(browseL2ReadySessionProvider)[widget.assetIdentifier];
+    if (l2Ready?.kind != FeedL2ReadyKind.video) {
+      return;
+    }
+    final kind = _media?.kind;
+    if (kind != FeedPageMediaKind.video &&
+        kind != FeedPageMediaKind.pendingVideo) {
+      return;
+    }
+    _armLayer2InFlight(generation);
+    _surfaceReady = false;
+  }
+
   /// Cap 15.10: Session L2-ready fast path — skip L1 (+ dwell); still shows
   /// sharp; video keeps poster until [onSurfaceReady].
   Future<void> _startLoadFromL2Ready({
@@ -1762,6 +2076,25 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required FeedMediaRequestGate gate,
     required int generation,
   }) async {
+    final isVideoFastPath = l2Ready.kind == FeedL2ReadyKind.video;
+    if (isVideoFastPath) {
+      _holdVideoSurfaceForL2ReloadIfNeeded(generation);
+      setState(() {
+        _layer2Failed = false;
+        _layer2FailureReason = null;
+        _surfaceReady = false;
+        _liveMotionMounted = false;
+        _loading = false;
+        _armLayer2InFlight(generation);
+        _media = FeedPageMedia.video(
+          widget.assetIdentifier,
+          poster: l2Ready.cover,
+        );
+      });
+      // Cap 15.11b: no poster-hold on l2-ready-fast — [_layer2InFlight] keeps
+      // the video slot empty; arm only when the slot actually mounts.
+    }
+
     // Still revisit must not await a held Live cancel chain — leave already
     // queued cancel; 14.6b needs preparing chrome while cancel is in flight.
     final cancelHost = l2Ready.kind == FeedL2ReadyKind.stillFull
@@ -1769,6 +2102,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         : (_liveMotionMounted || _isLiveStillMedia(_media));
     await _teardownLiveMotion(cancelHost: cancelHost);
     if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      // F1: teardown gap — attempt abandoned (unmount / gate bump / leave).
+      // Clear→false only if this [generation] still owns inFlight (see
+      // _abandonLayer2Attempt). canMountVideo still requires isCurrent, so
+      // leave/off-current cannot mount; gate-stale leaves a newer arm intact.
+      _abandonLayer2Attempt(generation, reason: 'l2-ready-teardown-early');
       return;
     }
 
@@ -1778,7 +2116,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       setState(() {
         _layer2Failed = false;
         _layer2FailureReason = null;
-        _layer2InFlight = false;
+        _clearLayer2InFlightUnconditional();
         _surfaceReady = false;
         _liveMotionMounted = false;
         _loading = false;
@@ -1795,21 +2133,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
 
-    if (l2Ready.kind == FeedL2ReadyKind.video) {
-      setState(() {
-        _layer2Failed = false;
-        _layer2FailureReason = null;
-        _surfaceReady = false;
-        _liveMotionMounted = false;
-        _loading = false;
-        _layer2InFlight = true;
-        _media = FeedPageMedia.video(
-          widget.assetIdentifier,
-          poster: l2Ready.cover,
-        );
-      });
+    if (isVideoFastPath) {
       await _awaitLayer2Dwell(bypassDwell: true);
       if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+        // F2: post-dwell abandon — same ownership rule as F1.
+        _abandonLayer2Attempt(generation, reason: 'l2-ready-dwell-early');
         return;
       }
       final displayRepo = ref.read(mediaDisplayRepositoryProvider);
@@ -1852,7 +2180,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @override
   Widget build(BuildContext context) {
+    _syncPvHandoffSnapshot();
     _listenSharedMuteForLive();
+    ref.listen<PvTransitionGuardState>(pvTransitionGuardProvider, (prev, next) {
+      if (!mounted) {
+        return;
+      }
+      final wasCovering = prev?.isCovering(widget.assetIdentifier) ?? false;
+      final nowCovering = next.isCovering(widget.assetIdentifier);
+      if (!wasCovering && nowCovering && widget.isCurrent) {        if (_surfaceReady) {
+          setState(() => _surfaceReady = false);
+        }
+      }
+    });
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
 
@@ -1883,6 +2223,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (media == null) {
       return const SizedBox.expand();
     }
+
+    final pvGuard = ref.watch(pvTransitionGuardProvider);
+    final deferVideoForHandoff = widget.isCurrent &&
+        pvGuard.isCovering(widget.assetIdentifier);
 
     return switch (media.kind) {
       FeedPageMediaKind.still => _mediaStack(
@@ -1918,43 +2262,68 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         key: Key('mainBrowseFeedVideoPending_${widget.assetIdentifier}'),
         color: tokens.feedBackground,
       ),
-      FeedPageMediaKind.video => _mediaStack(
-        still: null,
-        video: widget.isCurrent
-            ? _VideoPage(
-                assetIdentifier: media.videoAssetId!,
-                onSurfaceReady: () async {
-                  if (!mounted) {
-                    return;
-                  }
-                  setState(() {
-                    _surfaceReady = true;
-                    _layer2InFlight = false;
-                  });
-                  if (widget.isCurrent) {
-                    widget.onCurrentLayer2MediaReady?.call(
-                      widget.assetIdentifier,
-                    );
-                  }
-                  await ref
-                      .read(playbackRepositoryProvider)
-                      .notifyDisplaySurfaceReady(media.videoAssetId!);
-                  await _syncPlaybackActive();
-                },
-              )
-            : null,
-        poster: media.display != null
-            ? _StillPage(
-                display: media.display!,
-                liveLabel: l10n.mainBrowseLiveBadge,
-                layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-                showLoadSpinner: widget.isCurrent && _layer2InFlight,
-                onPreviewFileBroken: _onPreviewFileBroken,
-              )
-            : null,
-        l10n: l10n,
-        tokens: tokens,
-      ),
+      FeedPageMediaKind.video => () {
+        // Cap 15.11b A→B: arm hold on null→non-null only (not on L2-complete).
+        final canMountVideo =
+            widget.isCurrent && !deferVideoForHandoff && !_layer2InFlight;
+        final Widget? videoChild;
+        if (canMountVideo) {
+          if (!_videoSlotMounted) {
+            _armPosterHoldOnVideoSlotMount();
+          }
+          _videoSlotMounted = true;
+          videoChild = _VideoPage(
+            assetIdentifier: media.videoAssetId!,
+            guardCovering: ref
+                .read(pvTransitionGuardProvider)
+                .isCovering(widget.assetIdentifier),
+            hasPoster: media.display != null,
+            onSurfaceReady: () async {
+              if (!mounted) {
+                return;
+              }              setState(() {
+                _surfaceReady = true;
+              });
+              if (widget.isCurrent) {
+                widget.onCurrentLayer2MediaReady?.call(
+                  widget.assetIdentifier,
+                );
+              }
+              await ref
+                  .read(playbackRepositoryProvider)
+                  .notifyDisplaySurfaceReady(media.videoAssetId!);
+              await _syncPlaybackActive();
+            },
+          );
+        } else {
+          if (_videoSlotMounted) {
+            _clearPosterHold(reason: 'video-slot-unmounted');
+            _videoSlotMounted = false;
+          }
+          videoChild = null;
+        }
+        return _mediaStack(
+          still: null,
+          video: videoChild,
+          poster: media.display != null
+              ? _StillPage(
+                  key: ValueKey<String>(
+                    'feedPoster_${widget.assetIdentifier}_${media.display!.localFilePath}',
+                  ),
+                  display: media.display!,
+                  liveLabel: l10n.mainBrowseLiveBadge,
+                  layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
+                  showLoadSpinner: widget.isCurrent &&
+                      _layer2InFlight &&
+                      !deferVideoForHandoff,
+                  onPreviewFileBroken: _onPreviewFileBroken,
+                )
+              : null,
+          deferVideoForHandoff: deferVideoForHandoff,
+          l10n: l10n,
+          tokens: tokens,
+        );
+      }(),
       FeedPageMediaKind.failed => _BrowseStatusPanel(
         panelKey: const Key('mainBrowseFeedPageFailed'),
         message: _failureCopy(
@@ -1976,15 +2345,41 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     Widget? still,
     Widget? video,
     Widget? poster,
+    bool deferVideoForHandoff = false,
   }) {
+    final guard = ref.watch(pvTransitionGuardProvider);
+    final coverPath = guard.isCovering(widget.assetIdentifier)
+        ? guard.coverPosterPath
+        : null;
+    // Cap 15.11: residual cover only when UiKitView is in the Stack.
+    final showGuardCover = coverPath != null && video != null;
+    // Cap 15.11b probe: hide whole video slot (incl. ColoredBox) via Opacity;
+    // Stack order stays Cap 15.7 — never reorder poster/video.
+    final hideVideoUntilReady =
+        _holdPosterUntilFirstFrame && video != null;
+    if (hideVideoUntilReady) {    }
+    if (deferVideoForHandoff) {    }
+    if (showGuardCover) {    } else if (coverPath != null) {    }
     return Stack(
       fit: StackFit.expand,
       children: [
         // Cap 15.7: poster at index 0 so leaving (video child dropped)
-        // does not shift the Image Element. Video paints after = on top.
+        // does not shift the Image Element. Cap 15.11b: never swap slots;
+        // Opacity always wraps [video] so hold clear only changes opacity.
         if (poster != null) poster,
         if (still != null) still,
-        if (video != null) video,
+        if (video != null)
+          Opacity(
+            key: Key('feedVideoOpacity_${widget.assetIdentifier}'),
+            opacity: hideVideoUntilReady ? 0.0 : 1.0,
+            child: video,
+          ),
+        if (showGuardCover)
+          _PvTransitionCover(
+            key: Key('pvTransitionCover_${widget.assetIdentifier}'),
+            path: coverPath,
+            backgroundColor: tokens.feedBackground,
+          ),
         if (_layer2InFlight && still == null && poster == null)
           _FeedCornerChrome(
             color: tokens.brandGold,
@@ -2039,6 +2434,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
 class _StillPage extends StatelessWidget {
   const _StillPage({
+    super.key,
     required this.display,
     required this.liveLabel,
     this.liveLoadLabel,
@@ -2349,10 +2745,14 @@ class _LiveBadge extends StatelessWidget {
 class _VideoPage extends StatefulWidget {
   const _VideoPage({
     required this.assetIdentifier,
+    required this.guardCovering,
+    required this.hasPoster,
     required this.onSurfaceReady,
   });
 
   final String assetIdentifier;
+  final bool guardCovering;
+  final bool hasPoster;
   final Future<void> Function() onSurfaceReady;
 
   @override
@@ -2366,6 +2766,11 @@ class _VideoPageState extends State<_VideoPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(widget.onSurfaceReady());
     });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   @override
@@ -2388,6 +2793,32 @@ class _VideoPageState extends State<_VideoPage> {
               ),
             )
           : const SizedBox.expand(),
+    );
+  }
+}
+
+/// Cap 15.11: opaque handoff cover above poster / Platform View during peek+settle.
+class _PvTransitionCover extends StatelessWidget {
+  const _PvTransitionCover({
+    super.key,
+    required this.path,
+    required this.backgroundColor,
+  });
+
+  final String path;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: backgroundColor,
+      child: Image.file(
+        File(path),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        gaplessPlayback: true,
+      ),
     );
   }
 }

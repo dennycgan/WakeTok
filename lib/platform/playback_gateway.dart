@@ -62,6 +62,12 @@ class PlaybackGateway
       StreamController<PlaybackRuntimeEvent>.broadcast();
   final StreamController<PlaybackRestoreRequest> _restoreController =
       StreamController<PlaybackRestoreRequest>.broadcast();
+  final StreamController<PlaybackSurfaceAttachedEvent>
+  _surfaceAttachedController =
+      StreamController<PlaybackSurfaceAttachedEvent>.broadcast();
+  final StreamController<PlaybackSurfaceReadyForDisplayEvent>
+  _surfaceReadyForDisplayController =
+      StreamController<PlaybackSurfaceReadyForDisplayEvent>.broadcast();
 
   @override
   Stream<PlaybackRuntimeEvent> get runtimeEvents => _runtimeController.stream;
@@ -70,15 +76,25 @@ class PlaybackGateway
   Stream<PlaybackRestoreRequest> get restoreRequests =>
       _restoreController.stream;
 
+  @override
+  Stream<PlaybackSurfaceAttachedEvent> get surfaceAttachedEvents =>
+      _surfaceAttachedController.stream;
+
+  @override
+  Stream<PlaybackSurfaceReadyForDisplayEvent> get surfaceReadyForDisplayEvents =>
+      _surfaceReadyForDisplayController.stream;
+
   void dispose() {
     pigeon.PlaybackFlutterApi.setUp(null);
     _runtimeController.close();
     _restoreController.close();
+    _surfaceAttachedController.close();
+    _surfaceReadyForDisplayController.close();
   }
 
   @override
-  Future<void> load(PlaybackItem item) {
-    return _api.load(
+  Future<void> load(PlaybackItem item) async {
+    await _api.load(
       pigeon.PlaybackItemDto(
         assetIdentifier: item.assetIdentifier,
         feedIndex: item.feedIndex,
@@ -125,13 +141,13 @@ class PlaybackGateway
   Future<void> syncPlanPosition({
     required String assetIdentifier,
     required int feedIndex,
-  }) {
-    return _api.syncPlanPosition(assetIdentifier, feedIndex);
+  }) async {
+    await _api.syncPlanPosition(assetIdentifier, feedIndex);
   }
 
   @override
-  Future<void> notifyDisplaySurfaceReady(String assetIdentifier) {
-    return _api.notifyDisplaySurfaceReady(assetIdentifier);
+  Future<void> notifyDisplaySurfaceReady(String assetIdentifier) async {
+    await _api.notifyDisplaySurfaceReady(assetIdentifier);
   }
 
   @override
@@ -143,6 +159,42 @@ class PlaybackGateway
   @override
   Future<void> cancelInFlightPrepare(String assetIdentifier) {
     return _api.cancelInFlightPrepare(assetIdentifier);
+  }
+
+  @override
+  Future<void> setTransitionAudioSuppressed(bool suppressed) {
+    return _api.setTransitionAudioSuppressed(suppressed);
+  }
+
+  @override
+  Future<int> getPlaybackPoolEpoch() => _api.getPlaybackPoolEpoch();
+
+  @override
+  void onPlaybackSurfaceAttached(pigeon.PlaybackSurfaceAttachedDto event) {
+    if (_surfaceAttachedController.isClosed) {
+      return;
+    }
+    _surfaceAttachedController.add(
+      PlaybackSurfaceAttachedEvent(
+        assetIdentifier: event.assetIdentifier,
+        feedIndex: event.feedIndex,
+        clearEpoch: event.clearEpoch,
+      ),
+    );
+  }
+
+  @override
+  void onPlaybackSurfaceReadyForDisplay(pigeon.PlaybackSurfaceAttachedDto event) {
+    if (_surfaceReadyForDisplayController.isClosed) {
+      return;
+    }
+    _surfaceReadyForDisplayController.add(
+      PlaybackSurfaceReadyForDisplayEvent(
+        assetIdentifier: event.assetIdentifier,
+        feedIndex: event.feedIndex,
+        clearEpoch: event.clearEpoch,
+      ),
+    );
   }
 
   @override

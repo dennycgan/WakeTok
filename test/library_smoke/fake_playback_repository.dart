@@ -21,10 +21,17 @@ class FakePlaybackRepository implements PlaybackRepository {
   final StreamController<PlaybackRestoreRequest> restoreController =
       StreamController<PlaybackRestoreRequest>.broadcast();
 
-  void _record(String entry) {
-    calls.add(entry);
-    lifecycleLog?.add(entry);
-  }
+  final StreamController<PlaybackSurfaceAttachedEvent>
+  surfaceAttachedController =
+      StreamController<PlaybackSurfaceAttachedEvent>.broadcast();
+
+  final StreamController<PlaybackSurfaceReadyForDisplayEvent>
+  surfaceReadyForDisplayController =
+      StreamController<PlaybackSurfaceReadyForDisplayEvent>.broadcast();
+
+  int playbackPoolEpoch = 0;
+
+  bool transitionAudioSuppressed = false;
 
   @override
   Stream<PlaybackRuntimeEvent> get runtimeEvents => const Stream.empty();
@@ -33,8 +40,31 @@ class FakePlaybackRepository implements PlaybackRepository {
   Stream<PlaybackRestoreRequest> get restoreRequests =>
       restoreController.stream;
 
+  @override
+  Stream<PlaybackSurfaceAttachedEvent> get surfaceAttachedEvents =>
+      surfaceAttachedController.stream;
+
+  @override
+  Stream<PlaybackSurfaceReadyForDisplayEvent> get surfaceReadyForDisplayEvents =>
+      surfaceReadyForDisplayController.stream;
+
+  void emitSurfaceAttached(PlaybackSurfaceAttachedEvent event) {
+    surfaceAttachedController.add(event);
+  }
+
+  void emitSurfaceReadyForDisplay(PlaybackSurfaceReadyForDisplayEvent event) {
+    surfaceReadyForDisplayController.add(event);
+  }
+
   void dispose() {
     restoreController.close();
+    surfaceAttachedController.close();
+    surfaceReadyForDisplayController.close();
+  }
+
+  void _record(String entry) {
+    calls.add(entry);
+    lifecycleLog?.add(entry);
   }
 
   @override
@@ -116,4 +146,13 @@ class FakePlaybackRepository implements PlaybackRepository {
   Future<void> cancelInFlightPrepare(String assetIdentifier) async {
     _record('cancelInFlightPrepare:$assetIdentifier');
   }
+
+  @override
+  Future<void> setTransitionAudioSuppressed(bool suppressed) async {
+    transitionAudioSuppressed = suppressed;
+    _record('transitionAudioSuppressed:$suppressed');
+  }
+
+  @override
+  Future<int> getPlaybackPoolEpoch() async => playbackPoolEpoch;
 }

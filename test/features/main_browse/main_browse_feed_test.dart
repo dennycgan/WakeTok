@@ -22,11 +22,13 @@ import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
+import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+import 'package:waketok/features/library_smoke/playback_providers.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
@@ -4295,6 +4297,591 @@ void main() {
       );
     },
   );
+
+  testWidgets(
+    'W-15.11a scroll offset arms guard without cover on peek target page',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 2;
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      _seedPvHandoffSnapshots(container, ids);
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final pageController = feedState.debugPageController!;
+      pageController.jumpTo(pageController.position.viewportDimension * 0.35);
+      await tester.pump();
+      expect(pageController.page, greaterThan(0.02));
+      feedState.debugDispatchPvScrollArm(0);
+      await pumpAsyncWork(tester);
+
+      expect(container.read(pvTransitionGuardProvider).isCovering(target), isTrue);
+      expect(
+        find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
+        findsNothing,
+      );
+      await container.read(pvTransitionGuardProvider.notifier).disarm();
+    },
+  );
+
+  testWidgets(
+    'W-15.11b arm suppresses audio and ack clears cover plus suppress',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 4;
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      _seedPvHandoffSnapshots(container, ids);
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final gate = feedState.debugCurrentDisplayGate;
+      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: ids[0],
+        targetAssetId: target,
+        displayGeneration: gate.generation,
+        displayGate: gate,
+      );
+      await pumpAsyncWork(tester);
+
+      expect(playback.transitionAudioSuppressed, isTrue);
+      final guard = container.read(pvTransitionGuardProvider);
+      // Attach alone must NOT unwrap (15.11b).
+      playback.emitSurfaceAttached(
+        PlaybackSurfaceAttachedEvent(
+          assetIdentifier: guard.targetAssetId!,
+          feedIndex: guard.targetFeedIndex!,
+          clearEpoch: guard.armPoolEpoch!,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isTrue);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNotNull);
+
+      playback.emitSurfaceReadyForDisplay(
+        PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: guard.targetAssetId!,
+          feedIndex: guard.targetFeedIndex!,
+          clearEpoch: guard.armPoolEpoch!,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isFalse);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+      expect(
+        find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
+        findsNothing,
+      );
+    },
+  );
+
+  test(
+    'W-15.11c stale attach-ack does not unwrap guard',
+    () async {
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 5;
+      final container = ProviderContainer(
+        overrides: [
+          playbackRepositoryProvider.overrideWithValue(playback),
+        ],
+      );
+      addTearDown(container.dispose);
+      final gate = FeedMediaRequestGate();
+      final generation = gate.generation;
+      final notifier = container.read(pvTransitionGuardProvider.notifier);
+      notifier.updatePageSnapshot(
+        'v1',
+        const PvHandoffPageSnapshot(
+          isVideoWithPoster: true,
+          isCurrentSurfaceReady: true,
+          posterPath: '/tmp/v1.jpg',
+        ),
+      );
+      notifier.updatePageSnapshot(
+        'v2',
+        const PvHandoffPageSnapshot(
+          isVideoWithPoster: true,
+          posterPath: '/tmp/v2.jpg',
+        ),
+      );
+      await notifier.tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: 'v1',
+        targetAssetId: 'v2',
+        displayGeneration: generation,
+        displayGate: gate,
+      );
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+
+      playback.emitSurfaceReadyForDisplay(
+        const PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: 'wrong-id',
+          feedIndex: 1,
+          clearEpoch: 5,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+
+      playback.emitSurfaceReadyForDisplay(
+        const PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: 'v2',
+          feedIndex: 1,
+          clearEpoch: 99,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+
+      // User settled on an unrelated index → disarm clears target before ack.
+      notifier.onFeedIndexChanged(2);
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+
+      playback.emitSurfaceReadyForDisplay(
+        const PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: 'v2',
+          feedIndex: 1,
+          clearEpoch: 5,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+    },
+  );
+
+  test(
+    'W-15.11h ready-for-display triple match matches attach-ack trust model',
+    () async {
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 5;
+      final container = ProviderContainer(
+        overrides: [
+          playbackRepositoryProvider.overrideWithValue(playback),
+        ],
+      );
+      addTearDown(container.dispose);
+      final gate = FeedMediaRequestGate();
+      final generation = gate.generation;
+      final notifier = container.read(pvTransitionGuardProvider.notifier);
+      notifier.updatePageSnapshot(
+        'v1',
+        const PvHandoffPageSnapshot(
+          isVideoWithPoster: true,
+          isCurrentSurfaceReady: true,
+          posterPath: '/tmp/v1.jpg',
+        ),
+      );
+      notifier.updatePageSnapshot(
+        'v2',
+        const PvHandoffPageSnapshot(
+          isVideoWithPoster: true,
+          posterPath: '/tmp/v2.jpg',
+        ),
+      );
+      await notifier.tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: 'v1',
+        targetAssetId: 'v2',
+        displayGeneration: generation,
+        displayGate: gate,
+      );
+      expect(playback.transitionAudioSuppressed, isTrue);
+
+      // Wrong index — same gate as former attach-ack.
+      playback.emitSurfaceReadyForDisplay(
+        const PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: 'v2',
+          feedIndex: 0,
+          clearEpoch: 5,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+      expect(playback.transitionAudioSuppressed, isTrue);
+
+      // Matching triple unwraps.
+      playback.emitSurfaceReadyForDisplay(
+        const PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: 'v2',
+          feedIndex: 1,
+          clearEpoch: 5,
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+      expect(playback.transitionAudioSuppressed, isFalse);
+    },
+  );
+
+  testWidgets(
+    'W-15.11i poster hold Opacity hide keeps same Image State (identical)',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 3;
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      final pageFinder = find.byWidgetPredicate(
+        (w) =>
+            w is MediaFeedPage &&
+            w.assetIdentifier == head &&
+            w.isCurrent,
+      );
+      final page = tester.state<MediaFeedPageState>(pageFinder);
+      expect(page.debugHoldPosterUntilFirstFrame, isTrue);
+      expect(page.debugHoldPoolEpoch, 3);
+
+      final opacityFinder = find.byKey(Key('feedVideoOpacity_$head'));
+      expect(opacityFinder, findsOneWidget);
+      expect(tester.widget<Opacity>(opacityFinder).opacity, 0.0);
+
+      final still = find.byKey(Key('mainBrowseFeedStill_$head'));
+      expect(still, findsOneWidget);
+      final imageFinder = find.descendant(
+        of: still,
+        matching: find.byType(Image),
+      );
+      expect(imageFinder, findsOneWidget);
+      final stateBefore =
+          (tester.element(imageFinder) as StatefulElement).state;
+
+      playback.emitSurfaceReadyForDisplay(
+        PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: head,
+          feedIndex: page.widget.feedIndex,
+          clearEpoch: page.debugHoldPoolEpoch!,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      expect(page.debugHoldPosterUntilFirstFrame, isFalse);
+      expect(tester.widget<Opacity>(opacityFinder).opacity, 1.0);
+      expect(imageFinder, findsOneWidget);
+      final stateAfter =
+          (tester.element(imageFinder) as StatefulElement).state;
+      expect(
+        identical(stateBefore, stateAfter),
+        isTrue,
+        reason:
+            'hold↔ready must not reorder Stack; poster Image State stays',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.11d timeout and manual disarm unmute without attach-ack',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository();
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      final ids = await _feedOrderedIds(tester);
+      _seedPvHandoffSnapshots(container, ids);
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final gate = feedState.debugCurrentDisplayGate;
+      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: ids[0],
+        targetAssetId: ids[1],
+        displayGeneration: gate.generation,
+        displayGate: gate,
+      );
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isTrue);
+
+      await container.read(pvTransitionGuardProvider.notifier).disarm();
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isFalse);
+
+      _seedPvHandoffSnapshots(container, ids);
+      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: ids[0],
+        targetAssetId: ids[1],
+        displayGeneration: gate.generation,
+        displayGate: gate,
+      );
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isTrue);
+
+      await tester.pump(const Duration(seconds: 2));
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isFalse);
+    },
+  );
+
+  testWidgets(
+    'W-15.11f scroll-back settle triggers maybeDisarmOnSettled and unmutes',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository();
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      _seedPvHandoffSnapshots(container, ids);
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final pageController = feedState.debugPageController!;
+
+      pageController.jumpTo(pageController.position.viewportDimension * 0.35);
+      await tester.pump();
+      feedState.debugDispatchPvScrollArm(0);
+      await pumpAsyncWork(tester);
+
+      expect(playback.transitionAudioSuppressed, isTrue);
+      expect(container.read(pvTransitionGuardProvider).targetFeedIndex, 1);
+      expect(
+        find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
+        findsNothing,
+      );
+
+      pageController.jumpTo(0);
+      await tester.pump();
+      expect(pageController.page!.abs(), lessThan(0.02));
+      feedState.debugDispatchPvScrollSettled(0);
+      await pumpAsyncWork(tester);
+
+      expect(playback.transitionAudioSuppressed, isFalse);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+      expect(
+        find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.11g settle-on-target releases covering; audio waits for ready',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 6;
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      _seedPvHandoffSnapshots(container, ids);
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final gate = feedState.debugCurrentDisplayGate;
+      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: ids[0],
+        targetAssetId: target,
+        displayGeneration: gate.generation,
+        displayGate: gate,
+      );
+      await pumpAsyncWork(tester);
+      expect(playback.transitionAudioSuppressed, isTrue);
+
+      // Capture triple before covering release clears armed state.
+      final armed = container.read(pvTransitionGuardProvider);
+      final readyAsset = armed.targetAssetId!;
+      final readyIdx = armed.targetFeedIndex!;
+      final readyEpoch = armed.armPoolEpoch!;
+
+      // True feed-index commit (same path as _activateCurrentItem) — not
+      // near-settled ScrollUpdate.
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(container.read(pvTransitionGuardProvider).isCovering(target), isFalse);
+      expect(playback.transitionAudioSuppressed, isTrue);
+      expect(
+        find.byKey(Key('mainBrowseFeedVideo_$target'), skipOffstage: false),
+        findsOneWidget,
+      );
+      final pageFinder = find.byWidgetPredicate(
+        (w) =>
+            w is MediaFeedPage &&
+            w.assetIdentifier == target &&
+            w.isCurrent,
+      );
+      expect(
+        tester.state<MediaFeedPageState>(pageFinder).debugHoldPosterUntilFirstFrame,
+        isTrue,
+      );
+
+      playback.emitSurfaceReadyForDisplay(
+        PlaybackSurfaceReadyForDisplayEvent(
+          assetIdentifier: readyAsset,
+          feedIndex: readyIdx,
+          clearEpoch: readyEpoch,
+        ),
+      );
+      await pumpAsyncWork(tester);
+
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+      expect(playback.transitionAudioSuppressed, isFalse);
+      expect(
+        find.byKey(Key('mainBrowseFeedVideo_$target'), skipOffstage: false),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.11j stale post-settle ScrollUpdate does not re-arm guard',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 7;
+      await _pumpTwoVideoPosterFeed(
+        tester,
+        display: display,
+        playback: playback,
+      );
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      _seedPvHandoffSnapshots(container, ids);
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final gate = feedState.debugCurrentDisplayGate;
+
+      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: ids[0],
+        targetAssetId: target,
+        displayGeneration: gate.generation,
+        displayGate: gate,
+      );
+      await pumpAsyncWork(tester);
+      expect(container.read(pvTransitionGuardProvider).isCovering(target), isTrue);
+
+      // Settle: releaseCovering (same path as device feed-index commit).
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+
+      // Device race: ScrollUpdate still carries pre-settle curIdx=0 → tgt=1.
+      // Defensive: tryArmOnScroll must refuse target-is-current.
+      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
+        currentFeedIndex: 0,
+        targetFeedIndex: 1,
+        sourceAssetId: ids[0],
+        targetAssetId: target,
+        displayGeneration: gate.generation,
+        displayGate: gate,
+      );
+      await pumpAsyncWork(tester);
+      expect(
+        container.read(pvTransitionGuardProvider).targetAssetId,
+        isNull,
+        reason: 'stale tryArm args must not re-cover after settle',
+      );
+
+      // Root-cause path: page already on settled index; live feedIndex read
+      // must not treat a stale dispatch arg as curIdx and re-arm.
+      final pageController = feedState.debugPageController!;
+      pageController.jumpToPage(1);
+      await tester.pump();
+      feedState.debugDispatchPvScrollArm(0);
+      await pumpAsyncWork(tester);
+      expect(
+        container.read(pvTransitionGuardProvider).targetAssetId,
+        isNull,
+        reason: 'live feedIndex must ignore stale scroll dispatch',
+      );
+      expect(
+        find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.11e video without poster does not arm transition guard on scroll',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository();
+      for (final id in const ['v1', 'v2']) {
+        display.previewErrorById[id] = 'iCloudDownloadRequired';
+        display.displayErrorById[id] = 'unsupportedMedia';
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      await _feedOrderedIds(tester);
+      await pumpAsyncWork(tester);
+
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final pageController = feedState.debugPageController!;
+      pageController.jumpTo(pageController.position.viewportDimension * 0.35);
+      await tester.pump();
+      feedState.debugDispatchPvScrollArm(0);
+      await pumpAsyncWork(tester);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+      expect(playback.transitionAudioSuppressed, isFalse);
+      expect(find.byKey(const Key('pvTransitionCover_v2')), findsNothing);
+    },
+  );
 }
 
 /// Session ids plus a built [PageView] (current [MediaFeedPage] mounted).
@@ -4322,6 +4909,84 @@ Future<List<String>> _feedOrderedIds(WidgetTester tester) async {
   final element = tester.element(find.byType(VerticalMediaFeed));
   final container = ProviderScope.containerOf(element);
   return (await container.read(browseSessionProvider.future)).orderedAssetIds;
+}
+
+void _seedPvHandoffSnapshots(
+  ProviderContainer container,
+  List<String> ids,
+) {
+  final notifier = container.read(pvTransitionGuardProvider.notifier);
+  notifier.updatePageSnapshot(
+    ids[0],
+    PvHandoffPageSnapshot(
+      isVideoWithPoster: true,
+      isCurrentSurfaceReady: true,
+      posterPath: '/tmp/fake_preview_${ids[0]}.jpg',
+    ),
+  );
+  notifier.updatePageSnapshot(
+    ids[1],
+    PvHandoffPageSnapshot(
+      isVideoWithPoster: true,
+      posterPath: '/tmp/fake_preview_${ids[1]}.jpg',
+    ),
+  );
+}
+
+Future<void> _pumpTwoVideoPosterFeed(
+  WidgetTester tester, {
+  required FakeMediaDisplayRepository display,
+  required FakePlaybackRepository playback,
+}) async {
+  for (final id in const ['v1', 'v2']) {
+    display.displayErrorById[id] = 'unsupportedMedia';
+    display.previewsById[id] = DisplayAsset(
+      assetIdentifier: id,
+      mediaKind: PlaybackMediaKind.video,
+      localFilePath: '/tmp/fake_preview_$id.jpg',
+    );
+  }
+  final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+  await tester.pumpWidget(
+    permissionUiHarness(
+      repo: repo,
+      assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+      mediaDisplay: display,
+      playback: playback,
+    ),
+  );
+  await pumpAsyncWork(tester);
+  final ids = await _feedOrderedIds(tester);
+  for (var i = 0; i < 40; i++) {
+    final currentVideo = find.byWidgetPredicate(
+      (widget) =>
+          widget is MediaFeedPage &&
+          widget.assetIdentifier == ids[0] &&
+          widget.isCurrent,
+    );
+    if (currentVideo.evaluate().isNotEmpty &&
+        playback.calls.any((c) => c.startsWith('notifyReady:'))) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  expect(playback.calls.any((c) => c.startsWith('notifyReady:')), isTrue);
+  for (var i = 0; i < 40; i++) {
+    final neighbor = find.byWidgetPredicate(
+      (widget) => widget is MediaFeedPage && widget.assetIdentifier == ids[1],
+      skipOffstage: false,
+    );
+    if (neighbor.evaluate().isEmpty) {
+      await tester.pump(const Duration(milliseconds: 20));
+      continue;
+    }
+    final neighborState = tester.state<MediaFeedPageState>(neighbor);
+    if (neighborState.debugMedia?.display?.localFilePath != null) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  await pumpAsyncWork(tester);
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

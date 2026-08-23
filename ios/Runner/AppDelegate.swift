@@ -22,7 +22,7 @@ import UIKit
       binaryMessenger: messenger,
       api: photoLibraryService
     )
-    let playbackHost = PlaybackApiHost()
+    let playbackHost = PlaybackApiHost(binaryMessenger: messenger)
     PlaybackApiSetup.setUp(
       binaryMessenger: messenger,
       api: playbackHost

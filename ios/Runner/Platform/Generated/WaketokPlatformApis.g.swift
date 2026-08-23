@@ -932,6 +932,54 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Cap 15.11: Host → Dart after [PlaybackApiHost] attaches [activePlayer]
+/// to the shared Platform View for [currentAssetIdentifier].
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct PlaybackSurfaceAttachedDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var feedIndex: Int64
+  var clearEpoch: Int64
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> PlaybackSurfaceAttachedDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let feedIndex = pigeonVar_list[1] as! Int64
+    let clearEpoch = pigeonVar_list[2] as! Int64
+
+    return PlaybackSurfaceAttachedDto(
+      assetIdentifier: assetIdentifier,
+      feedIndex: feedIndex,
+      clearEpoch: clearEpoch
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      feedIndex,
+      clearEpoch,
+    ]
+  }
+  static func == (lhs: PlaybackSurfaceAttachedDto, rhs: PlaybackSurfaceAttachedDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.feedIndex, rhs.feedIndex) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.clearEpoch, rhs.clearEpoch)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("PlaybackSurfaceAttachedDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: feedIndex, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: clearEpoch, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "PlaybackSurfaceAttachedDto(assetIdentifier: \(String(describing: assetIdentifier)), feedIndex: \(String(describing: feedIndex)), clearEpoch: \(String(describing: clearEpoch)))"
+  }
+}
+
 private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -1009,6 +1057,8 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
       return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
     case 149:
       return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
+    case 150:
+      return PlaybackSurfaceAttachedDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -1079,6 +1129,9 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? PlaybackRuntimeEventDto {
       super.writeByte(149)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackSurfaceAttachedDto {
+      super.writeByte(150)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1661,6 +1714,13 @@ protocol PlaybackApi {
   /// ([ErrorCode.operationCancelled]). Id-keyed — never cancels a
   /// different asset's in-flight [load].
   func cancelInFlightPrepare(assetIdentifier: String) throws
+  /// Cap 15.11: temporary mute during shared-PV handoff guard. Does **not**
+  /// change persisted user mute ([setMute]); cleared by Dart after
+  /// [PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay] (first frame).
+  func setTransitionAudioSuppressed(suppressed: Bool) throws
+  /// Cap 15.11: snapshot of Host [clearEpoch] at guard arm time (pool invalidation
+  /// generation — not Dart [FeedMediaRequestGate] display generation).
+  func getPlaybackPoolEpoch() throws -> Int64
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1867,6 +1927,39 @@ class PlaybackApiSetup {
     } else {
       cancelInFlightPrepareChannel.setMessageHandler(nil)
     }
+    /// Cap 15.11: temporary mute during shared-PV handoff guard. Does **not**
+    /// change persisted user mute ([setMute]); cleared by Dart after
+    /// [PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay] (first frame).
+    let setTransitionAudioSuppressedChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.setTransitionAudioSuppressed\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setTransitionAudioSuppressedChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let suppressedArg = args[0] as! Bool
+        do {
+          try api.setTransitionAudioSuppressed(suppressed: suppressedArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setTransitionAudioSuppressedChannel.setMessageHandler(nil)
+    }
+    /// Cap 15.11: snapshot of Host [clearEpoch] at guard arm time (pool invalidation
+    /// generation — not Dart [FeedMediaRequestGate] display generation).
+    let getPlaybackPoolEpochChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.getPlaybackPoolEpoch\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getPlaybackPoolEpochChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getPlaybackPoolEpoch()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getPlaybackPoolEpochChannel.setMessageHandler(nil)
+    }
   }
 }
 
@@ -1877,6 +1970,12 @@ protocol PlaybackFlutterApiProtocol {
   func onPlaybackRuntimeEvent(event eventArg: PlaybackRuntimeEventDto, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackRestoreRequired(feedIndex feedIndexArg: Int64, assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onPlaybackPlanEnded(feedIndex feedIndexArg: Int64, assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Cap 15.11: [activePlayer] attached to Platform View for [assetIdentifier].
+  /// Attach ≠ first displayable frame — do not use as cover unwrap alone.
+  func onPlaybackSurfaceAttached(event eventArg: PlaybackSurfaceAttachedDto, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Cap 15.11b: [AVPlayerLayer.isReadyForDisplay] became true for the current
+  /// plan id. Same DTO triple as attach-ack (assetId + feedIndex + clearEpoch).
+  func onPlaybackSurfaceReadyForDisplay(event eventArg: PlaybackSurfaceAttachedDto, completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class PlaybackFlutterApi: PlaybackFlutterApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -1928,6 +2027,46 @@ class PlaybackFlutterApi: PlaybackFlutterApiProtocol {
     let channelName: String = "dev.flutter.pigeon.waketok.PlaybackFlutterApi.onPlaybackPlanEnded\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage([feedIndexArg, assetIdentifierArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  /// Cap 15.11: [activePlayer] attached to Platform View for [assetIdentifier].
+  /// Attach ≠ first displayable frame — do not use as cover unwrap alone.
+  func onPlaybackSurfaceAttached(event eventArg: PlaybackSurfaceAttachedDto, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.PlaybackFlutterApi.onPlaybackSurfaceAttached\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([eventArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
+    }
+  }
+  /// Cap 15.11b: [AVPlayerLayer.isReadyForDisplay] became true for the current
+  /// plan id. Same DTO triple as attach-ack (assetId + feedIndex + clearEpoch).
+  func onPlaybackSurfaceReadyForDisplay(event eventArg: PlaybackSurfaceAttachedDto, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([eventArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

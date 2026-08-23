@@ -34,6 +34,8 @@ void main() {
       'updateNowPlayingMetadata',
       'clearPlaybackPool',
       'cancelInFlightPrepare',
+      'setTransitionAudioSuppressed',
+      'getPlaybackPoolEpoch',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockDecodedMessageHandler<Object?>(
@@ -55,9 +57,15 @@ void main() {
       'updateNowPlayingMetadata',
       'clearPlaybackPool',
       'cancelInFlightPrepare',
+      'setTransitionAudioSuppressed',
     ]) {
       mockVoid(m);
     }
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(channel('getPlaybackPoolEpoch'), codec),
+      (message) async => <Object?>[3],
+    );
 
     final gateway = PlaybackGateway();
     addTearDown(gateway.dispose);
@@ -82,6 +90,8 @@ void main() {
     await gateway.updateNowPlayingMetadata();
     await gateway.clearPlaybackPool();
     await gateway.cancelInFlightPrepare('v1');
+    await gateway.setTransitionAudioSuppressed(true);
+    expect(await gateway.getPlaybackPoolEpoch(), 3);
   });
 
   test('T-P3 FlutterApi runtime event maps into stream', () async {
@@ -113,5 +123,41 @@ void main() {
     final event = await future;
     expect(event.feedIndex, 3);
     expect(event.assetIdentifier, 'asset-3');
+  });
+
+  test('T-P5 FlutterApi surface attached maps into stream', () async {
+    final gateway = PlaybackGateway();
+    addTearDown(gateway.dispose);
+
+    final future = gateway.surfaceAttachedEvents.first;
+    gateway.onPlaybackSurfaceAttached(
+      pigeon.PlaybackSurfaceAttachedDto(
+        assetIdentifier: 'v2',
+        feedIndex: 1,
+        clearEpoch: 7,
+      ),
+    );
+    final event = await future;
+    expect(event.assetIdentifier, 'v2');
+    expect(event.feedIndex, 1);
+    expect(event.clearEpoch, 7);
+  });
+
+  test('T-P5b FlutterApi ready-for-display maps into stream', () async {
+    final gateway = PlaybackGateway();
+    addTearDown(gateway.dispose);
+
+    final future = gateway.surfaceReadyForDisplayEvents.first;
+    gateway.onPlaybackSurfaceReadyForDisplay(
+      pigeon.PlaybackSurfaceAttachedDto(
+        assetIdentifier: 'v3',
+        feedIndex: 2,
+        clearEpoch: 9,
+      ),
+    );
+    final event = await future;
+    expect(event.assetIdentifier, 'v3');
+    expect(event.feedIndex, 2);
+    expect(event.clearEpoch, 9);
   });
 }

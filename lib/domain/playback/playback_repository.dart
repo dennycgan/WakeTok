@@ -33,6 +33,18 @@ abstract class PlaybackRepository {
   /// even if that id is still current. No-op if none.
   Future<void> cancelInFlightPrepare(String assetIdentifier);
 
+  /// Cap 15.11: temporary mute during shared-PV handoff (does not change [setMute]).
+  Future<void> setTransitionAudioSuppressed(bool suppressed);
+
+  /// Cap 15.11: Host [clearEpoch] snapshot for attach-ack / first-frame matching.
+  Future<int> getPlaybackPoolEpoch();
+
+  /// Cap 15.11: emitted after active player attaches to Platform View.
+  Stream<PlaybackSurfaceAttachedEvent> get surfaceAttachedEvents;
+
+  /// Cap 15.11b: [AVPlayerLayer.isReadyForDisplay] true — same DTO triple as attach.
+  Stream<PlaybackSurfaceReadyForDisplayEvent> get surfaceReadyForDisplayEvents;
+
   /// Native → Dart runtime observe (may be empty until host emits).
   Stream<PlaybackRuntimeEvent> get runtimeEvents;
 
