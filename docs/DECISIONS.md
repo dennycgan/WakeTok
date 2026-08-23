@@ -2981,3 +2981,132 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   visual QA. 15.5 blocked on memory before-measure. Probe source
   stays out of git; 15.1 notes land in the 15.2 docs commit.
 
+---
+
+## ADR-032: Cap 15.11 shared Platform View handoff — ready-for-display trust (not attach-ack)
+
+- Status: Accepted (2026-08-23)
+  <!-- Accepted date from `git log -1 --format=%cs c8a59b3` → 2026-08-23 -->
+- Commit/PR anchor: c8a59b3
+- Plain summary (owner reads this):
+  When you swipe between two local videos, WakeTok now keeps a poster cover
+  and mutes sound until the **new** video’s picture is actually ready to
+  show — not merely when the player is wired to the screen. That stops the
+  old video’s picture and sound from leaking during the handoff.
+- Context / what problem forced this:
+  Cap 15 debt **393** (shared 1+1 AVPlayer + single Platform View — ADR-006):
+  local→local video handoff showed two distinct failure modes on device
+  (Kafka 2026-08-22 after 15.10; design `cap15-debt393-explore-scope.md`):
+  1. **Peek:** entering half-screen went blur poster → **black gap** (no
+     content) while the neighbour page had poster only (no UiKitView until
+     `isCurrent`).
+  2. **Settle:** after full settle, **previous** item’s picture **and sound**
+     continued at the same progress for ~0.5 s, then snapped to the target.
+  Cap 15.7 closed leave-side poster loss; Cap 15.10 closed revisit blur-first.
+  393 required a **handoff guard**, not more Layer 1 blur or dwell masking
+  (ADR-031 Q3 related-not-equivalent).
+  **15.11a** shipped `PvTransitionGuard`: entering-side opaque poster cover +
+  `setTransitionAudioSuppressed` + Host `onPlaybackSurfaceAttached`
+  (attach-ack). Device still failed: unwrap on attach-ack removed cover
+  **before** pixels switched; audio could unmute while the layer still showed
+  the previous item.
+  **Device evidence (Kafka Profile, Cap 15.11 diagnosis — TEMP logs removed
+  before work commit `c8a59b3`):**
+  - On every qualifying attach, Host logged `ready-display-edge` with
+    **`layerReady=false`** at attach time (`reason=attach-sample`;
+    `to=false`). KVO later raised `layerReady=true` (`reason=kvo`;
+    `to=true`) tens–hundreds of ms later.
+  - Therefore **`onPlaybackSurfaceAttached` correlates with
+    `playerLayer.player` binding, not with a displayable frame** for the new
+    id. Unwrapping guard or poster-hold on attach alone reproduces 393
+    settle wrong-A/V or peek black.
+  - **`notifyDisplaySurfaceReady` / Dart `onSurfaceReady`** were already
+    ruled insufficient in explore scope (surface mounted ≠ pixels/audio for
+    new id; Cap 15.10 / explore doc §Feasibility).
+  **15.11b follow-ons** (same work commit, not a separate capability phase)
+  were required before acceptance:
+  - **Settle-on-target split:** visual cover may end on true feed-index
+    commit; transition mute must **not** end until first-frame ready —
+    otherwise unmute + shared surface still shows A.
+  - **Poster-hold:** video UiKitView deferred while guard covering or
+    `_layer2InFlight`; Opacity hides surface until ready-for-display on the
+    **current** page (parallel to guard cover on the entering page).
+  - **Stale feed-index re-arm:** scroll listener must read **live**
+    `mainBrowseFeedIndexProvider`, not build-captured index; after settle,
+    stale `ScrollUpdate` re-armed guard toward the settled page →
+    `guard-disarm reason=timeout` (~2 s) even when L2 finished in ~70 ms.
+  - **`_layer2InFlight` generation ownership:** Tab / leave paths must
+    clear inFlight without sticking blur + corner spinner.
+  Kafka + i17 Profile PASS (`cap15-15.11-notes.md`); debt 393 closed.
+- Decision (what was chosen):
+  1. **Product trust point = Host first displayable frame, not attach.**
+     Add `PlaybackFlutterApi.onPlaybackSurfaceReadyForDisplay` with the same
+     identity triple as attach-ack: `(assetIdentifier, feedIndex,
+     clearEpoch)` where `clearEpoch` is Host pool invalidation generation
+     (`getPlaybackPoolEpoch` / ADR-006 `clearEpoch`). Emit when
+     `AVPlayerLayer.isReadyForDisplay` becomes true for the bound player
+     on the shared Platform View (`PlaybackSurfaceView` KVO). **Keep**
+     `onPlaybackSurfaceAttached` on the Pigeon surface for diagnostics /
+     future callers; **do not** use attach-ack as guard unwrap or
+     poster-hold clear.
+  2. **Guard unwrap + audio release** listen only to
+     `surfaceReadyForDisplayEvents`. Match triple against arm snapshot
+     (`targetAssetId`, `targetFeedIndex`, `armPoolEpoch`). On match:
+     - If cover still armed → full `disarm(resumePlay: true)`.
+     - If cover already released by settle-on-target →
+       `releaseTransitionAudio(resumePlay: true)` only.
+     Do **not** re-check Dart `FeedMediaRequestGate.displayGeneration` on
+     ready-for-display (settle can bump generation while pool epoch still
+     valid — same race class that made attach-ack unwrap untrustworthy).
+  3. **Settle-on-target (guard deadlock / linger fix).** On true
+     `mainBrowseFeedIndexProvider` commit to `targetFeedIndex`:
+     `releaseCovering` only — clears `_PvTransitionCover` and
+     `canMountVideo` defer; **preserves** `_transitionAudioHeld` and
+     audio-match triple for the ready-for-display listener. Forbidden:
+     ending transition mute on settle; using scroll epsilon alone to drop
+     cover when index equals target (mid-peek false settle).
+  4. **Poster-hold uses the same ready-for-display stream** on the
+     **current** page: `_holdPosterUntilFirstFrame` cleared on matching
+     triple (`reason=ready-for-display`); `releaseTransitionAudio` for
+     poster-hold path uses the same event. Video slot: `canMountVideo =
+     isCurrent && !guard.isCovering && !_layer2InFlight`. Opacity 0 until
+     hold clears — avoids mounting empty UiKitView during peek black.
+  5. **Transition mute is Host-scoped and non-persistent.**
+     `PlaybackApi.setTransitionAudioSuppressed(true)` mutes active+warming
+     players without changing user mute preference; cleared only by Dart
+     after ready-for-display (or timeout / disarm failure paths). Timeout
+     remains 2 s (degraded unwrap; device matrix required 0 timeout on
+     acceptance build).
+  6. **Scope / non-goals.** ADR-006 1+1 pool + single Platform View
+     unchanged (no Q3=B). Debt **400** (no Layer 1 poster) unchanged.
+     Cap **15.12** (local first-visit skip L1) is out of scope. TEMP
+     `[WT15.11]` device logs were **not** shipped in `c8a59b3`.
+- Rejected alternatives (why not B):
+  - **Unwrap on attach-ack only (15.11a first ship)** — rejected by
+    device evidence: attach always observed `layerReady=false`; unwrap
+    early exposes previous A/V on shared surface.
+  - **Unwrap on `notifyDisplaySurfaceReady` / Dart surface-ready alone**
+    — rejected (explore + 15.10): does not prove layer pixels for new id.
+  - **Fixed delay unwrap** — rejected: cannot prove content switch; fails
+    audio-leak acceptance; varies by local vs iCloud.
+  - **End mute on settle-on-target** — rejected: reproduces 393 settle
+    audio leak when layer still shows A.
+  - **Dual player / Q3=B** — not chosen; owner re-board only if this track
+    failed (explore doc §Rejected).
+  - **Re-check displayGeneration on ready-for-display** — rejected:
+    settle-on-target intentionally bumps gate before first frame; caused
+    stuck cover + timeout in diagnosis.
+- Consequences / constraints accepted:
+  - Future handoff features must treat **`onPlaybackSurfaceReadyForDisplay`
+    as the visibility contract** for unmasking user-visible video pixels on
+    the shared Platform View. Attach-ack is wiring notification only.
+  - First-frame latency includes PhotoKit prepare + layer KVO; cover + mute
+    may persist until `isReadyForDisplay` (acceptable for 393 closure).
+  - Guard arm must use **live feed index** after async epoch read; widget
+    tests must keep `debugDispatchPvScrollArm` / `Settled` hooks (formal
+    test surface, not TEMP diag).
+  - ADR-031 Q3 (leave-side poster retention) preserved; entering-side
+    cover is additive.
+  - Widget tests W-15.11a–j + platform surface tests are the regression
+    harness; device matrix in `cap15-15.11-notes.md` is acceptance gate.
+
