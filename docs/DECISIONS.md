@@ -1700,7 +1700,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - List albums only in Cap 14 — rejected; Cap 11 title requires live
     album resolution and Availability.
   - List albums under Limited as `unauthorized` rows — rejected; ADR-K
-    "不列出或解析" means omit from list.
+    "do not list or resolve" means omit from list.
   - Concurrent Dart `resolveSource` fan-out — rejected; peak memory
     would be ~N full id lists; sequential bounds peak to one list +
     coalesced accumulator + seen-id set.
@@ -1946,7 +1946,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      Fisher–Yates with injectable `Random` (tests may pass a seeded
      instance; production uses a non-deterministic source). When
      `n > 1`, finite retries so the new round’s first id ≠ previous
-     round’s last id (kickoff / Glossary: 应尽量避免 — mechanism
+     round’s last id (kickoff / Glossary: should try to avoid — mechanism
      required, not docs-only). Round is stable mid-play; reshuffle only
      at round boundary under Repeat All.
   6. **Playhead Known debt = reclassification Accepted, not a bug fix
@@ -2018,7 +2018,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Eligibility enums with Manual all-pass (D4=B) — rejected; freezes
     Auto-play Cap shapes early (Cap 12 D7 discipline).
   - Docs-only first≠last (D5=B) — rejected; Glossary requires a
-    mechanism (“应尽量避免”), not prose alone.
+    mechanism (“should try to avoid”), not prose alone.
   - Deterministic production seed (D5=C) — rejected; undermines
     user-perceived randomness of Shuffle.
   - Split Host key `(sourceId, assetId)` (D6=B) — rejected; high Host
@@ -2716,7 +2716,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   (`docs/acceptance/cap13-13.6-notes.md`,
   `docs/acceptance/cap13-13.6-retest-notes.md`).
   Cap 16 paid the product storage leak; 16.5 showed Animation Hitches
-  sessions correlating with GB-class **系统数据** growth and Photos
+  sessions correlating with GB-class **System Data** growth and Photos
   flat. The same template on Kafka failed Photo-App-A and Video-App-B
   on the old bar. Owner daily **uninstrumented** Video-App-B on this
   iPhone 13 Pro is smooth.
@@ -2755,7 +2755,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      useless.
   3. **Storage clause (correlation, not file-format proof).** Attached
      Animation Hitches sessions on WakeTok, Photo-App-A, and
-     Video-App-B showed GB-class **系统数据** growth with Photos flat.
+     Video-App-B showed GB-class **System Data** growth with Photos flat.
      Not Photos-library download by the app under test. Not unique
      proof of an Instruments file format.
   4. **Comparator roles (protocol evidence only).** Photo-App-A and
@@ -2928,7 +2928,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
       are comparison baselines, not caps. Growth must stay
       explainable as watched items (16.5 protocol, no Instruments).
       15.1 Full Videos M7: Photos 10.18→10.18 GB; total −0.92 GB
-      in 系统数据 — Photos-flat, not a leak.
+      in System Data — Photos-flat, not a leak.
       (3) **Peak memory** — no unbounded or material peak growth
       beyond measurement noise; jetsam / force-quit / sustained
       climb fail. If gapless causes a discernible rise, 15.5 must
