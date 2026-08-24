@@ -17,6 +17,10 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   /// Per-id preview overrides.
   final Map<String, DisplayAsset> previewsById = <String, DisplayAsset>{};
 
+  /// Cap 15.13: when call count ≥ 2, return this heal asset (F2 reload tests).
+  final Map<String, DisplayAsset> previewReloadHealById =
+      <String, DisplayAsset>{};
+
   /// Per-id delayed completion for display requests (W-F7).
   final Map<String, Completer<void>> displayGates = <String, Completer<void>>{};
 
@@ -45,6 +49,14 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
   final List<String> cancelPreviewCalls = <String>[];
   final List<String> releasePreviewCalls = <String>[];
   final List<String> previewLifecycleLog = <String>[];
+
+  /// Test-only: simulate Host PreviewTempFileStore cap=3 LRU on [requestPreview].
+  bool enforcePreviewCapLru = false;
+
+  /// Ids evicted by [enforcePreviewCapLru] (paths dropped from [previewsById]).
+  final List<String> lruEvictedPreviewIds = <String>[];
+
+  final List<String> _previewLruOrder = <String>[];
 
   /// When set, [releasePreview] waits before completing.
   Completer<void>? releaseGate;
@@ -106,6 +118,15 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
     if (shouldWait) {
       await gate.future;
     }
+    if (enforcePreviewCapLru) {
+      _applyPreviewLruCap(assetIdentifier);
+    }
+    if (callCount >= 2) {
+      final heal = previewReloadHealById[assetIdentifier];
+      if (heal != null) {
+        return heal;
+      }
+    }
     final perIdError = previewErrorById[assetIdentifier];
     if (perIdError != null) {
       throw PlatformException(code: perIdError, message: 'fake');
@@ -116,6 +137,19 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
           mediaKind: PlaybackMediaKind.image,
           localFilePath: '/tmp/fake_preview_$assetIdentifier.jpg',
         );
+  }
+
+  void _applyPreviewLruCap(String assetIdentifier) {
+    if (_previewLruOrder.contains(assetIdentifier)) {
+      _previewLruOrder.remove(assetIdentifier);
+    } else {
+      while (_previewLruOrder.length >= 3) {
+        final evicted = _previewLruOrder.removeAt(0);
+        lruEvictedPreviewIds.add(evicted);
+        previewsById.remove(evicted);
+      }
+    }
+    _previewLruOrder.add(assetIdentifier);
   }
 
   @override

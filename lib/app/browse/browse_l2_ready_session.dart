@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart'
     show mainBrowseSelectedSourceProvider;
@@ -51,10 +53,85 @@ class BrowseL2ReadySession extends Notifier<Map<String, FeedL2ReadyEntry>> {
     state = {...state, entry.assetIdentifier: entry};
   }
 
+  /// Map lookup only — no disk I/O.
+  ///
+  /// Called from [MediaFeedPageState.didUpdateWidget]. Must not [existsSync]
+  /// (blocks the UI isolate) and must not write [state] (Riverpod).
   FeedL2ReadyEntry? lookup(String assetIdentifier) => state[assetIdentifier];
+
+  /// Cap 15.13 / 15.14: cover-path check for become-current routing.
+  ///
+  /// Yields one event-loop turn so [didUpdateWidget] / [build] can finish,
+  /// then uses [File.existsSync] (await [File.exists] hangs under FakeAsync /
+  /// testWidgets). Do not call this from widget lifecycle methods.
+  Future<FeedL2ReadyEntry?> lookupIfCoverOnDisk(String assetIdentifier) async {
+    final entry = state[assetIdentifier];
+    if (entry == null) {
+      return null;
+    }
+    final path = entry.cover?.localFilePath;
+    if (path == null) {
+      return entry;
+    }
+    await Future<void>.value();
+    if (!_pathExists(path)) {
+      final current = state[assetIdentifier];
+      if (current?.cover?.localFilePath == path) {
+        evict(assetIdentifier);
+      }
+      return null;
+    }
+    return state[assetIdentifier];
+  }
+
+  void evict(String assetIdentifier) {
+    if (!state.containsKey(assetIdentifier)) {
+      return;
+    }
+    final next = Map<String, FeedL2ReadyEntry>.from(state);
+    next.remove(assetIdentifier);
+    state = next;
+  }
+
+  /// Cap 15.13: resume batch — sync path checks with yields between batches
+  /// (must not await dart:io under FakeAsync / testWidgets).
+  Future<void> evictEntriesWithMissingPathsAsync() async {
+    if (state.isEmpty) {
+      return;
+    }
+    const batchSize = 8;
+    final stale = <String>[];
+    var checked = 0;
+    for (final entry in state.entries) {
+      final path = entry.value.cover?.localFilePath;
+      if (path != null && !_pathExists(path)) {
+        stale.add(entry.key);
+      }
+      checked++;
+      if (checked % batchSize == 0) {
+        await Future<void>.value();
+      }
+    }
+    if (stale.isEmpty) {
+      return;
+    }
+    final next = Map<String, FeedL2ReadyEntry>.from(state);
+    for (final id in stale) {
+      next.remove(id);
+    }
+    state = next;
+  }
 
   void clear() {
     state = const {};
+  }
+
+  bool _pathExists(String path) {
+    try {
+      return File(path).existsSync();
+    } catch (_) {
+      return false;
+    }
   }
 }
 

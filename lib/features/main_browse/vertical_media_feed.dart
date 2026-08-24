@@ -60,11 +60,13 @@ class VerticalMediaFeed extends ConsumerStatefulWidget {
   ConsumerState<VerticalMediaFeed> createState() => VerticalMediaFeedState();
 }
 
-class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
+class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
+    with WidgetsBindingObserver {
   PageController? _pageController;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
   bool _advancingRound = false;
+  AppLifecycleState? _lastLifecycle;
 
   final FeedActivationCoordinator _activation = FeedActivationCoordinator();
 
@@ -205,6 +207,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _pageController = PageController(
       // Second line of defense if Feed State is ever recreated. Primary
       // fix is the unconditional IndexedStack Theme wrap in the shell.
@@ -233,11 +236,34 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _restoreSub?.cancel();
     _pageController?.dispose();
     super.dispose();
   }
 
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final previous = _lastLifecycle;
+    _lastLifecycle = state;
+    if (state != AppLifecycleState.resumed) {
+      return;
+    }
+    if (previous != AppLifecycleState.inactive &&
+        previous != AppLifecycleState.paused) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      unawaited(
+        ref
+            .read(browseL2ReadySessionProvider.notifier)
+            .evictEntriesWithMissingPathsAsync(),
+      );
+    });
+  }
 
   /// Hard constraint: metadata + current-display [begin] in one synchronous call.
   /// No [setState] — [build] assigns fields then reads them in the same frame.
@@ -1472,7 +1498,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   void _onPreviewFileBroken() {
-    if (!mounted || !widget.isCurrent) {
+    if (!mounted) {
       return;
     }
     final display = _media?.display;
@@ -1488,7 +1514,74 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
     _previewReloadTriedPath = path;
     _previewReloadInFlight = true;
-    unawaited(_reloadPreviewFile());
+    if (widget.isCurrent) {
+      unawaited(_reloadPreviewFile());
+      return;
+    }
+    // Cap 15.13 F2: math ±1 off-current — same requestPreview Host path as
+    // preheat Layer 1 (PreviewTempFileStore replace-by-id, not a bypass).
+    if (_isMathPreheatNeighbor()) {
+      unawaited(_reloadPreviewFileOffCurrent());
+    } else {
+      _previewReloadInFlight = false;
+    }
+  }
+
+  /// Cap 15.13 F2: off-current neighbour preview reload via [_localGate] +
+  /// [MediaDisplayRepository.requestPreview] (same Pigeon/Host LRU path as
+  /// preheat [loadFeedPageLayer1]; replace-by-id, no releasePreview fan-out).
+  Future<void> _reloadPreviewFileOffCurrent() async {
+    final localGen = _localGate.begin();
+    _layer1LocalGen = localGen;
+    final assetId = widget.assetIdentifier;
+    try {
+      final preview = await ref
+          .read(mediaDisplayRepositoryProvider)
+          .requestPreview(assetId);
+      if (!mounted ||
+          !_localGate.isCurrent(localGen) ||
+          widget.isCurrent ||
+          !_isMathPreheatNeighbor() ||
+          widget.assetIdentifier != assetId) {
+        _previewReloadInFlight = false;
+        return;
+      }
+      setState(() {
+        final media = _media;
+        if (media?.kind == FeedPageMediaKind.video) {
+          _media = FeedPageMedia.video(
+            media!.videoAssetId ?? assetId,
+            poster: preview,
+          );
+        } else if (media?.kind == FeedPageMediaKind.still ||
+            media?.display != null) {
+          _media = FeedPageMedia.still(
+            preview,
+            layer: FeedDisplayLayer.preview,
+          );
+        } else {
+          _media = FeedPageMedia.still(
+            preview,
+            layer: FeedDisplayLayer.preview,
+          );
+        }
+        _previewReloadInFlight = false;
+      });
+    } catch (_) {
+      if (mounted && _localGate.isCurrent(localGen)) {
+        _previewReloadInFlight = false;
+      }
+    }
+  }
+
+  /// Cap 15.13: committed feedIndex ±1 (Cap 14.5 window), not [_allowedPreheatIndices]
+  /// (Phase B lag). PhotoKit budget unchanged — same neighbour ring.
+  bool _isMathPreheatNeighbor() {
+    if (widget.isCurrent) {
+      return false;
+    }
+    final cur = ref.read(mainBrowseFeedIndexProvider);
+    return (widget.feedIndex - cur).abs() == 1;
   }
 
   Future<void> _reloadPreviewFile() async {
@@ -1765,9 +1858,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     if (!startedOffCurrent) {
-      final l2Ready = ref
+      final l2Ready = await ref
           .read(browseL2ReadySessionProvider.notifier)
-          .lookup(widget.assetIdentifier);
+          .lookupIfCoverOnDisk(widget.assetIdentifier);
       if (l2Ready != null) {
         if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
             l2Ready.kind == FeedL2ReadyKind.video) {
