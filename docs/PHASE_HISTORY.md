@@ -715,3 +715,127 @@ do not rewrite 13.6 FAIL tables. Layer 1 miss / iCloud no-poster /
 swipe flash / duplicate Layer 2 → Cap 15. Prior debts unchanged
 (Release hang, Location, file-size disclaimer, UX-1, Portfolio
 scan, etc.).
+
+## Feed swipe Layer 1→2 handoff polish and
+duplicate current-item Layer 2 request
+— completed 2026-08-24
+
+- [x] 15.1 Device diagnosis probe — throwaway probe **never
+      committed**; evidence `docs/acceptance/cap15-15.1-notes.md`
+      (`300d47b`). Kafka 2026-08-20 Debug. M3 A1 (stills + videos);
+      M2 ≠ 1 so 15.4 is a real fix; Q2 no delay-before-show
+- [x] 15.2 Contract freeze — ADR-031 **Proposed** (`300d47b`; no
+      Accepted date, no fake anchor). Diagnosis-before-contract
+      recorded. Q1=A1 512×512; Q2=A no delay-before-show; Q3=A;
+      Q5=B; 393 related-not-equivalent; 15.4 real fix; M1/M2 Debug
+      limit; M3 order protocol not executed (index odd/even only).
+      Peak-memory baseline is a **hard gate before 15.5**, not
+      optional. Three-axis Cap 16 invariant (ADR-030 language).
+      Non-goal: Limited banner remount
+- [x] 15.3 Layer 1-miss chrome unified to `_FeedCornerChrome`
+      (debt 399+398); **no** delay-before-show. Work `4767ec4`;
+      ADR-031 Accepted in this docs commit (anchor `4767ec4`).
+      UX-1 (402) incidental; owner judges at 15.8. Kafka device
+      chrome PASS (miss corner; library loading still centered)
+- [x] 15.4 Single current-item activation (debt 396) — **real
+      fix** (M2 `preview_supersede` ≠ 1), not verify-only. Work
+      `ce18a33`; join in-flight L1 on neighbour→current promote.
+      Kafka 2026-08-20 Debug WT15 (uncommitted): M1+2 five
+      `page_changed`, zero `preview_supersede`; M1 one
+      `layer2_load_start` per become-current
+- [x] 15.5 Still Layer 1→2 gapless handoff (debt 394 stills).
+      Work `6c7d3de` (gapless `32928a8`/`8cedea4` + sized decode
+      `ResizeImagePolicy.fit`). Kafka Round 4 **PASS**: Fit flash
+      none; aspect vs iOS Photos spot-check OK; no jetsam /
+      force-quit / sustained climb. Memory not Round-3-systemic; do
+      **not** bite ≈261. S2≈334 = pre-existing slow iCloud + gapless
+      + preheat overlap (not a sized-decode regression) —
+      `cap15-15.5-notes.md`. Keep 14.4d latch. Debt 394 **video**
+      remains 15.7.
+- [x] 15.6 Layer 1 local-hit A1: Host `previewTargetSize` **512×512**
+      (debt 400; ADR-031 Q1=A1). Work `52e775c`. Kafka Protocol B
+      (Full vs Limited same 16 ids): Full 16/16 ok all ~120; Limited
+      13×512-edge ok + 3 miss. **Inferred:** Full falls back to a
+      fixed ~120 thumb tier; Limited searches by `targetSize` (no
+      same fallback). 512 helps **Limited** hit-rate; Full never-black
+      is largely independent of 512/1080. Debt 400 **open** (Limited
+      residual miss = PhotoKit Limited + local-only; Host cannot
+      invent pixels). Notes `cap15-15.6-notes.md`. Optional later:
+      trial `deliveryMode = .fastFormat` (unvalidated).
+- [x] 15.7 Video leave-current frame retention (debt 394 video
+      peek-black); does not change the ADR-006 1+1 player /
+      Platform View contract. Work `b21b9fc` (2026-08-22). Keep
+      `video`+poster kind on leave; poster stable Stack index 0;
+      UiKitView only while current. Kafka Full/Limited: posted
+      video peek shows Layer 1 (PASS). Limited video L1-miss N/A
+      this session (does not close 400). Settle flash of previous
+      video **with audio** = debt **393** (not 15.7).
+- [x] 15.8 Device acceptance — ADR-030 §5 owner daily-use
+      confirmation + per-debt before/after table (incl. 393 and
+      UX-1 verdicts) + storage on the 16.5 protocol
+      (explainable-as-watched) + peak-memory narrative per
+      `cap15-15.5-notes.md` (qualitative; no MB hard bar). Kafka
+      2026-08-22 Profile PASS — `cap15-15.8-notes.md`. Storage M7
+      **qualitative only** (no numeric before/after this session —
+      weaker than 16.5/15.1 protocol; see notes). 393/400 still
+      open. 393 explore **paused** for 15.10.
+- [x] 15.10 Session L2-ready skip Layer 1 on revisit — local /
+      already-L2-completed items must not blur-first on second+
+      become-current in the same Browse Session. **v1: revisit only**
+      (no public PhotoKit pre-check — STATE Known debt
+      `locallyAvailable` KVC). Work `750ddd6`. Kafka 2026-08-22
+      Profile PASS — `cap15-15.10-notes.md`. Cap 16 M7 PASS
+      qualitative-only (no numeric re-record). ADR-025 narrow supersede
+      (this docs commit). 393/400 still open. 393 explore **paused**
+      (scope gap: peek phase — see notes §G).
+- [x] 15.11 Shared PV transition guard (393 peek + settle) +
+      handoff deadlocks — cover + transition mute; Host
+      **ready-for-display** trust (ADR-032; attach-ack retained but not
+      unwrap); 15.11b poster-hold / settle-on-target (cover vs audio
+      split) / stale feed-index re-arm / `_layer2InFlight` generation
+      clear. Design: `cap15-debt393-explore-scope.md`. Work `c8a59b3`.
+      Kafka + i17 Profile PASS — `cap15-15.11-notes.md`. Debt **393
+      closed**. Debt **400** still open. iCloud load UX clue → Known
+      debt (separate).
+- [x] 15.12 Local first-visit skip L1 (deviceLocal) — work
+      `a5cf507` (2026-08-24). Become-current skip Layer 1 when
+      `AssetAvailability.deviceLocal`. Widget W-15.12*. Kafka
+      large-library later stalled on resolve-time full availability
+      scan (「正在加载图库…」) — **fixed by 15.15**, not rolled back
+      here. i17 small/mostly-local hid the stall.
+- [x] 15.13 Stale preview heal — work `4ceea4e` (2026-08-24).
+      Session `lookupIfCoverOnDisk` evicts token when cover file
+      gone. Widget coverage; device verified in the 15.12–15.14c
+      Kafka/i17 chain (no separate notes file).
+- [x] 15.14 Peek cover reuse on deviceLocal become-current —
+      work `e866ed8` (2026-08-24). Skip second `requestPreview` when
+      peek file still on disk (W-15.14a). Device: same chain.
+- [x] 15.14b Arm poster-hold at L2 apply when `canReuseCover` —
+      work `15a5bce` (2026-08-24). W-15.14b. Kafka still showed
+      intermittent revisit peek black-flash when peek file already
+      evicted (`canReuseCover=false`) — covered by 15.14c.
+- [x] 15.15 resolveSource empty availabilities + on-demand
+      `getAssetAvailabilities` — work `8b5802d` (2026-08-24);
+      ADR-033. Kafka Profile 2026-08-24: 「正在加载图库…」reasonable
+      duration **PASS**.
+- [x] 15.14c DEVICE_LOCAL L2 apply always arms poster-hold —
+      work `3fe9dd9` (2026-08-24). W-15.14c (dead peek file).
+      Kafka + i17 Profile 2026-08-24: video revisit peek black-flash
+      **not re-observed (PASS)**. Still revisit ~0.5s corner spinner
+      on Kafka = Known debt (Host temp vs L2-ready), not this phase.
+- [x] 15.9 Cap close-out: Cap 15 `[x]`; YOU ARE HERE → Cap 17
+      placeholder; PHASE_HISTORY this snapshot; ADR-033; Known debt
+      (L2-ready vs Host temps; KVC row; debt **400** Picks it up
+      still open at close-out)
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-033): (this commit)
+
+Related ADR: ADR-031 (Accepted, `4767ec4`); ADR-032 (`c8a59b3`);
+ADR-033 (`8b5802d`).
+Known debt at close: **400 still open** (Limited / local-only video
+no Layer 1 poster — Host cannot invent pixels). 393 closed (15.11).
+Session L2-ready vs display ≤1+1 / preview cap-3 temps (still
+revisit spinner) recorded as a new row. iCloud load-speed / wait-UX
+row unchanged. Do not treat 400 as closed because 393 or the spinner
+debt were addressed.

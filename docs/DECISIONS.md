@@ -3110,3 +3110,43 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Widget tests W-15.11a–j + platform surface tests are the regression
     harness; device matrix in `cap15-15.11-notes.md` is acceptance gate.
 
+---
+
+## ADR-033: Cap 15.15 — resolveSource omits availabilities; on-demand probe
+
+- Status: Accepted (2026-08-24)
+  <!-- git log -1 --format=%cs 8b5802d → 2026-08-24 -->
+- Commit/PR anchor: 8b5802d
+- Plain summary (owner reads this):
+  Listing a large Photos library no longer asks “is every item on this
+  phone?” up front. WakeTok only asks that for the item you are looking
+  at when it needs the answer — so All/Photos/Videos opens promptly on
+  big libraries.
+- Context / what problem forced this:
+  Cap 15.12 used list-time `AssetAvailability` so device-local items
+  could skip Layer 1 on first visit. The first Host path filled
+  `ResolvedSourceDto.assetAvailabilities` for every id during
+  `resolveSource` (per-id `PHAssetResource` + KVC `locallyAvailable`).
+  On Kafka’s large library that made 「正在加载图库…」 hang before the
+  feed appeared. Smaller / mostly-local libraries hid the bug.
+- Decision (what was chosen):
+  1. **`resolveSource` returns `assetAvailabilities: []` always**
+     (field kept for wire compatibility; not parallel to ids).
+  2. **New `getAssetAvailabilities(ids)`** — on-demand probe; unknown
+     → unavailable. Domain port + gateway; Host off main thread.
+  3. **Feed become-current:** after Session L2-ready miss, if snapshot
+     has no availability, probe **current id only** → 15.12 path or
+     FULL_L1.
+  4. **Probe failure / leave → conservative FULL_L1** (not deviceLocal).
+  5. **Tests** may inject at resolve via fake; production Host omits.
+- Rejected alternatives (why not B):
+  - **Full-library availability at resolve** — rejected: Kafka stall.
+  - **Roll back 15.12 skip-L1** — rejected: stall was the scan.
+  - **Batch-fill whole library after first frame** — rejected: same cost.
+  - **Session-level availability cache** — deferred, non-blocking.
+- Consequences / constraints accepted:
+  - Callers must **not** assume resolve fills availabilities.
+  - deviceLocal fast path depends on become-current probe (or test inject).
+  - KVC remains undocumented; must not silently expand (STATE Known debt).
+  - 15.14c / L2-ready temp eviction Known debt are separate.
+
