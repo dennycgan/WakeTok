@@ -226,6 +226,7 @@ void main() {
       ResolvedSourceDto(
         sourceIdentifier: 'all',
         assetIdentifiers: <String>['a', 'b', 'c'],
+        assetAvailabilities: <AssetAvailabilityDto>[],
       ),
     );
     mockSuccess(

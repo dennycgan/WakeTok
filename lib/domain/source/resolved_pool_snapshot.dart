@@ -1,3 +1,4 @@
+import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/source/source_resolve_status.dart';
 
 /// Runtime coalesced view of a Source Pool Definition (Glossary §7–8 / ADR-021).
@@ -9,8 +10,12 @@ class ResolvedPoolSnapshot {
     required this.id,
     required List<String> coalescedAssetIds,
     required List<SourceResolveStatus> sourceStatuses,
+    Map<String, AssetAvailability>? assetAvailabilityById,
   })  : coalescedAssetIds = List<String>.unmodifiable(coalescedAssetIds),
-        sourceStatuses = List<SourceResolveStatus>.unmodifiable(sourceStatuses);
+        sourceStatuses = List<SourceResolveStatus>.unmodifiable(sourceStatuses),
+        assetAvailabilityById = Map<String, AssetAvailability>.unmodifiable(
+          assetAvailabilityById ?? const {},
+        );
 
   /// Echo of the SourcePoolDefinition id that produced this snapshot.
   final String id;
@@ -20,6 +25,12 @@ class ResolvedPoolSnapshot {
 
   /// One row per Definition source, same order as the recipe.
   final List<SourceResolveStatus> sourceStatuses;
+
+  /// First-appearance list-time availability for coalesced ids (Cap 15.12).
+  final Map<String, AssetAvailability> assetAvailabilityById;
+
+  AssetAvailability? availabilityFor(String assetId) =>
+      assetAvailabilityById[assetId];
 
   @override
   bool operator ==(Object other) {
@@ -33,7 +44,8 @@ class ResolvedPoolSnapshot {
       return false;
     }
     if (coalescedAssetIds.length != other.coalescedAssetIds.length ||
-        sourceStatuses.length != other.sourceStatuses.length) {
+        sourceStatuses.length != other.sourceStatuses.length ||
+        assetAvailabilityById.length != other.assetAvailabilityById.length) {
       return false;
     }
     for (var i = 0; i < coalescedAssetIds.length; i++) {
@@ -46,6 +58,11 @@ class ResolvedPoolSnapshot {
         return false;
       }
     }
+    for (final entry in assetAvailabilityById.entries) {
+      if (other.assetAvailabilityById[entry.key] != entry.value) {
+        return false;
+      }
+    }
     return true;
   }
 
@@ -54,5 +71,10 @@ class ResolvedPoolSnapshot {
         id,
         Object.hashAll(coalescedAssetIds),
         Object.hashAll(sourceStatuses),
+        Object.hashAllUnordered(
+          assetAvailabilityById.entries.map(
+            (e) => Object.hash(e.key, e.value),
+          ),
+        ),
       );
 }

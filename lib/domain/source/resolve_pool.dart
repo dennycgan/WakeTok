@@ -1,3 +1,4 @@
+import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/resolved_pool_snapshot.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
@@ -19,17 +20,25 @@ Future<ResolvedPoolSnapshot> resolvePool({
 }) async {
   final coalesced = <String>[];
   final seen = <String>{};
+  final availabilityById = <String, AssetAvailability>{};
   final statuses = <SourceResolveStatus>[];
 
   for (final ref in definition.orderedSourceReferences) {
     final attempt = await resolveOne(ref);
     switch (attempt) {
-      case SourceResolveSuccess(:final assetIdentifiers):
+      case SourceResolveSuccess(
+        :final assetIdentifiers,
+        :final assetAvailabilityById,
+      ):
         var contributed = 0;
         for (final id in assetIdentifiers) {
           if (seen.add(id)) {
             coalesced.add(id);
             contributed += 1;
+            final availability = assetAvailabilityById[id];
+            if (availability != null) {
+              availabilityById[id] = availability;
+            }
           }
         }
         statuses.add(
@@ -58,5 +67,6 @@ Future<ResolvedPoolSnapshot> resolvePool({
     id: definition.id,
     coalescedAssetIds: coalesced,
     sourceStatuses: statuses,
+    assetAvailabilityById: availabilityById,
   );
 }

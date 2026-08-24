@@ -43,6 +43,13 @@ final browseLayer2DwellProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 500),
 );
 
+/// Cap 15.12: short dwell before Layer 2 on device-local first visit (N_local).
+/// Production: 80 ms. Tests override to [Duration.zero] where timing is not
+/// under test, or to a positive value for leave-before-dwell cases.
+final browseLocalFirstVisitDwellProvider = Provider<Duration>(
+  (ref) => const Duration(milliseconds: 80),
+);
+
 /// Selected built-in source for Main Browse (All / Photos / Videos).
 ///
 /// Lives at the composition root so session wiring can watch it without a

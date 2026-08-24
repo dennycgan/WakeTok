@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/errors/app_error.dart';
+import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
@@ -4173,6 +4176,25 @@ void main() {
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
+      // Cap 15.13 lookup() existsSync — Session cover paths must be real files.
+      for (final id in const ['a1', 'a2', 'a3']) {
+        final path = File('${Directory.systemTemp.path}/wt_15_10a_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        display.displaysById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+      }
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
@@ -4295,6 +4317,432 @@ void main() {
         find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
         findsNothing,
       );
+    },
+  );
+
+  testWidgets(
+    'W-15.12a Photos-tab deviceLocal still skips preview on first visit',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+          browseLayer2Dwell: const Duration(milliseconds: 500),
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(display.previewCalls.where((id) => id == head), isEmpty);
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.12h All-tab deviceLocal still probes preview but skips blur gate',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['still1', 'still2'],
+            availabilityById: const {
+              'still1': AssetAvailability.deviceLocal,
+              'still2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(display.previewCalls.where((id) => id == head).length, 1);
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
+        findsNothing,
+      );
+      expect(
+        find.byKey(Key('mainBrowseFeedStill_$head'), skipOffstage: false),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-15.12b iCloud asset still uses Layer 1 preview on first visit',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['cloud1', 'a2'],
+            availabilityById: const {
+              'cloud1': AssetAvailability.iCloudNotDownloaded,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(display.previewCalls.where((id) => id == head).length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.12c video deviceLocal first visit keeps poster not L1 loading gate',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      for (final id in const ['v1', 'v2']) {
+        display.displayErrorById[id] = 'unsupportedMedia';
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.video,
+          localFilePath: '/tmp/fake_preview_$id.jpg',
+        );
+      }
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            videosIds: const ['v1', 'v2'],
+            availabilityById: const {
+              'v1': AssetAvailability.deviceLocal,
+              'v2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+          playback: playback,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.videos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(display.previewCalls.where((id) => id == head).length, 1);
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
+        findsNothing,
+      );
+      expect(playback.calls.where((c) => c == 'load:$head').length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.12d false positive local fast path falls back to full L1 without token',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = _FailOnceDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(display.previewCalls.where((id) => id == head).length, 1);
+      expect(display.displayCalls.where((id) => id == head).length, 2);
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+    },
+  );
+
+  testWidgets(
+    'W-15.12i false-positive fallback waits production dwell before retry L2',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = _FailOnceDisplayRepository();
+      final gate = Completer<void>();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+          browseLayer2Dwell: const Duration(milliseconds: 500),
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+      display.displayGates[head] = gate;
+
+      // Fast-path L2 failed (1st display). Fallback re-arms 500 ms dwell;
+      // 2nd display must not start until dwell elapses.
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+
+      gate.complete();
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls.where((id) => id == head).length, 2);
+    },
+  );
+
+  testWidgets(
+    'W-15.12e Session L2-ready beats deviceLocal first-visit fast path',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      for (final id in const ['a1', 'a2', 'a3']) {
+        final path = File('${Directory.systemTemp.path}/wt_15_12e_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        display.displaysById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2', 'a3'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+              'a3': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.12f leave before N_local issues zero Layer 2 display invoke',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+          browseLocalFirstVisitDwell: const Duration(milliseconds: 500),
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+      final gate = Completer<void>();
+      display.displayGates[head] = gate;
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(display.displayCalls.where((id) => id == head), isEmpty);
+      gate.complete();
+      await pumpAsyncWork(tester);
+    },
+  );
+
+  testWidgets(
+    'W-15.12g leave after N_local during in-flight L2 cancels display',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final gate = Completer<void>();
+      display.displayGates['a1'] = gate;
+      display.displayGates['a2'] = gate;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(display.cancelDisplayCalls.where((id) => id == head).length, 1);
+      gate.complete();
+      await pumpAsyncWork(tester);
+    },
+  );
+
+  testWidgets(
+    'W-15.12j deviceLocal fast path keeps peek cover painted until L2 lands',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['a1', 'a2'],
+            availabilityById: const {
+              'a1': AssetAvailability.deviceLocal,
+              'a2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      // Neighbour preheat paints a Layer 1 cover on the not-yet-current page.
+      expect(display.previewCalls.where((id) => id == target).length, 1);
+      expect(
+        find.byKey(Key('mainBrowseFeedStill_$target'), skipOffstage: false),
+        findsOneWidget,
+      );
+
+      // Hold Layer 2 so the become-current window stays observable.
+      final l2Gate = Completer<void>();
+      display.displayGates[target] = l2Gate;
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(
+        display.displayCalls.where((id) => id == target).length,
+        1,
+        reason: 'fast path must have reached Layer 2 for this assertion window',
+      );
+      expect(
+        find.byKey(Key('mainBrowseFeedStill_$target'), skipOffstage: false),
+        findsOneWidget,
+        reason: 'blanking the peek cover paints an empty frame at settle',
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoading'), skipOffstage: false),
+        findsNothing,
+      );
+
+      l2Gate.complete();
+      await pumpAsyncWork(tester);
     },
   );
 
@@ -4987,6 +5435,38 @@ Future<void> _pumpTwoVideoPosterFeed(
     await tester.pump(const Duration(milliseconds: 20));
   }
   await pumpAsyncWork(tester);
+}
+
+class _FailOnceDisplayRepository extends FakeMediaDisplayRepository {
+  bool _failedOnce = false;
+
+  @override
+  Future<DisplayAsset> requestDisplayAsset(String assetIdentifier) async {
+    displayCalls.add(assetIdentifier);
+    if (!_failedOnce) {
+      _failedOnce = true;
+      throw PlatformException(code: 'iCloudDownloadFailed', message: 'fake');
+    }
+    final gate = displayGates[assetIdentifier];
+    if (gate != null) {
+      await gate.future;
+    }
+    final perIdError = displayErrorById[assetIdentifier];
+    if (perIdError != null) {
+      throw PlatformException(code: perIdError, message: 'fake');
+    }
+    final code = displayErrorCode;
+    if (code != null) {
+      throw PlatformException(code: code, message: 'fake');
+    }
+    return displaysById[assetIdentifier] ??
+        display ??
+        DisplayAsset(
+          assetIdentifier: assetIdentifier,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: '/tmp/fake_$assetIdentifier.jpg',
+        );
+  }
 }
 
 class _HangingResolveRepository extends FakeAssetSourceRepository {

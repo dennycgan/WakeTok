@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/media_display_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
@@ -236,6 +237,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
     _pageController?.dispose();
     super.dispose();
   }
+
 
   /// Hard constraint: metadata + current-display [begin] in one synchronous call.
   /// No [setState] — [build] assigns fields then reads them in the same frame.
@@ -534,6 +536,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
           );
         },
         data: (view) {
+          final snapshot = view.session.snapshot;
           final ids = view.orderedAssetIds;
           _ids = ids;
           _notePreheatInputs(
@@ -629,6 +632,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed> {
                       assetIdentifier: ids[index],
                       feedIndex: index,
                       sourceKind: source.kind,
+                      listTimeAvailability: snapshot.availabilityFor(ids[index]),
                       isCurrent: isCurrent,
                       isPreheatNeighbor: isPreheatNeighbor,
                       liveHostSerial: liveHostSerial,
@@ -726,6 +730,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.assetIdentifier,
     required this.feedIndex,
     required this.sourceKind,
+    this.listTimeAvailability,
     required this.isCurrent,
     required this.isPreheatNeighbor,
     required this.liveHostSerial,
@@ -737,6 +742,9 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   final String assetIdentifier;
   final int feedIndex;
   final AssetSourceKind sourceKind;
+
+  /// List-time availability from Session Snapshot resolve (Cap 15.12).
+  final AssetAvailability? listTimeAvailability;
   final bool isCurrent;
 
   /// Cap 14.5: ±1 neighbour allowed to [requestPreview] after parent release.
@@ -787,6 +795,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   Timer? _layer2DwellTimer;
   Completer<void>? _layer2DwellCompleter;
   AppLifecycleState? _lastLifecycle;
+
 
   /// Test seam: hold [_teardownLiveMotion] when this page is off-current.
   @visibleForTesting
@@ -954,6 +963,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   void _onSurfaceReadyForDisplay(PlaybackSurfaceReadyForDisplayEvent event) {
     if (!_holdPosterUntilFirstFrame) {
+      if (event.assetIdentifier == widget.assetIdentifier) {
+      }
       return;
     }
     if (event.assetIdentifier != widget.assetIdentifier) {      return;
@@ -1528,10 +1539,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Cap 16.4: arm a cancelable timer when this page becomes current.
   /// Join with Layer 1: Layer 2 waits for this future (already complete if
-  /// Layer 1 took longer than N).
-  void _armLayer2DwellTimer() {
+  /// Layer 1 took longer than N). [dwell] defaults to production 500 ms;
+  /// Cap 15.12 first-visit fast path passes [browseLocalFirstVisitDwellProvider].
+  void _armLayer2DwellTimer({Duration? dwellDuration}) {
     _cancelLayer2DwellTimer();
-    final n = ref.read(browseLayer2DwellProvider);
+    final Duration n = dwellDuration ?? ref.read(browseLayer2DwellProvider);
     if (n <= Duration.zero) {
       _layer2DwellCompleter = Completer<void>()..complete();
       return;
@@ -1556,7 +1568,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
   }
 
-  Future<void> _awaitLayer2Dwell({required bool bypassDwell}) async {
+  Future<void> _awaitLayer2Dwell({
+    required bool bypassDwell,
+    Duration? dwellDuration,
+  }) async {
     if (bypassDwell) {
       return;
     }
@@ -1567,7 +1582,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (!widget.isCurrent) {
         return;
       }
-      _armLayer2DwellTimer();
+      _armLayer2DwellTimer(dwellDuration: dwellDuration);
       pending = _layer2DwellCompleter;
     }
     if (pending == null) {
@@ -1714,7 +1729,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     );
   }
 
-  Future<void> _startLoad({bool bypassDwell = false}) async {    final startedOffCurrent = !widget.isCurrent;
+  Future<void> _startLoad({
+    bool bypassDwell = false,
+    /// When true, skip the Cap 15.12 device-local fast path. Used only to
+    /// prevent re-entering the fast path if fallback were routed through
+    /// [_startLoad]; production fallback calls [_runFullLayer1BecomeCurrentPath]
+    /// directly instead. No production caller sets this today.
+    bool bypassDeviceLocalFastPath = false,
+  }) async {    final startedOffCurrent = !widget.isCurrent;
     FeedMediaRequestGate? gate;
     int? generation;
     if (!startedOffCurrent) {
@@ -1743,16 +1765,29 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     if (!startedOffCurrent) {
-      final l2Ready = ref.read(browseL2ReadySessionProvider)[widget.assetIdentifier];
+      final l2Ready = ref
+          .read(browseL2ReadySessionProvider.notifier)
+          .lookup(widget.assetIdentifier);
       if (l2Ready != null) {
         if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
-            l2Ready.kind == FeedL2ReadyKind.video) {          await _startLoadFromL2Ready(
+            l2Ready.kind == FeedL2ReadyKind.video) {
+          await _startLoadFromL2Ready(
             l2Ready: l2Ready,
             gate: gate!,
             generation: generation!,
           );
           return;
         }
+      }
+
+      if (!bypassDeviceLocalFastPath &&
+          widget.listTimeAvailability == AssetAvailability.deviceLocal) {
+        await _startLoadFromDeviceLocalFirstVisit(
+          gate: gate!,
+          generation: generation!,
+          bypassDwell: bypassDwell,
+        );
+        return;
       }
     }
 
@@ -1864,14 +1899,27 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // race leave (F4 / ADR-006). Neighbour reuseLayer1 skips this unless
     // Live flags leaked (above). Leave already queued cancel; maybeBegin
     // shares LiveHostOpSerial with that cancel.
+    await _runFullLayer1BecomeCurrentPath(
+      gate: gate!,
+      generation: generation!,
+      bypassDwell: bypassDwell,
+    );
+  }
+
+  /// ADR-025 full become-current path: L1 → production dwell → L2.
+  Future<void> _runFullLayer1BecomeCurrentPath({
+    required FeedMediaRequestGate gate,
+    required int generation,
+    required bool bypassDwell,
+  }) async {
     final cancelHost = _liveMotionMounted || _isLiveStillMedia(_media);
     await _teardownLiveMotion(cancelHost: cancelHost);
     if (!mounted) {
       return;
     }
 
-    final currentGate = gate!;
-    final currentGeneration = generation!;
+    final currentGate = gate;
+    final currentGeneration = generation;
 
     setState(() {
       _layer2Failed = false;
@@ -1949,6 +1997,130 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     );
   }
 
+  /// Cap 15.12: device-local first visit — skip still blur L1; video V1 keeps
+  /// local poster; N_local dwell before L2; false-positive L2 → full L1 fallback.
+  Future<void> _startLoadFromDeviceLocalFirstVisit({
+    required FeedMediaRequestGate gate,
+    required int generation,
+    bool bypassDwell = false,
+  }) async {
+    final nLocal = ref.read(browseLocalFirstVisitDwellProvider);
+    _cancelLayer2DwellTimer();
+    _armLayer2DwellTimer(dwellDuration: nLocal);
+
+    final cancelHost = _liveMotionMounted || _isLiveStillMedia(_media);
+    await _teardownLiveMotion(cancelHost: cancelHost);
+    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      _abandonLayer2Attempt(generation, reason: 'local-first-teardown-early');
+      return;
+    }
+
+    final existingDisplay = _media?.display;
+    final keepPeekCover =
+        existingDisplay != null &&
+        existingDisplay.assetIdentifier == widget.assetIdentifier;
+    setState(() {
+      _layer2Failed = false;
+      _layer2FailureReason = null;
+      _clearLayer2InFlightUnconditional();
+      _surfaceReady = false;
+      _liveMotionMounted = false;
+      if (keepPeekCover) {
+        _loading = false;
+      } else {
+        _loading = true;
+        _media = null;
+      }
+    });
+
+    final displayRepo = ref.read(mediaDisplayRepositoryProvider);
+    final playbackRepo = ref.read(playbackRepositoryProvider);
+    _displayRepo = displayRepo;
+
+    FeedPageMedia? layer1;
+    final loadPoster =
+        widget.sourceKind == AssetSourceKind.mediaTypeVideos ||
+        widget.sourceKind == AssetSourceKind.entireLibrary;
+    if (loadPoster) {
+      layer1 = await loadFeedPageLayer1(
+        gate: gate,
+        generation: generation,
+        assetIdentifier: widget.assetIdentifier,
+        displayRepository: displayRepo,
+      );
+      if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+        _abandonLayer2Attempt(generation, reason: 'local-first-l1-stale');
+        return;
+      }
+      final preview = layer1?.display;
+      if (widget.sourceKind == AssetSourceKind.entireLibrary &&
+          preview?.mediaKind != PlaybackMediaKind.video) {
+        layer1 = null;
+      } else if (preview != null &&
+          preview.mediaKind == PlaybackMediaKind.video) {
+        setState(() {
+          _loading = false;
+          _media = FeedPageMedia.video(
+            widget.assetIdentifier,
+            poster: preview,
+          );
+          _armLayer2InFlight(generation);
+        });
+      } else if (layer1 != null) {
+        setState(() {
+          _loading = false;
+          _media = layer1;
+          _armLayer2InFlight(generation);
+        });
+      } else {
+        setState(() => _armLayer2InFlight(generation));
+      }
+    } else {
+      setState(() => _armLayer2InFlight(generation));
+    }
+
+    await _awaitLayer2Dwell(bypassDwell: bypassDwell);
+    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      _abandonLayer2Attempt(generation, reason: 'local-first-dwell-early');
+      return;
+    }
+
+    final layer2 = await loadFeedPageLayer2(
+      gate: gate,
+      generation: generation,
+      sourceKind: widget.sourceKind,
+      assetIdentifier: widget.assetIdentifier,
+      feedIndex: widget.feedIndex,
+      isCurrent: widget.isCurrent,
+      layer1: layer1 ?? _media,
+      displayRepository: displayRepo,
+      playbackRepository: playbackRepo,
+    );
+
+    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      _abandonLayer2Attempt(generation, reason: 'local-first-l2-stale');
+      return;
+    }
+
+    if (layer2 == null || layer2.kind == FeedPageMediaKind.failed) {
+      _cancelLayer2DwellTimer();
+      _armLayer2DwellTimer();
+      await _runFullLayer1BecomeCurrentPath(
+        gate: gate,
+        generation: generation,
+        bypassDwell: false,
+      );
+      return;
+    }
+
+    await _applyLayer2Result(
+      gate: gate,
+      generation: generation,
+      layer1: layer1,
+      layer2: layer2,
+    );
+  }
+
   Future<void> _applyLayer2Result({
     required FeedMediaRequestGate gate,
     required int generation,
@@ -1993,9 +2165,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _clearLayer2InFlightUnconditional();
         _layer2Failed = false;
         _layer2FailureReason = null;
-      });      _recordL2ReadySession(layer2: layer2, layer1: layer1);
-      // Cap 15.11b: do NOT arm poster-hold here — L2 complete can precede
-      // guard defer / remaining in-flight. Hold arms on video-slot mount.
+      });
+      _recordL2ReadySession(layer2: layer2, layer1: layer1);
+      // Cap 15.11b: first-visit full L1→L2 still arms hold on video-slot
+      // mount only (defer / in-flight ordering). Revisit uses 15.14b above.
       await _syncPlaybackActive();
       return;
     }
@@ -2055,8 +2228,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!widget.isCurrent) {
       return;
     }
-    final l2Ready =
-        ref.read(browseL2ReadySessionProvider)[widget.assetIdentifier];
+    final l2Ready = ref
+        .read(browseL2ReadySessionProvider.notifier)
+        .lookup(widget.assetIdentifier);
     if (l2Ready?.kind != FeedL2ReadyKind.video) {
       return;
     }
@@ -2091,8 +2265,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           poster: l2Ready.cover,
         );
       });
-      // Cap 15.11b: no poster-hold on l2-ready-fast — [_layer2InFlight] keeps
-      // the video slot empty; arm only when the slot actually mounts.
+      // Cap 15.14b: poster-hold arms at L2 apply (see [_applyLayer2Result]).
     }
 
     // Still revisit must not await a held Live cancel chain — leave already

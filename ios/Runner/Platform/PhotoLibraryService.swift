@@ -299,12 +299,22 @@ final class PhotoLibraryService: PhotoLibraryApi {
   private func collectLocalIdentifiers(
     from result: PHFetchResult<PHAsset>
   ) -> [String] {
+    collectResolvedAssets(from: result).ids
+  }
+
+  /// Cap 15.12: list-time availability alongside resolve ids (KVC probe).
+  private func collectResolvedAssets(
+    from result: PHFetchResult<PHAsset>
+  ) -> (ids: [String], availabilities: [AssetAvailabilityDto]) {
     var ids: [String] = []
+    var availabilities: [AssetAvailabilityDto] = []
     ids.reserveCapacity(result.count)
+    availabilities.reserveCapacity(result.count)
     result.enumerateObjects { asset, _, _ in
       ids.append(asset.localIdentifier)
+      availabilities.append(self.mapAvailability(asset))
     }
-    return ids
+    return (ids, availabilities)
   }
 
   private func mapMediaKind(_ asset: PHAsset) -> MediaKind {
@@ -525,13 +535,14 @@ final class PhotoLibraryService: PhotoLibraryApi {
         let shortId = builtin.sourceIdentifier
         DispatchQueue.global(qos: .userInitiated).async {
           let result = self.fetchResult(for: builtin)
-          let ids = self.collectLocalIdentifiers(from: result)
+          let resolved = self.collectResolvedAssets(from: result)
           DispatchQueue.main.async {
             completion(
               .success(
                 ResolvedSourceDto(
                   sourceIdentifier: shortId,
-                  assetIdentifiers: ids
+                  assetIdentifiers: resolved.ids,
+                  assetAvailabilities: resolved.availabilities
                 )
               )
             )
@@ -622,18 +633,45 @@ final class PhotoLibraryService: PhotoLibraryApi {
           in: collection,
           options: self.makeAlbumAssetFetchOptions()
         )
-        let ids = self.collectLocalIdentifiers(from: assets)
+        let resolved = self.collectResolvedAssets(from: assets)
         DispatchQueue.main.async {
           completion(
             .success(
               ResolvedSourceDto(
                 sourceIdentifier: collectionId,
-                assetIdentifiers: ids
+                assetIdentifiers: resolved.ids,
+                assetAvailabilities: resolved.availabilities
               )
             )
           )
         }
       }
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
+  /// Cap 15.12: list-time KVC probe for specific ids (become-current gating).
+  func getAssetAvailabilities(
+    assetIdentifiers: [String],
+    completion: @escaping (Result<[AssetAvailabilityDto], Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      var availabilities: [AssetAvailabilityDto] = []
+      availabilities.reserveCapacity(assetIdentifiers.count)
+      for id in assetIdentifiers {
+        let fetch = PHAsset.fetchAssets(
+          withLocalIdentifiers: [id],
+          options: nil
+        )
+        guard let asset = fetch.firstObject else {
+          availabilities.append(.unavailable)
+          continue
+        }
+        availabilities.append(mapAvailability(asset))
+      }
+      completion(.success(availabilities))
     } catch {
       completion(.failure(error))
     }

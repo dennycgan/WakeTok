@@ -27,7 +27,10 @@ Future<SourceResolveAttempt> resolveOneFromRepository(
 }
 
 SourceResolveAttempt sourceResolveAttemptFromResolved(ResolvedSource resolved) {
-  return SourceResolveSuccess(resolved.assetIdentifiers);
+  return SourceResolveSuccess(
+    resolved.assetIdentifiers,
+    assetAvailabilityById: resolved.assetAvailabilityById,
+  );
 }
 
 /// Maps expected Live Binding failures. Returns null when the caller must

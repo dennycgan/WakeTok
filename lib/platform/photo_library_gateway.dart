@@ -179,9 +179,18 @@ AssetSource assetSourceFromDto(pigeon.AssetSourceDto dto) {
 }
 
 ResolvedSource resolvedSourceFromDto(pigeon.ResolvedSourceDto dto) {
+  final availabilityById = <String, AssetAvailability>{};
+  final ids = dto.assetIdentifiers;
+  final availabilities = dto.assetAvailabilities;
+  for (var i = 0; i < ids.length; i++) {
+    if (i < availabilities.length) {
+      availabilityById[ids[i]] = assetAvailabilityFromPigeon(availabilities[i]);
+    }
+  }
   return ResolvedSource(
     sourceId: dto.sourceIdentifier,
-    assetIdentifiers: List<String>.unmodifiable(dto.assetIdentifiers),
+    assetIdentifiers: List<String>.unmodifiable(ids),
+    assetAvailabilityById: availabilityById,
   );
 }
 

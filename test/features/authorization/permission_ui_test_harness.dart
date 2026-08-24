@@ -85,6 +85,9 @@ Widget permissionUiHarness({
 
   /// Cap 16.4: default zero so existing feed tests do not wait production N.
   Duration browseLayer2Dwell = Duration.zero,
+
+  /// Cap 15.12: default zero so existing feed tests do not wait N_local.
+  Duration browseLocalFirstVisitDwell = Duration.zero,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -111,6 +114,9 @@ Widget permissionUiHarness({
       ),
       browseEmptyRetryDelaysProvider.overrideWithValue(browseEmptyRetryDelays),
       browseLayer2DwellProvider.overrideWithValue(browseLayer2Dwell),
+      browseLocalFirstVisitDwellProvider.overrideWithValue(
+        browseLocalFirstVisitDwell,
+      ),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)

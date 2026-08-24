@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
@@ -167,12 +168,22 @@ void main() {
       pigeon.ResolvedSourceDto(
         sourceIdentifier: 'all',
         assetIdentifiers: <String>['a', 'b', 'c'],
+        assetAvailabilities: <pigeon.AssetAvailabilityDto>[
+          pigeon.AssetAvailabilityDto.deviceLocal,
+          pigeon.AssetAvailabilityDto.deviceLocal,
+          pigeon.AssetAvailabilityDto.iCloudNotDownloaded,
+        ],
       ),
     );
 
     final resolved = await gateway.resolve(SourceReference.all);
     expect(resolved.sourceId, 'all');
     expect(resolved.assetIdentifiers, ['a', 'b', 'c']);
+    expect(resolved.assetAvailabilityById['a'], AssetAvailability.deviceLocal);
+    expect(
+      resolved.assetAvailabilityById['c'],
+      AssetAvailability.iCloudNotDownloaded,
+    );
   });
 
   test(
@@ -202,6 +213,7 @@ void main() {
       pigeon.ResolvedSourceDto(
         sourceIdentifier: 'user-album-1',
         assetIdentifiers: <String>['x', 'y'],
+        assetAvailabilities: const <pigeon.AssetAvailabilityDto>[],
       ),
     );
 

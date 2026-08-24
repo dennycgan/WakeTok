@@ -144,10 +144,14 @@ class ResolvedSourceDto {
   ResolvedSourceDto({
     required this.sourceIdentifier,
     required this.assetIdentifiers,
+    required this.assetAvailabilities,
   });
 
   String sourceIdentifier;
   List<String> assetIdentifiers;
+
+  /// Parallel to [assetIdentifiers]: list-time KVC probe per id (Cap 15.12).
+  List<AssetAvailabilityDto> assetAvailabilities;
 }
 
 /// Still JPEG on disk for Flutter [Image.file] (display still **or** preview).

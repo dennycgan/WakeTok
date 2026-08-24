@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:waketok/core/errors/app_error.dart';
+import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
@@ -19,7 +20,11 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     this.resolveException,
     this.beforeEachResolve,
     this.allIdsForCall,
-  });
+    Map<String, AssetAvailability>? availabilityById,
+  }) : availabilityById = availabilityById ?? const {};
+
+  /// Cap 15.12: per-id list-time availability for resolve (default deviceLocal).
+  final Map<String, AssetAvailability> availabilityById;
 
   List<String> allIds;
   List<String> photosIds;
@@ -86,6 +91,21 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     ];
   }
 
+  Map<String, AssetAvailability> _availabilityForIds(List<String> ids) {
+    return {
+      for (final id in ids)
+        if (availabilityById.containsKey(id)) id: availabilityById[id]!,
+    };
+  }
+
+  ResolvedSource _resolved(String sourceId, List<String> ids) {
+    return ResolvedSource(
+      sourceId: sourceId,
+      assetIdentifiers: List<String>.unmodifiable(ids),
+      assetAvailabilityById: _availabilityForIds(ids),
+    );
+  }
+
   @override
   Future<ResolvedSource> resolve(SourceReference reference) async {
     resolveCalls += 1;
@@ -105,10 +125,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
         throw PlatformException(code: AppError.unauthorized.name);
       }
       final ids = albumResolveIds[reference.id] ?? const <String>[];
-      return ResolvedSource(
-        sourceId: reference.id,
-        assetIdentifiers: List<String>.unmodifiable(ids),
-      );
+      return _resolved(reference.id, ids);
     }
 
     if (!reference.isLegalBuiltInPair) {
@@ -122,9 +139,6 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
         'unreachable after album branch',
       ),
     };
-    return ResolvedSource(
-      sourceId: reference.id,
-      assetIdentifiers: List<String>.unmodifiable(ids),
-    );
+    return _resolved(reference.id, ids);
   }
 }

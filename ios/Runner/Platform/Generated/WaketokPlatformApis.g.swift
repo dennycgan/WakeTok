@@ -385,39 +385,46 @@ struct SourceReferenceDto: Hashable, CustomStringConvertible {
 struct ResolvedSourceDto: Hashable, CustomStringConvertible {
   var sourceIdentifier: String
   var assetIdentifiers: [String]
+  /// Optional parallel availability from resolve. Cap 15.12 resolve is ids-only
+  /// (empty here); become-current probes via [getAssetAvailabilities].
+  var assetAvailabilities: [AssetAvailabilityDto]
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
   static func fromList(_ pigeonVar_list: [Any?]) -> ResolvedSourceDto? {
     let sourceIdentifier = pigeonVar_list[0] as! String
     let assetIdentifiers = pigeonVar_list[1] as! [String]
+    let assetAvailabilities = pigeonVar_list[2] as! [AssetAvailabilityDto]
 
     return ResolvedSourceDto(
       sourceIdentifier: sourceIdentifier,
-      assetIdentifiers: assetIdentifiers
+      assetIdentifiers: assetIdentifiers,
+      assetAvailabilities: assetAvailabilities
     )
   }
   func toList() -> [Any?] {
     return [
       sourceIdentifier,
       assetIdentifiers,
+      assetAvailabilities,
     ]
   }
   static func == (lhs: ResolvedSourceDto, rhs: ResolvedSourceDto) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.sourceIdentifier, rhs.sourceIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifiers, rhs.assetIdentifiers)
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.sourceIdentifier, rhs.sourceIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifiers, rhs.assetIdentifiers) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetAvailabilities, rhs.assetAvailabilities)
   }
 
   func hash(into hasher: inout Hasher) {
     hasher.combine("ResolvedSourceDto")
     WaketokPlatformApisPigeonInternal.deepHash(value: sourceIdentifier, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifiers, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetAvailabilities, hasher: &hasher)
   }
 
   public var description: String {
-    return "ResolvedSourceDto(sourceIdentifier: \(String(describing: sourceIdentifier)), assetIdentifiers: \(String(describing: assetIdentifiers)))"
+    return "ResolvedSourceDto(sourceIdentifier: \(String(describing: sourceIdentifier)), assetIdentifiers: \(String(describing: assetIdentifiers)), assetAvailabilities: \(String(describing: assetAvailabilities)))"
   }
 }
 
@@ -1185,6 +1192,11 @@ protocol PhotoLibraryApi {
   /// pair must match frozen built-in ids (all / photos / videos).
   /// Mismatch → [ErrorCode.assetUnavailable].
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
+  /// Cap 15.12: list-time KVC availability for specific ids (become-current).
+  ///
+  /// Returns parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
+  /// Does not enumerate the full library — intended for current item only.
+  func getAssetAvailabilities(assetIdentifiers: [String], completion: @escaping (Result<[AssetAvailabilityDto], Error>) -> Void)
   /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
   /// true. Videos remain [ErrorCode.unsupportedMedia] here.
   ///
@@ -1395,6 +1407,27 @@ class PhotoLibraryApiSetup {
       }
     } else {
       resolveSourceChannel.setMessageHandler(nil)
+    }
+    /// Cap 15.12: list-time KVC availability for specific ids (become-current).
+    ///
+    /// Returns parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
+    /// Does not enumerate the full library — intended for current item only.
+    let getAssetAvailabilitiesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.getAssetAvailabilities\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getAssetAvailabilitiesChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifiersArg = args[0] as! [String]
+        api.getAssetAvailabilities(assetIdentifiers: assetIdentifiersArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      getAssetAvailabilitiesChannel.setMessageHandler(nil)
     }
     /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
     /// true. Videos remain [ErrorCode.unsupportedMedia] here.

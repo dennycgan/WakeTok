@@ -12,7 +12,7 @@ import '../../library_smoke/fake_asset_source_repository.dart';
 
 void main() {
   test('MAP-1 non-empty ResolvedSource becomes Success', () {
-    const resolved = ResolvedSource(
+    final resolved = ResolvedSource(
       sourceId: 'photos',
       assetIdentifiers: ['a', 'b'],
     );
@@ -25,7 +25,7 @@ void main() {
   });
 
   test('MAP-2 empty ids are Success, not Failed', () {
-    const resolved = ResolvedSource(
+    final resolved = ResolvedSource(
       sourceId: 'photos',
       assetIdentifiers: [],
     );
