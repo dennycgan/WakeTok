@@ -385,8 +385,8 @@ struct SourceReferenceDto: Hashable, CustomStringConvertible {
 struct ResolvedSourceDto: Hashable, CustomStringConvertible {
   var sourceIdentifier: String
   var assetIdentifiers: [String]
-  /// Optional parallel availability from resolve. Cap 15.12 resolve is ids-only
-  /// (empty here); become-current probes via [getAssetAvailabilities].
+  /// Parallel to [assetIdentifiers]. Cap 15.15: resolve returns **empty**;
+  /// become-current probes via [PhotoLibraryApi.getAssetAvailabilities].
   var assetAvailabilities: [AssetAvailabilityDto]
 
 
@@ -1192,10 +1192,11 @@ protocol PhotoLibraryApi {
   /// pair must match frozen built-in ids (all / photos / videos).
   /// Mismatch → [ErrorCode.assetUnavailable].
   func resolveSource(sourceReference: SourceReferenceDto, completion: @escaping (Result<ResolvedSourceDto, Error>) -> Void)
-  /// Cap 15.12: list-time KVC availability for specific ids (become-current).
+  /// Cap 15.12 / 15.15: on-demand list-time availability for specific ids.
   ///
-  /// Returns parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
-  /// Does not enumerate the full library — intended for current item only.
+  /// Parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
+  /// Resolve returns empty [ResolvedSourceDto.assetAvailabilities]; feed
+  /// become-current probes here (do not scan the full library at resolve).
   func getAssetAvailabilities(assetIdentifiers: [String], completion: @escaping (Result<[AssetAvailabilityDto], Error>) -> Void)
   /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
   /// true. Videos remain [ErrorCode.unsupportedMedia] here.
@@ -1408,10 +1409,11 @@ class PhotoLibraryApiSetup {
     } else {
       resolveSourceChannel.setMessageHandler(nil)
     }
-    /// Cap 15.12: list-time KVC availability for specific ids (become-current).
+    /// Cap 15.12 / 15.15: on-demand list-time availability for specific ids.
     ///
-    /// Returns parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
-    /// Does not enumerate the full library — intended for current item only.
+    /// Parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
+    /// Resolve returns empty [ResolvedSourceDto.assetAvailabilities]; feed
+    /// become-current probes here (do not scan the full library at resolve).
     let getAssetAvailabilitiesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.getAssetAvailabilities\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getAssetAvailabilitiesChannel.setMessageHandler { message, reply in

@@ -16,6 +16,7 @@ import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
@@ -1873,14 +1874,35 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
       }
 
-      if (!bypassDeviceLocalFastPath &&
-          widget.listTimeAvailability == AssetAvailability.deviceLocal) {
-        await _startLoadFromDeviceLocalFirstVisit(
-          gate: gate!,
-          generation: generation!,
-          bypassDwell: bypassDwell,
-        );
-        return;
+      if (!bypassDeviceLocalFastPath) {
+        // Cap 15.15: prefer snapshot inject (tests); else on-demand Host probe
+        // for the current id only. Probe failure / leave → conservative L1.
+        final currentGate = gate!;
+        final currentGeneration = generation!;
+        var avail = widget.listTimeAvailability;
+        if (avail == null) {
+          try {
+            final probed = await ref
+                .read(assetSourceRepositoryProvider)
+                .getAssetAvailabilities([widget.assetIdentifier]);
+            if (!mounted ||
+                !currentGate.isCurrent(currentGeneration) ||
+                !widget.isCurrent) {
+              return;
+            }
+            avail = probed[widget.assetIdentifier];
+          } catch (_) {
+            avail = null;
+          }
+        }
+        if (avail == AssetAvailability.deviceLocal) {
+          await _startLoadFromDeviceLocalFirstVisit(
+            gate: currentGate,
+            generation: currentGeneration,
+            bypassDwell: bypassDwell,
+          );
+          return;
+        }
       }
     }
 

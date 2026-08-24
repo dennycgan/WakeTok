@@ -59,6 +59,7 @@ void main() {
     'fetchLibraryPage',
     'listAssetSources',
     'resolveSource',
+    'getAssetAvailabilities',
     'requestDisplayAsset',
     'cancelDisplayAsset',
     'requestPlayableVideo',

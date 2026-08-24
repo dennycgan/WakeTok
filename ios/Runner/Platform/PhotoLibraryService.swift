@@ -302,19 +302,19 @@ final class PhotoLibraryService: PhotoLibraryApi {
     collectResolvedAssets(from: result).ids
   }
 
-  /// Cap 15.12: list-time availability alongside resolve ids (KVC probe).
+  /// Cap 15.12 / 15.15: ids only at resolve. Availability is probed on demand
+  /// via [getAssetAvailabilities] (become-current), not a full-library scan.
   private func collectResolvedAssets(
     from result: PHFetchResult<PHAsset>
   ) -> (ids: [String], availabilities: [AssetAvailabilityDto]) {
     var ids: [String] = []
-    var availabilities: [AssetAvailabilityDto] = []
     ids.reserveCapacity(result.count)
-    availabilities.reserveCapacity(result.count)
     result.enumerateObjects { asset, _, _ in
       ids.append(asset.localIdentifier)
-      availabilities.append(self.mapAvailability(asset))
     }
-    return (ids, availabilities)
+    // Cap 15.15: always empty — do not call mapAvailability per asset here
+    // (O(n) PHAssetResource KVC stalls "Loading library…" on large libraries).
+    return (ids, [])
   }
 
   private func mapMediaKind(_ asset: PHAsset) -> MediaKind {
@@ -651,27 +651,35 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
-  /// Cap 15.12: list-time KVC probe for specific ids (become-current gating).
+  /// Cap 15.12 / 15.15: on-demand KVC probe for specific ids (become-current).
+  ///
+  /// Work runs on a background queue (same pattern as [resolveSource] id
+  /// enumeration), then completes on main — never blocks the UI isolate with
+  /// `PHAssetResource.assetResources` / KVC.
   func getAssetAvailabilities(
     assetIdentifiers: [String],
     completion: @escaping (Result<[AssetAvailabilityDto], Error>) -> Void
   ) {
     do {
       try requireLibraryAccess()
-      var availabilities: [AssetAvailabilityDto] = []
-      availabilities.reserveCapacity(assetIdentifiers.count)
-      for id in assetIdentifiers {
-        let fetch = PHAsset.fetchAssets(
-          withLocalIdentifiers: [id],
-          options: nil
-        )
-        guard let asset = fetch.firstObject else {
-          availabilities.append(.unavailable)
-          continue
+      DispatchQueue.global(qos: .userInitiated).async {
+        var availabilities: [AssetAvailabilityDto] = []
+        availabilities.reserveCapacity(assetIdentifiers.count)
+        for id in assetIdentifiers {
+          let fetch = PHAsset.fetchAssets(
+            withLocalIdentifiers: [id],
+            options: nil
+          )
+          guard let asset = fetch.firstObject else {
+            availabilities.append(.unavailable)
+            continue
+          }
+          availabilities.append(self.mapAvailability(asset))
         }
-        availabilities.append(mapAvailability(asset))
+        DispatchQueue.main.async {
+          completion(.success(availabilities))
+        }
       }
-      completion(.success(availabilities))
     } catch {
       completion(.failure(error))
     }

@@ -187,6 +187,43 @@ void main() {
   });
 
   test(
+    'G-15.15-1 gateway resolve with empty availabilities yields empty map',
+    () async {
+      final gateway = PhotoLibraryGateway();
+      mockSuccess(
+        photoChannel('resolveSource'),
+        pigeon.ResolvedSourceDto(
+          sourceIdentifier: 'all',
+          assetIdentifiers: <String>['a', 'b', 'c'],
+          assetAvailabilities: const <pigeon.AssetAvailabilityDto>[],
+        ),
+      );
+
+      final resolved = await gateway.resolve(SourceReference.all);
+      expect(resolved.assetIdentifiers, ['a', 'b', 'c']);
+      expect(resolved.assetAvailabilityById, isEmpty);
+    },
+  );
+
+  test(
+    'G-15.15-2 gateway getAssetAvailabilities maps parallel DTOs by id',
+    () async {
+      final gateway = PhotoLibraryGateway();
+      mockSuccess(
+        photoChannel('getAssetAvailabilities'),
+        <pigeon.AssetAvailabilityDto>[
+          pigeon.AssetAvailabilityDto.deviceLocal,
+          pigeon.AssetAvailabilityDto.iCloudNotDownloaded,
+        ],
+      );
+
+      final map = await gateway.getAssetAvailabilities(['x', 'y']);
+      expect(map['x'], AssetAvailability.deviceLocal);
+      expect(map['y'], AssetAvailability.iCloudNotDownloaded);
+    },
+  );
+
+  test(
     'G-S3 gateway propagates assetUnavailable from resolve channel error',
     () async {
       final gateway = PhotoLibraryGateway();

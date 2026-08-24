@@ -4747,6 +4747,82 @@ void main() {
   );
 
   testWidgets(
+    'W-15.15a become-current probes getAssetAvailabilities when resolve map empty',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final sources = FakeAssetSourceRepository(
+        photosIds: const ['a1', 'a2'],
+        availabilityById: const {
+          'a1': AssetAvailability.deviceLocal,
+          'a2': AssetAvailability.deviceLocal,
+        },
+      )..resolveOmitsAvailability = true;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(sources.getAssetAvailabilitiesCalls, greaterThanOrEqualTo(1));
+      expect(
+        sources.getAssetAvailabilitiesHistory.any(
+          (call) => call.length == 1 && call.single == head,
+        ),
+        isTrue,
+        reason: 'probe must request the current id only',
+      );
+      expect(display.previewCalls.where((id) => id == head), isEmpty);
+      expect(display.displayCalls.where((id) => id == head).length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-15.15b probe miss (iCloud) does not take deviceLocal fast path',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final sources = FakeAssetSourceRepository(
+        photosIds: const ['cloud1', 'a2'],
+        availabilityById: const {
+          'cloud1': AssetAvailability.iCloudNotDownloaded,
+          'a2': AssetAvailability.deviceLocal,
+        },
+      )..resolveOmitsAvailability = true;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(sources.getAssetAvailabilitiesCalls, greaterThanOrEqualTo(1));
+      expect(display.previewCalls.where((id) => id == head).length, 1);
+    },
+  );
+
+  testWidgets(
     'W-15.14a STILL→VIDEO promote reuses peek cover without second requestPreview',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);

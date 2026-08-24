@@ -50,8 +50,15 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
 
   int listCalls = 0;
   int resolveCalls = 0;
+  int getAssetAvailabilitiesCalls = 0;
   SourceReference? lastResolve;
   final List<SourceReference> resolveHistory = <SourceReference>[];
+  final List<List<String>> getAssetAvailabilitiesHistory = <List<String>>[];
+
+  /// Cap 15.15: when true, [resolve] returns an empty availability map
+  /// (production Host contract). Tests that need become-current probe
+  /// coverage set this; default false keeps W-15.12* inject-at-resolve.
+  bool resolveOmitsAvailability = false;
 
   @override
   Future<List<AssetSource>> listAssetSources() async {
@@ -102,8 +109,22 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     return ResolvedSource(
       sourceId: sourceId,
       assetIdentifiers: List<String>.unmodifiable(ids),
-      assetAvailabilityById: _availabilityForIds(ids),
+      assetAvailabilityById: resolveOmitsAvailability
+          ? const {}
+          : _availabilityForIds(ids),
     );
+  }
+
+  @override
+  Future<Map<String, AssetAvailability>> getAssetAvailabilities(
+    List<String> ids,
+  ) async {
+    getAssetAvailabilitiesCalls += 1;
+    getAssetAvailabilitiesHistory.add(List<String>.unmodifiable(ids));
+    return {
+      for (final id in ids)
+        id: availabilityById[id] ?? AssetAvailability.unavailable,
+    };
   }
 
   @override

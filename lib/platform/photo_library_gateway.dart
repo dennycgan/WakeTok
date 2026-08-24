@@ -283,6 +283,24 @@ class PhotoLibraryGateway
   }
 
   @override
+  Future<Map<String, AssetAvailability>> getAssetAvailabilities(
+    List<String> ids,
+  ) async {
+    if (ids.isEmpty) {
+      return const {};
+    }
+    final dtos = await _api.getAssetAvailabilities(ids);
+    final out = <String, AssetAvailability>{};
+    for (var i = 0; i < ids.length; i++) {
+      final dto = i < dtos.length
+          ? dtos[i]
+          : pigeon.AssetAvailabilityDto.unavailable;
+      out[ids[i]] = assetAvailabilityFromPigeon(dto);
+    }
+    return out;
+  }
+
+  @override
   Future<DisplayAsset> requestDisplayAsset(String assetIdentifier) async {
     final dto = await _api.requestDisplayAsset(assetIdentifier);
     return DisplayAsset(

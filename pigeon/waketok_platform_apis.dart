@@ -150,7 +150,8 @@ class ResolvedSourceDto {
   String sourceIdentifier;
   List<String> assetIdentifiers;
 
-  /// Parallel to [assetIdentifiers]: list-time KVC probe per id (Cap 15.12).
+  /// Parallel to [assetIdentifiers]. Cap 15.15: resolve returns **empty**;
+  /// become-current probes via [PhotoLibraryApi.getAssetAvailabilities].
   List<AssetAvailabilityDto> assetAvailabilities;
 }
 
@@ -376,6 +377,16 @@ abstract class PhotoLibraryApi {
   /// Mismatch → [ErrorCode.assetUnavailable].
   @async
   ResolvedSourceDto resolveSource(SourceReferenceDto sourceReference);
+
+  /// Cap 15.12 / 15.15: on-demand list-time availability for specific ids.
+  ///
+  /// Parallel [AssetAvailabilityDto] values; unknown ids → unavailable.
+  /// Resolve returns empty [ResolvedSourceDto.assetAvailabilities]; feed
+  /// become-current probes here (do not scan the full library at resolve).
+  @async
+  List<AssetAvailabilityDto> getAssetAvailabilities(
+    List<String> assetIdentifiers,
+  );
 
   /// Cap 14.3 Layer 2 still (current item). `isNetworkAccessAllowed` is
   /// true. Videos remain [ErrorCode.unsupportedMedia] here.
