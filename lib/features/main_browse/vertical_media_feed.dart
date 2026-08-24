@@ -2271,6 +2271,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       generation: generation,
       layer1: layer1,
       layer2: layer2,
+      armPosterHoldOnL2Apply: canReuseCover,
     );
   }
 
@@ -2279,6 +2280,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required int generation,
     required FeedPageMedia? layer1,
     required FeedPageMedia? layer2,
+    /// Cap 15.14b: revisit paths (15.10 L2-ready / 15.12 peek reuse) arm
+    /// poster-hold at L2 apply — not first-visit full L1→L2 (15.11b).
+    bool armPosterHoldOnL2Apply = false,
   }) async {    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
       // A: drop — this attempt no longer owns the page; clear only if owner.      _abandonLayer2Attempt(generation, reason: 'l2-result-stale');
       return;
@@ -2318,9 +2322,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _clearLayer2InFlightUnconditional();
         _layer2Failed = false;
         _layer2FailureReason = null;
+        // Cap 15.14b: revisit (peek reuse / L2-ready) closes the gap where
+        // canMount becomes true before build's null→non-null hold arm.
+        if (armPosterHoldOnL2Apply) {
+          _armPosterHoldOnVideoSlotMount();
+        }
       });
       _recordL2ReadySession(layer2: layer2, layer1: layer1);
-      // Cap 15.11b: arms hold on video-slot mount (defer / in-flight ordering).
+      // Cap 15.11b: first-visit full L1→L2 still arms hold on video-slot
+      // mount only (defer / in-flight ordering). Revisit uses 15.14b above.
       await _syncPlaybackActive();
       return;
     }
@@ -2485,6 +2495,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         generation: generation,
         layer1: layer1,
         layer2: layer2,
+        armPosterHoldOnL2Apply: true,
       );
     }
   }

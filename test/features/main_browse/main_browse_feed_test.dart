@@ -4840,6 +4840,72 @@ void main() {
   );
 
   testWidgets(
+    'W-15.14b revisit L2 apply arms poster-hold before video slot mounts',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository()..playbackPoolEpoch = 7;
+      for (final id in const ['v1', 'v2']) {
+        final path = File('${Directory.systemTemp.path}/wt_15_14b_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        display.displayErrorById[id] = 'unsupportedMedia';
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.video,
+          localFilePath: path.path,
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            videosIds: const ['v1', 'v2'],
+            availabilityById: const {
+              'v1': AssetAvailability.deviceLocal,
+              'v2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+          playback: playback,
+          browseLayer2Dwell: Duration.zero,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.videos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      final loadGate = Completer<void>();
+      playback.loadGates[target] = loadGate;
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      final pageFinder = find.byWidgetPredicate(
+        (w) => w is MediaFeedPage && w.assetIdentifier == target,
+      );
+      final page = tester.state<MediaFeedPageState>(pageFinder);
+      expect(page.debugHoldPosterUntilFirstFrame, isFalse);
+
+      loadGate.complete();
+      await pumpAsyncWork(tester);
+
+      expect(page.debugHoldPosterUntilFirstFrame, isTrue);
+      final opacityFinder = find.byKey(Key('feedVideoOpacity_$target'));
+      expect(opacityFinder, findsOneWidget);
+      expect(tester.widget<Opacity>(opacityFinder).opacity, 0.0);
+    },
+  );
+
+  testWidgets(
     'W-15.11a scroll offset arms guard without cover on peek target page',
     (tester) async {
       final display = FakeMediaDisplayRepository();
