@@ -98,7 +98,7 @@ soft-sub → ADR-003 out of scope.
       key each; l10n.yaml sets untranslated-messages-file as the zh
       translation backlog mechanism (kickoff ADR-U §5);
       verify generated l10n.dart compiles
-      (work: a1725c9; base app_zh.arb matches zh_Hans「本地化正常」
+      (work: a1725c9; base app_zh.arb matches zh_Hans "Localization OK"
       for Flutter gen_l10n fallback only)
       — work: `a1725c9`
 - [x] 4.2 Define shared Result<T, AppError> and AppError enum 1:1 with
@@ -113,7 +113,7 @@ soft-sub → ADR-003 out of scope.
 - [x] 4.4 Wire l10n into MaterialApp with localeListResolutionCallback:
       first preferred locale only; languageCode zh → zh-Hans (incl.
       zh-Hant); otherwise English (ADR-U §10); manual preference deferred
-      to Settings; device smoke en / zh-Hans / zh-Hant→简中 PASS
+      to Settings; device smoke en / zh-Hans / zh-Hant→zh-Hans PASS
       — work: `2712d50`
 
 Docs close-out (STATE + PHASE_HISTORY): (this commit)
@@ -801,7 +801,7 @@ duplicate current-item Layer 2 request
       `a5cf507` (2026-08-24). Become-current skip Layer 1 when
       `AssetAvailability.deviceLocal`. Widget W-15.12*. Kafka
       large-library later stalled on resolve-time full availability
-      scan (「正在加载图库…」) — **fixed by 15.15**, not rolled back
+      scan ("Loading library…") — **fixed by 15.15**, not rolled back
       here. i17 small/mostly-local hid the stall.
 - [x] 15.13 Stale preview heal — work `4ceea4e` (2026-08-24).
       Session `lookupIfCoverOnDisk` evicts token when cover file
@@ -816,7 +816,7 @@ duplicate current-item Layer 2 request
       evicted (`canReuseCover=false`) — covered by 15.14c.
 - [x] 15.15 resolveSource empty availabilities + on-demand
       `getAssetAvailabilities` — work `8b5802d` (2026-08-24);
-      ADR-033. Kafka Profile 2026-08-24: 「正在加载图库…」reasonable
+      ADR-033. Kafka Profile 2026-08-24: "Loading library…" reasonable
       duration **PASS**.
 - [x] 15.14c DEVICE_LOCAL L2 apply always arms poster-hold —
       work `3fe9dd9` (2026-08-24). W-15.14c (dead peek file).

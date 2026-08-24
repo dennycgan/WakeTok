@@ -3127,7 +3127,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   could skip Layer 1 on first visit. The first Host path filled
   `ResolvedSourceDto.assetAvailabilities` for every id during
   `resolveSource` (per-id `PHAssetResource` + KVC `locallyAvailable`).
-  On Kafka’s large library that made 「正在加载图库…」 hang before the
+  On Kafka’s large library that made "Loading library…" hang before the
   feed appeared. Smaller / mostly-local libraries hid the bug.
 - Decision (what was chosen):
   1. **`resolveSource` returns `assetAvailabilities: []` always**
