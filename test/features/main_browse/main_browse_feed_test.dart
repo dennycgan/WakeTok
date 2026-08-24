@@ -4747,6 +4747,99 @@ void main() {
   );
 
   testWidgets(
+    'W-15.14a STILL→VIDEO promote reuses peek cover without second requestPreview',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final playback = FakePlaybackRepository();
+      final paths = <String, String>{};
+      for (final id in const ['v1', 'v2']) {
+        final path = File('${Directory.systemTemp.path}/wt_15_14_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        paths[id] = path.path;
+        display.displayErrorById[id] = 'unsupportedMedia';
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.video,
+          localFilePath: path.path,
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            videosIds: const ['v1', 'v2'],
+            availabilityById: const {
+              'v1': AssetAvailability.deviceLocal,
+              'v2': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+          playback: playback,
+          browseLayer2Dwell: Duration.zero,
+        ),
+      );
+      await tester.pump();
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.videos);
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final target = ids[1];
+
+      // Neighbour preheat paints Layer 1 once.
+      expect(display.previewCalls.where((id) => id == target).length, 1);
+      final still = find.byKey(
+        Key('mainBrowseFeedStill_$target'),
+        skipOffstage: false,
+      );
+      expect(still, findsOneWidget);
+      // Off-current PageView children may not layout LayoutBuilder → no Image
+      // yet. Identity target is _ReloadableFileImage State (same as diag).
+      final stateBefore = _reloadableFileImageState(tester, still);
+
+      // Hold L2 prepare so STILL→VIDEO promote window stays observable.
+      final loadGate = Completer<void>();
+      playback.loadGates[target] = loadGate;
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await pumpAsyncWork(tester);
+
+      expect(
+        display.previewCalls.where((id) => id == target).length,
+        1,
+        reason: 'deviceLocal promote must not re-requestPreview (15.14 / 1A)',
+      );
+      expect(still, findsOneWidget);
+      final stateAfter = _reloadableFileImageState(tester, still);
+      expect(
+        identical(stateBefore, stateAfter),
+        isTrue,
+        reason: 'STILL→VIDEO must reuse Image State (15.14 / 4A+5A)',
+      );
+      final page = tester.state<MediaFeedPageState>(
+        find.byWidgetPredicate(
+          (w) => w is MediaFeedPage && w.assetIdentifier == target,
+          skipOffstage: false,
+        ),
+      );
+      expect(page.debugMedia?.kind, FeedPageMediaKind.video);
+      expect(
+        page.debugMedia?.display?.localFilePath,
+        paths[target],
+      );
+
+      loadGate.complete();
+      await pumpAsyncWork(tester);
+    },
+  );
+
+  testWidgets(
     'W-15.11a scroll offset arms guard without cover on peek target page',
     (tester) async {
       final display = FakeMediaDisplayRepository();
@@ -5380,6 +5473,31 @@ void _seedPvHandoffSnapshots(
     ),
   );
 }
+
+/// Cap 15.14: [_ReloadableFileImage] is library-private; match by runtimeType.
+State _reloadableFileImageState(WidgetTester tester, Finder root) {
+  State? found;
+  var count = 0;
+  for (final element in root.evaluate()) {
+    void visit(Element e) {
+      if (e is StatefulElement &&
+          e.widget.runtimeType.toString() == '_ReloadableFileImage') {
+        found = e.state;
+        count++;
+      }
+      e.visitChildren(visit);
+    }
+
+    visit(element);
+  }
+  expect(
+    count,
+    1,
+    reason: 'expected one _ReloadableFileImage under $root',
+  );
+  return found!;
+}
+
 
 Future<void> _pumpTwoVideoPosterFeed(
   WidgetTester tester, {

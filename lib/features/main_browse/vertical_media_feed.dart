@@ -2092,6 +2092,28 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Cap 15.12: device-local first visit — skip still blur L1; video V1 keeps
   /// local poster; N_local dwell before L2; false-positive L2 → full L1 fallback.
+  ///
+  /// Yield one event-loop turn, then [File.existsSync].
+  ///
+  /// Do not [await File.exists] here — it never completes under FakeAsync
+  /// (same constraint as Cap 15.13 batch evict). Yielding first keeps
+  /// [didUpdateWidget] off the stat.
+  Future<bool> _previewFileExists(String path) async {
+    await Future<void>.value();
+    try {
+      return File(path).existsSync();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Cap 15.14 / 3A: immediate video promote only when the cover is known video
+  /// (Videos tab, or All-tab item whose preview mediaKind is video).
+  bool _isKnownVideoCover(DisplayAsset display) {
+    return widget.sourceKind == AssetSourceKind.mediaTypeVideos ||
+        display.mediaKind == PlaybackMediaKind.video;
+  }
+
   Future<void> _startLoadFromDeviceLocalFirstVisit({
     required FeedMediaRequestGate gate,
     required int generation,
@@ -2108,10 +2130,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
 
+    // Cap 15.14: paint retention (keepPeekCover) stays separate from skip-L1
+    // (canReuseCover). Dead peek paths must not blank Photos (no L1 reload);
+    // Videos/All still re-requestPreview when the file is gone (2B).
     final existingDisplay = _media?.display;
     final keepPeekCover =
         existingDisplay != null &&
         existingDisplay.assetIdentifier == widget.assetIdentifier;
+    final canReuseCover =
+        keepPeekCover &&
+        await _previewFileExists(existingDisplay!.localFilePath);
+    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+      _abandonLayer2Attempt(generation, reason: 'local-first-exists-stale');
+      return;
+    }
     setState(() {
       _layer2Failed = false;
       _layer2FailureReason = null;
@@ -2120,6 +2152,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _liveMotionMounted = false;
       if (keepPeekCover) {
         _loading = false;
+        // Decision 3A: promote known-video only when we also skip L1 (file
+        // still exists). Otherwise wait for a fresh preview / L2.
+        if (canReuseCover && _isKnownVideoCover(existingDisplay)) {
+          _media = FeedPageMedia.video(
+            widget.assetIdentifier,
+            poster: existingDisplay,
+          );
+        }
       } else {
         _loading = true;
         _media = null;
@@ -2135,38 +2175,58 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         widget.sourceKind == AssetSourceKind.mediaTypeVideos ||
         widget.sourceKind == AssetSourceKind.entireLibrary;
     if (loadPoster) {
-      layer1 = await loadFeedPageLayer1(
-        gate: gate,
-        generation: generation,
-        assetIdentifier: widget.assetIdentifier,
-        displayRepository: displayRepo,
-      );
-      if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
-        _abandonLayer2Attempt(generation, reason: 'local-first-l1-stale');
-        return;
-      }
-      final preview = layer1?.display;
-      if (widget.sourceKind == AssetSourceKind.entireLibrary &&
-          preview?.mediaKind != PlaybackMediaKind.video) {
-        layer1 = null;
-      } else if (preview != null &&
-          preview.mediaKind == PlaybackMediaKind.video) {
-        setState(() {
-          _loading = false;
-          _media = FeedPageMedia.video(
+      if (canReuseCover) {
+        // Skip second requestPreview (decision 1A). Mirror post-L1 branching
+        // without a Host round-trip.
+        if (widget.sourceKind == AssetSourceKind.entireLibrary &&
+            existingDisplay!.mediaKind != PlaybackMediaKind.video) {
+          layer1 = null;
+        } else if (_isKnownVideoCover(existingDisplay!)) {
+          layer1 = FeedPageMedia.video(
             widget.assetIdentifier,
-            poster: preview,
+            poster: existingDisplay,
           );
-          _armLayer2InFlight(generation);
-        });
-      } else if (layer1 != null) {
-        setState(() {
-          _loading = false;
-          _media = layer1;
-          _armLayer2InFlight(generation);
-        });
-      } else {
+        } else {
+          layer1 = FeedPageMedia.still(
+            existingDisplay,
+            layer: FeedDisplayLayer.preview,
+          );
+        }
         setState(() => _armLayer2InFlight(generation));
+      } else {
+        layer1 = await loadFeedPageLayer1(
+          gate: gate,
+          generation: generation,
+          assetIdentifier: widget.assetIdentifier,
+          displayRepository: displayRepo,
+        );
+        if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+          _abandonLayer2Attempt(generation, reason: 'local-first-l1-stale');
+          return;
+        }
+        final preview = layer1?.display;
+        if (widget.sourceKind == AssetSourceKind.entireLibrary &&
+            preview?.mediaKind != PlaybackMediaKind.video) {
+          layer1 = null;
+        } else if (preview != null &&
+            preview.mediaKind == PlaybackMediaKind.video) {
+          setState(() {
+            _loading = false;
+            _media = FeedPageMedia.video(
+              widget.assetIdentifier,
+              poster: preview,
+            );
+            _armLayer2InFlight(generation);
+          });
+        } else if (layer1 != null) {
+          setState(() {
+            _loading = false;
+            _media = layer1;
+            _armLayer2InFlight(generation);
+          });
+        } else {
+          setState(() => _armLayer2InFlight(generation));
+        }
       }
     } else {
       setState(() => _armLayer2InFlight(generation));
@@ -2260,8 +2320,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _layer2FailureReason = null;
       });
       _recordL2ReadySession(layer2: layer2, layer1: layer1);
-      // Cap 15.11b: first-visit full L1→L2 still arms hold on video-slot
-      // mount only (defer / in-flight ordering). Revisit uses 15.14b above.
+      // Cap 15.11b: arms hold on video-slot mount (defer / in-flight ordering).
       await _syncPlaybackActive();
       return;
     }
@@ -2494,9 +2553,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final deferVideoForHandoff = widget.isCurrent &&
         pvGuard.isCovering(widget.assetIdentifier);
 
+    // Cap 15.14 / 4A: still + video poster share one asset-stable key so
+    // STILL→VIDEO promote can reuse the Image Element (path must not be in key).
+    final coverKey = ValueKey<String>(
+      'feedCover_${widget.assetIdentifier}',
+    );
     return switch (media.kind) {
       FeedPageMediaKind.still => _mediaStack(
         still: _StillPage(
+          key: coverKey,
           display: media.display!,
           liveLabel: l10n.mainBrowseLiveBadge,
           liveLoadLabel: l10n.mainBrowseFeedLiveLoading,
@@ -2573,9 +2638,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           video: videoChild,
           poster: media.display != null
               ? _StillPage(
-                  key: ValueKey<String>(
-                    'feedPoster_${widget.assetIdentifier}_${media.display!.localFilePath}',
-                  ),
+                  key: coverKey,
                   display: media.display!,
                   liveLabel: l10n.mainBrowseLiveBadge,
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
