@@ -3153,8 +3153,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-034: Cap 17 Layer 1→2 wait chrome, debt 400 presentation, and iCloud observability contract
 
-- Status: Proposed
-- Commit/PR anchor: *(none until Accepted; flip after first Cap 17 work commit, expected 17.3)*
+- Status: Accepted (2026-08-25)
+- Commit/PR anchor: `00b7264` (Cap 17.3 work; first Cap 17 implementing commit)
 - Plain summary (owner reads this):
   Waiting in Main Browse should match how long the wait usually is: a quick
   local revisit should not flash a spinner for nothing, but a long iCloud
@@ -3165,6 +3165,17 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   iCloud must stay explainable and measurable, must not claim to match
   Photo-App-A, and must not weaken Cap 16 cancel / dwell / single-download
   rules.
+  Cap 17.3 locks a4 suppress-below-T at T=150 ms and promotes three
+  paint-layer rules that the path-class helper alone does not cover:
+  still a2 suppress-below-T (G), a4 loading miss-chrome bypass (B), and
+  Live-prepare suppress-below-T on all path-classes (F1, with D folded).
+  An optional off-current paint hard-gate (E) remains in code without
+  empirical proof that off-current chrome paint occurs. Live inFlight
+  band-follow (C/F2) remains in code as wiring consistency, not as a
+  Decision 2 promotion. An a4 minimum spinner visibility hold (min-show)
+  was designed then removed after device evidence showed it never entered
+  after-band on the sessions that mattered and did not address the flash
+  users actually saw.
 - Context / what problem forced this:
   Cap 17 follows Cap 15/16 with known Main Browse debt: Host-temp vs
   L2-ready revisit chrome; debt **400** (iCloud / optimized-storage video
@@ -3176,11 +3187,13 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   Track C Full/Limited × opportunistic / `.fastFormat` @512 sync probe.
   Owner decisions for this freeze: **D1–D5 = A**, with a4 band-threshold
   wording, i17 spot-check, and a1 regression-lock test as below.
+  Cap **17.3** device contrast (Kafka / i17; A-only vs B–G ON Profile tees,
+  never committed) locked the paint-layer extensions below.
 - Process note:
-  17.2 appends this entry as **Proposed**. After the **first Cap 17
-  implementing work commit** (expected **17.3**), a docs commit flips
-  Status to Accepted (anchor = that sha; Accepted date from
-  `git log -1 --format=%cs <sha>`). Cap close-out does **not** flip Accepted.
+  17.2 appended this entry as **Proposed**. Cap **17.3** work commit
+  `00b7264` is the Accepted anchor (Accepted date from
+  `git log -1 --format=%cs 00b7264`). Cap close-out does **not** re-flip
+  Accepted.
 - Decision (what was chosen):
   1. **Capability identity.** Title: Main Browse Layer 1→2 chrome and
      iCloud availability hardening (Cap 17). Do not use “Doom Scroll” in
@@ -3201,20 +3214,80 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
        “always short / always suppress” class. 17.1 Full a4 n=186 bucket
        counts were **65 / 108 / 13 / 0 / 0 / 0** for
        [&lt;50, 50–200, 200–500, 0.5–2s, 2–10s, &gt;10s] ms — about **7%**
-       sit in **200–500 ms**. **17.3 chooses a concrete band threshold T
-       from that distribution** (and device notes). Policy: while on the
-       a4 path and still in flight, **suppress** chrome for elapsed &lt; T;
-       if still in flight after T, show normal corner chrome. Do **not**
-       read this ADR as “all a4 are &lt;200 ms” or “suppress every a4 for
-       the whole request.” A single fixed suppress-all-a4 rule is
-       rejected because it recreates the empty-window failure mode
-       ADR-031 Q2 warned about (wait with neither content nor chrome),
-       now inside the a4 tail.
+       sit in **200–500 ms**. **17.3 locks band threshold T = 150 ms**
+       from that distribution and device notes (`kDefaultA4SuppressBelow`).
+       Policy: while on the a4 path and still in flight, **suppress**
+       chrome for elapsed &lt; T; if still in flight after T, show normal
+       corner chrome. Do **not** read this ADR as “all a4 are &lt;200 ms”
+       or “suppress every a4 for the whole request.” A single fixed
+       suppress-all-a4 rule is rejected because it recreates the
+       empty-window failure mode ADR-031 Q2 warned about (wait with
+       neither content nor chrome), now inside the a4 tail.
      - **a5**: rare / unobserved under Kafka Host-temp pressure (17.1);
        do not design product defaults around ideal a5; if observed, fold
        into the revisit / a4-style band policy.
      - **a6**: short-path band treatment consistent with the same policy
        helper (no separate product story).
+     - **17.3 promoted paint-layer rules (Decision 2 extension).** These
+       are product rules for Cap 17.3, enforced in Main Browse presentation
+       (not a second competing path-class enum):
+       - **G — still a2 suppress-below-T:** For `FeedPageMediaKind.still`
+         on path a2, do not paint Layer-2 wait corner chrome while
+         `elapsedInFlight < T`. After T, paint normally. **Video a2 stays
+         immediate** (iCloud / long-wait feedback). G suppresses only the
+         brief band; **≥T still a2 chrome remains by design** and must not
+         be described as “G eliminates all revisit spinners.”
+       - **B — a4 loading miss bypass:** While path is a4 and the page is
+         in the ADR-031-style `_loading` miss chrome branch, do **not**
+         paint immediate miss gold (a4 eviction remount is not a true
+         first-visit L1 miss). Session L2-ready token may tag a4 early so
+         this gate applies before cover-on-disk lookup completes.
+       - **F1 (+D) — Live prepare suppress-below-T (all path-classes):**
+         While `_livePreparing`, suppress Live corner gold until prepare
+         wall time ≥ T; short prepares never paint. D (a3/a4-only prepare
+         suppress) is **folded into F1** — one rule, all paths.
+     - **17.3 retained, not Decision-2-promoted:**
+       - **E — off-current hard gate:** If `!isCurrent`, do not paint item /
+         Layer-2 / Live / loading wait corner chrome. **Evidence status:**
+         A-only contrast (including a rapid multi-page protocol aimed at
+         off-current paint) observed **zero** `cur=false` spinner paints on
+         Kafka and i17. E is retained as a **conservative product defense**,
+         **not** as a data-driven finding that it blocks a demonstrated
+         off-current chrome paint. Do not cite E as “validated effective.”
+         Distinct from Decision 2’s existing a4 policy clause
+         (`!isCurrent` → none on **a4 only** via `resolveWaitChrome`).
+       - **C / F2 — Live inFlight follows wait band (not promoted):**
+         Live inFlight must not OR-bypass the wait-chrome policy (C on a4;
+         F2 extends band-follow for Live inFlight more broadly). Kept for
+         **wiring consistency** with path-class chrome (otherwise a4/F1
+         policy is bypassed while Layer-2 is in flight). **Not** listed
+         among the promoted G/B/F1 rules; weaker direct causal evidence
+         than F1 prepare suppress. Do not roll back C/F2 solely to shrink
+         code — rollback would re-open Live inFlight bypass against F1.
+     - **17.3 removed — a4 min-show (B1):** Do **not** keep spinner
+       visible after Layer-2 inFlight clears for a minimum wall time.
+       Content may mount as soon as L2 succeeds; leave-current already
+       cancelled any hold. **Timeline (decision trace, required):**
+       Min-show was designed to improve a4 **after-band visibility** (hold
+       chrome ~1s without delaying L2 content). Device diagnosis later
+       showed the flash users actually noticed was **short current-page
+       a2 settle / Live prepare** (G / F1), not a4 after-band. Independent
+       sessions under the Cap 17.3 probe:
+       - **Kafka** (same device as 17.1 Full a4 n=186): P2+P4 combined
+         a4 `complete` **n=66**, after-band (`elapsed ≥ T`) **0%**,
+         min-show `holdMs>0` **0%**. Sample size ≈ **one-third** of 17.1
+         Full; supports removal but is **not** an equal-n reproduction
+         of the 17.1 ~7% (13/186) 200–500 ms tail.
+       - **i17** (device-skewed quieter library): B–G ON session a4
+         `complete` **n≈183**, after-band **0%**, `holdMs>0` **0%**.
+         Per Known debt, low a4 tail on i17 is **expected**; this row is
+         **not** an independent falsification of Kafka’s 17.1 tail and
+         must not be merged with Kafka into a vague “two large devices
+         both proved zero.”
+       Verdict: min-show did not address the symptomatic flash path and
+       did not trigger in these sessions → **remove as unused /
+       mis-aimed design**, with this paragraph retained as the audit
+       trail.
   3. **D2 = A — Debt 400 presentation scheme.** Cap 17 **accepts residual
      black** when no local Layer 1 derivative exists (Limited + local-only
      Layer 1 cannot invent pixels). **17.4** improves wait **visibility**
@@ -3263,29 +3336,33 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      does **not** block 17.2; run only if 17.4/17.6 disputes first-paint
      morphology. Not a standing Cap 17 gate.
   7. **Phase mapping.**
-     - **17.3:** path-class chrome unification (local peek residue +
-       revisit; L1/L2 handoff; L2-ready vs display/preview temp eviction;
-       `_layer2InFlight` conditions); choose a4 **T** from 17.1 Full
-       distribution + device notes; may reassess temp budgets only if it
-       does not violate Decision 5.
+     - **17.3:** path-class chrome unification with a4 T=150 ms; promoted
+       G / B / F1(+D); retain E (disclaimer) and C/F2 (non-promoted
+       wiring); remove a4 min-show per Decision 2 timeline; tear Cap 17.3
+       diagnostic chrome tee before work commit. Local peek residue in
+       STATE/ADR phase language is satisfied by G (+ a4 band), not by
+       claiming E was empirically required. **Landed** `00b7264`.
      - **17.4:** debt 400 wait presentation per Decision 3.
      - **17.5:** iCloud fetch-path work under Decisions 4–5.
      - **17.6:** device acceptance + residual triage (Main Browse
        foundation only).
      - **17.7:** Cap close-out.
-  8. **Automated tests (contract for `lib/` work commits; not a 17.2
-     code delivery).** Every Cap 17 Coding Task that touches `lib/` keeps
-     `test/architecture/` green (ADR-009 / ADR-012). In addition, 17.3+
-     should land (names flexible):
+  8. **Automated tests (contract for `lib/` work commits).** Every Cap 17
+     Coding Task that touches `lib/` keeps `test/architecture/` green
+     (ADR-009 / ADR-012). Cap 17.3 landed (names flexible; see
+     `cap17_3_wait_chrome_*_test.dart`):
      - Pure Dart unit: path-class × duration-band → chrome kind, including
-       a4 suppress-below-T / show-after-T behaviour with an injectable T.
+       a4 suppress-below-T / show-after-T with injectable T.
+       **No** a4 min-show hold helpers (removed).
      - Pure Dart unit: cancel **id+window dedupe** helper used for 17.5
        metrics (leave → double finish).
-     - Thin widget tests: short band suppresses spinner; past T shows
-       chrome while still in flight; L2-ready hit has no wait chrome;
-       **a1 miss chrome shows immediately and is unaffected by a4 band
-       logic** (regression lock so the ADR-031 Q2 narrow exception is not
-       accidentally widened).
+     - Thin widget tests: a4 short band suppresses spinner; past T shows
+       chrome while still in flight; still a2 (G) suppresses below T;
+       **video a2 remains immediate regardless of elapsed time — G
+       suppression is still-only, not a general a2 rule (regression
+       lock)**; a4 `_loading` does not show miss gold (B); L2-ready hit
+       has no wait chrome; a1 miss chrome remains immediate (ADR-031 Q2
+       regression lock); L2 success clears inFlight without min-show hold.
      - Host/PhotoKit paths: pure-logic unit tests where extracted; declare
        un-exercised PhotoKit in the work-commit message when applicable
        (same discipline as Cap 14/15 Host changes).
@@ -3299,7 +3376,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
        that a Kafka-chosen a4 **T** does not introduce new flash on an
        i17-scale, mostly-local library (Host-temp debt is device-skewed:
        clear on Kafka, faint/acceptable on i17 — STATE Known debt). Not a
-       full formal protocol.
+       full formal protocol. Cap 17.3 contrast sessions (A-only / B–G ON)
+       informed Decision 2 extensions; probes never committed.
      - **17.5:** before/after table per Decision 4; reuse 17.1 Host tee
        discipline (`print`+`NSLog` if needed); probes never committed.
      - **17.6:** ADR-030 §5 owner daily-use + residual triage.
@@ -3316,6 +3394,18 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Homogeneous “suppress all a4” without T / without show-after-T —
     rejected; ignores Full a4 **13/186** in 200–500 ms and empty-window
     risk.
+  - a4 min-show (B1) as the Cap 17.3 fix for settle / revisit corner
+    flash — rejected after Kafka/i17 probe sessions: after-band hold did
+    not fire on the measured completes, and the visible flash mapped to
+    short still a2 / Live prepare (G / F1), not a4 after-band.
+  - Promoting E to a Decision-2 “validated” rule from B–G ON-only
+    sessions — rejected; A-only + rapid multi-page protocol still saw
+    zero off-current spinner paints. Retention is conservative only.
+  - Rolling back C/F2 while keeping F1 — rejected; re-opens Live
+    inFlight OR-bypass of wait policy on a4 / Live paths.
+  - Treating i17 large-n zero after-band as equal-weight disproof of
+    17.1 Kafka a4 tail — rejected; debt is device-skewed; same-device
+    Kafka n=66 is the comparable (smaller-n) column.
   - D2=B miss-only second preview request / D2=C production `.fastFormat`
     — rejected for Cap 17; Track C + Host same-id supersede cost; Limited
     regression; Full global quality downgrade.
@@ -3332,7 +3422,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - D5=B mandatory async Track C before 17.4 — rejected; non-blocking
     follow-up per 17.1.
 - Consequences:
-  17.3 is the first Cap 17 work commit and the expected Accepted anchor.
-  Probe source stays out of git; 17.1 notes already on `main` (`73025b4`).
-  Temp-budget numeric changes, if any, stay under Decision 5 and owner
-  scope for 17.3 — not implied by this freeze alone.
+  Cap 17.3 work commit `00b7264` implements Decision 2 extensions
+  (G/B/F1), keeps E and C/F2 with the disclaimers above, removes
+  min-show and Cap 17.3 throwaway chrome tee / contrast dart-define
+  scaffolding, and lands unit/widget tests accordingly. Docs commit
+  after owner acceptance flips this ADR to Accepted (this entry).
+  STATE Known debt Host-temp revisit chrome is closed for the &lt;T flash
+  path; ≥T wait chrome remains by design. Debt **400** / **403** stay
+  open for 17.4 / 17.5.

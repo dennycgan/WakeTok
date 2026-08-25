@@ -189,17 +189,18 @@ availability hardening (Cap 17)
       × opportunistic/`.fastFormat` (Track C). Evidence
       `docs/acceptance/cap17-17.1-notes.md`. Probes **never
       committed**.
-- [x] 17.2 Contract freeze — ADR-034 **Proposed** (no Accepted date;
-      no fake anchor until first Cap 17 work commit, expected 17.3).
-      Wait-feedback by path-class / duration band (a4 T chosen in 17.3
-      from Full 65/108/13); debt 400 accept residual black + visibility
-      (no production `.fastFormat`); iCloud bar explainable +
-      observable (ok / deduped cancel / fail / prog; a2 latency proxy
-      not a hard p90 gate); Cap 16 invariants hard. Inputs: 17.1 notes.
-- [ ] 17.3 Layer 1→2 handoff chrome unification (local peek spinner
-      residue + revisit spinner; same root / same phase: L1/L2
-      handoff, L2-ready, display/preview temp eviction,
-      `_layer2InFlight` chrome conditions).
+- [x] 17.2 Contract freeze — ADR-034 Proposed then Accepted with Cap 17.3
+      work (`00b7264`; Accepted date 2026-08-25). Wait-feedback by
+      path-class / duration band (a4 T=150 ms locked in 17.3); debt 400
+      accept residual black + visibility (no production `.fastFormat`);
+      iCloud bar explainable + observable (ok / deduped cancel / fail /
+      prog; a2 latency proxy not a hard p90 gate); Cap 16 invariants hard.
+      Inputs: 17.1 notes.
+- [x] 17.3 Layer 1→2 handoff chrome unification (local peek spinner
+      residue + revisit spinner; L1/L2 handoff, L2-ready, display/preview
+      temp eviction, `_layer2InFlight` chrome). Work `00b7264`: a4 T=150 ms;
+      promoted G/B/F1(+D); E + C/F2 retained not Decision-2-promoted;
+      a4 min-show removed (audit trail in ADR-034).
 - [ ] 17.4 debt 400 wait-state presentation.
 - [ ] 17.5 iCloud fetch-path optimization (under 17.2 invariants).
 - [ ] 17.6 Device acceptance + residual triage.
@@ -208,17 +209,16 @@ availability hardening (Cap 17)
 - [ ] 17.7 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.3** path-class wait chrome (ADR-034
-      Proposed; Accepted after this phase’s work commit)
-- Sub-steps done: Cap 17.1 notes (`73025b4`); Cap 17.2 ADR-034
-      Proposed (this docs commit)
-- Next step: implement path-class × duration-band chrome per ADR-034
-      Decision 2 (choose a4 T from 17.1 Full distribution + Kafka/i17
-      notes); land Decision 8 unit/widget tests incl. a1 regression
-      lock. Do not start 17.4/17.5 until 17.3 work is accepted.
+- Goal (one line): Cap **17.4** debt 400 wait-state presentation
+      (ADR-034 Decision 3)
+- Sub-steps done: Cap 17.1 notes (`73025b4`); Cap 17.2 contract;
+      Cap 17.3 wait chrome (`00b7264`; ADR-034 Accepted)
+- Next step: improve no-L1 / debt-400 wait **visibility** per ADR-034
+      Decision 3 (corner chrome / shared progress when networked L2 in
+      flight / optional l10n). Do not ship production Layer 1
+      `.fastFormat`. Do not start 17.5 until 17.4 scope is owner-accepted.
 - Related decisions: ADR-025; ADR-029; ADR-031…034; Cap 16 storage
-      discipline; Known debt Host-temp/L2-ready + 400 + 403 → Cap 17;
-      402 → Cap 18
+      discipline; Known debt 400 + 403 → Cap 17; 402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -361,8 +361,7 @@ availability hardening (Cap 17)
   anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted, anchor
   `95779ef`; ADR-020 Cap 10 models Accepted)
 - ADR-034: Cap 17 wait chrome / debt 400 / iCloud observability —
-  **Proposed** (no Accepted date; no fake anchor; expected Accepted
-  after 17.3 work commit)
+  **Accepted** (2026-08-25), anchor `00b7264` (Cap 17.3 work)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
@@ -453,7 +452,7 @@ availability hardening (Cap 17)
 | Main Browse Screen | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
 | Main Browse Screen | Video page swipe may flash the previous video — **with audio** (severity residual) | **Closed by 15.11** (`c8a59b3` / ADR-032): `PvTransitionGuard` (entering-side cover + transition mute); unwrap on Host **`onPlaybackSurfaceReadyForDisplay`** (`AVPlayerLayer.isReadyForDisplay`), **not** attach-ack (attach observed `layerReady=false` in diagnosis — evidence in `cap15-15.11-notes.md`, not git). 15.11b: poster-hold + settle-on-target (cover release ≠ audio release) + stale feed-index re-arm fix. Kafka + i17 Profile PASS — `cap15-15.11-notes.md`. Peek black gap + settle wrong A/V both closed under 393 family. ADR-006 1+1 pool unchanged. | Closed by Cap 15.11 | ADR-006 / ADR-032 / ADR-031 |
 | Main Browse Screen | Local / L2-ready items still blur-first on revisit (Session) | **Closed by 15.10** (`750ddd6`): Session L2-ready token skips Layer 1 on revisit; still sharp / video poster-until-play. Kafka PASS (`cap15-15.10-notes.md`). **v1 revisit only** — no list-time KVC on become-current (STATE `locallyAvailable` row unchanged). | Closed by Cap 15.10 | ADR-025 |
-| Main Browse Screen | Session L2-ready revisit hit-rate limited by Host temp eviction (still corner spinner; preview/display budgets) | **(1) Symptom:** Stills that already reached sharp Layer 2 (incl. former iCloud downloads) may show ~0.5s bottom-right gold spinner on revisit before sharp again. **(2) Devices:** Clear on Kafka (large library, many iCloud); faint/acceptable on i17 (small, mostly local). **(3) Mechanism:** Cap 15.10 Session token + Cap 15.13 `lookupIfCoverOnDisk` invalidate when cover file is gone → DEVICE_LOCAL re-fetch L2 → `_layer2InFlight` chrome. **Still `stillFull` covers live in display store (≤1+1); video/peek posters mostly preview store (cap 3).** Structural tension: L2-ready assumes disk-resident covers vs small Host temps — not “cap=3 only.” **(4)** Same debt as “re-evaluate Preview/Display LRU”; Kafka 2026-08-24 evidence supports reassessing **both** budgets. Not a 15.14c regression. | Cap 17 (17.3 handoff chrome / temp budgets) | ADR-025; Cap 15.10/15.13; Cap 14.2 |
+| Main Browse Screen | Session L2-ready revisit: residual corner spinner after Host temp eviction | **Closed by Cap 17.3** (`00b7264` / ADR-034): path-class wait chrome (a4 T=150 ms) + promoted G (still a2 &lt;T) / B (a4 miss bypass) / F1(+D) (Live prepare &lt;T). **≥T still/a4 wait chrome remains by design** (empty-window guard) — not “zero spinner” and not a remaining defect. Device skew (Kafka clearer / i17 faint) unchanged. Temp-budget raise / cover-outside-Host-temp left unscheduled. | Closed by Cap 17.3 | ADR-025 / ADR-029 / ADR-034; Cap 15.10/15.13; Cap 16 temps |
 | Main Browse Screen | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** **Closed by 15.5** (`6c7d3de`) for local still→still gapless. **Video peek-black (leave-side poster loss):** **Closed by 15.7** (`b21b9fc`) when L1 poster exists. **Revisit blur-first when L2-ready:** **Closed by 15.10** (`750ddd6`). **Entering-peek black gap + settle wrong A/V (393):** **Closed by 15.11** (`c8a59b3` / ADR-032). **400** unchanged. | Closed by Cap 15.11 (393 limb) | ADR-006 / ADR-025 / ADR-032 |
 | Main Browse Screen | Swiping back to a video restarts from 0 after the next item has taken the active 1+1 slot; mid-play resume still happens while that slot is not yet taken | Pool is current + next only; no session-level playhead. Next local almost always occupies `activePlayer` immediately → return rebuilds a new player at 0. Next iCloud occupies only after `requestAVAsset` completes → return before that hits ADR-026 `playOnly` (same live player). **MVP accepts restart-from-0 once the next item has occupied the slot.** That acceptance does **not** mean “always restart on leave”, and must **not** weaken ADR-026 (`actionOnBecomeCurrent`: seek 0 only when at-end; mid-play re-enter `play()` while the player still exists). Do not add session playhead storage in Cap 14. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 / ADR-026 |
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | **Closed by 15.4** (`ce18a33` / ADR-031 D8): join in-flight Layer 1 on neighbour→current promote; no second `requestPreview` on the same id (`preview_supersede`). Kafka M1+2: zero supersede on five miss `page_changed`; one `layer2_load_start` each. W-15.4 widget tests. | Closed by Cap 15.4 (ADR-031) | ADR-025 / ADR-010 / ADR-031 |
