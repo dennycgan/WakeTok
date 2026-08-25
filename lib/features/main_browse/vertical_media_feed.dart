@@ -28,6 +28,7 @@ import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
+import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// True when a vertical feed scroll is past the trailing edge (next-item
@@ -807,6 +808,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Which display-gate generation last armed [_layer2InFlight].
   /// Abandon clears only when this still matches — never clobber a newer arm.
   int? _layer2InFlightGeneration;
+  /// Cap 17.3: path-class for wait chrome (set before / at arm).
+  WaitChromePathClass _layer2WaitPath = WaitChromePathClass.a2WaitToPlayable;
+  DateTime? _layer2InFlightArmedAt;
+  Timer? _a4ChromeRevealTimer;
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
   /// Cap 15.11b: hide video slot (Opacity 0) until first frame; no Stack reorder.
@@ -846,16 +851,196 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   int? get debugLayer2InFlightGeneration => _layer2InFlightGeneration;
 
-  /// Arm Layer-2-in-flight for [generation] (canMountVideo / spinner owner).
-  void _armLayer2InFlight(int generation) {
-    _layer2InFlight = true;
-    _layer2InFlightGeneration = generation;
+  @visibleForTesting
+  WaitChromePathClass get debugLayer2WaitPath => _layer2WaitPath;
+
+  /// Test seam: override elapsed since arm (null = wall clock).
+  @visibleForTesting
+  Duration? debugInFlightElapsedOverride;
+
+  /// Test seam: override a4 T (null = [kDefaultA4SuppressBelow]).
+  @visibleForTesting
+  Duration? debugA4SuppressBelowOverride;
+
+  /// Test seam: force in-flight + path for widget chrome tests (W-17.3*).
+  ///
+  /// [mediaKind] overrides [_media] so G (still-only) vs video a2 can be locked.
+  @visibleForTesting
+  void debugForceLayer2WaitChrome({
+    required WaitChromePathClass path,
+    required Duration elapsed,
+    int generation = 1,
+    FeedPageMediaKind? mediaKind,
+  }) {
+    void apply() {
+      _layer2WaitPath = path;
+      _layer2InFlight = true;
+      _layer2InFlightGeneration = generation;
+      _layer2InFlightArmedAt = DateTime.now();
+      debugInFlightElapsedOverride = elapsed;
+      _a4ChromeRevealTimer?.cancel();
+      _a4ChromeRevealTimer = null;
+      _loading = false;
+      if (mediaKind == FeedPageMediaKind.video) {
+        _media = FeedPageMedia.video(widget.assetIdentifier);
+      } else if (mediaKind == FeedPageMediaKind.still) {
+        _media = FeedPageMedia.still(
+          DisplayAsset(
+            assetIdentifier: widget.assetIdentifier,
+            mediaKind: PlaybackMediaKind.image,
+            localFilePath: '/tmp/cap173_chrome_still.png',
+          ),
+          layer: FeedDisplayLayer.preview,
+        );
+      }
+    }
+
+    if (mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
   }
 
-  /// Complete or leave-current: drop ownership unconditionally.
-  void _clearLayer2InFlightUnconditional() {
+  /// Test seam: simulate L2 data success (clears inFlight immediately).
+  @visibleForTesting
+  void debugCompleteLayer2InFlightForSuccess() {
+    if (mounted) {
+      setState(_completeLayer2InFlightForSuccess);
+    } else {
+      _completeLayer2InFlightForSuccess();
+    }
+  }
+
+  /// Test seam: a4 + [_loading] (eviction remount / no peek) for chrome tests.
+  @visibleForTesting
+  void debugForceA4LoadingGate() {
+    void apply() {
+      _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
+      _loading = true;
+      _media = null;
+      _layer2InFlight = false;
+      _a4ChromeRevealTimer?.cancel();
+      _a4ChromeRevealTimer = null;
+    }
+
+    if (mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
+  }
+
+  Duration get _a4SuppressBelow =>
+      debugA4SuppressBelowOverride ?? kDefaultA4SuppressBelow;
+
+  Duration get _inFlightElapsed {
+    final override = debugInFlightElapsedOverride;
+    if (override != null) {
+      return override;
+    }
+    final armed = _layer2InFlightArmedAt;
+    if (armed == null) {
+      return Duration.zero;
+    }
+    return DateTime.now().difference(armed);
+  }
+
+  /// Cap 17.3: whether Layer-2 wait corner chrome should paint.
+  ///
+  /// Promoted: G (still a2 &lt;T). Retained not promoted: E (`!isCurrent`).
+  bool get _showLayer2WaitChrome {
+    // E: off-current hard gate (conservative; not Decision-2-promoted).
+    if (!widget.isCurrent) {
+      return false;
+    }
+    if (!_layer2InFlight) {
+      return false;
+    }
+    final show = waitChromeShowsSpinner(
+      resolveWaitChrome(
+        path: _layer2WaitPath,
+        elapsedInFlight: _inFlightElapsed,
+        a4SuppressBelow: _a4SuppressBelow,
+        isCurrent: widget.isCurrent,
+      ),
+    );
+    if (!show) {
+      return false;
+    }
+    // G: still a2 suppress-below-T (video a2 stays immediate).
+    if (_media?.kind == FeedPageMediaKind.still &&
+        _inFlightElapsed < _a4SuppressBelow) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Arm Layer-2-in-flight for [generation] (canMountVideo / spinner owner).
+  void _armLayer2InFlight(
+    int generation, {
+    WaitChromePathClass? path,
+  }) {
+    if (path != null) {
+      _layer2WaitPath = path;
+    }
+    _layer2InFlight = true;
+    _layer2InFlightGeneration = generation;
+    _layer2InFlightArmedAt = DateTime.now();
+    debugInFlightElapsedOverride = null;
+    _scheduleA4ChromeRevealIfNeeded();
+  }
+
+  void _scheduleA4ChromeRevealIfNeeded() {
+    _a4ChromeRevealTimer?.cancel();
+    _a4ChromeRevealTimer = null;
+    if (!widget.isCurrent) {
+      return;
+    }
+    // a4 band + still pages (G): tick at T so suppress-below-T can flip
+    // visible without waiting for another rebuild. Video a2: no tick.
+    final needsBandTick =
+        _layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict ||
+        _media?.kind == FeedPageMediaKind.still;
+    if (!needsBandTick) {
+      return;
+    }
+    final remaining = _a4SuppressBelow - _inFlightElapsed;
+    if (remaining <= Duration.zero) {
+      return;
+    }
+    final armedGeneration = _layer2InFlightGeneration;
+    _a4ChromeRevealTimer = Timer(remaining, () {
+      if (!shouldApplyA4ChromeRevealTick(
+        isMounted: mounted,
+        layer2InFlight: _layer2InFlight,
+        armedGeneration: armedGeneration,
+        currentInFlightGeneration: _layer2InFlightGeneration,
+      )) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  /// L2 data success: clear inFlight so content can mount immediately.
+  void _completeLayer2InFlightForSuccess() {
+    _a4ChromeRevealTimer?.cancel();
+    _a4ChromeRevealTimer = null;
     _layer2InFlight = false;
     _layer2InFlightGeneration = null;
+    _layer2InFlightArmedAt = null;
+    debugInFlightElapsedOverride = null;
+  }
+
+  /// Leave-current / abandon / fail / re-arm start: drop ownership.
+  void _clearLayer2InFlightUnconditional() {
+    _a4ChromeRevealTimer?.cancel();
+    _a4ChromeRevealTimer = null;
+    _layer2InFlight = false;
+    _layer2InFlightGeneration = null;
+    _layer2InFlightArmedAt = null;
+    debugInFlightElapsedOverride = null;
   }
 
   /// Abandon **this** attempt only. Safe when gate/current/mounted failed
@@ -883,12 +1068,64 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 14.6b also uses an ungated handoff write so the Live load spinner
   /// stays up across `_layer2InFlight` → serial-queue wait.
   bool _livePreparing = false;
+  /// Cap 17.3: wall clock when [_livePreparing] became true (a3/a4 suppress-T).
+  DateTime? _livePreparingArmedAt;
+  Timer? _livePreparingChromeRevealTimer;
 
-  bool get _showLiveLoadSpinner =>
-      _isLiveStillMedia(_media) && (_layer2InFlight || _livePreparing);
+  bool get _showLiveLoadSpinner {
+    // E: off-current hard gate (conservative; not Decision-2-promoted).
+    if (!widget.isCurrent) {
+      return false;
+    }
+    if (!_isLiveStillMedia(_media)) {
+      return false;
+    }
+    if (_livePreparing) {
+      // F1(+D): suppress Live prepare gold until wall time ≥ T.
+      final armed = _livePreparingArmedAt;
+      if (armed == null) {
+        return false;
+      }
+      return DateTime.now().difference(armed) >= _a4SuppressBelow;
+    }
+    if (!_layer2InFlight) {
+      return false;
+    }
+    // C/F2: Live inFlight follows wait band (retained, not Decision-2-promoted).
+    if (_layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict ||
+        _isLiveStillMedia(_media)) {
+      return _showLayer2WaitChrome;
+    }
+    return true;
+  }
 
-  /// Layer 2 in-flight (any item) or Live motion prepare — corner spinner.
-  bool get _showItemLoadSpinner => _layer2InFlight || _showLiveLoadSpinner;
+  void _onLivePreparingChanged(bool next) {
+    _livePreparingChromeRevealTimer?.cancel();
+    _livePreparingChromeRevealTimer = null;
+    if (!next) {
+      _livePreparingArmedAt = null;
+      return;
+    }
+    _livePreparingArmedAt = DateTime.now();
+    final armedAt = _livePreparingArmedAt!;
+    _livePreparingChromeRevealTimer = Timer(_a4SuppressBelow, () {
+      if (!mounted || !_livePreparing || !widget.isCurrent) {
+        return;
+      }
+      if (_livePreparingArmedAt != armedAt) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  /// Layer 2 wait chrome (Cap 17.3 path-class policy) or Live prepare spinner.
+  bool get _showItemLoadSpinner {
+    if (!widget.isCurrent) {
+      return false;
+    }
+    return _showLayer2WaitChrome || _showLiveLoadSpinner;
+  }
 
   /// Cap 15.4: in-flight neighbour Layer 1; validity is [_localGate] only.
   Future<FeedPageMedia?>? _layer1Future;
@@ -1180,7 +1417,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         } else {
           unawaited(_syncPlaybackActive());
           if (_isLiveStillMedia(_media) && !_livePreparing) {
-            setState(() => _livePreparing = true);
+            setState(() {
+              _livePreparing = true;
+              _onLivePreparingChanged(true);
+            });
           }
           unawaited(_maybeBeginLiveMotion());
         }
@@ -1193,6 +1433,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _readyForDisplaySub?.cancel();
     _readyForDisplaySub = null;
     _holdPosterTimeout?.cancel();
+    _a4ChromeRevealTimer?.cancel();
+    _a4ChromeRevealTimer = null;
+    _livePreparingChromeRevealTimer?.cancel();
+    _livePreparingChromeRevealTimer = null;
     _pvGuardNotifier?.removePageSnapshot(widget.assetIdentifier);
     WidgetsBinding.instance.removeObserver(this);
     _cancelLayer2DwellTimer();
@@ -1256,7 +1500,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (next == _livePreparing) {
       return;
     }
-    setState(() => _livePreparing = next);
+    setState(() {
+      _livePreparing = next;
+      _onLivePreparingChanged(next);
+    });
   }
 
   /// Ungated clear for the 14.6b Layer 2 → motion handoff when
@@ -1265,7 +1512,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!mounted || !_livePreparing) {
       return;
     }
-    setState(() => _livePreparing = false);
+    setState(() {
+      _livePreparing = false;
+      _onLivePreparingChanged(false);
+    });
   }
 
   /// L-S6 test seam only: route a preparing write through [_setLivePreparing].
@@ -1701,7 +1951,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _layer2Failed = false;
       _layer2FailureReason = null;
-      _armLayer2InFlight(generation);
+      _armLayer2InFlight(
+        generation,
+        path: WaitChromePathClass.a2WaitToPlayable,
+      );
     });
     await _awaitLayer2Dwell(bypassDwell: bypassDwell);
     if (!mounted || !widget.isCurrent || !gate.isCurrent(generation)) {
@@ -1845,11 +2098,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           return;
         }
         final liveGeneration = _liveMotionGate.begin();
+        final sessionTok = ref
+            .read(browseL2ReadySessionProvider.notifier)
+            .lookup(widget.assetIdentifier);
         setState(() {
           _loading = true;
           _media = null;
           _surfaceReady = false;
           _liveMotionMounted = false;
+          // Cap 17.3: avoid a1 miss gold during gate-not-ready if Session
+          // already knows this id (a4 eviction revisit).
+          if (sessionTok != null) {
+            _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
+          }
         });
         _setLivePreparing(liveGeneration, false);
         return;
@@ -1859,12 +2120,32 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     if (!startedOffCurrent) {
+      final sessionToken = ref
+          .read(browseL2ReadySessionProvider.notifier)
+          .lookup(widget.assetIdentifier);
+      final hadSessionToken = sessionToken != null;
+      // Cap 17.3: tag a4 before cover-on-disk await so a remount still on
+      // [_loading] does not paint ADR-031 miss gold during the gap.
+      if (hadSessionToken) {
+        if (_loading &&
+            _layer2WaitPath != WaitChromePathClass.a4L2ReadyEvict) {
+          setState(() {
+            _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
+          });
+        } else {
+          _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
+        }
+      }
       final l2Ready = await ref
           .read(browseL2ReadySessionProvider.notifier)
           .lookupIfCoverOnDisk(widget.assetIdentifier);
       if (l2Ready != null) {
         if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
             l2Ready.kind == FeedL2ReadyKind.video) {
+          // Video L2-ready-with-cover uses a4 band (a5 fold); still hit is a3.
+          _layer2WaitPath = l2Ready.kind == FeedL2ReadyKind.video
+              ? WaitChromePathClass.a4L2ReadyEvict
+              : WaitChromePathClass.a3L2ReadyHit;
           await _startLoadFromL2Ready(
             l2Ready: l2Ready,
             gate: gate!,
@@ -1873,6 +2154,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           return;
         }
       }
+
+      // Cover missing after Session token → a4 eviction revisit band.
+      _layer2WaitPath = hadSessionToken
+          ? WaitChromePathClass.a4L2ReadyEvict
+          : WaitChromePathClass.a2WaitToPlayable;
 
       if (!bypassDeviceLocalFastPath) {
         // Cap 15.15: prefer snapshot inject (tests); else on-demand Host probe
@@ -2342,8 +2628,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _loading = false;
         // I: WIP — success clears inFlight so canMountVideo may mount.
         // Do NOT keep true until surface-ready (HEAD) — that deadlocks
-        // canMountVideo.
-        _clearLayer2InFlightUnconditional();
+        // canMountVideo. Cap 17.3: L2 success clears wait chrome with
+        // inFlight (no min-show hold).
+        _completeLayer2InFlightForSuccess();
         _layer2Failed = false;
         _layer2FailureReason = null;
         // Cap 15.14b/c: DEVICE_LOCAL / L2-ready close the gap where canMount
@@ -2365,13 +2652,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _media = layer2;
       _loading = false;
-      _clearLayer2InFlightUnconditional();
+      _completeLayer2InFlightForSuccess();
       _layer2Failed = false;
       _layer2FailureReason = null;
       // 14.6b: same-frame handoff so the Live spinner does not drop while
       // [_maybeBeginLiveMotion] awaits LiveHostOpSerial.
       if (liveStill && widget.isCurrent) {
         _livePreparing = true;
+        _onLivePreparingChanged(true);
       }
     });
     _recordL2ReadySession(layer2: layer2, layer1: layer1);
@@ -2486,6 +2774,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         );
         if (liveStill && widget.isCurrent) {
           _livePreparing = true;
+          _onLivePreparingChanged(true);
         }
       });
       widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
@@ -2558,9 +2847,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
 
     if (_loading) {
-      // Layer 1 miss only. Library resolve uses when(loading:) +
-      // mainBrowseFeedLoading and stays centered. Do not merge this
-      // branch into _mediaStack (off-current empty / pendingVideo).
+      // Layer 1 miss chrome (ADR-031 Q2): immediate corner spinner.
+      // Cap 17.3 B: a4 eviction remount is not a true first-visit L1 miss —
+      // no miss gold. E: peek (!isCurrent) — never miss gold (retained, not
+      // Decision-2-promoted). After-band Layer3 owns in-flight chrome once
+      // media exists.
+      final a4Loading = _layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict;
+      final showLoadingSpinner = widget.isCurrent && !a4Loading;
       return ColoredBox(
         key: const Key('mainBrowseFeedPageLoading'),
         color: tokens.feedBackground,
@@ -2570,10 +2863,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             _FeedCornerChrome(
               color: tokens.brandGold,
               strutBadgeLabel: l10n.mainBrowseLiveBadge,
-              showSpinner: true,
+              showSpinner: showLoadingSpinner,
               rowKey: const Key('mainBrowseFeedPageLoadingChrome'),
               spinnerKey: const Key('mainBrowseFeedPageLoadingSpinner'),
-              semanticsLabel: l10n.mainBrowseFeedLayer1Loading,
+              semanticsLabel: showLoadingSpinner
+                  ? l10n.mainBrowseFeedLayer1Loading
+                  : null,
             ),
           ],
         ),
@@ -2678,8 +2973,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   display: media.display!,
                   liveLabel: l10n.mainBrowseLiveBadge,
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-                  showLoadSpinner: widget.isCurrent &&
-                      _layer2InFlight &&
+                  showLoadSpinner: _showItemLoadSpinner &&
                       !deferVideoForHandoff,
                   onPreviewFileBroken: _onPreviewFileBroken,
                 )
@@ -2745,7 +3039,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             path: coverPath,
             backgroundColor: tokens.feedBackground,
           ),
-        if (_layer2InFlight && still == null && poster == null)
+        if (_showLayer2WaitChrome && still == null && poster == null)
           _FeedCornerChrome(
             color: tokens.brandGold,
             strutBadgeLabel: l10n.mainBrowseLiveBadge,
