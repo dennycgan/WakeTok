@@ -182,6 +182,10 @@ availability hardening (Cap 17)
 > probe style — probes not committed). Cap 18–20 ordered after Cap 17
 > and before Build a Pool. Do not use “Doom Scroll” in capability
 > names / ADRs / identifiers.
+> Owner 2026-08-25 (during Cap 17.4 acceptance): expanded Cap 17 Phase
+> Roadmap — inserted **17.7 Overlay capture-time vs iOS Photos** (cross
+> Cap 8 Media Info Overlay); renumbered Cap close-out to **17.8**.
+> Not a silent residual absorb into 17.6.
 
 - [x] 17.1 Diagnosis (Cap 15 diagnosis-before-contract pattern).
       Wait-feedback duration (Track A); iCloud fetch observability
