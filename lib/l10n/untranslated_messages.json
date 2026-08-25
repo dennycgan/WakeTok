@@ -66,6 +66,7 @@
     "mainBrowseFeedMediaFailed",
     "mainBrowseFeedNetworkFailed",
     "mainBrowseFeedLayer1Loading",
+    "mainBrowseFeedLayer2Waiting",
     "mainBrowseFeedLayer3Loading",
     "mainBrowseFeedLiveLoading",
     "mainBrowseFeedDownloadFailed",

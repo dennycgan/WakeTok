@@ -367,7 +367,11 @@
   },
   "mainBrowseFeedLayer1Loading": "Loading item",
   "@mainBrowseFeedLayer1Loading": {
-    "description": "VoiceOver on Layer 1 miss: feed page has no still or poster yet (Cap 15.3)"
+    "description": "Visible + VoiceOver on Layer 1 miss / coverless page with no still or poster yet (Cap 15.3; Cap 17.4 visible)"
+  },
+  "mainBrowseFeedLayer2Waiting": "Loading…",
+  "@mainBrowseFeedLayer2Waiting": {
+    "description": "Visible corner copy while coverless Layer 2 / prepare is in flight (Cap 17.4 debt 400). Not Auto-play Waiting for Media."
   },
   "mainBrowseFeedLayer3Loading": "Loading full quality",
   "@mainBrowseFeedLayer3Loading": {

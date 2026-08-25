@@ -31,6 +31,16 @@ import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+/// Cap 17.4: top source chrome body below the status bar (pad 8+8, label,
+/// pools subtitle). Feed is full-bleed under [_TopSourceChrome].
+const double kCoverlessCenterTopChromeBody = 8 + 8 + 20 + 16;
+
+/// Cap 17.4: Overlay rows 1–3 always occupy height (empty still occupies).
+/// Row 4 Location collapses when empty (Cap 8 Q1=B) — not included.
+const double kCoverlessCenterOverlayReserve =
+    MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount + 12;
+
+
 /// True when a vertical feed scroll is past the trailing edge (next-item
 /// direction). Used for Endless last-page round advance.
 ///
@@ -883,6 +893,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _loading = false;
       if (mediaKind == FeedPageMediaKind.video) {
         _media = FeedPageMedia.video(widget.assetIdentifier);
+      } else if (mediaKind == FeedPageMediaKind.pendingVideo) {
+        _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
       } else if (mediaKind == FeedPageMediaKind.still) {
         _media = FeedPageMedia.still(
           DisplayAsset(
@@ -909,6 +921,26 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       setState(_completeLayer2InFlightForSuccess);
     } else {
       _completeLayer2InFlightForSuccess();
+    }
+  }
+
+  /// Test seam: coverless L2 failed in the same center slot as wait copy.
+  @visibleForTesting
+  void debugForceCoverlessLayer2Failed() {
+    void apply() {
+      _loading = false;
+      _layer2InFlight = false;
+      _layer2Failed = true;
+      _layer2FailureReason = FeedFailureReason.generic;
+      _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
+      _a4ChromeRevealTimer?.cancel();
+      _a4ChromeRevealTimer = null;
+    }
+
+    if (mounted) {
+      setState(apply);
+    } else {
+      apply();
     }
   }
 
@@ -949,7 +981,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 17.3: whether Layer-2 wait corner chrome should paint.
   ///
   /// Promoted: G (still a2 &lt;T). Retained not promoted: E (`!isCurrent`).
-  bool get _showLayer2WaitChrome {
+  bool _evaluateShowLayer2WaitChrome() {
     // E: off-current hard gate (conservative; not Decision-2-promoted).
     if (!widget.isCurrent) {
       return false;
@@ -1094,7 +1126,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // C/F2: Live inFlight follows wait band (retained, not Decision-2-promoted).
     if (_layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict ||
         _isLiveStillMedia(_media)) {
-      return _showLayer2WaitChrome;
+      return _evaluateShowLayer2WaitChrome();
     }
     return true;
   }
@@ -1117,14 +1149,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
       setState(() {});
     });
-  }
-
-  /// Layer 2 wait chrome (Cap 17.3 path-class policy) or Live prepare spinner.
-  bool get _showItemLoadSpinner {
-    if (!widget.isCurrent) {
-      return false;
-    }
-    return _showLayer2WaitChrome || _showLiveLoadSpinner;
   }
 
   /// Cap 15.4: in-flight neighbour Layer 1; validity is [_localGate] only.
@@ -2852,8 +2876,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // no miss gold. E: peek (!isCurrent) — never miss gold (retained, not
       // Decision-2-promoted). After-band Layer3 owns in-flight chrome once
       // media exists.
+      // Cap 17.4: visible Layer1 copy shares the same door as the spinner.
       final a4Loading = _layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict;
       final showLoadingSpinner = widget.isCurrent && !a4Loading;
+      final coverless = isCoverlessFeedPresentation(
+        loading: true,
+        hasDisplayableCover: false,
+      );
+      final showCoverlessLabel = coverless &&
+          coverlessWaitShowsLabel(showWaitSpinner: showLoadingSpinner);
       return ColoredBox(
         key: const Key('mainBrowseFeedPageLoading'),
         color: tokens.feedBackground,
@@ -2870,6 +2901,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   ? l10n.mainBrowseFeedLayer1Loading
                   : null,
             ),
+            _coverlessCenterStatus(
+              showWaitLabel: showCoverlessLabel,
+              waitLabel: l10n.mainBrowseFeedLayer1Loading,
+              showFailed: false,
+              l10n: l10n,
+              tokens: tokens,
+            ),
           ],
         ),
       );
@@ -2884,6 +2922,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final deferVideoForHandoff = widget.isCurrent &&
         pvGuard.isCovering(widget.assetIdentifier);
 
+    // Cap 17.4: one wait-chrome evaluation per build; spinner + center copy
+    // (and failed slot) only read these locals.
+    final showLayer2WaitSpinner = _evaluateShowLayer2WaitChrome();
+    final hasDisplayableCover = media.display != null;
+    final coverless = isCoverlessFeedPresentation(
+      loading: false,
+      hasDisplayableCover: hasDisplayableCover,
+    );
+    final showCoverlessLabel = coverless &&
+        coverlessWaitShowsLabel(showWaitSpinner: showLayer2WaitSpinner);
+    final showLayer2FailedSlot = _layer2Failed && !_layer2InFlight;
+    final showCenterWaitLabel = showCoverlessLabel && !showLayer2FailedSlot;
+
     // Cap 15.14 / 4A: still + video poster share one asset-stable key so
     // STILL→VIDEO promote can reuse the Image Element (path must not be in key).
     final coverKey = ValueKey<String>(
@@ -2897,7 +2948,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           liveLabel: l10n.mainBrowseLiveBadge,
           liveLoadLabel: l10n.mainBrowseFeedLiveLoading,
           layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-          showLoadSpinner: _showItemLoadSpinner,
+          showLoadSpinner: widget.isCurrent &&
+              (showLayer2WaitSpinner || _showLiveLoadSpinner),
           onPreviewFileBroken: _onPreviewFileBroken,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
@@ -2919,11 +2971,40 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         ),
         l10n: l10n,
         tokens: tokens,
+        showLayer2WaitSpinner: showLayer2WaitSpinner,
+        showCenterWaitLabel: showCenterWaitLabel,
+        showLayer2FailedSlot: showLayer2FailedSlot,
       ),
-      FeedPageMediaKind.pendingVideo => ColoredBox(
-        key: Key('mainBrowseFeedVideoPending_${widget.assetIdentifier}'),
-        color: tokens.feedBackground,
-      ),
+      FeedPageMediaKind.pendingVideo => () {
+        return ColoredBox(
+          key: Key('mainBrowseFeedVideoPending_${widget.assetIdentifier}'),
+          color: tokens.feedBackground,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (showLayer2WaitSpinner)
+                _FeedCornerChrome(
+                  color: tokens.brandGold,
+                  strutBadgeLabel: l10n.mainBrowseLiveBadge,
+                  showSpinner: true,
+                  rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
+                  spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
+                  semanticsLabel: l10n.mainBrowseFeedLayer2Waiting,
+                ),
+              _coverlessCenterStatus(
+                showWaitLabel: showCenterWaitLabel,
+                waitLabel: l10n.mainBrowseFeedLayer2Waiting,
+                showFailed: showLayer2FailedSlot,
+                l10n: l10n,
+                tokens: tokens,
+                onFailedRetry: () {
+                  unawaited(_retryLayer2Only(bypassDwell: true));
+                },
+              ),
+            ],
+          ),
+        );
+      }(),
       FeedPageMediaKind.video => () {
         // Cap 15.11b A→B: arm hold on null→non-null only (not on L2-complete).
         final canMountVideo =
@@ -2973,7 +3054,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   display: media.display!,
                   liveLabel: l10n.mainBrowseLiveBadge,
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-                  showLoadSpinner: _showItemLoadSpinner &&
+                  showLoadSpinner: showLayer2WaitSpinner &&
                       !deferVideoForHandoff,
                   onPreviewFileBroken: _onPreviewFileBroken,
                 )
@@ -2981,19 +3062,24 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           deferVideoForHandoff: deferVideoForHandoff,
           l10n: l10n,
           tokens: tokens,
+          showLayer2WaitSpinner: showLayer2WaitSpinner,
+          showCenterWaitLabel: showCenterWaitLabel,
+          showLayer2FailedSlot: showLayer2FailedSlot,
         );
       }(),
-      FeedPageMediaKind.failed => _BrowseStatusPanel(
-        panelKey: const Key('mainBrowseFeedPageFailed'),
-        message: _failureCopy(
-          l10n,
-          media.failureReason ?? FeedFailureReason.generic,
+      FeedPageMediaKind.failed => _UsableRegionCenter(
+        child: _BrowseStatusPanel(
+          panelKey: const Key('mainBrowseFeedPageFailed'),
+          message: _failureCopy(
+            l10n,
+            media.failureReason ?? FeedFailureReason.generic,
+          ),
+          actionLabel: l10n.mainBrowseFeedRetry,
+          actionKey: const Key('mainBrowseFeedPageRetry'),
+          onAction: () {
+            unawaited(_startLoad(bypassDwell: true));
+          },
         ),
-        actionLabel: l10n.mainBrowseFeedRetry,
-        actionKey: const Key('mainBrowseFeedPageRetry'),
-        onAction: () {
-          unawaited(_startLoad(bypassDwell: true));
-        },
       ),
     };
   }
@@ -3001,6 +3087,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   Widget _mediaStack({
     required AppLocalizations l10n,
     required WakeTokTokens tokens,
+    required bool showLayer2WaitSpinner,
+    required bool showCenterWaitLabel,
+    required bool showLayer2FailedSlot,
     Widget? still,
     Widget? video,
     Widget? poster,
@@ -3039,45 +3128,25 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             path: coverPath,
             backgroundColor: tokens.feedBackground,
           ),
-        if (_showLayer2WaitChrome && still == null && poster == null)
+        if (showLayer2WaitSpinner && still == null && poster == null)
           _FeedCornerChrome(
             color: tokens.brandGold,
             strutBadgeLabel: l10n.mainBrowseLiveBadge,
             showSpinner: true,
-            rowKey: const Key('mainBrowseFeedLayer3Chrome'),
+            rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
             spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
-            semanticsLabel: l10n.mainBrowseFeedLayer3Loading,
+            semanticsLabel: l10n.mainBrowseFeedLayer2Waiting,
           ),
-        if (_layer2Failed && !_layer2InFlight)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 48),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _failureCopy(
-                      l10n,
-                      _layer2FailureReason ?? FeedFailureReason.generic,
-                    ),
-                    textAlign: TextAlign.center,
-                    style: tokens.bodyOnMedia,
-                  ),
-                  TextButton(
-                    key: const Key('mainBrowseFeedLayer2Retry'),
-                    onPressed: () {
-                      unawaited(_retryLayer2Only(bypassDwell: true));
-                    },
-                    child: Text(
-                      l10n.mainBrowseFeedRetry,
-                      style: tokens.labelOnMedia,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        _coverlessCenterStatus(
+          showWaitLabel: showCenterWaitLabel && still == null && poster == null,
+          waitLabel: l10n.mainBrowseFeedLayer2Waiting,
+          showFailed: showLayer2FailedSlot,
+          l10n: l10n,
+          tokens: tokens,
+          onFailedRetry: () {
+            unawaited(_retryLayer2Only(bypassDwell: true));
+          },
+        ),
       ],
     );
   }
@@ -3088,6 +3157,81 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       FeedFailureReason.download => l10n.mainBrowseFeedDownloadFailed,
       FeedFailureReason.generic => l10n.mainBrowseFeedMediaFailed,
     };
+  }
+
+  /// Cap 17.4: one center slot — wait copy XOR failed (never stacked).
+  Widget _coverlessCenterStatus({
+    required bool showWaitLabel,
+    required String waitLabel,
+    required bool showFailed,
+    required AppLocalizations l10n,
+    required WakeTokTokens tokens,
+    VoidCallback? onFailedRetry,
+  }) {
+    if (showFailed) {
+      return _UsableRegionCenter(
+        child: Column(
+          key: const Key('mainBrowseFeedCoverlessFailedSlot'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _failureCopy(
+                l10n,
+                _layer2FailureReason ?? FeedFailureReason.generic,
+              ),
+              textAlign: TextAlign.center,
+              style: tokens.bodyOnMedia,
+            ),
+            if (onFailedRetry != null)
+              TextButton(
+                key: const Key('mainBrowseFeedLayer2Retry'),
+                onPressed: onFailedRetry,
+                child: Text(
+                  l10n.mainBrowseFeedRetry,
+                  style: tokens.labelOnMedia,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+    if (showWaitLabel) {
+      return _UsableRegionCenter(
+        child: ExcludeSemantics(
+          child: Text(
+            waitLabel,
+            key: const Key('mainBrowseFeedCoverlessWaitLabel'),
+            textAlign: TextAlign.center,
+            style: tokens.labelOnMedia.copyWith(
+              color: tokens.onMedia,
+              shadows: tokens.onMediaLabelShadows,
+            ),
+          ),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+/// Cap 17.4: geometric center of the feed usable region (below source tabs
+/// / status, above Overlay rows 1–3). Dest bar is a Column sibling of the
+/// browse pane — not overlaid on [MediaFeedPage], so it is not reserved here.
+class _UsableRegionCenter extends StatelessWidget {
+  const _UsableRegionCenter({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = MediaQuery.paddingOf(context);
+    return Padding(
+      padding: EdgeInsets.only(
+        top: padding.top + kCoverlessCenterTopChromeBody,
+        bottom: kCoverlessCenterOverlayReserve,
+      ),
+      child: Center(child: child),
+    );
   }
 }
 
@@ -3194,9 +3338,6 @@ class _FeedCornerChrome extends StatelessWidget {
       child: IgnorePointer(
         child: Semantics(
           container: true,
-          // Spinner rows (Layer 1 miss, Layer 2, Live prepare) own the
-          // label; this drops descendant Text including the zero-width
-          // LIVE strut so VoiceOver does not announce "LIVE".
           excludeSemantics: showSpinner,
           label: showSpinner ? semanticsLabel : null,
           child: Row(

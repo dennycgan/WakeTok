@@ -138,6 +138,28 @@ void main() {
     });
   });
 
+  group('U-17.4 coverless wait label door', () {
+    test('U-17.4a label shares spinner door (no independent trigger)', () {
+      expect(coverlessWaitShowsLabel(showWaitSpinner: false), isFalse);
+      expect(coverlessWaitShowsLabel(showWaitSpinner: true), isTrue);
+    });
+
+    test('U-17.4b coverless presentation is loading or no cover', () {
+      expect(
+        isCoverlessFeedPresentation(loading: true, hasDisplayableCover: true),
+        isTrue,
+      );
+      expect(
+        isCoverlessFeedPresentation(loading: false, hasDisplayableCover: false),
+        isTrue,
+      );
+      expect(
+        isCoverlessFeedPresentation(loading: false, hasDisplayableCover: true),
+        isFalse,
+      );
+    });
+  });
+
   group('U-17.3e cancel finish dedupe', () {
     test('leave double finish collapses to one', () {
       const a = CancelFinishEvent(assetId: 'x', windowId: 'leave-1');

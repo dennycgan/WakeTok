@@ -297,6 +297,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedLayer1Loading => 'Loading item';
 
   @override
+  String get mainBrowseFeedLayer2Waiting => 'Loading…';
+
+  @override
   String get mainBrowseFeedLayer3Loading => 'Loading full quality';
 
   @override
@@ -673,6 +676,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedLayer1Loading => '正在加载此项';
+
+  @override
+  String get mainBrowseFeedLayer2Waiting => '加载中…';
 
   @override
   String get mainBrowseFeedLayer3Loading => '正在加载完整画质';

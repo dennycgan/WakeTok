@@ -89,3 +89,26 @@ bool waitChromeShowsSpinner(WaitChromeKind kind) {
   return kind == WaitChromeKind.cornerSpinnerImmediate ||
       kind == WaitChromeKind.cornerSpinnerAfterBand;
 }
+
+/// Cap 17.4: coverless wait **label** shares the spinner door.
+///
+/// Never trigger label from coverless/in-flight alone — callers must pass the
+/// same [showWaitSpinner] already used for corner chrome (incl. still a2 G,
+/// video a2 immediate, a4 band, and a4+`_loading` B miss suppress).
+bool coverlessWaitShowsLabel({required bool showWaitSpinner}) {
+  return showWaitSpinner;
+}
+
+/// True when the page has no displayable still/poster (debt 400 band).
+///
+/// Live prepare (`_livePreparing`) is out of Cap 17.4 scope — callers must
+/// not treat Live-only chrome as coverless Layer-2 waiting.
+bool isCoverlessFeedPresentation({
+  required bool loading,
+  required bool hasDisplayableCover,
+}) {
+  if (loading) {
+    return true;
+  }
+  return !hasDisplayableCover;
+}
