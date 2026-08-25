@@ -3150,3 +3150,189 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - KVC remains undocumented; must not silently expand (STATE Known debt).
   - 15.14c / L2-ready temp eviction Known debt are separate.
 
+
+## ADR-034: Cap 17 Layer 1→2 wait chrome, debt 400 presentation, and iCloud observability contract
+
+- Status: Proposed
+- Commit/PR anchor: *(none until Accepted; flip after first Cap 17 work commit, expected 17.3)*
+- Plain summary (owner reads this):
+  Waiting in Main Browse should match how long the wait usually is: a quick
+  local revisit should not flash a spinner for nothing, but a long iCloud
+  load should still show clear feedback (and progress when Host already
+  reports it). Items that never get a local Layer 1 cover may stay black;
+  Cap 17 improves how that wait looks, and does not switch Layer 1 to a
+  mode that helps a few misses by making every cover worse. Speeding up
+  iCloud must stay explainable and measurable, must not claim to match
+  Photo-App-A, and must not weaken Cap 16 cancel / dwell / single-download
+  rules.
+- Context / what problem forced this:
+  Cap 17 follows Cap 15/16 with known Main Browse debt: Host-temp vs
+  L2-ready revisit chrome; debt **400** (iCloud / optimized-storage video
+  without Layer 1 poster); debt **403**-class iCloud load feel + dead-end
+  wait UX. Process matches Cap 15: **diagnosis before contract** (17.1 then
+  17.2). Evidence: `docs/acceptance/cap17-17.1-notes.md` (2026-08-25,
+  Kafka, Profile WT17 throwaway — **never committed**). Track A path-class
+  durations; Track B Full+Limited Host load finish / leave-cancel / progress;
+  Track C Full/Limited × opportunistic / `.fastFormat` @512 sync probe.
+  Owner decisions for this freeze: **D1–D5 = A**, with a4 band-threshold
+  wording, i17 spot-check, and a1 regression-lock test as below.
+- Process note:
+  17.2 appends this entry as **Proposed**. After the **first Cap 17
+  implementing work commit** (expected **17.3**), a docs commit flips
+  Status to Accepted (anchor = that sha; Accepted date from
+  `git log -1 --format=%cs <sha>`). Cap close-out does **not** flip Accepted.
+- Decision (what was chosen):
+  1. **Capability identity.** Title: Main Browse Layer 1→2 chrome and
+     iCloud availability hardening (Cap 17). Do not use “Doom Scroll” in
+     the capability name, this ADR, code identifiers, ARB keys, or test
+     names. Cap **18** / debt **402** out of scope.
+  2. **D1 = A — Wait chrome by path-class / duration band (not a single
+     in-flight bool).** Production must not treat `_layer2InFlight` alone
+     as “always show corner chrome.” Chrome kind is selected from a
+     path-class × expected-duration policy (exact type names are an
+     implementation detail of 17.3):
+     - **a1** (Layer 1 miss): keep immediate corner chrome; **no**
+       delay-before-show on this path (ADR-031 Q2 preserved).
+     - **a2** (wait-to-playable, long tail): corner chrome; **may** show
+       Host progress when progress samples exist (Track B: progress was
+       observed). No per-item ETA promise.
+     - **a3** (L2-ready hit): no wait chrome.
+     - **a4** (`l2ready_evict` / Host-temp revisit): **not** a homogeneous
+       “always short / always suppress” class. 17.1 Full a4 n=186 bucket
+       counts were **65 / 108 / 13 / 0 / 0 / 0** for
+       [&lt;50, 50–200, 200–500, 0.5–2s, 2–10s, &gt;10s] ms — about **7%**
+       sit in **200–500 ms**. **17.3 chooses a concrete band threshold T
+       from that distribution** (and device notes). Policy: while on the
+       a4 path and still in flight, **suppress** chrome for elapsed &lt; T;
+       if still in flight after T, show normal corner chrome. Do **not**
+       read this ADR as “all a4 are &lt;200 ms” or “suppress every a4 for
+       the whole request.” A single fixed suppress-all-a4 rule is
+       rejected because it recreates the empty-window failure mode
+       ADR-031 Q2 warned about (wait with neither content nor chrome),
+       now inside the a4 tail.
+     - **a5**: rare / unobserved under Kafka Host-temp pressure (17.1);
+       do not design product defaults around ideal a5; if observed, fold
+       into the revisit / a4-style band policy.
+     - **a6**: short-path band treatment consistent with the same policy
+       helper (no separate product story).
+  3. **D2 = A — Debt 400 presentation scheme.** Cap 17 **accepts residual
+     black** when no local Layer 1 derivative exists (Limited + local-only
+     Layer 1 cannot invent pixels). **17.4** improves wait **visibility**
+     (corner chrome / shared progress channel when networked Layer 2 is
+     already in flight / optional short copy via l10n — exact UI in 17.4).
+     **Do not** ship production Layer 1 `deliveryMode = .fastFormat` in
+     Cap 17: Track C Limited `.fastFormat` was **26/26 miss** (regression);
+     Full `.fastFormat` cleared miss ids **and** globally downgraded
+     already-good ~512 hits to ~40–120. Not a miss-only free lunch; not a
+     Limited rescue. **Do not** enable Layer 1 network. Miss-3 is
+     heterogeneous (2× never-hit + 1× post-L2-play reclaim **candidate,
+     not proven**); UI must not assume one black-screen cause. Closing the
+     Known-debt **400** row is **not** required for 17.2/17.4 pass.
+  4. **D3 = A — iCloud optimization acceptance (17.5).** Bar =
+     **explainable wait + observable improvement**; **no** promise to match
+     Photo-App-A / iOS Photos. **Primary before/after columns:** load
+     finished **ok**, **deduped cancel** (same id + leave window; leave may
+     emit a second late cancel finish — 17.1 Full raw 91 ≈ 74 leave + 17
+     orphan), **fail = 0**, **progress present**. Full auth is the
+     15.11-homologous primary column; Limited may supplement. **Latency
+     proxy:** Track A **a2** wait-to-playable distribution (Full evidence:
+     p50 360 ms / p90 3796 ms / max 18598 ms) — mixes local/iCloud and
+     still/video; **not** an iCloud-only distribution; still the only
+     latency evidence from 17.1. **Forbidden KPIs:** undeduped raw
+     `load-finished cancel` totals; `cancel stillCurrent=true` as a
+     supersede score (≡ leave Host snapshot; withdrawn in 17.1). Optional
+     later: dedicated Host iCloud-only timing — not required to freeze
+     17.2. Method language matches ADR-030: observable failure +
+     qualitative judgement; no Instruments hitch/hang numeric shipping
+     gate. Throwaway probes **never committed**.
+  5. **D4 = A — Cap 16 storage / fetch invariants (hard, restated).**
+     Cap 17 implementations (especially 17.5) **must not** weaken:
+     (1) current-item networked Layer 2 starts only after dwell N
+     (ADR-029; N adjustable only with explicit acceptance, not silently
+     for speed); (2) leave-current cancels dwell, PhotoLibrary Layer 2,
+     and in-flight `prepareActive` without requiring a next-id compare;
+     (3) one networked video prepare path via `load` completion;
+     (4) storage growth remains explainable as watched items (16.5
+     protocol language; no hard GB bar). Adding concurrent networked
+     Layer 2 fetches that cannot be explained by become-current + dwell
+     **fails** this Cap. “Faster iCloud” is not grounds to drop
+     leave-cancel.
+  6. **D5 = A — Track C sync vs async follow-up.** 17.1 Track C used
+     `isSynchronous = true` (≠ production async `requestPreview` / Cap 15.6
+     first-paint morphology). An optional `isSynchronous = false` re-probe
+     does **not** block 17.2; run only if 17.4/17.6 disputes first-paint
+     morphology. Not a standing Cap 17 gate.
+  7. **Phase mapping.**
+     - **17.3:** path-class chrome unification (local peek residue +
+       revisit; L1/L2 handoff; L2-ready vs display/preview temp eviction;
+       `_layer2InFlight` conditions); choose a4 **T** from 17.1 Full
+       distribution + device notes; may reassess temp budgets only if it
+       does not violate Decision 5.
+     - **17.4:** debt 400 wait presentation per Decision 3.
+     - **17.5:** iCloud fetch-path work under Decisions 4–5.
+     - **17.6:** device acceptance + residual triage (Main Browse
+       foundation only).
+     - **17.7:** Cap close-out.
+  8. **Automated tests (contract for `lib/` work commits; not a 17.2
+     code delivery).** Every Cap 17 Coding Task that touches `lib/` keeps
+     `test/architecture/` green (ADR-009 / ADR-012). In addition, 17.3+
+     should land (names flexible):
+     - Pure Dart unit: path-class × duration-band → chrome kind, including
+       a4 suppress-below-T / show-after-T behaviour with an injectable T.
+     - Pure Dart unit: cancel **id+window dedupe** helper used for 17.5
+       metrics (leave → double finish).
+     - Thin widget tests: short band suppresses spinner; past T shows
+       chrome while still in flight; L2-ready hit has no wait chrome;
+       **a1 miss chrome shows immediately and is unaffected by a4 band
+       logic** (regression lock so the ADR-031 Q2 narrow exception is not
+       accidentally widened).
+     - Host/PhotoKit paths: pure-logic unit tests where extracted; declare
+       un-exercised PhotoKit in the work-commit message when applicable
+       (same discipline as Cap 14/15 Host changes).
+     - **Non-tests:** committed WT17 sources; Instruments numeric
+       assertions; spinner goldens; CI that requires reproducing lasting
+       debt-400 black.
+  9. **Manual / device notes (minimum, not a Cap 15.8 matrix at 17.2).**
+     - **17.2:** contract review only; no device script.
+     - **17.3 / 17.4:** light device notes on **Kafka** (short revisit
+       flash; no-L1 wait readability) **and a quick i17 pass** confirming
+       that a Kafka-chosen a4 **T** does not introduce new flash on an
+       i17-scale, mostly-local library (Host-temp debt is device-skewed:
+       clear on Kafka, faint/acceptable on i17 — STATE Known debt). Not a
+       full formal protocol.
+     - **17.5:** before/after table per Decision 4; reuse 17.1 Host tee
+       discipline (`print`+`NSLog` if needed); probes never committed.
+     - **17.6:** ADR-030 §5 owner daily-use + residual triage.
+  10. **Non-goals.** Layer 1 network; Full vs Limited **production**
+      auth fork; treating Debug/Profile probe chrome as Release copy;
+      closing Known-debt **400** or **403** from diagnosis/contract alone;
+      Cap 18 gestures; matching Photo-App-A load speed; Instruments
+      hitch/hang Pass bars; silent dwell-N or leave-cancel weakening.
+- Rejected alternatives (why not B):
+  - D1=B universal delay-before-show (including a1) — rejected; reopens
+    ADR-031 Q2 failure mode on L1 miss.
+  - D1=C defer all duration bands — rejected; 17.1 shows a4 vs a2 need
+    distinct policy now.
+  - Homogeneous “suppress all a4” without T / without show-after-T —
+    rejected; ignores Full a4 **13/186** in 200–500 ms and empty-window
+    risk.
+  - D2=B miss-only second preview request / D2=C production `.fastFormat`
+    — rejected for Cap 17; Track C + Host same-id supersede cost; Limited
+    regression; Full global quality downgrade.
+  - D3=C qualitative-only with no before/after table — rejected; 17.5
+    needs observable columns; 17.1 already defined them.
+  - D3 using raw cancel or `stillCurrent=true` as KPI — rejected; 17.1
+    withdrew / corrected.
+  - D3 using a2 p90 as a hard pass/fail threshold for 17.5 — rejected;
+    a2 mixes local/iCloud and still/video, producing false PASS (fast
+    local sessions hide slow iCloud) or false FAIL (one heavy iCloud
+    session skews the whole distribution).
+  - D4=B cite ADR-029 only — rejected; 17.5 readers need the hard edges
+    inlined.
+  - D5=B mandatory async Track C before 17.4 — rejected; non-blocking
+    follow-up per 17.1.
+- Consequences:
+  17.3 is the first Cap 17 work commit and the expected Accepted anchor.
+  Probe source stays out of git; 17.1 notes already on `main` (`73025b4`).
+  Temp-budget numeric changes, if any, stay under Decision 5 and owner
+  scope for 17.3 — not implied by this freeze alone.

@@ -189,11 +189,13 @@ availability hardening (Cap 17)
       × opportunistic/`.fastFormat` (Track C). Evidence
       `docs/acceptance/cap17-17.1-notes.md`. Probes **never
       committed**.
-- [~] 17.2 Contract freeze — ADR TBD Proposed.
-      Wait-feedback display conditions; debt 400 wait presentation
-      scheme; iCloud optimization acceptance (explainable wait +
-      observable improvement; no match-competitors promise);
-      Cap 16 storage invariants (hard). Inputs: 17.1 notes.
+- [x] 17.2 Contract freeze — ADR-034 **Proposed** (no Accepted date;
+      no fake anchor until first Cap 17 work commit, expected 17.3).
+      Wait-feedback by path-class / duration band (a4 T chosen in 17.3
+      from Full 65/108/13); debt 400 accept residual black + visibility
+      (no production `.fastFormat`); iCloud bar explainable +
+      observable (ok / deduped cancel / fail / prog; a2 latency proxy
+      not a hard p90 gate); Cap 16 invariants hard. Inputs: 17.1 notes.
 - [ ] 17.3 Layer 1→2 handoff chrome unification (local peek spinner
       residue + revisit spinner; same root / same phase: L1/L2
       handoff, L2-ready, display/preview temp eviction,
@@ -206,13 +208,15 @@ availability hardening (Cap 17)
 - [ ] 17.7 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.2** contract freeze (ADR TBD Proposed)
-- Sub-steps done: Cap 17.1 diagnosis closed (notes
-      `docs/acceptance/cap17-17.1-notes.md`; probes never committed)
-- Next step: draft 17.2 ADR from 17.1 freeze inputs (path-class wait
-      chrome; 400 presentation; iCloud explainable+observable; Cap 16
-      hard). Do not implement 17.3+ until ADR Proposed.
-- Related decisions: ADR-025; ADR-029; ADR-031…033; Cap 16 storage
+- Goal (one line): Cap **17.3** path-class wait chrome (ADR-034
+      Proposed; Accepted after this phase’s work commit)
+- Sub-steps done: Cap 17.1 notes (`73025b4`); Cap 17.2 ADR-034
+      Proposed (this docs commit)
+- Next step: implement path-class × duration-band chrome per ADR-034
+      Decision 2 (choose a4 T from 17.1 Full distribution + Kafka/i17
+      notes); land Decision 8 unit/widget tests incl. a1 regression
+      lock. Do not start 17.4/17.5 until 17.3 work is accepted.
+- Related decisions: ADR-025; ADR-029; ADR-031…034; Cap 16 storage
       discipline; Known debt Host-temp/L2-ready + 400 + 403 → Cap 17;
       402 → Cap 18
 
@@ -356,6 +360,9 @@ availability hardening (Cap 17)
   Accepted, anchor `f0187b4`; ADR-022 Cap 12 Session Queue Accepted,
   anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted, anchor
   `95779ef`; ADR-020 Cap 10 models Accepted)
+- ADR-034: Cap 17 wait chrome / debt 400 / iCloud observability —
+  **Proposed** (no Accepted date; no fake anchor; expected Accepted
+  after 17.3 work commit)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
