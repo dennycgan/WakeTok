@@ -183,16 +183,17 @@ availability hardening (Cap 17)
 > and before Build a Pool. Do not use “Doom Scroll” in capability
 > names / ADRs / identifiers.
 
-- [ ] 17.1 Diagnosis (Cap 15 diagnosis-before-contract pattern).
-      Wait-feedback duration distribution; iCloud fetch-path
-      observability metrics; debt 400 available derivative tiers
-      under Full/Limited (incl. `.fastFormat` trial). Probes not
-      committed.
-- [ ] 17.2 Contract freeze — ADR TBD Proposed.
+- [x] 17.1 Diagnosis (Cap 15 diagnosis-before-contract pattern).
+      Wait-feedback duration (Track A); iCloud fetch observability
+      (Track B Full+Limited); debt 400 derivative tiers Full/Limited
+      × opportunistic/`.fastFormat` (Track C). Evidence
+      `docs/acceptance/cap17-17.1-notes.md`. Probes **never
+      committed**.
+- [~] 17.2 Contract freeze — ADR TBD Proposed.
       Wait-feedback display conditions; debt 400 wait presentation
       scheme; iCloud optimization acceptance (explainable wait +
       observable improvement; no match-competitors promise);
-      Cap 16 storage invariants (hard).
+      Cap 16 storage invariants (hard). Inputs: 17.1 notes.
 - [ ] 17.3 Layer 1→2 handoff chrome unification (local peek spinner
       residue + revisit spinner; same root / same phase: L1/L2
       handoff, L2-ready, display/preview temp eviction,
@@ -205,13 +206,15 @@ availability hardening (Cap 17)
 - [ ] 17.7 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.1** diagnosis (probes not committed)
-- Sub-steps done: Cap 15/16 closed; Capability Roadmap Cap 17–20
-      ordered before Build a Pool (owner 2026-08-24)
-- Next step: run Cap 17.1 diagnosis probes on Kafka / i17; no code
-      commit until 17.2 contract freeze
+- Goal (one line): Cap **17.2** contract freeze (ADR TBD Proposed)
+- Sub-steps done: Cap 17.1 diagnosis closed (notes
+      `docs/acceptance/cap17-17.1-notes.md`; probes never committed)
+- Next step: draft 17.2 ADR from 17.1 freeze inputs (path-class wait
+      chrome; 400 presentation; iCloud explainable+observable; Cap 16
+      hard). Do not implement 17.3+ until ADR Proposed.
 - Related decisions: ADR-025; ADR-029; ADR-031…033; Cap 16 storage
-      discipline; Known debt 394 / 400 / 403 → Cap 17; 402 → Cap 18
+      discipline; Known debt Host-temp/L2-ready + 400 + 403 → Cap 17;
+      402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -396,6 +399,9 @@ availability hardening (Cap 17)
 - Acceptance notes (Cap 15.6 closed `52e775c`; Protocol B Full/Limited
   preview-tier model; debt 400 open):
   docs/acceptance/cap15-15.6-notes.md
+- Acceptance notes (Cap 17.1 diagnosis closed; Tracks A/B/C; probes
+  never committed):
+  docs/acceptance/cap17-17.1-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
