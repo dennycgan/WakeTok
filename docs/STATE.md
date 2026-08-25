@@ -201,24 +201,40 @@ availability hardening (Cap 17)
       temp eviction, `_layer2InFlight` chrome). Work `00b7264`: a4 T=150 ms;
       promoted G/B/F1(+D); E + C/F2 retained not Decision-2-promoted;
       a4 min-show removed (audit trail in ADR-034).
-- [ ] 17.4 debt 400 wait-state presentation.
+- [x] 17.4 debt 400 wait-state presentation (ADR-034 Decision 3).
+      Work `cb477fe` (Accepted date 2026-08-25): coverless wait /
+      L2-failed copy centered in usable feed region; corner gold spinner
+      retained; one wait-chrome evaluation per build; `Layer2Waiting`
+      l10n. Residual black accepted; Known-debt **400** row **not** Closed.
+      Kafka Limited device PASS (owner 2026-08-25).
 - [ ] 17.5 iCloud fetch-path optimization (under 17.2 invariants).
 - [ ] 17.6 Device acceptance + residual triage.
       Absorb only residuals strictly in the Main Browse foundation
       loop; do not expand to pool / clips / autoplay.
-- [ ] 17.7 Cap close-out.
+- [ ] 17.7 Overlay capture-time vs iOS Photos (exact + relative).
+      **Owner expansion during Cap 17.4 device acceptance (2026-08-25):**
+      not in the original frozen 17.1–17.7 Main Browse / iCloud roadmap.
+      Cross **Media Info Overlay** scope (Cap 8); owner decided to fold
+      into Cap 17 rather than open a separate Cap. Goal: Overlay times
+      match what the user sees in iOS Photos. Suspected timezone handling;
+      mechanism **not yet verified** (do not treat Host as proven root).
+      Former Cap close-out renumbered to **17.8**.
+- [ ] 17.8 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.4** debt 400 wait-state presentation
-      (ADR-034 Decision 3)
+- Goal (one line): Cap **17.5** iCloud fetch-path optimization
+      (ADR-034 Decision 4; Cap 16 invariants hard)
 - Sub-steps done: Cap 17.1 notes (`73025b4`); Cap 17.2 contract;
-      Cap 17.3 wait chrome (`00b7264`; ADR-034 Accepted)
-- Next step: improve no-L1 / debt-400 wait **visibility** per ADR-034
-      Decision 3 (corner chrome / shared progress when networked L2 in
-      flight / optional l10n). Do not ship production Layer 1
-      `.fastFormat`. Do not start 17.5 until 17.4 scope is owner-accepted.
+      Cap 17.3 wait chrome (`00b7264`); Cap 17.4 coverless wait
+      presentation (`cb477fe`; ADR-034 Decision 3)
+- Next step: owner-scoped 17.5 design under explainable + observable
+      bar (ok / deduped cancel / fail / prog; a2 latency proxy). Do not
+      weaken leave-cancel / dwell / single networked prepare. Do not
+      start 17.7 Overlay timezone until 17.5/17.6 as scheduled (17.7 is
+      after 17.6 on the roadmap).
 - Related decisions: ADR-025; ADR-029; ADR-031…034; Cap 16 storage
-      discipline; Known debt 400 + 403 → Cap 17; 402 → Cap 18
+      discipline; Known debt 400 (open) + 403 → Cap 17; Overlay
+      capture-time → Cap 17.7; 402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -361,7 +377,8 @@ availability hardening (Cap 17)
   anchor `f53d455`; ADR-021 Cap 11 Live Resolution Accepted, anchor
   `95779ef`; ADR-020 Cap 10 models Accepted)
 - ADR-034: Cap 17 wait chrome / debt 400 / iCloud observability —
-  **Accepted** (2026-08-25), anchor `00b7264` (Cap 17.3 work)
+  **Accepted** (2026-08-25), anchor `00b7264` (Cap 17.3 work);
+  Cap 17.4 presentation work `cb477fe` (Decision 3; debt 400 row remains open)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
@@ -460,7 +477,8 @@ availability hardening (Cap 17)
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): same `_loading` miss chrome as 399, now `_FeedCornerChrome` not centered. Black wait until Layer 1 still exists (ADR-025); 14.4e remount at index 0 can still land on a miss head (Shuffle). Kafka 2026-08-20 device: miss = corner spinner; library loading still centered. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-027 / ADR-031 |
 | Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): miss page is `feedBackground` + `_FeedCornerChrome`; no delay-before-show; new ARB `mainBrowseFeedLayer1Loading`. Library resolve `mainBrowseFeedLoading` stays centered. Kafka device PASS. UX-1 (402) not in this close. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-019 / ADR-031 |
-| Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`52e775c`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. | Cap 17 (17.1 diagnosis incl. `.fastFormat`; 17.4 wait presentation) | ADR-025 / ADR-006 / ADR-031 |
+| Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`52e775c`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. **Cap 17.4 (`cb477fe`):** coverless wait **visibility** improved (centered copy + corner spinner); **residual black accepted**; this row stays **open** (ADR-034: closing 400 not required for 17.4 pass). | Cap 17 (17.4 presentation landed; residual black open) | ADR-025 / ADR-006 / ADR-031 / ADR-034 |
+| Media Info Overlay | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Owner device (2026-08-25):** WakeTok Overlay showed e.g. `2019-11-09 05:00` while iOS Photos showed `2019-11-08 19:00` for the same item (and a second asset with the same class of whole-hour offset). Searching Photos by the WakeTok-displayed clock fails until the Photos-local time is used. **Suspected** timezone / absolute-instant handling somewhere in the Overlay capture-time path (exact `formatOverlayExactDateTime` **and** relative `formatOverlayRelativeDate` share `createdAt` — both in scope). **Mechanism not yet verified** — do not treat Host vs Dart `toLocal()` as a settled root cause. **Cross Cap 8 Media Info Overlay**; owner folded into Cap 17 as phase **17.7** (roadmap expansion during 17.4 acceptance). | Cap 17.7 | Cap 8 Overlay / ADR-014 family; Cap 17 owner expansion |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Cap 18 (tap pause/resume + unlock return-to-foreground paused path; not lock-screen continue-audio) | ADR-006 |
 | Main Browse Screen | Asset-source iCloud load feels much slower than Photo-App-A / iOS Photos; bottom-right spinner is a half-dead-end wait state | **Suspect clues (verify later — not closed root causes; not Cap 15.11 scope).** **(A) Load speed:** Owner subjective + Cap 15.11 **session** log on Kafka (`/tmp/waketok_1511b_stale_idx.log`, 2026-08-23): many items stayed blurry / non-playing while Photo-App-A in the same window eventually loaded; log skew `load-finished err=ok` ≈168 vs `operationCancelled` ≈417, **0** `iCloudDownloadFailed`. Suspect aggressive leave/remount/supersede cancel + single-flight prepare vs competitor / Photos keep-or-parallel download — **deep-dive WakeTok iCloud network + cancel policy** when scheduled; no attribution without further evidence. **(B) Wait-state UX:** item-level `_FeedCornerChrome` spinner gives **no progress signal** during long iCloud Layer 2 (throughput, bytes, ETA, retry affordance beyond corner Retry chrome — **details TBD**). User can only wait or swipe away; poor even if absolute download time unchanged. Independent of 393/handoff fix (Kafka + i17 A↔B PASS `c8a59b3`). | Cap 17 (17.1/17.5 fetch-path; wait UX via 17.2/17.4 — explainable + observable, not match-competitors) | ADR-025 / ADR-029 / ADR-006 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
