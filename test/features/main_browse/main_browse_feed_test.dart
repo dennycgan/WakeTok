@@ -29,6 +29,7 @@ import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
+import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import 'package:waketok/features/library_smoke/playback_providers.dart';
@@ -2406,6 +2407,9 @@ void main() {
       );
       display.displaysById['live-1'] = liveAsset;
       display.previewsById['live-1'] = liveAsset;
+      // Hold L2 with elapsed ≥ T so wait chrome latches — ADR-037 continuity.
+      final gate = Completer<void>();
+      display.displayGates['live-1'] = gate;
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
@@ -2413,9 +2417,25 @@ void main() {
           assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
           mediaDisplay: display,
           livePhoto: live,
+          browseLayer2Dwell: Duration.zero,
         ),
       );
-      await pumpAsyncWork(tester);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
+      final page = tester.state<MediaFeedPageState>(
+        find.byWidgetPredicate(
+          (w) => w is MediaFeedPage && w.assetIdentifier == 'live-1',
+        ),
+      );
+      page.debugInFlightElapsedOverride = kDefaultA4SuppressBelow;
+      await tester.pump();
+      expect(
+        find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
+        findsOneWidget,
+      );
+      gate.complete();
+      await tester.pump();
+      await tester.pump();
       expect(display.displayCalls, contains('live-1'));
       expect(live.calls, contains('requestLivePhoto:live-1'));
 

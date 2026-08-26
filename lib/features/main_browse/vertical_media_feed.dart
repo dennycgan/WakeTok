@@ -922,15 +922,48 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   Duration? debugA4SuppressBelowOverride;
 
+  @visibleForTesting
+  bool get debugLivePreparing => _livePreparing;
+
+  @visibleForTesting
+  bool get debugLayer2WaitChromeLatched => _layer2WaitChromeLatched;
+
+  @visibleForTesting
+  bool get debugLivePreparingSkipSuppressBelowT =>
+      _livePreparingSkipSuppressBelowT;
+
+  @visibleForTesting
+  int get debugLiveMotionGeneration => _liveMotionGate.generation;
+
+  /// Test seam: play-only entry (must not arm preparing / spinner).
+  @visibleForTesting
+  Future<void> debugPlayLiveMotionOnce(int generation) =>
+      _playLiveMotionOnce(generation);
+
+  /// Test seam: mark prepared + surface ready for play-only tests.
+  @visibleForTesting
+  void debugArmPreparedLiveForPlay({required int generation}) {
+    assert(_liveMotionGate.isCurrent(generation));
+    _livePhotoReady = true;
+    _liveSurfaceReady = true;
+    _liveStartIssued = false;
+  }
+
+  /// Test seam: bump Live motion gate and return the new generation.
+  @visibleForTesting
+  int debugBeginLiveMotionGate() => _liveMotionGate.begin();
+
   /// Test seam: force in-flight + path for widget chrome tests (W-17.3*).
   ///
   /// [mediaKind] overrides [_media] so G (still-only) vs video a2 can be locked.
+  /// [stillPlaybackKind] selects image vs livePhoto when [mediaKind] is still.
   @visibleForTesting
   void debugForceLayer2WaitChrome({
     required WaitChromePathClass path,
     required Duration elapsed,
     int generation = 1,
     FeedPageMediaKind? mediaKind,
+    PlaybackMediaKind stillPlaybackKind = PlaybackMediaKind.image,
   }) {
     void apply() {
       _layer2WaitPath = path;
@@ -949,13 +982,32 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _media = FeedPageMedia.still(
           DisplayAsset(
             assetIdentifier: widget.assetIdentifier,
-            mediaKind: PlaybackMediaKind.image,
+            mediaKind: stillPlaybackKind,
             localFilePath: '/tmp/cap173_chrome_still.png',
           ),
           layer: FeedDisplayLayer.preview,
         );
       }
       _scheduleLayer2ReassureIfNeeded();
+    }
+
+    if (mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
+  }
+
+  /// Test seam: L2 success → Live prepare handoff (ADR-037 latch consume).
+  @visibleForTesting
+  void debugCompleteL2HandoffToLivePrepare() {
+    void apply() {
+      final latchedL2WaitChrome = _layer2WaitChromeLatched;
+      _completeLayer2InFlightForSuccess();
+      _livePreparingSkipSuppressBelowT = latchedL2WaitChrome;
+      _livePreparing = true;
+      _onLivePreparingChanged(true);
+      _layer2WaitChromeLatched = false;
     }
 
     if (mounted) {
@@ -1091,6 +1143,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _layer2InFlight = true;
     _layer2InFlightGeneration = generation;
     _layer2InFlightArmedAt = DateTime.now();
+    // New L2 attempt — do not inherit a prior activation's paint latch.
+    _layer2WaitChromeLatched = false;
     debugInFlightElapsedOverride = null;
     _scheduleA4ChromeRevealIfNeeded();
     _scheduleLayer2ReassureIfNeeded();
@@ -1180,6 +1234,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _layer2InFlight = false;
     _layer2InFlightGeneration = null;
     _layer2InFlightArmedAt = null;
+    _layer2WaitChromeLatched = false;
     debugInFlightElapsedOverride = null;
   }
 
@@ -1204,13 +1259,27 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _liveSurfaceReady = false;
   bool _liveStartIssued = false;
 
-  /// Cap 9.5 Q4=A: motion prepare spinner (generation-gated writes).
-  /// Cap 14.6b also uses an ungated handoff write so the Live load spinner
-  /// stays up across `_layer2InFlight` → serial-queue wait.
+  /// Cap 9.5 Q4=A: motion **prepare** spinner (generation-gated writes).
+  ///
+  /// Means "Live motion resource acquire in flight" only — **not** playback.
+  /// Cap 14.6b ungated handoff keeps this true across L2 → serial-queue wait.
+  /// Cap 17.6 / ADR-037: when L2 wait chrome already latched, skip F1 &lt;T
+  /// suppress so the corner spinner does not dip between phases.
+  /// Play-only ([_playLiveMotionOnce]) must never set this flag.
   bool _livePreparing = false;
-  /// Cap 17.3: wall clock when [_livePreparing] became true (a3/a4 suppress-T).
+  /// Cap 17.3: wall clock when [_livePreparing] became true (F1 suppress-T).
   DateTime? _livePreparingArmedAt;
   Timer? _livePreparingChromeRevealTimer;
+  /// ADR-037: skip F1 &lt;T suppress for this prepare arm (L2 chrome latched).
+  bool _livePreparingSkipSuppressBelowT = false;
+  /// F1 reveal latched by Timer (fake-async safe; not DateTime alone).
+  bool _livePreparingChromeRevealed = false;
+
+  /// Cap 17.6 / ADR-037: true if L2 wait corner spinner painted this inFlight.
+  ///
+  /// Cleared on new [_armLayer2InFlight], leave/abandon clear, and after the
+  /// L2→motion handoff consumes it. Not wall-clock ≥ T alone.
+  bool _layer2WaitChromeLatched = false;
 
   bool get _showLiveLoadSpinner {
     // E: off-current hard gate (conservative; not Decision-2-promoted).
@@ -1221,7 +1290,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return false;
     }
     if (_livePreparing) {
-      // F1(+D): suppress Live prepare gold until wall time ≥ T.
+      // ADR-037: continuous handoff when L2 wait chrome already painted.
+      if (_livePreparingSkipSuppressBelowT) {
+        return true;
+      }
+      // F1(+D): suppress until reveal Timer (or real wall ≥ T as fallback).
+      if (_livePreparingChromeRevealed) {
+        return true;
+      }
       final armed = _livePreparingArmedAt;
       if (armed == null) {
         return false;
@@ -1244,9 +1320,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _livePreparingChromeRevealTimer = null;
     if (!next) {
       _livePreparingArmedAt = null;
+      _livePreparingSkipSuppressBelowT = false;
+      _livePreparingChromeRevealed = false;
       return;
     }
     _livePreparingArmedAt = DateTime.now();
+    if (_livePreparingSkipSuppressBelowT) {
+      // Spinner already continuous from L2 — treat as revealed.
+      _livePreparingChromeRevealed = true;
+      return;
+    }
+    _livePreparingChromeRevealed = false;
     final armedAt = _livePreparingArmedAt!;
     _livePreparingChromeRevealTimer = Timer(_a4SuppressBelow, () {
       if (!mounted || !_livePreparing || !widget.isCurrent) {
@@ -1255,7 +1339,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (_livePreparingArmedAt != armedAt) {
         return;
       }
-      setState(() {});
+      setState(() => _livePreparingChromeRevealed = true);
     });
   }
 
@@ -1577,11 +1661,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           unawaited(_syncPlaybackActive());
           if (_isLiveStillMedia(_media) && !_livePreparing) {
             setState(() {
+              _livePreparingSkipSuppressBelowT = false;
               _livePreparing = true;
               _onLivePreparingChanged(true);
             });
           }
-          unawaited(_maybeBeginLiveMotion());
+          unawaited(_prepareLiveMotion());
         }
       }
     }
@@ -1691,8 +1776,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _setLivePreparing(generation, value);
   }
 
-  /// Cap 9.4 Live play-once + Cap 9.5 Q4=A spinner-only while preparing.
-  Future<void> _maybeBeginLiveMotion() async {
+  /// Cap 9.4/9.5: **prepare** Live motion (may show gold spinner).
+  ///
+  /// Acquires the Host LivePhoto via [LivePhotoRepository.requestLivePhoto].
+  /// Sets [_livePreparing] — the only path that may paint prepare chrome.
+  /// Future long-press **replay** must not call this when Host already holds
+  /// a prepared LivePhoto; use [_playLiveMotionOnce] instead (ADR-037).
+  Future<void> _prepareLiveMotion() async {
     if (!widget.isCurrent || !_isLiveStillMedia(_media)) {
       _abandonLivePreparingHandoff();
       return;
@@ -1735,7 +1825,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
         _setLivePreparing(generation, false);
         _livePhotoReady = true;
-        unawaited(_tryStartLivePlayback(generation));
+        unawaited(_playLiveMotionOnce(generation));
       });
       _liveFailedSub = live.failedEvents.listen((event) {
         if (!_liveMotionGate.isCurrent(generation)) {
@@ -1784,7 +1874,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     });
   }
 
-  Future<void> _tryStartLivePlayback(int generation) async {
+  /// Play Live motion once — **never** arms [_livePreparing] / spinner.
+  ///
+  /// Requires ready + surface. Future long-press replay should enter here
+  /// (or silent re-request with prepare chrome off), not [_prepareLiveMotion].
+  Future<void> _playLiveMotionOnce(int generation) async {
     if (!_liveMotionGate.isCurrent(generation) ||
         !_livePhotoReady ||
         !_liveSurfaceReady ||
@@ -2812,19 +2906,24 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _media = layer2;
       _loading = false;
+      // Capture before L2 clear — latch is for this inFlight only.
+      final latchedL2WaitChrome = _layer2WaitChromeLatched;
       _completeLayer2InFlightForSuccess();
       _layer2Failed = false;
       _layer2FailureReason = null;
       // 14.6b: same-frame handoff so the Live spinner does not drop while
-      // [_maybeBeginLiveMotion] awaits LiveHostOpSerial.
+      // [_prepareLiveMotion] awaits LiveHostOpSerial.
+      // ADR-037: if L2 wait chrome already painted, skip F1 <T on motion.
       if (liveStill && widget.isCurrent) {
+        _livePreparingSkipSuppressBelowT = latchedL2WaitChrome;
         _livePreparing = true;
         _onLivePreparingChanged(true);
       }
+      _layer2WaitChromeLatched = false;
     });
     _recordL2ReadySession(layer2: layer2, layer1: layer1);
     widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
-    await _maybeBeginLiveMotion();
+    await _prepareLiveMotion();
   }
 
   void _recordL2ReadySession({
@@ -2933,12 +3032,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           layer: FeedDisplayLayer.full,
         );
         if (liveStill && widget.isCurrent) {
+          _livePreparingSkipSuppressBelowT = false;
           _livePreparing = true;
           _onLivePreparingChanged(true);
         }
       });
       widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
-      await _maybeBeginLiveMotion();
+      await _prepareLiveMotion();
       return;
     }
 
@@ -3060,6 +3160,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // Cap 17.4: one wait-chrome evaluation per build; spinner + center copy
     // (and failed slot) only read these locals.
     final showLayer2WaitSpinner = _evaluateShowLayer2WaitChrome();
+    if (showLayer2WaitSpinner) {
+      // ADR-037: latch real paint, not wall-clock ≥ T alone.
+      _layer2WaitChromeLatched = true;
+    }
     final hasDisplayableCover = media.display != null;
     final coverless = isCoverlessFeedPresentation(
       loading: false,
@@ -3118,7 +3222,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                     if (live != null) {
                       await live.notifyLiveSurfaceReady(widget.assetIdentifier);
                     }
-                    await _tryStartLivePlayback(generation);
+                    await _playLiveMotionOnce(generation);
                   },
                 )
               : null,
