@@ -3501,3 +3501,89 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   fetch-path work, if ever scheduled, still uses ADR-034 Decision 4
   explainable + observable bar — Cap 17.5 phase title narrowing does
   not void that bar.
+
+---
+
+## ADR-036: Cap 17.5b Retry visibility + corner Layer-2 reassure
+
+- Status: Accepted (2026-08-26)
+- Commit/PR anchor: 649e22f
+- Plain summary (owner reads this):
+  Peek must not show a leftover full-page Fail+Retry after leave.
+  On long Layer-2 waits (spinner visible), a short “Still loading” line
+  may appear to the left of the bottom-right gold spinner after 3
+  seconds — including when Layer 1 / poster is already on screen.
+  Center “Loading…” stays coverless-only so it never covers the image.
+  On Live rows the LIVE badge stacks **above** the gold spinner and is
+  pinned to the screen trailing edge on its own Positioned so
+  “Still loading” may coexist without bumping Overlay `trailingInset`.
+  Fail Retry is a translucent on-media chip with theme accent label;
+  fail reason copy stays on-media body.
+- Context / what problem forced this:
+  Cap 17 D7 asked for a user-visible Retry definition review. Code
+  already had resolve / L2 fail Retry and cancel≠fail, but leave left
+  `FeedPageMediaKind.failed` mounted so off-current peek could still
+  show PageRetry — contradicting “cancel/leave must not show Retry.”
+  Separately, long iCloud L2 waits (often **with** L1/poster + corner
+  spinner only) felt dead-ended; owner wanted short corner reassure
+  after a subjective 3s without covering Layer 1 and without replacing
+  Cap 17.4 center coverless copy. An early draft gated reassure on
+  coverless-only; device smoke showed that hid the common covered case,
+  so the lock was corrected to drop the coverless requirement while
+  keeping center chrome coverless-only. A later draft soft-degraded
+  (hid) reassure when LIVE was visible; owner rejected the collision —
+  LIVE moves above the spinner and pins to the trailing edge so both
+  can show.
+- Decision (what was chosen):
+  1. **Page center chrome must not cover Layer 1 / poster.** Center
+     wait/fail only when coverless. Feed-level library loading copy may
+     stay centered (not page L2).
+  2. **G1:** Fail PageRetry only when `isCurrent`; leave coerces
+     `failed` → neutral pending placeholder.
+  3. **Corner reassure (incremental):** after **3s** wall time while
+     L2 wait spinner is visible, paint short copy left of the spinner
+     (**coverless not required**). May coexist with center
+     `Layer2Waiting` when coverless (not XOR). Mutex vs center
+     `Layer1Loading` (L1-miss excludes reassure). With L1/poster,
+     center wait stays off; corner alone. Excludes a4, L1-miss-only
+     pages, fail, and off-current. **LIVE badge may coexist** — badge
+     stacks above the spinner row and uses an **independent**
+     `Positioned(right: inset)` trailing pin (do **not** bump Overlay
+     `trailingInset`; do **not** soft-degrade-hide reassure).
+  4. **¬a4 kept as path-class carve-out** (re-confirmed after dropping
+     coverless): a4 is L2-ready eviction revisit, not first-wait dead
+     air; 17.1 a4 max ≪ 3s; expand only with new ≥3s evidence.
+  5. **Timer discipline:** leave/clear cancels the timer; ticks are
+     generation-gated like a4 reveal. If unclean under fast scroll,
+     remove reassure rather than ship jank.
+  6. **Retry product:** fail-only Retry; cancel/leave/waiting no Retry;
+     resume auto-retry only when already failed; Retry bypasses dwell;
+     button has no reason subtitle; button is an explicit translucent
+     `onMedia` chip (α≈0.28) with `WakeTokTokens.accent` label; fail
+     reason stays `bodyOnMedia`. Fail Retry / resume-fail
+     **await cancelInFlightPrepare then reload** (Dart-only; Cap16
+     serial same-id path).
+- Alternatives considered:
+  - Center “second tier” upgrade of `Layer2Waiting` — rejected; owner
+    required corner incremental placement and allowed dual copy when
+    coverless.
+  - Bump Overlay `trailingInset` to fit horizontal LIVE+reassure+spinner
+    — rejected; shared constant would shift all Live Overlay layout.
+  - Soft-degrade hide reassure when LIVE visible — **superseded**; owner
+    required LIVE above spinner + independent trailing pin so reassure
+    can coexist without a wider horizontal row.
+  - Coverless-only corner reassure — **superseded during 17.5b device
+    smoke**; common L1+spinner waits never showed copy. Replaced by
+    Decision 3 (cover optional).
+  - Also include a4 whenever spinner ≥3s — rejected (and re-confirmed
+    after the coverless correction): separate path class + no ≥3s
+    evidence; keep ¬a4 until new data.
+  - Accept peek Fail+Retry as Known debt — rejected; violates leave
+    cancel product narrative; cheap `isCurrent` gate.
+- Consequences:
+  Cap 17.5b work `649e22f` implements G1 + corner reassure + LIVE
+  trailing layout + translucent accent Retry + l10n + cancel-before-
+  retry + Host Layer2 fail Console probe + tests named in
+  `docs/acceptance/cap17-17.5b-notes.md`. This docs commit accepts
+  ADR-036 and marks 17.5b `[x]` in STATE (YOU ARE HERE remains Cap 17;
+  next phase 17.6).
