@@ -37,10 +37,11 @@ final browseEmptyRetryDelaysProvider = Provider<List<Duration>>(
 );
 
 /// Cap 16.4 / ADR-029: current-item Layer 2 must not start until the item
-/// has been current for this duration. Initial N = 500 ms. Tests override
+/// has been current for this duration. Cap 17.5 production N = 300 ms
+/// (was 500 ms; see docs/acceptance/cap17-17.5-notes.md). Tests override
 /// to [Duration.zero] (same pattern as [browseEmptyRetryDelaysProvider]).
 final browseLayer2DwellProvider = Provider<Duration>(
-  (ref) => const Duration(milliseconds: 500),
+  (ref) => const Duration(milliseconds: 300),
 );
 
 /// Cap 15.12: short dwell before Layer 2 on device-local first visit (N_local).

@@ -1907,7 +1907,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Cap 16.4: arm a cancelable timer when this page becomes current.
   /// Join with Layer 1: Layer 2 waits for this future (already complete if
-  /// Layer 1 took longer than N). [dwell] defaults to production 500 ms;
+  /// Layer 1 took longer than N). [dwell] defaults to production 300 ms;
   /// Cap 15.12 first-visit fast path passes [browseLocalFirstVisitDwellProvider].
   void _armLayer2DwellTimer({Duration? dwellDuration}) {
     _cancelLayer2DwellTimer();

@@ -978,7 +978,7 @@ void main() {
     await completed;
   });
 
-  testWidgets('W-16.4a still Layer 2 waits 500 ms dwell', (tester) async {
+  testWidgets('W-16.4a still Layer 2 waits 300 ms dwell', (tester) async {
     final display = FakeMediaDisplayRepository();
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
@@ -986,18 +986,18 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
-        browseLayer2Dwell: const Duration(milliseconds: 500),
+        browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
     );
     final ids = await pumpUntilFeedIds(tester);
     expect(display.displayCalls, isEmpty);
-    await tester.pump(const Duration(milliseconds: 499));
+    await tester.pump(const Duration(milliseconds: 299));
     expect(display.displayCalls, isEmpty);
     await tester.pump(const Duration(milliseconds: 1));
     expect(display.displayCalls, [ids[0]]);
   });
 
-  testWidgets('W-16.4b video load waits 500 ms dwell', (tester) async {
+  testWidgets('W-16.4b video load waits 300 ms dwell', (tester) async {
     final display = FakeMediaDisplayRepository();
     display.previewsById['v1'] = const DisplayAsset(
       assetIdentifier: 'v1',
@@ -1012,12 +1012,12 @@ void main() {
         assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
         mediaDisplay: display,
         playback: playback,
-        browseLayer2Dwell: const Duration(milliseconds: 500),
+        browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
     );
     await pumpUntilFeedIds(tester);
     expect(playback.calls.where((c) => c.startsWith('load:')), isEmpty);
-    await tester.pump(const Duration(milliseconds: 499));
+    await tester.pump(const Duration(milliseconds: 299));
     expect(playback.calls.where((c) => c.startsWith('load:')), isEmpty);
     await tester.pump(const Duration(milliseconds: 1));
     expect(playback.calls, contains('load:v1'));
@@ -1031,7 +1031,7 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
-        browseLayer2Dwell: const Duration(milliseconds: 500),
+        browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
     );
     final ids = await pumpUntilFeedIds(tester);
@@ -1041,7 +1041,7 @@ void main() {
     final container = ProviderScope.containerOf(element);
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(display.displayCalls, isNot(contains(ids[0])));
   });
 
@@ -1054,11 +1054,11 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
-        browseLayer2Dwell: const Duration(milliseconds: 500),
+        browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
     );
     await pumpUntilFeedIds(tester);
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(display.displayCalls, ['a1']);
     expect(find.byKey(const Key('mainBrowseFeedLayer2Retry')), findsOneWidget);
     display.displayErrorById.remove('a1');
@@ -1080,7 +1080,7 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
-        browseLayer2Dwell: const Duration(milliseconds: 500),
+        browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
     );
     await pumpUntilFeedIds(tester);
@@ -1090,7 +1090,7 @@ void main() {
       find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
       findsOneWidget,
     );
-    await tester.pump(const Duration(milliseconds: 499));
+    await tester.pump(const Duration(milliseconds: 299));
     expect(
       find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
       findsOneWidget,
@@ -1105,11 +1105,11 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
-        browseLayer2Dwell: const Duration(milliseconds: 500),
+        browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
     );
     final ids = await pumpUntilFeedIds(tester);
-    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 300));
     expect(display.displayCalls, [ids[0]]);
     final neighbor = ids[1];
     final element = tester.element(find.byType(VerticalMediaFeed));
@@ -1117,7 +1117,7 @@ void main() {
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
     await tester.pump();
     expect(display.displayCalls, isNot(contains(neighbor)));
-    await tester.pump(const Duration(milliseconds: 499));
+    await tester.pump(const Duration(milliseconds: 299));
     expect(display.displayCalls, isNot(contains(neighbor)));
     await tester.pump(const Duration(milliseconds: 1));
     expect(display.displayCalls, contains(neighbor));
@@ -1136,7 +1136,7 @@ void main() {
           ),
           mediaDisplay: display,
           browseShuffleSeed: 0,
-          browseLayer2Dwell: const Duration(milliseconds: 500),
+          browseLayer2Dwell: const Duration(milliseconds: 300),
         ),
       );
       final ids = await pumpUntilFeedIds(tester);
@@ -1154,16 +1154,16 @@ void main() {
       }
       expect(display.previewCalls, contains(lastId));
       expect(display.displayCalls, isNot(contains(lastId)));
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 150));
       expect(display.displayCalls, isNot(contains(lastId)));
       container.read(browseSessionProvider.notifier).advanceToNextRound();
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
       await tester.pump();
       final after = container.read(browseSessionProvider).requireValue;
       expect(after.orderedAssetIds.first, isNot(lastId));
-      // Old current had ~200 ms of dwell left. That timer must not fire Layer 2
+      // Old current had ~150 ms of dwell left. That timer must not fire Layer 2
       // after the round rebuild (new PageView key, old State disposed).
-      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pump(const Duration(milliseconds: 200));
       expect(display.displayCalls, isNot(contains(lastId)));
     },
   );
@@ -4336,7 +4336,7 @@ void main() {
             },
           ),
           mediaDisplay: display,
-          browseLayer2Dwell: const Duration(milliseconds: 500),
+          browseLayer2Dwell: const Duration(milliseconds: 300),
         ),
       );
       await tester.pump();
@@ -4522,7 +4522,7 @@ void main() {
             },
           ),
           mediaDisplay: display,
-          browseLayer2Dwell: const Duration(milliseconds: 500),
+          browseLayer2Dwell: const Duration(milliseconds: 300),
         ),
       );
       await tester.pump();
@@ -4536,7 +4536,7 @@ void main() {
       final head = ids[0];
       display.displayGates[head] = gate;
 
-      // Fast-path L2 failed (1st display). Fallback re-arms 500 ms dwell;
+      // Fast-path L2 failed (1st display). Fallback re-arms 300 ms dwell;
       // 2nd display must not start until dwell elapses.
       expect(display.displayCalls.where((id) => id == head).length, 1);
 
