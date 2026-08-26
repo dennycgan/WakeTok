@@ -235,26 +235,28 @@ availability hardening (Cap 17)
       ADR-037; notes `docs/acceptance/cap17-17.6-notes.md`.
       W-16.4h `501bde7`. F1 wasted prepare stays Unassigned; 400/403 /
       Layer2Waiting unchanged.
-- [ ] 17.7 Overlay capture-time vs iOS Photos (exact + relative).
+- [x] 17.7 Overlay capture-time honest presentation (exact + relative).
       **Owner expansion during Cap 17.4 device acceptance (2026-08-25):**
-      not in the original frozen 17.1–17.7 Main Browse / iCloud roadmap.
-      Cross **Media Info Overlay** scope (Cap 8); owner decided to fold
-      into Cap 17 rather than open a separate Cap. Goal: Overlay times
-      match what the user sees in iOS Photos. Suspected timezone handling;
-      mechanism **not yet verified** (do not treat Host as proven root).
-      Former Cap close-out renumbered to **17.8**.
+      cross **Media Info Overlay** (Cap 8). Work `affd948` (Accepted
+      date 2026-08-27 / ADR-038). Product goal **changed** from
+      minute-level iOS Photos wall-clock match to day-level approximate
+      presentation from `PHAsset.creationDate` only (local, no EXIF /
+      Host / network). Row 2: `~ Y-M-D`; row 1: coarse short bands
+      (0–2, 3–7) then `N days ago`; Relative R2 superseded. Device
+      smoke PASS iPhone13pro Kafka. Minute-level attempt archived
+      locally (`docs/private/cap17-7-minute-wall-clock-archive/`).
+      Former Cap close-out remains **17.8**.
 - [ ] 17.8 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.7** Overlay capture-time vs iOS Photos
-      (exact + relative; Cap 8 Overlay cross-scope folded into Cap 17)
-- Sub-steps done: Cap 17.1–17.6 as above (17.6 work `c8bc56a` /
-      ADR-037 Accepted; notes `cap17-17.6-notes.md`)
-- Next step: diagnose Overlay `createdAt` / timezone path vs iOS Photos
-      display for the same asset; contract then fix (mechanism TBD)
-- Related decisions: ADR-025; ADR-029; ADR-031…037; Cap 8 Overlay;
-      Known debt Overlay capture-time row; 400 open; 403 / Layer2Waiting /
-      F1 Unassigned; 402 → Cap 18
+- Goal (one line): Cap **17.8** Cap close-out (Main Browse Layer 1→2 /
+      iCloud hardening — Cap 17)
+- Sub-steps done: Cap 17.1–17.7 as above (17.7 work `affd948` /
+      ADR-038 Accepted)
+- Next step: owner Cap 17 close-out checklist (17.8); YOU ARE HERE stays
+      Cap 17 until 17.8 completes
+- Related decisions: ADR-025; ADR-029; ADR-031…038; Cap 8 Overlay;
+      Known debt 400 / 403 / Layer2Waiting / F1 Unassigned; 402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -410,6 +412,8 @@ availability hardening (Cap 17)
 - ADR-037: Live L2→motion prepare chrome continuity (F1 handoff latch) —
   **Accepted** (2026-08-26), anchor `c8bc56a`; narrow exception to
   ADR-034 Decision 2 F1
+- ADR-038: Cap 17.7 Overlay capture-time honest presentation (~ exact +
+  coarse relative bands) — **Accepted** (2026-08-27), anchor `affd948`
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
@@ -513,7 +517,7 @@ availability hardening (Cap 17)
 | Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): miss page is `feedBackground` + `_FeedCornerChrome`; no delay-before-show; new ARB `mainBrowseFeedLayer1Loading`. Library resolve `mainBrowseFeedLoading` stays centered. Kafka device PASS. UX-1 (402) not in this close. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-019 / ADR-031 |
 | Main Browse Screen | **Center Layer2Waiting (`mainBrowseFeedLayer2Waiting` / “Loading…”) necessity unclear — separate from Layer1Loading and corner reassure** | **Three independently bound chrome slots (do not conflate):** (1) **Center Layer1Loading** (`_loading`): “Loading item” while L1 preview is in flight. (2) **Center Layer2Waiting** (`!_loading` ∧ coverless ∧ L2 wait spinner): “Loading…” — Cap 17.4 intent; **device smoke: rarely seen** on production paths (with-poster waits use corner only; L1-miss main path keeps `_loading` through L2 so item copy persists — `_runFullLayer1BecomeCurrentPath` arms L2 on `layer1 == null` but does **not** clear `_loading`; widget tests reach Layer2Waiting via `pendingVideo` seams e.g. `W-17.4c`). (3) **Corner reassure** (Cap 17.5b Package B): “Still loading” after 3s — **own policy** (`shouldShowLayer2CornerReassure`; cover **not** required; mutex vs Layer1Loading page only). **Guard option (future B):** after L1 returns no cover, clear `_loading` + coverless L2 → center “Loading…” (would follow item copy during L1 fetch; not wired today). **Future owner decision after daily use:** **A** delete center Layer2Waiting (item + corner reassure may suffice); **B** wire the L1-miss→L2 guard; **C** collapse to one center wait string. **Deleting center Layer2Waiting does not require changing corner reassure trigger logic** (separate doors; reassure already works with poster — `W-17.5b-covered`). Would revisit dual-copy tests/ADR wording only, not Package B AND gates, unless product wants different long-wait semantics. | Unassigned (owner daily use → product judgment) | ADR-034 / ADR-036; `cap17-17.5b-notes.md` |
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`52e775c`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. **Cap 17.4 (`cb477fe`):** coverless wait **visibility** improved (centered copy + corner spinner); **residual black accepted**; this row stays **open** (ADR-034: closing 400 not required for 17.4 pass). | Cap 17 (17.4 presentation landed; residual black open) | ADR-025 / ADR-006 / ADR-031 / ADR-034 |
-| Media Info Overlay | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Owner device (2026-08-25):** WakeTok Overlay showed e.g. `2019-11-09 05:00` while iOS Photos showed `2019-11-08 19:00` for the same item (and a second asset with the same class of whole-hour offset). Searching Photos by the WakeTok-displayed clock fails until the Photos-local time is used. **Suspected** timezone / absolute-instant handling somewhere in the Overlay capture-time path (exact `formatOverlayExactDateTime` **and** relative `formatOverlayRelativeDate` share `createdAt` — both in scope). **Mechanism not yet verified** — do not treat Host vs Dart `toLocal()` as a settled root cause. **Cross Cap 8 Media Info Overlay**; owner folded into Cap 17 as phase **17.7** (roadmap expansion during 17.4 acceptance). | Cap 17.7 | Cap 8 Overlay / ADR-014 family; Cap 17 owner expansion |
+| Media Info Overlay | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Closed by Cap 17.7** (`affd948` / ADR-038): product goal changed from minute-level Photos wall-clock match to **honest approximate** presentation — row 2 `~ Y-M-D` and row 1 coarse short bands from `creationDate` local calendar only; ±1 calendar day vs Photos at import/timezone edges **accepted** (not a bug to chase in Overlay). Rows share honesty stance but are **not** guaranteed numerically consistent with each other or with Photos for cross-check. Minute-level Host/EXIF attempt reverted (`7c2c0e6`); archive `docs/private/cap17-7-minute-wall-clock-archive/`. Device smoke PASS iPhone13pro Kafka. Cap 19 long-press info may revisit with disclaimer. | Closed by Cap 17.7 | ADR-038; Cap 8 Overlay / ADR-014 family |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Cap 18 (tap pause/resume + unlock return-to-foreground paused path; not lock-screen continue-audio) | ADR-006 |
 | Main Browse Screen | Asset-source iCloud load feels much slower than Photo-App-A / iOS Photos; bottom-right spinner is a half-dead-end wait state | **Suspect clues (verify later — not closed root causes; not Cap 15.11 scope).** **(A) Load speed:** Owner subjective + Cap 15.11 **session** log on Kafka (`/tmp/waketok_1511b_stale_idx.log`, 2026-08-23): many items stayed blurry / non-playing while Photo-App-A in the same window eventually loaded; log skew `load-finished err=ok` ≈168 vs `operationCancelled` ≈417, **0** `iCloudDownloadFailed`. Suspect aggressive leave/remount/supersede cancel + single-flight prepare vs competitor / Photos keep-or-parallel download — **deep-dive WakeTok iCloud network + cancel policy** when scheduled; no attribution without further evidence. Cap 17.5 F1 for wasted prepare is **Unassigned** (separate Known debt row; evidence leans legitimate leave-cancel). **(B) Wait-state UX:** item-level `_FeedCornerChrome` spinner gives **no progress signal** during long iCloud Layer 2 (throughput, bytes, ETA). Cap **17.5b** delivered corner reassure + Retry definition (work `649e22f`); residual = still no progress/stall productization. **Stall / no wall-clock auto-fail:** no Host→Dart progress productization and no stall→fail policy — same (B) root (not a separate debt row). Blind wall-clock timeout intentionally not adopted. | Unassigned (stall/progress); F1 Unassigned; 17.5b Retry/reassure limb closed | ADR-025 / ADR-029 / ADR-034 / ADR-035 / ADR-036 |
 | Main Browse Screen | Layer 2 fail reason mapping collapses PhotoKit detail to three user-facing buckets (`network` / `download` / `generic`) | Cap 17.5b review confirmed: user-facing granularity **intentionally** stays at three categories (no action-path benefit from finer copy). Pre-fix Host path read `PHImageCancelledKey` + transferBegan only and **discarded** `PHImageErrorKey` / `PHImageResultIsInCloudKey` without logging. **Supplemented during 17.5b:** Host `logLayer2PhotoKitFail` in `PlaybackApiHost` (video `requestAVAsset`) and `PhotoLibraryService.handleDisplayResult` (display L2) prints cancelled / transferBegan / inCloud / phError / mapped Pigeon code to Console (Profile+Debug). Dart `feedFailureReasonFromPlatformCode` only ever sees the already-collapsed wire code. No further Cap assigned. | Confirmed + Host probe landed (17.5b); no further action | ADR-025 / ADR-036; `cap17-17.5b-notes.md` |

@@ -3647,3 +3647,81 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   `docs/acceptance/cap17-17.6-notes.md`. Kafka + i17 Profile PASS.
   Cap 17.6 docs mark phase `[x]`; next **17.7** Overlay capture-time.
   Long-press Live replay remains future work on the play-only path.
+
+---
+
+## ADR-038: Cap 17.7 Overlay capture-time honest presentation
+
+- Status: Accepted (2026-08-27)
+- Commit/PR anchor: affd948
+- Plain summary (owner reads this):
+  Overlay capture time no longer tries to match iOS Photos to the minute.
+  Row 2 shows an approximate calendar date (`~ Y-M-D`); row 1 uses coarse
+  “within 3 days / within a week” bands for recent items so timezone edges
+  do not fake precision. Both rows come from the same library date field;
+  they are honest about uncertainty but are not guaranteed to match Photos
+  or to cross-check each other like one formula.
+- Context / what problem forced this:
+  Cap 17.7 opened when Overlay showed whole-hour offsets vs Photos (e.g.
+  `2019-11-09 05:00` vs `2019-11-08 19:00`). An implementing pass
+  (`fc6a154`) pursued minute-level alignment via Host EXIF/TIFF and video
+  creation strings; device evidence showed local-only limits, iCloud gaps,
+  and import-timezone cases where `creationDate` reinterpreted in device
+  local time still disagreed with Photos (e.g. cross-region saved video:
+  correct day in Photos, wrong hour when forced through device TZ). Owner
+  reverted that path (`7c2c0e6`) and **changed the product goal**:
+  prefer fuzzy correctness over precise wrongness. Cap 19 may later show
+  richer info on long-press with disclaimer; Overlay remains lightweight.
+- Decision (what was chosen):
+  1. **Single source:** `PHAsset.creationDate` only — Dart `toLocal()`
+     calendar math. No Overlay EXIF/Host wall-clock API, no network read,
+     no Photos-import private timezone fields.
+  2. **Row 2 (exact label):** day precision only — l10n `~ {Y-M-D}`
+     (EN and zh-Hans unified `~` prefix). Remove minute datetime key
+     (`mediaInfoExactDateTime`). Not authoritative Photos wall clock.
+  3. **Row 1 (relative):** keep D3=B — elapsed vs device `now` on the
+     same `creationDate` instant; **do not** derive relative from row 2
+     or EXIF Y-M-D. Coarse mapping on existing `diffDays`:
+     - `0–2` → “Within the past 3 days” / `3天内`
+     - `3–7` → “Within the past week” / `一周内`
+     - `8–30` → `{N} days ago` / `{N} 天前`
+     - `>30` → existing month/year strings (unchanged)
+     Delete `mediaInfoRelativeToday` (merged into 0–2 band).
+  4. **Relative R2 superseded:** the draft that kept “Today” and added
+     `Around` / “昨天左右” on selected bands is **not** implemented;
+     coarse short bands replace that approach (no `Around`/`约` on row 1).
+  5. **Honesty boundary (rows 1 ↔ 2 ↔ Photos):**
+     - Same **product stance**: avoid copy that ±1 calendar-day timezone
+       error can obviously falsify.
+     - **Not the same formula:** row 2 is absolute approximate date; row 1
+       is elapsed buckets — do **not** expect users to reverse-engineer
+       row 1 from row 2 or vice versa as a proof obligation.
+     - **Within WakeTok:** both rows use the same `creationDate` → local
+       calendar day; for `diffDays` 8–30, `{N} days ago` matches that
+       date arithmetically; short bands intentionally hide `N`.
+     - **vs Photos:** may differ by ±1 calendar day at import/timezone
+       edges; accepted constraint, not Overlay bug chase in Cap 17.7.
+  6. **Archive:** minute-level Host/EXIF implementation notes and Swift
+     reference live in gitignored
+     `docs/private/cap17-7-minute-wall-clock-archive/` (not product path).
+- Rejected alternatives (why not B):
+  - **Minute-level Photos match** (`fc6a154`) — reverted (`7c2c0e6`):
+    precise wrong on import TZ / missing local bytes; local-only cannot
+    match Photos private import timezone for all assets.
+  - **Relative R2** (`Around 1 day ago` / “昨天左右”, Around on 8–30) —
+    superseded; conflicts with coarse-band strategy; keeps false precision
+    on “Today”.
+  - **Anchor relative to EXIF/row-2 Y-M-D** — rejected; reopens D3 and
+    couples rows against locked Instant-vs-now relative semantics.
+  - **Row 2 bare `Y-M-D` without `~`** — rejected after review; reads as
+    false authority next to Photos.
+  - **Row 1 `Around` modifiers instead of coarse bands** — rejected;
+    “Around Today” awkward; owner chose interval copy without extra hedge
+    words on row 1.
+- Consequences / constraints accepted:
+  Work `affd948` + tests `cap17_7_exact_date_approx_test.dart` (U1–U4,
+  R-A…R-future). Device smoke PASS iPhone13pro Kafka. STATE marks 17.7
+  `[x]`; Known debt Overlay capture-time row **Closed** with goal-change
+  note. Cap 17 YOU ARE HERE → **17.8** close-out. Cap 19 may add
+  creationDate + disclaimer on long-press; does not reopen Overlay minute
+  alignment in Cap 17.7 scope.
