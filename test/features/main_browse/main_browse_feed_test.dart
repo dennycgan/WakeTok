@@ -1045,6 +1045,51 @@ void main() {
     expect(display.displayCalls, isNot(contains(ids[0])));
   });
 
+  // Leave mid-dwell then immediately re-enter the same asset: the cancelled
+  // dwell completer must not ride the restored isCurrent=true and skip N.
+  // Defense is FeedMediaRequestGate generation (not isCurrent alone).
+  testWidgets(
+    'W-16.4h leave mid-dwell then immediate re-enter same asset still waits full N',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          mediaDisplay: display,
+          browseLayer2Dwell: const Duration(milliseconds: 300),
+        ),
+      );
+      final ids = await pumpUntilFeedIds(tester);
+      final first = ids[0];
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(display.displayCalls, isNot(contains(first)));
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pump();
+      // Immediate return to the same asset (no dwell time on peek).
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await tester.pump();
+
+      expect(
+        display.displayCalls,
+        isNot(contains(first)),
+        reason: 'stale leave-cancelled dwell must not release L2 on re-enter',
+      );
+      await tester.pump(const Duration(milliseconds: 299));
+      expect(
+        display.displayCalls,
+        isNot(contains(first)),
+        reason: 'second visit must arm a fresh full N, not residual time',
+      );
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(display.displayCalls, contains(first));
+    },
+  );
+
   testWidgets('W-16.4d Retry bypasses dwell', (tester) async {
     final display = FakeMediaDisplayRepository();
     display.displayErrorById['a1'] = 'iCloudDownloadFailed';
