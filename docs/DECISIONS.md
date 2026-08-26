@@ -2558,7 +2558,10 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 - Status: Accepted (2026-08-19); Decision 7’s unchanged Instruments
   numeric hitch/hang shipping gate (and “does not mark 13.6 `[x]`”)
   is superseded for 13.6 close-out by ADR-030 (2026-08-19); Cap 16
-  product cancel / dwell / single-fetch remains binding
+  product cancel / dwell / single-fetch remains binding; **Decision 2
+  production dwell N numeric value (initial 500 ms) is superseded by
+  ADR-035 (2026-08-26)** — leave-cancel / single-prepare mechanism
+  unchanged
   <!-- Accepted date from `git log -1 --format=%cs d273358` → 2026-08-19 -->
 - Commit/PR anchor: d273358
 - Plain summary (owner reads this):
@@ -3430,3 +3433,71 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   STATE Known debt Host-temp revisit chrome is closed for the &lt;T flash
   path; ≥T wait chrome remains by design. Debt **400** / **403** stay
   open for 17.4 / 17.5.
+
+---
+
+## ADR-035: Cap 17.5 production Layer-2 dwell N = 300 ms
+
+- Status: Accepted (2026-08-26)
+  <!-- Accepted date from `git log -1 --format=%cs 9ffb513` → 2026-08-26 -->
+- Commit/PR anchor: 9ffb513
+- Plain summary (owner reads this):
+  Production current-item Layer 2 dwell is **300 ms** (was the Cap 16
+  initial 500 ms). Leave-cancel and the single networked prepare path
+  are unchanged. The change only moves when that path may start.
+- Context / what problem forced this:
+  ADR-029 Decision 2 set **N = 500 ms as an initial value to be
+  adjusted after on-device acceptance**, not a derived constant. Cap
+  17.5 on-device work (Kafka Profile; notes
+  `docs/acceptance/cap17-17.5-notes.md`) chose a more aggressive N for
+  earlier content availability when the owner intends to watch, while
+  keeping a guard rail (200 ms rejected from hand-speed S1: ~95% would
+  cross dwell). Cancel cleanliness was checked with a dual-column
+  leave_after_prepare frame (finishOk / silentDeliver); system-level
+  cost (battery / thermal / throttling) was **not** measured.
+- Decision (what was chosen):
+  1. **Production N = 300 ms** for `browseLayer2DwellProvider` (still
+     and video current-item Layer 2). Retry continues to bypass dwell
+     (ADR-029 unchanged).
+  2. **Supersede ADR-029 Decision 2 for the numeric N only.** Cap 16
+     leave-cancel, one networked `load` prepare, and storage discipline
+     remain binding (also restated in ADR-034 Decision 5). Do not edit
+     ADR-029 Decision body text — Status on ADR-029 records this
+     supersede (same pattern as ADR-023 vs ADR-014 product default).
+  3. **Acceptance frame = qualitative “no hard-failure signal,” not a
+     statistical failure-rate proof.** Sample size of leak windows does
+     not establish a percentage; notes must not be read as a validated
+     0% silent-deliver rate.
+  4. **Out of this ADR:** F1 reduce-wasted-prepare (Known debt
+     Unassigned); Retry user-visible definition review (Cap **17.5b**);
+     long-wait reassuring copy / Retry reason UI (17.5b kickoff only).
+- Alternatives considered:
+  - Keep N=500 — rejected; owner intent biases earlier prepare when
+    watching is likely; 500 felt slow on device.
+  - N=200 — rejected; S1 hand-speed ~95% would cross dwell; guard rail
+    would effectively disappear.
+  - **Pass criterion = statistical significance / large-n proof of a
+    failure rate (e.g. treat n=1 leak window as insufficient)** —
+    rejected. Cancel leave-path is Cap 16–validated; lowering N only
+    changes invocation frequency. Pass = **no observed hard-failure
+    signal** (finishOk / silentDeliver in the observed leak window;
+    frequency proxy + subjective smoothness + Photos storage as weak
+    cost signals). Small leak-window n does **not** claim a validated
+    0% rate — that is intentional, not an oversight.
+  - Stack more Videos-only dual-column sessions to enlarge n before
+    adopting 300 — rejected; unfalsifiable “need more n” loop; same
+    ADR-030 discipline that refuses Instruments hitch/hang as a
+    shipping gate by piling runs.
+  - Scripted S3 “sudden stop” hand-speed mix as a required gate —
+    rejected; artificial stop scenes do not represent real browse
+    mood; network/device noise would dominate; more S3 time would not
+    make the N decision more reliable.
+  - Edit ADR-029 Decision 2 body in place — rejected; loses Accepted
+    history of the initial 500 ms choice.
+- Consequences:
+  Work commit `9ffb513` lands production 300 ms + W-16.4 / related test
+  expectation sync + `cap17-17.5-notes.md`. Docs commit accepts this
+  ADR and updates STATE Cap 17.5 / 17.5b / F1 Unassigned. Further
+  fetch-path work, if ever scheduled, still uses ADR-034 Decision 4
+  explainable + observable bar — Cap 17.5 phase title narrowing does
+  not void that bar.

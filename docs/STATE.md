@@ -186,6 +186,10 @@ availability hardening (Cap 17)
 > Roadmap — inserted **17.7 Overlay capture-time vs iOS Photos** (cross
 > Cap 8 Media Info Overlay); renumbered Cap close-out to **17.8**.
 > Not a silent residual absorb into 17.6.
+> Owner 2026-08-26 (Cap 17.5 docs): narrowed **17.5** title to dwell N
+> adoption (not “fetch-path optimization”); inserted **17.5b** Retry
+> user-visible definition review; F1 (reduce wasted prepare) → Known
+> debt Unassigned (not a numbered phase).
 
 - [x] 17.1 Diagnosis (Cap 15 diagnosis-before-contract pattern).
       Wait-feedback duration (Track A); iCloud fetch observability
@@ -211,10 +215,20 @@ availability hardening (Cap 17)
       retained; one wait-chrome evaluation per build; `Layer2Waiting`
       l10n. Residual black accepted; Known-debt **400** row **not** Closed.
       Kafka Limited device PASS (owner 2026-08-25).
-- [ ] 17.5 iCloud fetch-path optimization (under 17.2 invariants).
+- [x] 17.5 Layer-2 dwell N adoption (500→300 ms).
+      Work `9ffb513` (Accepted date 2026-08-26 / ADR-035). Notes
+      `docs/acceptance/cap17-17.5-notes.md`. Qualitative
+      “no hard-failure signal” pass on Kafka (not a statistical rate).
+      **Only** production dwell N. F1 (reduce wasted prepare) **not**
+      delivered — Known debt Unassigned. Retry UX review → **17.5b**.
+- [ ] 17.5b Retry user-visible definition review (design-first).
+      As-is table + gaps (Cap 17 D7 checklist); no default code.
+      Awaiting owner design kickoff — product details (e.g. long-wait
+      reassuring copy; whether Retry shows a reason) not scoped until kickoff.
 - [ ] 17.6 Device acceptance + residual triage.
       Absorb only residuals strictly in the Main Browse foundation
-      loop; do not expand to pool / clips / autoplay.
+      loop; do not expand to pool / clips / autoplay. Do **not** treat
+      deferred F1 as an implied 17.6 deliverable (F1 stays Unassigned).
 - [ ] 17.7 Overlay capture-time vs iOS Photos (exact + relative).
       **Owner expansion during Cap 17.4 device acceptance (2026-08-25):**
       not in the original frozen 17.1–17.7 Main Browse / iCloud roadmap.
@@ -226,19 +240,19 @@ availability hardening (Cap 17)
 - [ ] 17.8 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.5** iCloud fetch-path optimization
-      (ADR-034 Decision 4; Cap 16 invariants hard)
+- Goal (one line): Cap **17.5b** Retry user-visible definition review
+      (design-first; awaiting owner kickoff)
 - Sub-steps done: Cap 17.1 notes (`73025b4`); Cap 17.2 contract;
       Cap 17.3 wait chrome (`00b7264`); Cap 17.4 coverless wait
-      presentation (`cb477fe`; ADR-034 Decision 3)
-- Next step: owner-scoped 17.5 design under explainable + observable
-      bar (ok / deduped cancel / fail / prog; a2 latency proxy). Do not
-      weaken leave-cancel / dwell / single networked prepare. Do not
-      start 17.7 Overlay timezone until 17.5/17.6 as scheduled (17.7 is
-      after 17.6 on the roadmap).
-- Related decisions: ADR-025; ADR-029; ADR-031…034; Cap 16 storage
-      discipline; Known debt 400 (open) + 403 → Cap 17; Overlay
-      capture-time → Cap 17.7; 402 → Cap 18
+      presentation (`cb477fe`; ADR-034 Decision 3); Cap 17.5 dwell N
+      300 ms (`9ffb513`; ADR-035)
+- Next step: owner design kickoff for 17.5b (as-is Retry table + gaps).
+      Do not start code or expand product UI ideas until kickoff.
+      Do not weaken leave-cancel / dwell / single networked prepare.
+      Do not start 17.7 Overlay timezone until 17.5b/17.6 as scheduled.
+- Related decisions: ADR-025; ADR-029; ADR-031…035; Cap 16 storage
+      discipline; Known debt 400 (open) + 403 → Cap 17; F1 Unassigned;
+      Overlay capture-time → Cap 17.7; 402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -300,8 +314,10 @@ availability hardening (Cap 17)
   on neighbour→current promote — L1 `_localGate`, L2
   `currentDisplayGate`);
   Cap 16 leave-cancel `cancelInFlightPrepare` (`d273358` / ADR-029)
-  + one networked `load` (`df021b8`) + Dart dwell 500 ms
-  (`6ca736f`); notes `docs/acceptance/cap16-16.5-notes.md`;
+  + one networked `load` (`df021b8`) + Dart dwell **300 ms**
+  (Cap 17.5 `9ffb513` / ADR-035; was 500 ms `6ca736f`); notes
+  `docs/acceptance/cap16-16.5-notes.md` +
+  `docs/acceptance/cap17-17.5-notes.md`;
   PlaybackRepository.clearPlaybackPool (Cap 9.3 `afd3181` / ADR-019);
   debug probe: lib/features/library_smoke/playback_pipeline_probe.dart
 - Live Photo motion: ios/Runner/Platform/LivePhotoApiHost.swift
@@ -369,7 +385,8 @@ availability hardening (Cap 17)
   handoff polish — **Accepted**, anchor `4767ec4`; ADR-030 retires Instruments
   numeric hitch/hang gates — **Accepted**, anchor `740bd99`; ADR-029
   Cap 16 cancel and dwell current-item Layer 2 — **Accepted**,
-  anchor `d273358`; ADR-028
+  anchor `d273358`; Decision 2 production dwell N numeric value
+  superseded by ADR-035 (`9ffb513`, 2026-08-26); ADR-028
   default Fit +
   portrait-only — **Accepted**, anchor `24debf4`; ADR-027 Cap 14.4e leave Browse
   ends Consumption Session — **Accepted**, anchor `fe660dd`; ADR-026
@@ -383,6 +400,9 @@ availability hardening (Cap 17)
 - ADR-034: Cap 17 wait chrome / debt 400 / iCloud observability —
   **Accepted** (2026-08-25), anchor `00b7264` (Cap 17.3 work);
   Cap 17.4 presentation work `cb477fe` (Decision 3; debt 400 row remains open)
+- ADR-035: Cap 17.5 production Layer-2 dwell N = 300 ms —
+  **Accepted** (2026-08-26), anchor `9ffb513`; supersedes ADR-029
+  Decision 2 numeric N only
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
@@ -475,6 +495,7 @@ availability hardening (Cap 17)
 | Main Browse Screen | Local / L2-ready items still blur-first on revisit (Session) | **Closed by 15.10** (`750ddd6`): Session L2-ready token skips Layer 1 on revisit; still sharp / video poster-until-play. Kafka PASS (`cap15-15.10-notes.md`). **v1 revisit only** — no list-time KVC on become-current (STATE `locallyAvailable` row unchanged). | Closed by Cap 15.10 | ADR-025 |
 | Main Browse Screen | Session L2-ready revisit: residual corner spinner flash (&lt;T) after Host temp eviction | **Closed by Cap 17.3** (`00b7264` / ADR-034): path-class wait chrome (a4 T=150 ms) + promoted G (still a2 &lt;T) / B (a4 miss bypass) / F1(+D) (Live prepare &lt;T). Closes the **&lt;T residual corner flash** only — that flash is not remaining unfinished Cap 17.3 work. **≥T still/a4 chrome** is the intentional empty-window guard (see open row below). Device skew (Kafka clearer / i17 faint) unchanged. | Closed by Cap 17.3 | ADR-025 / ADR-029 / ADR-034; Cap 15.10/15.13; Cap 16 temps |
 | Main Browse Screen | Session L2-ready revisit: ≥T wait chrome / zero-spinner product choice (Host temp vs disk-resident L2-ready covers) | **MVP-acceptable product choice (not Cap 17 unfinished work).** After Cap 17.3, ≥T still/a4 wait chrome can still appear when Host temp eviction drops a cover (empty-window guard under ADR-034). Root tension remains Cap 16 tight temps vs disk-resident L2-ready covers. Solution paths (raise Preview/Display temp budgets; keep cover outside Host temp) are **unevaluated and unscheduled**; whether to optimize is a later product judgment. Closing the &lt;T flash row in Cap 17.3 does **not** decide this product limb closed or permanently declined. | Unassigned (unevaluated; product judgment later) | ADR-025 / ADR-029 / ADR-034; Cap 16 temps |
+| Main Browse Screen | Cap 17.5 F1 — reduce wasted Layer-2 prepare (beyond Cap 16 leave-cancel / dwell) | Cap 17.5 scoped F1 as optional if tee showed illegal / wasted prepares. 17.1 Track B + Cap 17.5 Kafka dwell=300 dual-column session show cancels are overwhelmingly Cap 16–legitimate leave-cancel, not a bug class. F1 code may be **zero**; do not invent a phase to force a diff. Same recording pattern as the ≥T / temp-budget Unassigned row. | Unassigned (evidence does not compel a phase; product judgment later) | ADR-029 / ADR-034 / ADR-035; `cap17-17.5-notes.md` |
 | Main Browse Screen | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** **Closed by 15.5** (`6c7d3de`) for local still→still gapless. **Video peek-black (leave-side poster loss):** **Closed by 15.7** (`b21b9fc`) when L1 poster exists. **Revisit blur-first when L2-ready:** **Closed by 15.10** (`750ddd6`). **Entering-peek black gap + settle wrong A/V (393):** **Closed by 15.11** (`c8a59b3` / ADR-032). **400** unchanged. | Closed by Cap 15.11 (393 limb) | ADR-006 / ADR-025 / ADR-032 |
 | Main Browse Screen | Swiping back to a video restarts from 0 after the next item has taken the active 1+1 slot; mid-play resume still happens while that slot is not yet taken | Pool is current + next only; no session-level playhead. Next local almost always occupies `activePlayer` immediately → return rebuilds a new player at 0. Next iCloud occupies only after `requestAVAsset` completes → return before that hits ADR-026 `playOnly` (same live player). **MVP accepts restart-from-0 once the next item has occupied the slot.** That acceptance does **not** mean “always restart on leave”, and must **not** weaken ADR-026 (`actionOnBecomeCurrent`: seek 0 only when at-end; mid-play re-enter `play()` while the player still exists). Do not add session playhead storage in Cap 14. | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-006 / ADR-026 |
 | Main Browse Screen | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | **Closed by 15.4** (`ce18a33` / ADR-031 D8): join in-flight Layer 1 on neighbour→current promote; no second `requestPreview` on the same id (`preview_supersede`). Kafka M1+2: zero supersede on five miss `page_changed`; one `layer2_load_start` each. W-15.4 widget tests. | Closed by Cap 15.4 (ADR-031) | ADR-025 / ADR-010 / ADR-031 |
@@ -484,7 +505,7 @@ availability hardening (Cap 17)
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`52e775c`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. **Cap 17.4 (`cb477fe`):** coverless wait **visibility** improved (centered copy + corner spinner); **residual black accepted**; this row stays **open** (ADR-034: closing 400 not required for 17.4 pass). | Cap 17 (17.4 presentation landed; residual black open) | ADR-025 / ADR-006 / ADR-031 / ADR-034 |
 | Media Info Overlay | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Owner device (2026-08-25):** WakeTok Overlay showed e.g. `2019-11-09 05:00` while iOS Photos showed `2019-11-08 19:00` for the same item (and a second asset with the same class of whole-hour offset). Searching Photos by the WakeTok-displayed clock fails until the Photos-local time is used. **Suspected** timezone / absolute-instant handling somewhere in the Overlay capture-time path (exact `formatOverlayExactDateTime` **and** relative `formatOverlayRelativeDate` share `createdAt` — both in scope). **Mechanism not yet verified** — do not treat Host vs Dart `toLocal()` as a settled root cause. **Cross Cap 8 Media Info Overlay**; owner folded into Cap 17 as phase **17.7** (roadmap expansion during 17.4 acceptance). | Cap 17.7 | Cap 8 Overlay / ADR-014 family; Cap 17 owner expansion |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Cap 18 (tap pause/resume + unlock return-to-foreground paused path; not lock-screen continue-audio) | ADR-006 |
-| Main Browse Screen | Asset-source iCloud load feels much slower than Photo-App-A / iOS Photos; bottom-right spinner is a half-dead-end wait state | **Suspect clues (verify later — not closed root causes; not Cap 15.11 scope).** **(A) Load speed:** Owner subjective + Cap 15.11 **session** log on Kafka (`/tmp/waketok_1511b_stale_idx.log`, 2026-08-23): many items stayed blurry / non-playing while Photo-App-A in the same window eventually loaded; log skew `load-finished err=ok` ≈168 vs `operationCancelled` ≈417, **0** `iCloudDownloadFailed`. Suspect aggressive leave/remount/supersede cancel + single-flight prepare vs competitor / Photos keep-or-parallel download — **deep-dive WakeTok iCloud network + cancel policy** when scheduled; no attribution without further evidence. **(B) Wait-state UX:** item-level `_FeedCornerChrome` spinner gives **no progress signal** during long iCloud Layer 2 (throughput, bytes, ETA, retry affordance beyond corner Retry chrome — **details TBD**). User can only wait or swipe away; poor even if absolute download time unchanged. Independent of 393/handoff fix (Kafka + i17 A↔B PASS `c8a59b3`). | Cap 17 (17.1/17.5 fetch-path; wait UX via 17.2/17.4 — explainable + observable, not match-competitors) | ADR-025 / ADR-029 / ADR-006 |
+| Main Browse Screen | Asset-source iCloud load feels much slower than Photo-App-A / iOS Photos; bottom-right spinner is a half-dead-end wait state | **Suspect clues (verify later — not closed root causes; not Cap 15.11 scope).** **(A) Load speed:** Owner subjective + Cap 15.11 **session** log on Kafka (`/tmp/waketok_1511b_stale_idx.log`, 2026-08-23): many items stayed blurry / non-playing while Photo-App-A in the same window eventually loaded; log skew `load-finished err=ok` ≈168 vs `operationCancelled` ≈417, **0** `iCloudDownloadFailed`. Suspect aggressive leave/remount/supersede cancel + single-flight prepare vs competitor / Photos keep-or-parallel download — **deep-dive WakeTok iCloud network + cancel policy** when scheduled; no attribution without further evidence. Cap 17.5 F1 for wasted prepare is **Unassigned** (separate Known debt row; evidence leans legitimate leave-cancel). **(B) Wait-state UX:** item-level `_FeedCornerChrome` spinner gives **no progress signal** during long iCloud Layer 2 (throughput, bytes, ETA, retry affordance beyond corner Retry chrome — **details TBD**). User can only wait or swipe away; poor even if absolute download time unchanged. Independent of 393/handoff fix (Kafka + i17 A↔B PASS `c8a59b3`). Cap 17.4 improved coverless visibility; further Retry / long-wait copy → **17.5b**. | Cap 17.5b (wait / Retry UX review); F1 Unassigned | ADR-025 / ADR-029 / ADR-034 / ADR-035 |
 | Live Photo (Cap 9.7) | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; `cap9-9.7-poc08-notes.md` UX-1 |
 | Live Photo (Cap 9.7) | LIVE badge + preparing spinner top-left overlaps status-bar time | **Closed by 14.6b** (`16ed6e3`). Badge + item Layer 2 / Live-prepare spinner share `_FeedCornerChrome` at bottom-right; Overlay `trailingInset` 123. Library resolve loading stays centered. Q7 play-once hide/show unchanged. Kafka Profile PASS. UX-1 untouched. | Closed by Cap 14.6b | ADR-019; `cap9-9.7-poc08-notes.md` UX-2 |
 | Cap 13 (13.8) | **First launch right after granting Limited access shows an empty All tab and does not self-heal** | **Closed by 14.6** (`37821ec` + `7329081`). Bounded re-resolve on successful empty remains; Kafka showed the empty All was started by resume `currentStatus()=.limited` **before** `requestAuthorization` completed. Skip that invalidate while `requestAccess` is in flight, then `restartSession` when the grant completes. Kafka Profile: loading then selected media, not empty copy. ADR-024 empty-not-cached remains as tab-switch backup. | Closed by Cap 14.6 (ADR-025 D8 + grant-complete restart) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
