@@ -609,6 +609,12 @@ abstract class AppLocalizations {
   /// **'Loading…'**
   String get mainBrowseFeedLayer2Waiting;
 
+  /// Short Cap 17.5b copy left of the corner gold spinner after 3s L2 wait (cover optional; may coexist with center Layer2Waiting when coverless; mutex vs Layer1Loading)
+  ///
+  /// In en, this message translates to:
+  /// **'Still loading'**
+  String get mainBrowseFeedLayer2Reassure;
+
   /// Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight
   ///
   /// In en, this message translates to:

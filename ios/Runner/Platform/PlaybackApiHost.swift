@@ -471,6 +471,34 @@ final class PlaybackApiHost: PlaybackApi {
     return fail(.assetUnavailable, message: unavailableMessage)
   }
 
+  /// Cap 17.5b: developer diagnosis before user-facing three-bucket collapse.
+  /// Prints PhotoKit `info` detail (Profile/Debug Console) — not user copy.
+  private func logLayer2PhotoKitFail(
+    assetId: String,
+    info: [AnyHashable: Any]?,
+    cancelled: Bool,
+    transferBegan: Bool,
+    mappedCode: String
+  ) {
+    let dict = info ?? [:]
+    let inCloud = dict[PHImageResultIsInCloudKey] as? Bool
+    let phErrorDesc: String
+    if let err = dict[PHImageErrorKey] as? NSError {
+      phErrorDesc =
+        "domain=\(err.domain) code=\(err.code) desc=\(err.localizedDescription)"
+    } else if let raw = dict[PHImageErrorKey] {
+      phErrorDesc = String(describing: raw)
+    } else {
+      phErrorDesc = "nil"
+    }
+    print(
+      "[WakeTok][Layer2] fail id=\(String(assetId.prefix(8))) "
+        + "cancelled=\(cancelled) transferBegan=\(transferBegan) "
+        + "inCloud=\(String(describing: inCloud)) phError=\(phErrorDesc) "
+        + "mapped=\(mappedCode)"
+    )
+  }
+
   private func enqueueLoadCompletion(
     assetId: String,
     completion: @escaping (Result<Void, Error>) -> Void
@@ -610,17 +638,23 @@ final class PlaybackApiHost: PlaybackApi {
           self.preparingAssetIds.remove(token)
           guard self.clearEpoch == epoch else { return }
           if cancelled || avAsset == nil {
+            let pigeon = self.layer2Failure(
+              cancelled: cancelled,
+              transferBegan: transferBegan,
+              cancelledMessage: "Playback load cancelled",
+              failedMessage: "Playback download failed",
+              unavailableMessage: "Failed to load playable video"
+            )
+            self.logLayer2PhotoKitFail(
+              assetId: token,
+              info: info,
+              cancelled: cancelled,
+              transferBegan: transferBegan,
+              mappedCode: pigeon.code
+            )
             self.finishLoad(
               assetId: token,
-              result: .failure(
-                self.layer2Failure(
-                  cancelled: cancelled,
-                  transferBegan: transferBegan,
-                  cancelledMessage: "Playback load cancelled",
-                  failedMessage: "Playback download failed",
-                  unavailableMessage: "Failed to load playable video"
-                )
-              )
+              result: .failure(pigeon)
             )
             return
           }

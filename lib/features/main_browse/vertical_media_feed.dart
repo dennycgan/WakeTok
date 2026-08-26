@@ -733,14 +733,58 @@ class _BrowseStatusPanel extends StatelessWidget {
             ),
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 16),
-              TextButton(
-                key: actionKey,
-                onPressed: onAction,
-                child: Text(actionLabel!),
+              _BrowseRetryButton(
+                buttonKey: actionKey,
+                label: actionLabel!,
+                onPressed: onAction!,
               ),
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Explicit Retry CTA: translucent white fill (does not fully occlude
+/// media) + [WakeTokTokens.accent] label. Shared by resolve / page-fail
+/// panels and the coverless Layer-2 fail slot.
+class _BrowseRetryButton extends StatelessWidget {
+  const _BrowseRetryButton({
+    required this.label,
+    required this.onPressed,
+    this.buttonKey,
+  });
+
+  /// White fill opacity over feed media — readable chip, not an opaque slab.
+  static const double _fillOpacity = 0.28;
+
+  final Key? buttonKey;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    return TextButton(
+      key: buttonKey,
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: tokens.accent,
+        backgroundColor: tokens.onMedia.withValues(alpha: _fillOpacity),
+        disabledForegroundColor: tokens.accent.withValues(alpha: 0.5),
+        disabledBackgroundColor:
+            tokens.onMedia.withValues(alpha: _fillOpacity * 0.5),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        minimumSize: const Size(88, 40),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(
+        label,
+        style: tokens.labelOnMedia.copyWith(color: tokens.accent),
       ),
     );
   }
@@ -836,8 +880,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 16.4: [Timer] from became-current. Cancel on leave / dispose.
   Timer? _layer2DwellTimer;
   Completer<void>? _layer2DwellCompleter;
+  /// Cap 17.5b: reveal corner reassure after [kLayer2CornerReassureAfter].
+  Timer? _layer2ReassureTimer;
   AppLifecycleState? _lastLifecycle;
 
+  /// Test seam: paint LIVE badge on coverless corner chrome (rare combo).
+  /// Production [liveBadgeVisible] also follows Live still display.
+  @visibleForTesting
+  bool debugForceLiveBadgeVisible = false;
 
   /// Test seam: hold [_teardownLiveMotion] when this page is off-current.
   @visibleForTesting
@@ -905,6 +955,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           layer: FeedDisplayLayer.preview,
         );
       }
+      _scheduleLayer2ReassureIfNeeded();
     }
 
     if (mounted) {
@@ -935,6 +986,27 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
       _a4ChromeRevealTimer?.cancel();
       _a4ChromeRevealTimer = null;
+      _cancelLayer2ReassureTimer();
+    }
+
+    if (mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
+  }
+
+  /// Test seam: Cap 17.5b G1 — full-page failed chrome (no L1 cover).
+  @visibleForTesting
+  void debugForcePageFailed() {
+    void apply() {
+      _loading = false;
+      _clearLayer2InFlightUnconditional();
+      _layer2Failed = false;
+      _layer2FailureReason = FeedFailureReason.generic;
+      _media = FeedPageMedia.failed(
+        reason: FeedFailureReason.generic,
+      );
     }
 
     if (mounted) {
@@ -1021,6 +1093,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _layer2InFlightArmedAt = DateTime.now();
     debugInFlightElapsedOverride = null;
     _scheduleA4ChromeRevealIfNeeded();
+    _scheduleLayer2ReassureIfNeeded();
   }
 
   void _scheduleA4ChromeRevealIfNeeded() {
@@ -1055,10 +1128,44 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     });
   }
 
+  /// Cap 17.5b: rebuild when wall clock crosses [kLayer2CornerReassureAfter].
+  void _scheduleLayer2ReassureIfNeeded() {
+    _layer2ReassureTimer?.cancel();
+    _layer2ReassureTimer = null;
+    if (!widget.isCurrent || !_layer2InFlight || _loading) {
+      return;
+    }
+    if (_layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict) {
+      return;
+    }
+    final remaining = kLayer2CornerReassureAfter - _inFlightElapsed;
+    if (remaining <= Duration.zero) {
+      return;
+    }
+    final armedGeneration = _layer2InFlightGeneration;
+    _layer2ReassureTimer = Timer(remaining, () {
+      if (!shouldApplyLayer2ReassureTick(
+        isMounted: mounted,
+        layer2InFlight: _layer2InFlight,
+        armedGeneration: armedGeneration,
+        currentInFlightGeneration: _layer2InFlightGeneration,
+      )) {
+        return;
+      }
+      setState(() {});
+    });
+  }
+
+  void _cancelLayer2ReassureTimer() {
+    _layer2ReassureTimer?.cancel();
+    _layer2ReassureTimer = null;
+  }
+
   /// L2 data success: clear inFlight so content can mount immediately.
   void _completeLayer2InFlightForSuccess() {
     _a4ChromeRevealTimer?.cancel();
     _a4ChromeRevealTimer = null;
+    _cancelLayer2ReassureTimer();
     _layer2InFlight = false;
     _layer2InFlightGeneration = null;
     _layer2InFlightArmedAt = null;
@@ -1069,6 +1176,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void _clearLayer2InFlightUnconditional() {
     _a4ChromeRevealTimer?.cancel();
     _a4ChromeRevealTimer = null;
+    _cancelLayer2ReassureTimer();
     _layer2InFlight = false;
     _layer2InFlightGeneration = null;
     _layer2InFlightArmedAt = null;
@@ -1303,11 +1411,33 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     if (_layer2Failed) {
-      unawaited(_retryLayer2Only(bypassDwell: true));
+      unawaited(_retryFromFailState(pageFailedMedia: false));
       return;
     }
     if (_media?.kind == FeedPageMediaKind.failed) {
-      unawaited(_startLoad(bypassDwell: true));
+      unawaited(_retryFromFailState(pageFailedMedia: true));
+    }
+  }
+
+  /// Cap 17.5b: fail Retry / resume-fail must clear a hung same-id prepare
+  /// before starting another load (Cap16 single networked path: serial
+  /// await cancel → then load; does not add a Host prepare entry).
+  Future<void> _cancelStalePrepareBeforeFailRetry() async {
+    final playback = ref.read(playbackRepositoryProvider);
+    _playbackRepo = playback;
+    await playback.cancelInFlightPrepare(widget.assetIdentifier);
+  }
+
+  /// Manual Retry + resume-fail entry: cancel-before-retry then reload.
+  Future<void> _retryFromFailState({required bool pageFailedMedia}) async {
+    await _cancelStalePrepareBeforeFailRetry();
+    if (!mounted || !widget.isCurrent) {
+      return;
+    }
+    if (pageFailedMedia) {
+      await _startLoad(bypassDwell: true);
+    } else {
+      await _retryLayer2Only(bypassDwell: true);
     }
   }
 
@@ -1375,6 +1505,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         });
       } else {
         setState(() {
+          // Cap 17.5b G1: do not leave FeedPageMediaKind.failed on peek —
+          // PageFailed+Retry must not paint off-current.
+          if (_media?.kind == FeedPageMediaKind.failed) {
+            _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
+          }
           _surfaceReady = false;
           _clearLayer2InFlightUnconditional();
           _layer2Failed = false;
@@ -1459,6 +1594,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _holdPosterTimeout?.cancel();
     _a4ChromeRevealTimer?.cancel();
     _a4ChromeRevealTimer = null;
+    _cancelLayer2ReassureTimer();
     _livePreparingChromeRevealTimer?.cancel();
     _livePreparingChromeRevealTimer = null;
     _pvGuardNotifier?.removePageSnapshot(widget.assetIdentifier);
@@ -2893,7 +3029,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           children: [
             _FeedCornerChrome(
               color: tokens.brandGold,
-              strutBadgeLabel: l10n.mainBrowseLiveBadge,
               showSpinner: showLoadingSpinner,
               rowKey: const Key('mainBrowseFeedPageLoadingChrome'),
               spinnerKey: const Key('mainBrowseFeedPageLoadingSpinner'),
@@ -2932,8 +3067,26 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     );
     final showCoverlessLabel = coverless &&
         coverlessWaitShowsLabel(showWaitSpinner: showLayer2WaitSpinner);
-    final showLayer2FailedSlot = _layer2Failed && !_layer2InFlight;
+    final showLayer2FailedSlot =
+        widget.isCurrent && _layer2Failed && !_layer2InFlight;
     final showCenterWaitLabel = showCoverlessLabel && !showLayer2FailedSlot;
+    // LIVE may coexist with reassure: badge stacks above the spinner row.
+    final liveBadgeVisible = debugForceLiveBadgeVisible ||
+        (media.kind == FeedPageMediaKind.still &&
+            media.display?.mediaKind == PlaybackMediaKind.livePhoto);
+    final showCornerReassure = shouldShowLayer2CornerReassure(
+      isCurrent: widget.isCurrent,
+      layer2InFlight: _layer2InFlight,
+      layer2Failed: _layer2Failed,
+      loadingMissPage: false,
+      path: _layer2WaitPath,
+      elapsedInFlight: _inFlightElapsed,
+      waitSpinnerVisible: showLayer2WaitSpinner,
+    );
+    final cornerReassureLabel =
+        showCornerReassure ? l10n.mainBrowseFeedLayer2Reassure : null;
+    final coverlessLiveBadgeLabel =
+        liveBadgeVisible ? l10n.mainBrowseLiveBadge : null;
 
     // Cap 15.14 / 4A: still + video poster share one asset-stable key so
     // STILL→VIDEO promote can reuse the Image Element (path must not be in key).
@@ -2950,6 +3103,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
           showLoadSpinner: widget.isCurrent &&
               (showLayer2WaitSpinner || _showLiveLoadSpinner),
+          reassureLabel: cornerReassureLabel,
           onPreviewFileBroken: _onPreviewFileBroken,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
@@ -2974,6 +3128,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         showLayer2WaitSpinner: showLayer2WaitSpinner,
         showCenterWaitLabel: showCenterWaitLabel,
         showLayer2FailedSlot: showLayer2FailedSlot,
+        cornerReassureLabel: cornerReassureLabel,
+        coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
       ),
       FeedPageMediaKind.pendingVideo => () {
         return ColoredBox(
@@ -2985,8 +3141,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               if (showLayer2WaitSpinner)
                 _FeedCornerChrome(
                   color: tokens.brandGold,
-                  strutBadgeLabel: l10n.mainBrowseLiveBadge,
+                  badgeLabel: coverlessLiveBadgeLabel,
                   showSpinner: true,
+                  reassureLabel: cornerReassureLabel,
                   rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
                   spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
                   semanticsLabel: l10n.mainBrowseFeedLayer2Waiting,
@@ -2998,7 +3155,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 l10n: l10n,
                 tokens: tokens,
                 onFailedRetry: () {
-                  unawaited(_retryLayer2Only(bypassDwell: true));
+                  unawaited(_retryFromFailState(pageFailedMedia: false));
                 },
               ),
             ],
@@ -3056,6 +3213,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
                   showLoadSpinner: showLayer2WaitSpinner &&
                       !deferVideoForHandoff,
+                  reassureLabel: cornerReassureLabel,
                   onPreviewFileBroken: _onPreviewFileBroken,
                 )
               : null,
@@ -3065,22 +3223,26 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           showLayer2WaitSpinner: showLayer2WaitSpinner,
           showCenterWaitLabel: showCenterWaitLabel,
           showLayer2FailedSlot: showLayer2FailedSlot,
+          cornerReassureLabel: cornerReassureLabel,
+          coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
         );
       }(),
-      FeedPageMediaKind.failed => _UsableRegionCenter(
-        child: _BrowseStatusPanel(
-          panelKey: const Key('mainBrowseFeedPageFailed'),
-          message: _failureCopy(
-            l10n,
-            media.failureReason ?? FeedFailureReason.generic,
-          ),
-          actionLabel: l10n.mainBrowseFeedRetry,
-          actionKey: const Key('mainBrowseFeedPageRetry'),
-          onAction: () {
-            unawaited(_startLoad(bypassDwell: true));
-          },
-        ),
-      ),
+      FeedPageMediaKind.failed => widget.isCurrent
+          ? _UsableRegionCenter(
+              child: _BrowseStatusPanel(
+                panelKey: const Key('mainBrowseFeedPageFailed'),
+                message: _failureCopy(
+                  l10n,
+                  media.failureReason ?? FeedFailureReason.generic,
+                ),
+                actionLabel: l10n.mainBrowseFeedRetry,
+                actionKey: const Key('mainBrowseFeedPageRetry'),
+                onAction: () {
+                  unawaited(_retryFromFailState(pageFailedMedia: true));
+                },
+              ),
+            )
+          : const SizedBox.expand(),
     };
   }
 
@@ -3090,6 +3252,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required bool showLayer2WaitSpinner,
     required bool showCenterWaitLabel,
     required bool showLayer2FailedSlot,
+    String? cornerReassureLabel,
+    String? coverlessLiveBadgeLabel,
     Widget? still,
     Widget? video,
     Widget? poster,
@@ -3131,8 +3295,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         if (showLayer2WaitSpinner && still == null && poster == null)
           _FeedCornerChrome(
             color: tokens.brandGold,
-            strutBadgeLabel: l10n.mainBrowseLiveBadge,
+            badgeLabel: coverlessLiveBadgeLabel,
             showSpinner: true,
+            reassureLabel: cornerReassureLabel,
             rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
             spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
             semanticsLabel: l10n.mainBrowseFeedLayer2Waiting,
@@ -3144,7 +3309,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           l10n: l10n,
           tokens: tokens,
           onFailedRetry: () {
-            unawaited(_retryLayer2Only(bypassDwell: true));
+            unawaited(_retryFromFailState(pageFailedMedia: false));
           },
         ),
       ],
@@ -3182,15 +3347,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               textAlign: TextAlign.center,
               style: tokens.bodyOnMedia,
             ),
-            if (onFailedRetry != null)
-              TextButton(
-                key: const Key('mainBrowseFeedLayer2Retry'),
+            if (onFailedRetry != null) ...[
+              const SizedBox(height: 16),
+              _BrowseRetryButton(
+                buttonKey: const Key('mainBrowseFeedLayer2Retry'),
+                label: l10n.mainBrowseFeedRetry,
                 onPressed: onFailedRetry,
-                child: Text(
-                  l10n.mainBrowseFeedRetry,
-                  style: tokens.labelOnMedia,
-                ),
               ),
+            ],
           ],
         ),
       );
@@ -3243,6 +3407,7 @@ class _StillPage extends StatelessWidget {
     this.liveLoadLabel,
     this.layer3LoadLabel,
     this.showLoadSpinner = false,
+    this.reassureLabel,
     this.liveMotionOverlay,
     this.onPreviewFileBroken,
   });
@@ -3259,6 +3424,9 @@ class _StillPage extends StatelessWidget {
   /// Cap 14.6b: corner spinner for Layer 2 in-flight (any item) or Live prepare.
   final bool showLoadSpinner;
 
+  /// Cap 17.5b: short copy left of spinner when Package B fires (rare on still).
+  final String? reassureLabel;
+
   /// Cap 9.4 F1=A: motion-phase Live PV only (null when idle / after Q7 unload).
   final Widget? liveMotionOverlay;
 
@@ -3268,7 +3436,8 @@ class _StillPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final isLive = display.mediaKind == PlaybackMediaKind.livePhoto;
-    final showChrome = isLive || showLoadSpinner;
+    final showChrome = isLive || showLoadSpinner ||
+        (reassureLabel != null && reassureLabel!.isNotEmpty);
     final loadLabel = isLive ? liveLoadLabel : layer3LoadLabel;
     return Stack(
       key: Key('mainBrowseFeedStill_${display.assetIdentifier}'),
@@ -3283,8 +3452,8 @@ class _StillPage extends StatelessWidget {
           _FeedCornerChrome(
             color: tokens.brandGold,
             badgeLabel: isLive ? liveLabel : null,
-            strutBadgeLabel: liveLabel,
             showSpinner: showLoadSpinner,
+            reassureLabel: reassureLabel,
             rowKey: isLive
                 ? Key('mainBrowseFeedLiveChrome_${display.assetIdentifier}')
                 : const Key('mainBrowseFeedLayer3Chrome'),
@@ -3301,27 +3470,33 @@ class _StillPage extends StatelessWidget {
 
 /// Bottom-right load chrome for every feed item (Live badge ± spinner).
 ///
-/// Live lays the spinner out in a [Row] with the taller LIVE badge
-/// (`CrossAxisAlignment.center`), so the spinner sits higher than a
-/// 16px-only `Positioned(bottom: 12)`. Non-Live uses a zero-width badge
-/// strut with the same height so the spinner matches that vertical slot.
+/// Cap 17.5b: LIVE badge stacks **above** the gold spinner row so
+/// “Still loading” can sit left of the spinner without a horizontal
+/// LIVE|reassure|spinner collision (and without soft-degrade hide).
+///
+/// LIVE is pinned to the **screen trailing edge** (`right: [inset]`) on
+/// its own [Positioned] — not sized/aligned against the spinner row.
+/// Spinner / reassure share a separate trailing pin.
 class _FeedCornerChrome extends StatelessWidget {
   const _FeedCornerChrome({
     required this.color,
     this.badgeLabel,
-    this.strutBadgeLabel,
     this.showSpinner = false,
+    this.reassureLabel,
     this.rowKey,
     this.spinnerKey,
     this.semanticsLabel,
   });
 
   static const double inset = 12;
+  static const double _spinnerSize = 16;
+  static const double _badgeAboveSpinnerGap = 8;
 
   final Color color;
   final String? badgeLabel;
-  final String? strutBadgeLabel;
   final bool showSpinner;
+  /// Cap 17.5b: short copy immediately left of the spinner (incremental).
+  final String? reassureLabel;
   final Key? rowKey;
   final Key? spinnerKey;
   final String? semanticsLabel;
@@ -3329,38 +3504,63 @@ class _FeedCornerChrome extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showBadge = badgeLabel != null;
-    if (!showBadge && !showSpinner) {
+    final showReassure = reassureLabel != null && reassureLabel!.isNotEmpty;
+    if (!showBadge && !showSpinner && !showReassure) {
       return const SizedBox.shrink();
     }
-    return Positioned(
-      right: inset,
-      bottom: inset,
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final hasSpinnerRow = showReassure || showSpinner;
+    final badgeBottom = inset +
+        (hasSpinnerRow ? _badgeAboveSpinnerGap + _spinnerSize : 0);
+    return Positioned.fill(
       child: IgnorePointer(
-        child: Semantics(
-          container: true,
-          excludeSemantics: showSpinner,
-          label: showSpinner ? semanticsLabel : null,
-          child: Row(
-            key: rowKey,
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              if (showBadge) ...[
-                _LiveBadge(label: badgeLabel!),
-                if (showSpinner) const SizedBox(width: 8),
-              ] else if (showSpinner && strutBadgeLabel != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: 0,
-                  child: Opacity(
-                    opacity: 0,
-                    child: _LiveBadge(label: strutBadgeLabel!),
+        child: Stack(
+          children: [
+            if (showBadge)
+              Positioned(
+                right: inset,
+                bottom: badgeBottom,
+                child: _LiveBadge(label: badgeLabel!),
+              ),
+            if (hasSpinnerRow)
+              Positioned(
+                right: inset,
+                bottom: inset,
+                child: Semantics(
+                  container: true,
+                  excludeSemantics: showSpinner,
+                  label: showSpinner ? semanticsLabel : null,
+                  child: Row(
+                    key: rowKey,
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      if (showReassure) ...[
+                        // Intrinsic width — do not fade-clip EN
+                        // "Still loading" / ZH「仍在加载」under a tight
+                        // maxWidth (device smoke).
+                        Text(
+                          reassureLabel!,
+                          key: const Key('mainBrowseFeedLayer2Reassure'),
+                          maxLines: 1,
+                          softWrap: false,
+                          style: tokens.labelOnMedia.copyWith(
+                            color: tokens.onMedia,
+                            shadows: tokens.onMediaLabelShadows,
+                          ),
+                        ),
+                        if (showSpinner) const SizedBox(width: 8),
+                      ],
+                      if (showSpinner)
+                        _FeedCornerSpinner(
+                          spinnerKey: spinnerKey,
+                          color: color,
+                        ),
+                    ],
                   ),
                 ),
-              if (showSpinner)
-                _FeedCornerSpinner(spinnerKey: spinnerKey, color: color),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -3518,7 +3718,9 @@ class _LiveBadge extends StatelessWidget {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     return Container(
       key: const Key('mainBrowseLiveBadge'),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      // Trailing pad 0: [inset] on Positioned is the screen-edge safety
+      // gap for the “E”; extra right pad made LIVE look inset/off-edge.
+      padding: const EdgeInsets.fromLTRB(8, 4, 0, 4),
       decoration: BoxDecoration(
         color: tokens.mediaScrim.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(12),

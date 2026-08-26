@@ -112,3 +112,61 @@ bool isCoverlessFeedPresentation({
   }
   return !hasDisplayableCover;
 }
+
+/// Cap 17.5b: corner reassure copy after this dwell of Layer-2 wait chrome.
+///
+/// Owner subjective lock (not a derived constant). Same class of timer as
+/// a4 reveal — leave must cancel; ticks are generation-gated.
+const Duration kLayer2CornerReassureAfter = Duration(seconds: 3);
+
+/// Cap 17.5b Package B: whether to paint short copy left of the gold spinner.
+///
+/// Pure incremental: may show with Layer 1 / poster present (corner only).
+/// Center [Layer2Waiting] stays coverless-only (separate door). LIVE badge
+/// may coexist: chrome stacks LIVE **above** the spinner row so horizontal
+/// width stays within Overlay [trailingInset] without soft-degrade hide.
+///
+/// Trigger AND: current ∧ L2 in-flight ∧ wait spinner visible ∧ ¬a4 ∧
+/// ¬L1-miss page ∧ ¬fail ∧ elapsed ≥ [kLayer2CornerReassureAfter].
+/// Coverless is **not** required. LIVE visibility is **not** a gate.
+bool shouldShowLayer2CornerReassure({
+  required bool isCurrent,
+  required bool layer2InFlight,
+  required bool layer2Failed,
+  required bool loadingMissPage,
+  required WaitChromePathClass path,
+  required Duration elapsedInFlight,
+  required bool waitSpinnerVisible,
+}) {
+  if (!isCurrent || !layer2InFlight || layer2Failed) {
+    return false;
+  }
+  if (loadingMissPage) {
+    return false;
+  }
+  if (path == WaitChromePathClass.a4L2ReadyEvict) {
+    return false;
+  }
+  if (!waitSpinnerVisible) {
+    return false;
+  }
+  if (elapsedInFlight < kLayer2CornerReassureAfter) {
+    return false;
+  }
+  return true;
+}
+
+/// True when a corner-reassure Timer tick should call [setState].
+///
+/// Same leave/re-arm defense as [shouldApplyA4ChromeRevealTick].
+bool shouldApplyLayer2ReassureTick({
+  required bool isMounted,
+  required bool layer2InFlight,
+  required int? armedGeneration,
+  required int? currentInFlightGeneration,
+}) {
+  if (!isMounted || !layer2InFlight) {
+    return false;
+  }
+  return currentInFlightGeneration == armedGeneration;
+}

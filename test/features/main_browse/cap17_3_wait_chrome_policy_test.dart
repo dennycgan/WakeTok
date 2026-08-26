@@ -160,6 +160,122 @@ void main() {
     });
   });
 
+  group('U-17.5b corner reassure', () {
+    const base = (
+      isCurrent: true,
+      layer2InFlight: true,
+      layer2Failed: false,
+      loadingMissPage: false,
+      path: WaitChromePathClass.a2WaitToPlayable,
+      waitSpinnerVisible: true,
+    );
+
+    test('U-17.5b-a shows only after 3s on a2 (cover optional)', () {
+      expect(
+        shouldShowLayer2CornerReassure(
+          isCurrent: base.isCurrent,
+          layer2InFlight: base.layer2InFlight,
+          layer2Failed: base.layer2Failed,
+          loadingMissPage: base.loadingMissPage,
+          path: base.path,
+          elapsedInFlight: const Duration(seconds: 2),
+          waitSpinnerVisible: base.waitSpinnerVisible,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldShowLayer2CornerReassure(
+          isCurrent: base.isCurrent,
+          layer2InFlight: base.layer2InFlight,
+          layer2Failed: base.layer2Failed,
+          loadingMissPage: base.loadingMissPage,
+          path: base.path,
+          elapsedInFlight: kLayer2CornerReassureAfter,
+          waitSpinnerVisible: base.waitSpinnerVisible,
+        ),
+        isTrue,
+      );
+    });
+
+    test('U-17.5b-a4 and L1-miss excluded; covered still allowed', () {
+      expect(
+        shouldShowLayer2CornerReassure(
+          isCurrent: true,
+          layer2InFlight: true,
+          layer2Failed: false,
+          loadingMissPage: false,
+          path: WaitChromePathClass.a4L2ReadyEvict,
+          elapsedInFlight: kLayer2CornerReassureAfter,
+          waitSpinnerVisible: true,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldShowLayer2CornerReassure(
+          isCurrent: true,
+          layer2InFlight: true,
+          layer2Failed: false,
+          loadingMissPage: false,
+          path: WaitChromePathClass.a2WaitToPlayable,
+          elapsedInFlight: kLayer2CornerReassureAfter,
+          waitSpinnerVisible: true,
+        ),
+        isTrue,
+        reason: 'L1/poster present must not block corner reassure',
+      );
+      expect(
+        shouldShowLayer2CornerReassure(
+          isCurrent: true,
+          layer2InFlight: true,
+          layer2Failed: false,
+          loadingMissPage: true,
+          path: WaitChromePathClass.a2WaitToPlayable,
+          elapsedInFlight: kLayer2CornerReassureAfter,
+          waitSpinnerVisible: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('U-17.5b-live LIVE badge is not a reassure gate', () {
+      expect(
+        shouldShowLayer2CornerReassure(
+          isCurrent: true,
+          layer2InFlight: true,
+          layer2Failed: false,
+          loadingMissPage: false,
+          path: WaitChromePathClass.a2WaitToPlayable,
+          elapsedInFlight: kLayer2CornerReassureAfter,
+          waitSpinnerVisible: true,
+        ),
+        isTrue,
+        reason: 'LIVE stacks above spinner; reassure may coexist',
+      );
+    });
+
+    test('U-17.5b-gen stale reassure tick ignored when generation changes', () {
+      expect(
+        shouldApplyLayer2ReassureTick(
+          isMounted: true,
+          layer2InFlight: true,
+          armedGeneration: 1,
+          currentInFlightGeneration: 1,
+        ),
+        isTrue,
+      );
+      expect(
+        shouldApplyLayer2ReassureTick(
+          isMounted: true,
+          layer2InFlight: true,
+          armedGeneration: 1,
+          currentInFlightGeneration: 2,
+        ),
+        isFalse,
+        reason: 'leave/re-arm must not let old 3s timer paint',
+      );
+    });
+  });
+
   group('U-17.3e cancel finish dedupe', () {
     test('leave double finish collapses to one', () {
       const a = CancelFinishEvent(assetId: 'x', windowId: 'leave-1');
