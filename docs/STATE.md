@@ -228,10 +228,13 @@ availability hardening (Cap 17)
       spinner + independent trailing pin); cancel-before-retry;
       translucent accent Retry chip; Host Layer2 fail Console probe.
       Kafka Profile owner验收 PASS.
-- [ ] 17.6 Device acceptance + residual triage.
-      Absorb only residuals strictly in the Main Browse foundation
-      loop; do not expand to pool / clips / autoplay. Do **not** treat
-      deferred F1 as an implied 17.6 deliverable (F1 stays Unassigned).
+- [x] 17.6 Device acceptance + residual triage.
+      Kafka §5 + Cap 17 smoke PASS; i17 required for Live/B.2 + short-L2
+      F1 (Kafka Live sparse — checklist completeness, not Host-temp skew).
+      Residual: Live L2→motion dual-phase chrome — work `c8bc56a` /
+      ADR-037; notes `docs/acceptance/cap17-17.6-notes.md`.
+      W-16.4h `501bde7`. F1 wasted prepare stays Unassigned; 400/403 /
+      Layer2Waiting unchanged.
 - [ ] 17.7 Overlay capture-time vs iOS Photos (exact + relative).
       **Owner expansion during Cap 17.4 device acceptance (2026-08-25):**
       not in the original frozen 17.1–17.7 Main Browse / iCloud roadmap.
@@ -243,16 +246,15 @@ availability hardening (Cap 17)
 - [ ] 17.8 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **17.6** Device acceptance + residual triage
-      (Main Browse foundation loop only; F1 stays Unassigned)
-- Sub-steps done: Cap 17.1–17.5b as above (17.5b work `649e22f` /
-      ADR-036 Accepted)
-- Next step: owner device residual pass for Cap 17 chrome / iCloud
-      foundation; triage only in-scope leftovers into 17.6 or Known debt
-- Related decisions: ADR-025; ADR-029; ADR-031…036; Cap 16 storage
-      discipline; Known debt 400 (open) + 403 wait/stall Unassigned +
-      Layer2Waiting necessity Unassigned + L2 fail-map probe confirmed;
-      F1 Unassigned; Overlay capture-time → Cap 17.7; 402 → Cap 18
+- Goal (one line): Cap **17.7** Overlay capture-time vs iOS Photos
+      (exact + relative; Cap 8 Overlay cross-scope folded into Cap 17)
+- Sub-steps done: Cap 17.1–17.6 as above (17.6 work `c8bc56a` /
+      ADR-037 Accepted; notes `cap17-17.6-notes.md`)
+- Next step: diagnose Overlay `createdAt` / timezone path vs iOS Photos
+      display for the same asset; contract then fix (mechanism TBD)
+- Related decisions: ADR-025; ADR-029; ADR-031…037; Cap 8 Overlay;
+      Known debt Overlay capture-time row; 400 open; 403 / Layer2Waiting /
+      F1 Unassigned; 402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -403,6 +405,11 @@ availability hardening (Cap 17)
 - ADR-035: Cap 17.5 production Layer-2 dwell N = 300 ms —
   **Accepted** (2026-08-26), anchor `9ffb513`; supersedes ADR-029
   Decision 2 numeric N only
+- ADR-036: Cap 17.5b Retry visibility + corner Layer-2 reassure —
+  **Accepted** (2026-08-26), anchor `649e22f`
+- ADR-037: Live L2→motion prepare chrome continuity (F1 handoff latch) —
+  **Accepted** (2026-08-26), anchor `c8bc56a`; narrow exception to
+  ADR-034 Decision 2 F1
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
@@ -449,6 +456,8 @@ availability hardening (Cap 17)
 - Acceptance notes (Cap 17.1 diagnosis closed; Tracks A/B/C; probes
   never committed):
   docs/acceptance/cap17-17.1-notes.md
+- Acceptance notes (Cap 17.6 device + Live handoff residual):
+  docs/acceptance/cap17-17.6-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md

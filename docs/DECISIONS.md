@@ -3156,7 +3156,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-034: Cap 17 Layer 1→2 wait chrome, debt 400 presentation, and iCloud observability contract
 
-- Status: Accepted (2026-08-25)
+- Status: Accepted (2026-08-25); Decision 2 **F1 (+D)** Live-prepare
+  suppress-below-T has a **narrow handoff continuity exception** in
+  **ADR-037** (Accepted 2026-08-26, anchor `c8bc56a`) — when Layer-2
+  wait chrome already painted this inFlight, motion prepare skips F1
+  &lt;T; short / unlatched F1 evidence and intent are unchanged.
 - Commit/PR anchor: `00b7264` (Cap 17.3 work; first Cap 17 implementing commit)
 - Plain summary (owner reads this):
   Waiting in Main Browse should match how long the wait usually is: a quick
@@ -3587,3 +3591,59 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   `docs/acceptance/cap17-17.5b-notes.md`. This docs commit accepts
   ADR-036 and marks 17.5b `[x]` in STATE (YOU ARE HERE remains Cap 17;
   next phase 17.6).
+
+---
+
+## ADR-037: Live L2→motion prepare chrome continuity (F1 handoff latch)
+
+- Status: Accepted (2026-08-26)
+- Commit/PR anchor: c8bc56a
+- Plain summary (owner reads this):
+  On long iCloud Live waits, if the bottom-right gold spinner already
+  showed during Layer-2 still download, it must not blink off and on
+  again when Live motion prepare starts (that bounce also shoves the
+  LIVE badge up and down). Short Live prepares that never showed an L2
+  spinner still keep the Cap 17.3 “hide under 150 ms” rule. Playing an
+  already-prepared Live must never turn the loading spinner on — that
+  path is separate from prepare (future long-press replay uses play-only).
+- Context / what problem forced this:
+  Cap 17.6 Kafka soak on iCloud Live showed a two-phase corner chrome
+  sequence: L2 wait spinner (+ optional Still loading) cleared, LIVE
+  dropped, then motion prepare painted gold again and lifted LIVE.
+  Cap 14.6b already same-frame-armed `_livePreparing` on L2 success to
+  avoid a dip; Cap 17.3 F1(+D) then suppressed Live prepare gold for
+  wall time &lt; T on **every** prepare arm, including after a long L2
+  wait that had already shown spinner — recreating a visible gap.
+  ADR-034 F1 evidence for short-prepare flash suppression remains
+  valid; this is a newly observed handoff scene, not a rollback of F1.
+- Decision (what was chosen):
+  1. **Latch:** `_layer2WaitChromeLatched` becomes true when L2 wait
+     corner spinner actually paints during this inFlight (not “elapsed
+     ≥ T” alone). Cleared on new arm / leave / after handoff consume.
+  2. **Handoff continuity (A):** on L2 success → Live prepare, if
+     latched, skip F1 &lt;T suppress for that prepare arm so spinner
+     stays up. If not latched, F1 unchanged.
+  3. **Reassure (A1):** Package B Still loading stays tied to L2
+     inFlight only — does **not** continue into motion prepare.
+  4. **Prepare vs play-only:** `_prepareLiveMotion` is the only path
+     that may set `_livePreparing` / loading chrome.
+     `_playLiveMotionOnce` never arms preparing. Do **not** invent a
+     Dart “already on disk” check without Host prepared-state; after
+     Q7 unload Host often drops the LivePhoto — future replay needs
+     keep-or-silent-re-request with chrome off, not a fake isPrepared.
+  5. **ADR-034 F1:** Status notes this narrow exception; Decision 2 F1
+     body is not rewritten.
+- Alternatives considered:
+  - Silent motion prepare whenever L1/cover exists (no second spinner)
+    — rejected; weak-net motion wait would lose feedback.
+  - Unify L2+motion into one wait clock — rejected for 17.6 residual
+    scope.
+  - Docs-only Known debt — rejected; clear foundation chrome defect
+    with owner device repro.
+  - Edit ADR-034 F1 Decision 2 body in place — rejected; same
+    append-only pattern as ADR-035 / ADR-036.
+- Consequences:
+  Work `c8bc56a` + tests `W-17.6-*` / updated `W-14.6b-L2`; notes
+  `docs/acceptance/cap17-17.6-notes.md`. Kafka + i17 Profile PASS.
+  Cap 17.6 docs mark phase `[x]`; next **17.7** Overlay capture-time.
+  Long-press Live replay remains future work on the play-only path.
