@@ -5,37 +5,45 @@ import 'package:waketok/domain/presentation/presentation_media_kind.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/presentation/presentation_metadata_repository.dart';
 
-/// Test double for Cap 8.5 Overlay wiring.
+/// Test double for Cap 8.5 Overlay wiring (+ Cap 17.7 wall clock).
 class FakePresentationMetadataRepository
     implements PresentationMetadataRepository {
   FakePresentationMetadataRepository({
     this.basicsDelay = Duration.zero,
     this.sizeDelay = Duration.zero,
+    this.wallClockDelay = Duration.zero,
     this.basicsGate,
     this.sizeGate,
+    this.wallClockGate,
     this.hangOnSizeCall,
     Map<String, PresentationMetadata>? basicsById,
     Map<String, PresentationFileSize>? sizeById,
     Map<String, List<PresentationFileSize>>? sizeSequenceById,
+    Map<String, CaptureWallClock?>? wallClockById,
   }) : basicsById = basicsById ?? {},
        sizeById = sizeById ?? {},
-       sizeSequenceById = sizeSequenceById ?? {};
+       sizeSequenceById = sizeSequenceById ?? {},
+       wallClockById = wallClockById ?? {};
 
   Duration basicsDelay;
   Duration sizeDelay;
+  Duration wallClockDelay;
   final Map<String, PresentationMetadata> basicsById;
   final Map<String, PresentationFileSize> sizeById;
   final Map<String, List<PresentationFileSize>> sizeSequenceById;
+  final Map<String, CaptureWallClock?> wallClockById;
 
   /// Optional hang gate (never complete to prove display is not blocked).
   Completer<void>? basicsGate;
   Completer<void>? sizeGate;
+  Completer<void>? wallClockGate;
 
   /// When set, [sizeGate] applies only to this 1-based [sizeCalls] index.
   int? hangOnSizeCall;
 
   int basicsCalls = 0;
   int sizeCalls = 0;
+  int wallClockCalls = 0;
   final Map<String, int> sizeCallsById = <String, int>{};
 
   @override
@@ -56,6 +64,25 @@ class FakePresentationMetadataRepository
           mediaKind: PresentationMediaKind.image,
           createdAt: DateTime.utc(2024, 6, 1, 12),
         );
+  }
+
+  @override
+  Future<CaptureWallClock?> requestCaptureWallClock(
+    String assetIdentifier,
+  ) async {
+    wallClockCalls += 1;
+    final gate = wallClockGate;
+    if (gate != null) {
+      await gate.future;
+    }
+    if (wallClockDelay > Duration.zero) {
+      await Future<void>.delayed(wallClockDelay);
+    }
+    if (wallClockById.containsKey(assetIdentifier)) {
+      return wallClockById[assetIdentifier];
+    }
+    // Default: no EXIF → Dart epoch fallback after resolve.
+    return null;
   }
 
   @override

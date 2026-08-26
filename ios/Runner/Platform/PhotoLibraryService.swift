@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import ImageIO
 import Photos
 import PhotosUI
 import UIKit
@@ -1328,6 +1329,222 @@ final class PhotoLibraryService: PhotoLibraryApi {
     } catch {
       completion(.failure(error))
     }
+  }
+
+  // MARK: - Capture wall clock (Cap 17.7 / ADR-038)
+
+  /// Cap 17.7: Photos-aligned naked capture wall clock for Overlay exact.
+  ///
+  /// Prefer local file URL + ImageIO (no full `NSData` when URL exists),
+  /// then local `requestImageDataAndOrientation`. If still nil (Optimize
+  /// Storage / iCloud-only bytes), **one** network-allowed retry — otherwise
+  /// Overlay exact falls back to epoch→device TZ and systematically mismatches
+  /// Photos for travel libraries. Video / no EXIF → null components. Never
+  /// GPS → TZ.
+  func requestCaptureWallClock(
+    assetIdentifier: String,
+    completion: @escaping (Result<CaptureWallClockDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+      let fetch = PHAsset.fetchAssets(
+        withLocalIdentifiers: [assetIdentifier],
+        options: nil
+      )
+      guard let asset = fetch.firstObject else {
+        completion(
+          .failure(
+            fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
+          )
+        )
+        return
+      }
+
+      let kind = mapMediaKind(asset)
+      // This phase: still / Live still only — no QuickTime timeline for video.
+      guard kind == .image || kind == .livePhoto else {
+        completion(.success(Self.emptyCaptureWallClock(assetIdentifier)))
+        return
+      }
+
+      resolveCaptureWallClock(
+        asset: asset,
+        networkAllowed: false,
+        completion: completion
+      )
+    } catch {
+      completion(.failure(error))
+    }
+  }
+
+  private static func emptyCaptureWallClock(_ assetIdentifier: String)
+    -> CaptureWallClockDto
+  {
+    CaptureWallClockDto(
+      assetIdentifier: assetIdentifier,
+      year: nil,
+      month: nil,
+      day: nil,
+      hour: nil,
+      minute: nil
+    )
+  }
+
+  private func resolveCaptureWallClock(
+    asset: PHAsset,
+    networkAllowed: Bool,
+    completion: @escaping (Result<CaptureWallClockDto, Error>) -> Void
+  ) {
+    let assetIdentifier = asset.localIdentifier
+    let inputOptions = PHContentEditingInputRequestOptions()
+    inputOptions.isNetworkAccessAllowed = networkAllowed
+
+    asset.requestContentEditingInput(with: inputOptions) { [weak self] input, _ in
+      guard let self else { return }
+
+      if let url = input?.fullSizeImageURL,
+        let parsed = Self.parseCaptureWallClock(fromImageSourceURL: url)
+      {
+        DispatchQueue.main.async {
+          completion(.success(Self.wallClockDto(assetIdentifier, parsed)))
+        }
+        return
+      }
+
+      self.resolveCaptureWallClockViaImageData(
+        asset: asset,
+        networkAllowed: networkAllowed,
+        completion: completion
+      )
+    }
+  }
+
+  private func resolveCaptureWallClockViaImageData(
+    asset: PHAsset,
+    networkAllowed: Bool,
+    completion: @escaping (Result<CaptureWallClockDto, Error>) -> Void
+  ) {
+    let assetIdentifier = asset.localIdentifier
+    let options = PHImageRequestOptions()
+    options.isNetworkAccessAllowed = networkAllowed
+    options.deliveryMode = .highQualityFormat
+    options.resizeMode = .none
+    options.isSynchronous = false
+
+    PHImageManager.default().requestImageDataAndOrientation(
+      for: asset,
+      options: options
+    ) { [weak self] data, _, _, info in
+      let infoDict = info ?? [:]
+      if (infoDict[PHImageCancelledKey] as? Bool) == true {
+        DispatchQueue.main.async {
+          completion(.success(Self.emptyCaptureWallClock(assetIdentifier)))
+        }
+        return
+      }
+
+      if let data, !data.isEmpty,
+        let parsed = Self.parseCaptureWallClock(fromImageData: data)
+      {
+        DispatchQueue.main.async {
+          completion(.success(Self.wallClockDto(assetIdentifier, parsed)))
+        }
+        return
+      }
+
+      // Local miss on Optimize Storage → escalate once with network.
+      if !networkAllowed, let self {
+        self.resolveCaptureWallClock(
+          asset: asset,
+          networkAllowed: true,
+          completion: completion
+        )
+        return
+      }
+
+      DispatchQueue.main.async {
+        completion(.success(Self.emptyCaptureWallClock(assetIdentifier)))
+      }
+    }
+  }
+
+  private static func wallClockDto(
+    _ assetIdentifier: String,
+    _ parts: (year: Int, month: Int, day: Int, hour: Int, minute: Int)
+  ) -> CaptureWallClockDto {
+    CaptureWallClockDto(
+      assetIdentifier: assetIdentifier,
+      year: Int64(parts.year),
+      month: Int64(parts.month),
+      day: Int64(parts.day),
+      hour: Int64(parts.hour),
+      minute: Int64(parts.minute)
+    )
+  }
+
+  private static func parseCaptureWallClock(fromImageSourceURL url: URL)
+    -> (year: Int, month: Int, day: Int, hour: Int, minute: Int)?
+  {
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else {
+      return nil
+    }
+    return parseCaptureWallClock(fromImageSource: source)
+  }
+
+  private static func parseCaptureWallClock(fromImageData data: Data)
+    -> (year: Int, month: Int, day: Int, hour: Int, minute: Int)?
+  {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil) else {
+      return nil
+    }
+    return parseCaptureWallClock(fromImageSource: source)
+  }
+
+  private static func parseCaptureWallClock(fromImageSource source: CGImageSource)
+    -> (year: Int, month: Int, day: Int, hour: Int, minute: Int)?
+  {
+    guard
+      let props = CGImageSourceCopyPropertiesAtIndex(source, 0, nil)
+        as? [CFString: Any]
+    else {
+      return nil
+    }
+
+    let exif = props[kCGImagePropertyExifDictionary] as? [CFString: Any]
+    let tiff = props[kCGImagePropertyTIFFDictionary] as? [CFString: Any]
+    let raw =
+      (exif?[kCGImagePropertyExifDateTimeOriginal] as? String)
+      ?? (tiff?[kCGImagePropertyTIFFDateTime] as? String)
+    return parseExifDateTimeOriginal(raw)
+  }
+
+  /// Parses `yyyy:MM:dd HH:mm[:ss]` (EXIF/TIFF naked local). No TZ convert.
+  private static func parseExifDateTimeOriginal(_ raw: String?)
+    -> (year: Int, month: Int, day: Int, hour: Int, minute: Int)?
+  {
+    guard let raw else { return nil }
+    // Tolerate optional trailing offset / subseconds by taking first 16 chars.
+    let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard trimmed.count >= 16 else { return nil }
+    let head = String(trimmed.prefix(16))
+    let parts = head.split(separator: " ")
+    guard parts.count == 2 else { return nil }
+    let dateParts = parts[0].split(separator: ":")
+    let timeParts = parts[1].split(separator: ":")
+    guard dateParts.count == 3, timeParts.count >= 2,
+      let year = Int(dateParts[0]),
+      let month = Int(dateParts[1]),
+      let day = Int(dateParts[2]),
+      let hour = Int(timeParts[0]),
+      let minute = Int(timeParts[1]),
+      (1...12).contains(month),
+      (1...31).contains(day),
+      (0...23).contains(hour),
+      (0...59).contains(minute)
+    else {
+      return nil
+    }
+    return (year, month, day, hour, minute)
   }
 
   func requestPresentationFileSize(

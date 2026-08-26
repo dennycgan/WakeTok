@@ -686,6 +686,8 @@ struct LibraryTotalsDto: Hashable, CustomStringConvertible {
 /// [mediaKind] is always set when the asset exists (incl. [MediaKind.unknown]).
 /// [creationDateMs] stays null when PhotoKit `creationDate` is nil.
 /// File size is a separate call — [requestPresentationFileSize].
+/// Capture wall clock (EXIF/TIFF) is a separate call —
+/// [requestCaptureWallClock] (Cap 17.7 / ADR-038).
 ///
 /// Generated class from Pigeon that represents data sent in messages.
 struct PresentationMetadataDto: Hashable, CustomStringConvertible {
@@ -730,6 +732,72 @@ struct PresentationMetadataDto: Hashable, CustomStringConvertible {
 
   public var description: String {
     return "PresentationMetadataDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), creationDateMs: \(String(describing: creationDateMs)))"
+  }
+}
+
+/// Cap 17.7: Photos-aligned capture wall clock (naked EXIF/TIFF local time).
+///
+/// All of [year]/[month]/[day]/[hour]/[minute] are set together, or all
+/// null when unavailable (no EXIF, video this phase, iCloud-only / no local
+/// bytes). Network access disallowed — never download solely for wall clock.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct CaptureWallClockDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var year: Int64? = nil
+  var month: Int64? = nil
+  var day: Int64? = nil
+  var hour: Int64? = nil
+  var minute: Int64? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> CaptureWallClockDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let year: Int64? = nilOrValue(pigeonVar_list[1])
+    let month: Int64? = nilOrValue(pigeonVar_list[2])
+    let day: Int64? = nilOrValue(pigeonVar_list[3])
+    let hour: Int64? = nilOrValue(pigeonVar_list[4])
+    let minute: Int64? = nilOrValue(pigeonVar_list[5])
+
+    return CaptureWallClockDto(
+      assetIdentifier: assetIdentifier,
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      year,
+      month,
+      day,
+      hour,
+      minute,
+    ]
+  }
+  static func == (lhs: CaptureWallClockDto, rhs: CaptureWallClockDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.year, rhs.year) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.month, rhs.month) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.day, rhs.day) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.hour, rhs.hour) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.minute, rhs.minute)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("CaptureWallClockDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: year, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: month, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: day, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: hour, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: minute, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "CaptureWallClockDto(assetIdentifier: \(String(describing: assetIdentifier)), year: \(String(describing: year)), month: \(String(describing: month)), day: \(String(describing: day)), hour: \(String(describing: hour)), minute: \(String(describing: minute)))"
   }
 }
 
@@ -1057,14 +1125,16 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
     case 145:
       return PresentationMetadataDto.fromList(self.readValue() as! [Any?])
     case 146:
-      return PresentationFileSizeDto.fromList(self.readValue() as! [Any?])
+      return CaptureWallClockDto.fromList(self.readValue() as! [Any?])
     case 147:
-      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
+      return PresentationFileSizeDto.fromList(self.readValue() as! [Any?])
     case 148:
-      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
+      return PlaybackItemDto.fromList(self.readValue() as! [Any?])
     case 149:
-      return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
+      return PlaybackPlanDto.fromList(self.readValue() as! [Any?])
     case 150:
+      return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
+    case 151:
       return PlaybackSurfaceAttachedDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -1125,20 +1195,23 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
     } else if let value = value as? PresentationMetadataDto {
       super.writeByte(145)
       super.writeValue(value.toList())
-    } else if let value = value as? PresentationFileSizeDto {
+    } else if let value = value as? CaptureWallClockDto {
       super.writeByte(146)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackItemDto {
+    } else if let value = value as? PresentationFileSizeDto {
       super.writeByte(147)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackPlanDto {
+    } else if let value = value as? PlaybackItemDto {
       super.writeByte(148)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackRuntimeEventDto {
+    } else if let value = value as? PlaybackPlanDto {
       super.writeByte(149)
       super.writeValue(value.toList())
-    } else if let value = value as? PlaybackSurfaceAttachedDto {
+    } else if let value = value as? PlaybackRuntimeEventDto {
       super.writeByte(150)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackSurfaceAttachedDto {
+      super.writeByte(151)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1259,8 +1332,16 @@ protocol PhotoLibraryApi {
   func releasePreview(assetIdentifier: String) throws
   /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
   ///
-  /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
+  /// Does not compute file size or capture wall clock. Missing asset →
+  /// [ErrorCode.assetUnavailable].
   func requestPresentationMetadata(assetIdentifier: String, completion: @escaping (Result<PresentationMetadataDto, Error>) -> Void)
+  /// Cap 17.7: Photos-aligned capture wall clock for Overlay exact row.
+  ///
+  /// Local-first (URL + ImageIO, then image data). If still unavailable
+  /// (Optimize Storage / iCloud-only), one network-allowed retry to read
+  /// EXIF/TIFF. Video / no EXIF → success with null component fields (not an
+  /// error). Missing asset → [ErrorCode.assetUnavailable].
+  func requestCaptureWallClock(assetIdentifier: String, completion: @escaping (Result<CaptureWallClockDto, Error>) -> Void)
   /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
   ///
   /// Network access disallowed. Live Photo uses Tier 4 still-only
@@ -1596,7 +1677,8 @@ class PhotoLibraryApiSetup {
     }
     /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
     ///
-    /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
+    /// Does not compute file size or capture wall clock. Missing asset →
+    /// [ErrorCode.assetUnavailable].
     let requestPresentationMetadataChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationMetadata\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestPresentationMetadataChannel.setMessageHandler { message, reply in
@@ -1613,6 +1695,29 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestPresentationMetadataChannel.setMessageHandler(nil)
+    }
+    /// Cap 17.7: Photos-aligned capture wall clock for Overlay exact row.
+    ///
+    /// Local-first (URL + ImageIO, then image data). If still unavailable
+    /// (Optimize Storage / iCloud-only), one network-allowed retry to read
+    /// EXIF/TIFF. Video / no EXIF → success with null component fields (not an
+    /// error). Missing asset → [ErrorCode.assetUnavailable].
+    let requestCaptureWallClockChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestCaptureWallClock\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestCaptureWallClockChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.requestCaptureWallClock(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestCaptureWallClockChannel.setMessageHandler(nil)
     }
     /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
     ///

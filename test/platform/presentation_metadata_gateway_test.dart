@@ -16,6 +16,7 @@ void main() {
   tearDown(() {
     for (final m in <String>[
       'requestPresentationMetadata',
+      'requestCaptureWallClock',
       'requestPresentationFileSize',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -68,6 +69,59 @@ void main() {
     final meta =
         await PhotoLibraryGateway().requestPresentationMetadata('img1');
     expect(meta.createdAt, isNull);
+  });
+
+  test('G-17.7 capture wall clock maps complete components', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestCaptureWallClock'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        pigeon.CaptureWallClockDto(
+          assetIdentifier: 'img1',
+          year: 2019,
+          month: 11,
+          day: 8,
+          hour: 19,
+          minute: 0,
+        ),
+      ],
+    );
+
+    final wall =
+        await PhotoLibraryGateway().requestCaptureWallClock('img1');
+    expect(wall, isNotNull);
+    expect(wall!.year, 2019);
+    expect(wall.month, 11);
+    expect(wall.day, 8);
+    expect(wall.hour, 19);
+    expect(wall.minute, 0);
+  });
+
+  test('G-17.7 incomplete wall clock components map to null', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestCaptureWallClock'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        pigeon.CaptureWallClockDto(
+          assetIdentifier: 'vid1',
+          year: null,
+          month: null,
+          day: null,
+          hour: null,
+          minute: null,
+        ),
+      ],
+    );
+
+    final wall =
+        await PhotoLibraryGateway().requestCaptureWallClock('vid1');
+    expect(wall, isNull);
   });
 
   test('G-P1 null fileSizeBytes does not become 0', () async {

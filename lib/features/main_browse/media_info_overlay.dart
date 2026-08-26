@@ -37,13 +37,17 @@ class MediaInfoOverlay extends StatelessWidget {
     final clock = now ?? DateTime.now();
     final snap = snapshot;
 
+    final datesResolved = snap?.exactDateResolved ?? false;
     final relative = formatOverlayRelativeDate(
       l10n: l10n,
+      exactDateResolved: datesResolved,
       createdAt: snap?.createdAt,
       now: clock,
     );
     final exact = formatOverlayExactDateTime(
       l10n: l10n,
+      exactDateResolved: datesResolved,
+      captureWallClock: snap?.captureWallClock,
       createdAt: snap?.createdAt,
     );
     final characteristics = _row3(l10n: l10n, snap: snap);

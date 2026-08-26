@@ -68,6 +68,13 @@ final class _FakePresentationRepo implements PresentationMetadataRepository {
   }
 
   @override
+  Future<CaptureWallClock?> requestCaptureWallClock(
+    String assetIdentifier,
+  ) async {
+    return null;
+  }
+
+  @override
   Future<PresentationFileSize> requestPresentationFileSize(
     String assetIdentifier,
   ) async {
