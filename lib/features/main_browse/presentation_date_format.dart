@@ -1,9 +1,16 @@
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Cap 8.5 relative / exact date strings via ARB only (ADR-012 / D3=B).
+/// Cap 8.5 / 17.7 relative / exact date strings via ARB only (ADR-012 / D3=B).
 ///
-/// Relative: same calendar day → Today; 1–30 days → `N days ago`;
+/// Relative (Cap 17.7 short bands): coarse local-calendar buckets for
+/// `diffDays` 0–2 and 3–7 to absorb ±1-day TZ edge error; 8–30 → `N days ago`;
 /// beyond → `Y years M months ago` (omit days; omit zero units).
+///
+/// Exact (Cap 17.7): day-precision approximate local calendar date from
+/// [createdAt] Instant → device TZ (`~` day prefix). Not Photos minute wall;
+/// may differ from Photos by ±1 calendar day at timezone edges. Rows 1 and 2
+/// share the same honest-degradation stance but are not guaranteed numerically
+/// consistent with each other.
 String formatOverlayRelativeDate({
   required AppLocalizations l10n,
   required DateTime? createdAt,
@@ -16,9 +23,12 @@ String formatOverlayRelativeDate({
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(local.year, local.month, local.day);
   final diffDays = today.difference(day).inDays;
-  if (diffDays <= 0) {
-    // Today, or future-dated metadata treated as today.
-    return l10n.mediaInfoRelativeToday;
+  if (diffDays <= 2) {
+    // 0–2: today / yesterday / day-before; future-dated metadata included.
+    return l10n.mediaInfoRelativeWithin3Days;
+  }
+  if (diffDays <= 7) {
+    return l10n.mediaInfoRelativeWithinWeek;
   }
   if (diffDays <= 30) {
     return l10n.mediaInfoRelativeDaysAgo(diffDays.toString());
@@ -54,6 +64,7 @@ String formatOverlayRelativeDate({
   return l10n.mediaInfoRelativeDaysAgo(diffDays.toString());
 }
 
+/// Overlay row 2: approximate local **date** only (Cap 17.7).
 String formatOverlayExactDateTime({
   required AppLocalizations l10n,
   required DateTime? createdAt,
@@ -65,7 +76,5 @@ String formatOverlayExactDateTime({
   final y = local.year.toString().padLeft(4, '0');
   final m = local.month.toString().padLeft(2, '0');
   final d = local.day.toString().padLeft(2, '0');
-  final hh = local.hour.toString().padLeft(2, '0');
-  final mm = local.minute.toString().padLeft(2, '0');
-  return l10n.mediaInfoExactDateTime(y, m, d, hh, mm);
+  return l10n.mediaInfoExactDateApprox(y, m, d);
 }

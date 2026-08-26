@@ -409,13 +409,17 @@
   "@mainBrowseOpenLibrarySmokeDebug": {
     "description": "kDebugMode-only button on Settings stub to open library_smoke"
   },
-  "mediaInfoRelativeToday": "Today",
-  "@mediaInfoRelativeToday": {
-    "description": "Overlay row 1 when the asset was created on the current local calendar day"
+  "mediaInfoRelativeWithin3Days": "Within the past 3 days",
+  "@mediaInfoRelativeWithin3Days": {
+    "description": "Overlay row 1 when local calendar age is 0–2 days (Cap 17.7 coarse band)"
+  },
+  "mediaInfoRelativeWithinWeek": "Within the past week",
+  "@mediaInfoRelativeWithinWeek": {
+    "description": "Overlay row 1 when local calendar age is 3–7 days (Cap 17.7 coarse band)"
   },
   "mediaInfoRelativeDaysAgo": "{count} days ago",
   "@mediaInfoRelativeDaysAgo": {
-    "description": "Overlay row 1 when age is 1–30 days (inclusive)",
+    "description": "Overlay row 1 when age is 8–30 days (inclusive)",
     "placeholders": {
       "count": {"type": "String"}
     }
@@ -442,15 +446,13 @@
       "months": {"type": "String"}
     }
   },
-  "mediaInfoExactDateTime": "{year}-{month}-{day} {hour}:{minute}",
-  "@mediaInfoExactDateTime": {
-    "description": "Overlay row 2 exact local date and time",
+  "mediaInfoExactDateApprox": "~ {year}-{month}-{day}",
+  "@mediaInfoExactDateApprox": {
+    "description": "Overlay row 2 approximate local calendar date (~ prefix; day precision; not minute-exact)",
     "placeholders": {
       "year": {"type": "String"},
       "month": {"type": "String"},
-      "day": {"type": "String"},
-      "hour": {"type": "String"},
-      "minute": {"type": "String"}
+      "day": {"type": "String"}
     }
   },
   "mediaInfoLivePhoto": "Live Photo",

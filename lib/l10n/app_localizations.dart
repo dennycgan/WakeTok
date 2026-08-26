@@ -663,13 +663,19 @@ abstract class AppLocalizations {
   /// **'Library smoke (debug)'**
   String get mainBrowseOpenLibrarySmokeDebug;
 
-  /// Overlay row 1 when the asset was created on the current local calendar day
+  /// Overlay row 1 when local calendar age is 0–2 days (Cap 17.7 coarse band)
   ///
   /// In en, this message translates to:
-  /// **'Today'**
-  String get mediaInfoRelativeToday;
+  /// **'Within the past 3 days'**
+  String get mediaInfoRelativeWithin3Days;
 
-  /// Overlay row 1 when age is 1–30 days (inclusive)
+  /// Overlay row 1 when local calendar age is 3–7 days (Cap 17.7 coarse band)
+  ///
+  /// In en, this message translates to:
+  /// **'Within the past week'**
+  String get mediaInfoRelativeWithinWeek;
+
+  /// Overlay row 1 when age is 8–30 days (inclusive)
   ///
   /// In en, this message translates to:
   /// **'{count} days ago'**
@@ -693,17 +699,11 @@ abstract class AppLocalizations {
   /// **'{years} years {months} months ago'**
   String mediaInfoRelativeYearsMonthsAgo(String years, String months);
 
-  /// Overlay row 2 exact local date and time
+  /// Overlay row 2 approximate local calendar date (~ prefix; day precision; not minute-exact)
   ///
   /// In en, this message translates to:
-  /// **'{year}-{month}-{day} {hour}:{minute}'**
-  String mediaInfoExactDateTime(
-    String year,
-    String month,
-    String day,
-    String hour,
-    String minute,
-  );
+  /// **'~ {year}-{month}-{day}'**
+  String mediaInfoExactDateApprox(String year, String month, String day);
 
   /// Overlay row 3 label when mediaKind is livePhoto
   ///

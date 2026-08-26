@@ -332,7 +332,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
-  String get mediaInfoRelativeToday => 'Today';
+  String get mediaInfoRelativeWithin3Days => 'Within the past 3 days';
+
+  @override
+  String get mediaInfoRelativeWithinWeek => 'Within the past week';
 
   @override
   String mediaInfoRelativeDaysAgo(String count) {
@@ -355,14 +358,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String mediaInfoExactDateTime(
-    String year,
-    String month,
-    String day,
-    String hour,
-    String minute,
-  ) {
-    return '$year-$month-$day $hour:$minute';
+  String mediaInfoExactDateApprox(String year, String month, String day) {
+    return '~ $year-$month-$day';
   }
 
   @override

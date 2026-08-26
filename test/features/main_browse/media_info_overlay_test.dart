@@ -181,7 +181,7 @@ void main() {
     expect(find.text('0'), findsNothing);
   });
 
-  test('W-O2 formatters: today; days within 30; years/months beyond', () async {
+  test('W-O2 formatters: short bands; days 8–30; years/months beyond', () async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(
       formatOverlayRelativeDate(
@@ -189,7 +189,7 @@ void main() {
         createdAt: DateTime(2024, 6, 10, 8),
         now: now,
       ),
-      l10n.mediaInfoRelativeToday,
+      l10n.mediaInfoRelativeWithin3Days,
     );
     expect(
       formatOverlayRelativeDate(
