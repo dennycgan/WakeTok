@@ -1331,12 +1331,10 @@ void main() {
       final a2Created = DateTime(2023, 5, 20, 8, 0);
       final a1Exact = formatOverlayExactDateTime(
         l10n: l10n,
-        exactDateResolved: true,
         createdAt: a1Created,
       );
       final a2Exact = formatOverlayExactDateTime(
         l10n: l10n,
-        exactDateResolved: true,
         createdAt: a2Created,
       );
       final a1Size = formatOverlayFileSize(
@@ -1440,7 +1438,7 @@ void main() {
     (tester) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       final created = DateTime(2024, 7, 1, 9, 0);
-      final exact = formatOverlayExactDateTime(l10n: l10n, exactDateResolved: true, createdAt: created);
+      final exact = formatOverlayExactDateTime(l10n: l10n, createdAt: created);
       final presentation = FakePresentationMetadataRepository(
         basicsById: {
           'a1': PresentationMetadata(
@@ -1568,7 +1566,7 @@ void main() {
     (tester) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       final created = DateTime(2024, 3, 10, 14, 5);
-      final exact = formatOverlayExactDateTime(l10n: l10n, exactDateResolved: true, createdAt: created);
+      final exact = formatOverlayExactDateTime(l10n: l10n, createdAt: created);
       final presentation = FakePresentationMetadataRepository(
         basicsById: {
           'cloud': PresentationMetadata(
@@ -1631,7 +1629,7 @@ void main() {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       final created = DateTime(2023, 11, 15, 8, 30);
       const sizeBytes = 2_886_627;
-      final exact = formatOverlayExactDateTime(l10n: l10n, exactDateResolved: true, createdAt: created);
+      final exact = formatOverlayExactDateTime(l10n: l10n, createdAt: created);
       final sizeCopy = formatOverlayFileSize(
         l10n: l10n,
         fileSizeBytes: sizeBytes,

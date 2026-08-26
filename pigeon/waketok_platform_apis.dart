@@ -246,8 +246,6 @@ class LibraryTotalsDto {
 /// [mediaKind] is always set when the asset exists (incl. [MediaKind.unknown]).
 /// [creationDateMs] stays null when PhotoKit `creationDate` is nil.
 /// File size is a separate call — [requestPresentationFileSize].
-/// Capture wall clock (EXIF/TIFF) is a separate call —
-/// [requestCaptureWallClock] (Cap 17.7 / ADR-038).
 class PresentationMetadataDto {
   PresentationMetadataDto({
     required this.assetIdentifier,
@@ -260,29 +258,6 @@ class PresentationMetadataDto {
 
   /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
   int? creationDateMs;
-}
-
-/// Cap 17.7: Photos-aligned capture wall clock (naked EXIF/TIFF local time).
-///
-/// All of [year]/[month]/[day]/[hour]/[minute] are set together, or all
-/// null when unavailable (no EXIF, video this phase, iCloud-only / no local
-/// bytes). Network access disallowed — never download solely for wall clock.
-class CaptureWallClockDto {
-  CaptureWallClockDto({
-    required this.assetIdentifier,
-    this.year,
-    this.month,
-    this.day,
-    this.hour,
-    this.minute,
-  });
-
-  String assetIdentifier;
-  int? year;
-  int? month;
-  int? day;
-  int? hour;
-  int? minute;
 }
 
 /// Cap 8.3: optional file size for Overlay row 3 (ADR-015 / POC-10 Tier 3/4).
@@ -484,19 +459,9 @@ abstract class PhotoLibraryApi {
 
   /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
   ///
-  /// Does not compute file size or capture wall clock. Missing asset →
-  /// [ErrorCode.assetUnavailable].
+  /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
   @async
   PresentationMetadataDto requestPresentationMetadata(String assetIdentifier);
-
-  /// Cap 17.7: Photos-aligned capture wall clock for Overlay exact row.
-  ///
-  /// Local-first (URL + ImageIO, then image data). If still unavailable
-  /// (Optimize Storage / iCloud-only), one network-allowed retry to read
-  /// EXIF/TIFF. Video / no EXIF → success with null component fields (not an
-  /// error). Missing asset → [ErrorCode.assetUnavailable].
-  @async
-  CaptureWallClockDto requestCaptureWallClock(String assetIdentifier);
 
   /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).
   ///

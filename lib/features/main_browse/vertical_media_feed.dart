@@ -359,19 +359,6 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     } catch (_) {
       // Leave fields blank; do not block playback.
     }
-
-    if (!mounted || !_activation.metadataGate.isCurrent(metadataGeneration)) {
-      return;
-    }
-    final afterBasics = _overlaySnapshot;
-    // Re-fetch until we have Photos-aligned wall components. A prior nil
-    // settle (Host confirmed no EXIF) is cheap to retry; never skip while
-    // only epoch-fallback is cached from an older timeout bug.
-    if (afterBasics?.assetIdentifier == assetId &&
-        afterBasics!.captureWallClock == null) {
-      await _resolveCaptureWallClock(metadataGeneration, assetId);
-    }
-
     try {
       final size = await repo.requestPresentationFileSize(assetId);
       if (!mounted || !_activation.metadataGate.isCurrent(metadataGeneration)) {
@@ -381,37 +368,6 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     } catch (_) {
       // Size stays blank.
     }
-  }
-
-  /// Cap 17.7: await Host wall clock; settle only when Host completes.
-  ///
-  /// Blank exact until then. Host nil → epoch fallback. Late EXIF is never
-  /// discarded by a timeout race (Istanbul DIFF regression).
-  Future<void> _resolveCaptureWallClock(
-    int metadataGeneration,
-    String assetId,
-  ) async {
-    final repo = ref.read(presentationMetadataRepositoryProvider);
-    CaptureWallClock? wall;
-    try {
-      wall = await repo.requestCaptureWallClock(assetId);
-    } catch (_) {
-      wall = null;
-    }
-    if (!mounted || !_activation.metadataGate.isCurrent(metadataGeneration)) {
-      return;
-    }
-    if (_activeAssetId != assetId) {
-      return;
-    }
-    setState(() {
-      final base = (_overlaySnapshot?.assetIdentifier == assetId)
-          ? _overlaySnapshot!
-          : PresentationOverlaySnapshot(assetIdentifier: assetId);
-      final next = base.mergeCaptureWallClock(wallClock: wall);
-      _overlaySnapshot = next;
-      _overlayCache[assetId] = next;
-    });
   }
 
   void _tryAdvanceEndlessRound({

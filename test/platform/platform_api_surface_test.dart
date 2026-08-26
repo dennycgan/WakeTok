@@ -68,7 +68,6 @@ void main() {
     'cancelPreview',
     'releasePreview',
     'requestPresentationMetadata',
-    'requestCaptureWallClock',
     'requestPresentationFileSize',
     'createAlbum',
     'importVideo',
@@ -264,17 +263,6 @@ void main() {
       ),
     );
     mockSuccess(
-      photoChannel('requestCaptureWallClock'),
-      CaptureWallClockDto(
-        assetIdentifier: 'a',
-        year: 2023,
-        month: 11,
-        day: 8,
-        hour: 19,
-        minute: 0,
-      ),
-    );
-    mockSuccess(
       photoChannel('requestPresentationFileSize'),
       PresentationFileSizeDto(
         assetIdentifier: 'a',
@@ -324,12 +312,6 @@ void main() {
     expect(meta.assetIdentifier, 'a');
     expect(meta.mediaKind, MediaKind.image);
     expect(meta.creationDateMs, 1_700_000_000_000);
-    final wall = await api.requestCaptureWallClock('a');
-    expect(wall.year, 2023);
-    expect(wall.month, 11);
-    expect(wall.day, 8);
-    expect(wall.hour, 19);
-    expect(wall.minute, 0);
     final size = await api.requestPresentationFileSize('a');
     expect(size.fileSizeBytes, 1024);
     expect(size.fileSizeSemantics, FileSizeSemantics.currentImageRepresentation);

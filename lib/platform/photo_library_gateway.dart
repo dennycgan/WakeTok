@@ -96,25 +96,6 @@ PresentationMetadata presentationMetadataFromDto(
   );
 }
 
-/// Cap 17.7: map Host wall-clock DTO; null when any component missing.
-CaptureWallClock? captureWallClockFromDto(pigeon.CaptureWallClockDto dto) {
-  final y = dto.year;
-  final m = dto.month;
-  final d = dto.day;
-  final h = dto.hour;
-  final min = dto.minute;
-  if (y == null || m == null || d == null || h == null || min == null) {
-    return null;
-  }
-  return CaptureWallClock(
-    year: y,
-    month: m,
-    day: d,
-    hour: h,
-    minute: min,
-  );
-}
-
 PresentationFileSize presentationFileSizeFromDto(
   pigeon.PresentationFileSizeDto dto,
 ) {
@@ -378,14 +359,6 @@ class PhotoLibraryGateway
   ) async {
     final dto = await _api.requestPresentationMetadata(assetIdentifier);
     return presentationMetadataFromDto(dto);
-  }
-
-  @override
-  Future<CaptureWallClock?> requestCaptureWallClock(
-    String assetIdentifier,
-  ) async {
-    final dto = await _api.requestCaptureWallClock(assetIdentifier);
-    return captureWallClockFromDto(dto);
   }
 
   @override

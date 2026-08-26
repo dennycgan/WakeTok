@@ -683,8 +683,6 @@ class LibraryTotalsDto {
 /// [mediaKind] is always set when the asset exists (incl. [MediaKind.unknown]).
 /// [creationDateMs] stays null when PhotoKit `creationDate` is nil.
 /// File size is a separate call — [requestPresentationFileSize].
-/// Capture wall clock (EXIF/TIFF) is a separate call —
-/// [requestCaptureWallClock] (Cap 17.7 / ADR-038).
 class PresentationMetadataDto {
   PresentationMetadataDto({
     required this.assetIdentifier,
@@ -738,81 +736,6 @@ class PresentationMetadataDto {
   @override
   String toString() {
     return 'PresentationMetadataDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, creationDateMs: $creationDateMs)';
-  }
-}
-
-/// Cap 17.7: Photos-aligned capture wall clock (naked EXIF/TIFF local time).
-///
-/// All of [year]/[month]/[day]/[hour]/[minute] are set together, or all
-/// null when unavailable (no EXIF, video this phase, iCloud-only / no local
-/// bytes). Network access disallowed — never download solely for wall clock.
-class CaptureWallClockDto {
-  CaptureWallClockDto({
-    required this.assetIdentifier,
-    this.year,
-    this.month,
-    this.day,
-    this.hour,
-    this.minute,
-  });
-
-  String assetIdentifier;
-
-  int? year;
-
-  int? month;
-
-  int? day;
-
-  int? hour;
-
-  int? minute;
-
-  List<Object?> _toList() {
-    return <Object?>[
-      assetIdentifier,
-      year,
-      month,
-      day,
-      hour,
-      minute,
-    ];
-  }
-
-  Object encode() {
-    return _toList();  }
-
-  static CaptureWallClockDto decode(Object result) {
-    result as List<Object?>;
-    return CaptureWallClockDto(
-      assetIdentifier: result[0]! as String,
-      year: result[1] as int?,
-      month: result[2] as int?,
-      day: result[3] as int?,
-      hour: result[4] as int?,
-      minute: result[5] as int?,
-    );
-  }
-
-  @override
-  // ignore: avoid_equals_and_hash_code_on_mutable_classes
-  bool operator ==(Object other) {
-    if (other is! CaptureWallClockDto || other.runtimeType != runtimeType) {
-      return false;
-    }
-    if (identical(this, other)) {
-      return true;
-    }
-    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(year, other.year) && _deepEquals(month, other.month) && _deepEquals(day, other.day) && _deepEquals(hour, other.hour) && _deepEquals(minute, other.minute);
-  }
-
-  @override
-  // ignore: avoid_equals_and_hash_code_on_mutable_classes
-  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
-
-  @override
-  String toString() {
-    return 'CaptureWallClockDto(assetIdentifier: $assetIdentifier, year: $year, month: $month, day: $day, hour: $hour, minute: $minute)';
   }
 }
 
@@ -1175,23 +1098,20 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PresentationMetadataDto) {
       buffer.putUint8(145);
       writeValue(buffer, value.encode());
-    }    else if (value is CaptureWallClockDto) {
+    }    else if (value is PresentationFileSizeDto) {
       buffer.putUint8(146);
       writeValue(buffer, value.encode());
-    }    else if (value is PresentationFileSizeDto) {
+    }    else if (value is PlaybackItemDto) {
       buffer.putUint8(147);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackItemDto) {
+    }    else if (value is PlaybackPlanDto) {
       buffer.putUint8(148);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackPlanDto) {
+    }    else if (value is PlaybackRuntimeEventDto) {
       buffer.putUint8(149);
       writeValue(buffer, value.encode());
-    }    else if (value is PlaybackRuntimeEventDto) {
-      buffer.putUint8(150);
-      writeValue(buffer, value.encode());
     }    else if (value is PlaybackSurfaceAttachedDto) {
-      buffer.putUint8(151);
+      buffer.putUint8(150);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -1244,16 +1164,14 @@ class _PigeonCodec extends StandardMessageCodec {
       case 145:
         return PresentationMetadataDto.decode(readValue(buffer)!);
       case 146:
-        return CaptureWallClockDto.decode(readValue(buffer)!);
-      case 147:
         return PresentationFileSizeDto.decode(readValue(buffer)!);
-      case 148:
+      case 147:
         return PlaybackItemDto.decode(readValue(buffer)!);
-      case 149:
+      case 148:
         return PlaybackPlanDto.decode(readValue(buffer)!);
-      case 150:
+      case 149:
         return PlaybackRuntimeEventDto.decode(readValue(buffer)!);
-      case 151:
+      case 150:
         return PlaybackSurfaceAttachedDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -1634,8 +1552,7 @@ class PhotoLibraryApi {
 
   /// Cap 8.3: current-page Presentation Metadata basics (date + kind).
   ///
-  /// Does not compute file size or capture wall clock. Missing asset →
-  /// [ErrorCode.assetUnavailable].
+  /// Does not compute file size. Missing asset → [ErrorCode.assetUnavailable].
   Future<PresentationMetadataDto> requestPresentationMetadata(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestPresentationMetadata$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1653,31 +1570,6 @@ class PhotoLibraryApi {
     )
     ;
     return pigeonVar_replyValue! as PresentationMetadataDto;
-  }
-
-  /// Cap 17.7: Photos-aligned capture wall clock for Overlay exact row.
-  ///
-  /// Local-first (URL + ImageIO, then image data). If still unavailable
-  /// (Optimize Storage / iCloud-only), one network-allowed retry to read
-  /// EXIF/TIFF. Video / no EXIF → success with null component fields (not an
-  /// error). Missing asset → [ErrorCode.assetUnavailable].
-  Future<CaptureWallClockDto> requestCaptureWallClock(String assetIdentifier) async {
-    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestCaptureWallClock$pigeonVar_messageChannelSuffix';
-    final pigeonVar_channel = BasicMessageChannel<Object?>(
-      pigeonVar_channelName,
-      pigeonChannelCodec,
-      binaryMessenger: pigeonVar_binaryMessenger,
-    );
-    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
-    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
-
-    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
-        pigeonVar_replyList,
-        pigeonVar_channelName,
-        isNullValid: false,
-    )
-    ;
-    return pigeonVar_replyValue! as CaptureWallClockDto;
   }
 
   /// Cap 8.3: best-effort local file size (POC-10 Tier 3/4).

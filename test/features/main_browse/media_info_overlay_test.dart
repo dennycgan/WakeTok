@@ -186,7 +186,6 @@ void main() {
     expect(
       formatOverlayRelativeDate(
         l10n: l10n,
-        exactDateResolved: true,
         createdAt: DateTime(2024, 6, 10, 8),
         now: now,
       ),
@@ -195,7 +194,6 @@ void main() {
     expect(
       formatOverlayRelativeDate(
         l10n: l10n,
-        exactDateResolved: true,
         createdAt: DateTime(2024, 5, 20),
         now: now,
       ),
@@ -204,7 +202,6 @@ void main() {
     expect(
       formatOverlayRelativeDate(
         l10n: l10n,
-        exactDateResolved: true,
         createdAt: DateTime(2021, 6, 10),
         now: now,
       ),
@@ -213,7 +210,6 @@ void main() {
     expect(
       formatOverlayRelativeDate(
         l10n: l10n,
-        exactDateResolved: true,
         createdAt: DateTime(2021, 3, 10),
         now: now,
       ),
