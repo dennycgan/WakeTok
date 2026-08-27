@@ -3803,3 +3803,425 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   ADR-034 Status notes 17.4 center Layer2Waiting supersession;
   ADR-036 Status notes dual-copy supersession. `cap17-17.5b-notes.md`
   supersession note appended (historical dual-copy facts preserved).
+
+---
+
+## ADR-040: Cap 18 Main Browse gesture arbitration and dual-signal Manual playback control
+
+- Status: Proposed
+- Commit/PR anchor: assigned only after the implementing work commit
+  exists (Cap 18.3 / 18.4 work; Accepted + date + anchor land in a
+  following docs commit — not this Cap 18.1 docs commit)
+- Plain summary (owner reads this):
+  Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
+  implements vertical swipe arbitration, video media-area tap
+  pause/resume, and a video scrubber under a dual-signal Manual play
+  model. Returning through a new navigation activation always restarts
+  from zero and auto-plays. Foreground resume and surface reattachment
+  do not restart. Later Caps own 2×, Cap 19 entry chrome, pinch,
+  Live replay button, and left-swipe add-to-album — Cap 18 only locks
+  their slots and conflict rules.
+- Context / what problem forced this:
+  Main Browse already supports vertical swipe and foreground video
+  playback, but it has no user-facing pause/resume control or scrubber.
+  Known debt **434** records a consequence: after Manual Browse leaves
+  the foreground, native playback pauses and later reattaches the same
+  frame, but the user cannot resume without swiping away. Known debt
+  **395** records inconsistent navigation-return behaviour caused by
+  the bounded 1+1 player pool: if the previous player has been evicted,
+  A→B→A rebuilds A at zero; if A remains in the player pool, ADR-026
+  Decision 3 uses `playOnly` and preserves its mid-play position.
+  Cap 18 turns restart-from-zero on every new navigation activation into
+  intentional product behaviour. This decision is based on debt **395**
+  and the desired deterministic contract, not on a claimed competitor
+  convention. Owner audit also expanded the gesture inventory beyond an
+  earlier six-item sketch: entry chrome is no longer a long-press
+  recognizer; 2× uses both edges; left-swipe add-to-album shares those
+  edges; pinch-zoomed pan must override vertical swipe; Live needs an
+  explicit replay button as a narrow ADR-019 exception. ADR-006 remains
+  binding: Swift owns `AVPlayer`; Dart owns product intent and
+  orchestration.
+- Decision (what was chosen):
+  1. **Gesture-arbitration inventory (define once).** Cap 18 freezes
+     Main Browse’s known gesture-arbitration inventory in one place.
+     Item count is **not** a hard promise — future Caps may add or
+     remove entries; count itself is not a contractual constraint.
+     Current known inventory:
+     1. **Vertical swipe** — already shipped; not redesigned here.
+     2. **Tap** — ordinary video only; Cap 18 delivers.
+     3. **Progress-drag / scrubber** — ordinary video only; Cap 18
+        delivers.
+     4. **2×** — left **or** right edge hold, temporary rate, release
+        → 1×, **no** slide-down lock; Share / Mute / Fit / 2× Cap
+        delivers.
+     5. **Cap 19 entry container** — fixed bottom-trailing icon that
+        opens a half-sheet panel (replaces long-press-as-entry);
+        Cap 19 delivers panel contents; Cap 18 freezes only the
+        hit-test / arbitration slot.
+     6. **Pinch** — still: persistent zoom + Reset; video: non-
+        persistent (release → fit); Cap 20 delivers.
+     7. **Live Photo replay control** — new explicit control before
+        the existing LIVE badge; owning Cap TBD; requires ADR-019
+        Decision 8 narrow supplement (Decision 17).
+     8. **Left-swipe add to WakeTok album** — new horizontal gesture;
+        Cap 19 delivers; Cap 18 freezes the slot and the edge-hold
+        vs horizontal-drag arbitration with item 4 (Decision 18).
+     Cap 18 freezes and **implements** only items 1–3 (swipe / tap /
+     progress-drag). Existence, concrete form, and owning Cap for
+     items 4–8 are stated per item above. This ADR does **not**
+     pre-judge gestures not listed here. Cap 18 does **not** ship
+     product UI or recognizers for items 4–8; it freezes reserved
+     regions and conflict rules so later Caps can land without
+     rewriting the Cap 18 arena.
+  2. **Shipped Cap 18 regions, priority, and reserved exceptions.**
+     Shipped active regions: (1) scrubber band above the bottom
+     control bar, not overlapping Media Info Overlay (same Q4=B
+     placement); (2) media-area tap outside the scrubber band,
+     existing controls, Overlay, and reserved trailing chrome slots;
+     (3) existing vertical `PageView` swipe. Baseline priority for
+     shipped Cap 18 behaviour:
+     `scrubber band > media-area tap > vertical PageView swipe`,
+     implemented primarily through spatial separation and locked by
+     gesture-arena tests. Any touch that begins inside the scrubber
+     band belongs to the scrubber: a pure tap (no material movement)
+     in that band is a **no-op** and must **not** fall through to
+     media-area tap pause/resume. Tap pause/resume applies only to an
+     L2-ready ordinary video. Tap on a still or Live Photo has no
+     playback effect under this Cap’s shipped rules. Live continues
+     ADR-019 play-once for accidental gesture/tap replay (see
+     Decision 17 for the explicit-control exception).
+     **Reserved arbitration exceptions** (contract now; implement in
+     owning Caps):
+     - **Edge hold (2×) vs left-swipe album** (items 4 and 8): both
+       claim left/right edge strips. Distinguish with the same class
+       of early-motion threshold already used to separate tap from
+       vertical swipe — if significant horizontal translation appears
+       within a short press window, treat as left-swipe album; if the
+       finger stays put past the hold threshold, treat as 2× hold.
+       Do not pretend the conflict is absent.
+     - **Pinch-zoomed still pan** (item 6): while a still is in any
+       non-fit magnified state, single-finger drag is pan-to-inspect
+       and must **not** drive vertical `PageView` swipe; vertical
+       swipe returns only after fit. This is an explicit exception to
+       the baseline priority order above.
+     - **Trailing chrome slots** (items 5 and 7): bottom-trailing
+       iconography (Cap 19 entry icon; Live replay control before the
+       LIVE badge; existing LIVE badge / corner wait chrome) share
+       trailing real estate. Cap 18 freezes that these slots are
+       outside scrubber / media-tap / vertical-swipe arenas. Concrete
+       stacking / spacing among those trailing controls is owned by
+       Cap 19 and the Live-replay owning Cap — not redesigned here.
+  3. **Dual-signal playback model.**
+     `effectiveShouldPlay = userIntentWantsPlay && systemPermissionAllowsPlay`.
+     `userIntentWantsPlay` represents the current video activation’s
+     requested play state. `systemPermissionAllowsPlay` includes at
+     least: an allowed foreground lifecycle state; current-page
+     ownership; playable video readiness; display-surface readiness;
+     and no transition, failure or teardown gate that prohibits
+     playback. A future Background Audio capability may expand the
+     system-permission predicate. It must not bypass explicit user
+     intent.
+  4. **Navigation activation and intent lifecycle.** A single
+     `startsNewNavigationActivation` result drives both resetting intent
+     to true and restarting playback from zero. New navigation
+     activations include: initial current-video activation; A→B; B→A;
+     and source/session navigation that produces a newly current feed
+     item. They do **not** include: foreground resume of the same
+     current item; surface reattachment; same-item widget rebuild;
+     transition-cover release; or tap resume. For every new video
+     navigation activation: `userIntentWantsPlay = true`, seek to zero,
+     and auto-play when system permission allows — regardless of whether
+     the video was paused or playing when previously left. For lifecycle
+     transitions to `inactive`, `paused` or background:
+     `userIntentWantsPlay = false`. Foreground resume restores only
+     system permission; it does not restore user intent and therefore
+     cannot auto-play the same item.
+  5. **Dart activation generation source.** Cap 18 reuses the existing
+     `FeedActivationCoordinator.currentDisplayGate`. No second
+     playback-specific generation counter is introduced. Reasons:
+     `FeedActivationCoordinator.beginCurrentItem()` synchronously bumps
+     `currentDisplayGate`; Cap 15.4 tests already require one
+     `beginCurrentItem()` per become-current activation;
+     `_activateCurrentItem` avoids a duplicate begin for the same
+     current asset and generation; A→B→A receives distinct generations
+     even when the asset identifier returns to A; App lifecycle
+     foreground resume does not call `beginCurrentItem()`; the gate
+     already invalidates stale current-display work.
+     `_layer2InFlightGeneration` is **not** used because it is
+     page-local, nullable and scoped only to Layer 2 I/O. Before
+     sending an effective `play()` or `pause()` after an asynchronous
+     gap, the coordinator must verify
+     `currentDisplayGate.isCurrent(capturedGeneration) &&
+     activeAssetIdentifier == intent.assetIdentifier`. Failure means the
+     operation is stale and no targetless playback command may be sent.
+  6. **Explicit Pigeon intent and navigation-activation mirror.** Add
+     Pigeon DTO `PlaybackIntentDto` with required fields
+     `assetIdentifier`, `wantsPlay`, and
+     `startsNewNavigationActivation`, plus HostApi
+     `setPlaybackIntent(PlaybackIntentDto intent)`. A bare-bool method
+     shape is not part of the contract. The Dart coordinator must:
+     (1) capture the current asset identifier and `currentDisplayGate`
+     generation; (2) compute `startsNewNavigationActivation` once;
+     (3) build one `PlaybackIntentDto`; (4) await `setPlaybackIntent(dto)`;
+     (5) revalidate the captured generation and asset identifier;
+     (6) only while still current, await `play()` or `pause()`.
+     `setPlaybackIntent` and the following playback command must not be
+     issued concurrently. The Swift implementation must complete the
+     mirror update before replying to Pigeon; it must not enqueue the
+     mutation asynchronously and return first. `play()` and `pause()`
+     retain their existing mechanical semantics and do not infer or
+     mutate user intent.
+  7. **Persistent intent mirror and one-shot activation are separate.**
+     Host state separates persistent intent from one-shot activation.
+     Conceptual state: `PlaybackIntentMirror { assetIdentifier,
+     wantsPlay, clearEpochAtArm }`, `PendingActivation {
+     assetIdentifier, clearEpochAtArm }`, optional
+     `playbackIntentMirror` and optional `pendingNavigationActivation`.
+     A nil `playbackIntentMirror` has default semantic
+     `userIntentWantsPlay = true`. When `setPlaybackIntent` is received,
+     Host synchronously records a mirror bound to
+     `(intent.assetIdentifier, current clearEpoch)`. If
+     `startsNewNavigationActivation` is true, Host arms a
+     `PendingActivation` for that asset and epoch. A non-navigation
+     intent update for the same asset does not erase a still-pending
+     matching navigation activation before it can be applied. A newer
+     navigation activation replaces the previous pending activation.
+  8. **Host identity and epoch validation.** Before using the intent
+     mirror, Host validates
+     `mirror.assetIdentifier == currentAssetIdentifier &&
+     mirror.clearEpochAtArm == clearEpoch`. Before consuming a pending
+     activation, Host validates the same identity/epoch pair on the
+     pending value. Only validated values become `trustedWantsPlay` and
+     `trustedStartsNewNavigationActivation`. An untrusted intent mirror
+     must not affect the current item. An invalid pending activation is
+     discarded and treated as
+     `trustedStartsNewNavigationActivation = false`; that false value
+     does **not** force `playOnly` — ADR-026’s existing `itemAtEnd`
+     branch still applies. The pending activation is strictly one-shot:
+     retain while the matching player is not ready; consume when the
+     matching become-current policy is evaluated; clear immediately
+     after evaluation; discard on asset/epoch mismatch; clear on cancel,
+     supersede or pool clear where the corresponding activation is no
+     longer valid.
+  9. **ADR-026 Decision 3 narrow supplement.**
+     `VideoPlaybackPolicy.actionOnBecomeCurrent` remains a pure,
+     Host-testable function and receives only a validated boolean
+     `trustedStartsNewNavigationActivation`. Policy: if player does not
+     exist → `prepareNew`; else if trusted new navigation activation →
+     `seekZeroAndPlay`; else if item at end → `seekZeroAndPlay`; else →
+     `playOnly`. This narrowly supplements ADR-026 Decision 3: a new
+     navigation activation always restarts from zero; a non-navigation
+     technical re-entry preserves ADR-026 D3; foreground resume and
+     surface reattachment use `playOnly` for a mid-play player; at-end
+     technical re-entry still seeks zero and plays. The same trusted
+     navigation result must drive intent reset and seek policy.
+     Separate Dart and Host derivations are forbidden. After the
+     implementing work commit exists, the following docs commit must
+     append the narrow-supersede statement and real work SHA to
+     ADR-026’s Status line.
+  10. **ADR-026 item-end narrow supplement.**
+      `VideoPlaybackPolicy.actionOnItemEnd` remains pure and adds
+      `trustedUserIntentWantsPlay`. Foreground item loop returns
+      `loopSeekZeroAndPlay` only when it is foreground page-driven, the
+      observed item is the current player item, the active asset is
+      current, and `trustedUserIntentWantsPlay == true`. When trusted
+      intent is false, item-end must not restart playback. ADR-006
+      background plan-end behaviour remains higher priority and
+      continues to stop without looping.
+  11. **Pool-clear semantics.** `clearPlaybackPool()` must clear
+      `playbackIntentMirror` and `pendingNavigationActivation`, restoring
+      default user intent to true. This intentionally differs from mute:
+      mute is a cross-item user preference and survives pool clear;
+      playback intent belongs to the current activation and resets;
+      pending navigation activation must never cross a clear epoch.
+  12. **Tap and center affordance.** For an L2-ready current video:
+      media-area tap while playing sets intent false and pauses;
+      media-area tap while paused sets intent true and plays when
+      system permission allows; a centered affordance communicates
+      paused/playable state. Tap-to-resume handles any paused current
+      video without distinguishing whether the pause came from user
+      action or lifecycle handling. Debt **434** is therefore closed
+      through general rules (Decision 4 leave-foreground writes intent
+      false; Decision 12 tap resumes any paused current video). No
+      lock-aware special-case implementation is permitted.
+  13. **Runtime observe and scrubber (item 3).** `PlaybackApiHost`
+      periodically emits the existing `PlaybackRuntimeEventDto` with
+      current asset identifier, feed index, playback position and
+      playback state. For the current ordinary video page the scrubber
+      band is **always visible** (not conditionally hidden). Until that
+      video’s Layer 2 is ready, the scrubber is **frozen**: visible,
+      non-interactive, no progress fill, no drag response. Unfreeze
+      uses the existing L2-ready signal only — Cap 18 does **not** add
+      a Host iCloud-transfer progress signal for the scrubber. While
+      unfrozen and idle, the scrubber follows trusted runtime position.
+      Interaction is **drag-only**: tapping a point on the bar to jump
+      is **not** supported; a pure tap in the band is a no-op
+      (Decision 2). During drag, update only a static timestamp label
+      for the drag position — **no** frame-by-frame scrub preview in
+      Cap 18. On finger release, call `seek(position)` **once**, then
+      return runtime-event ownership to Host observations. Photos-style
+      scrub preview (continuous seek / thumbnail strip) is an **optional
+      later enhancement**, not a Cap 18 hard acceptance gate; technical
+      feasibility under iCloud streaming `AVPlayer` may be evaluated
+      during or after 18.5 scrubber work, and must not expand 18.4
+      (tap / debt **434**) scope. Scrubber progress is playback
+      progress, not debt **403** iCloud transfer progress. Still and
+      Live pages do not show a scrubber.
+  14. **2× future constraint (item 4).** Cap 18 does not implement 2×.
+      Future MVP 2×: hold **left or right** edge for temporary 2×
+      (both edges, for left- and right-handed use); release → 1×; **no**
+      slide-down lock. Cap 18 freezes both edge strips as reserved hold
+      regions in the arbitration map and records the edge-hold vs
+      left-swipe conflict rule (Decision 2 / Decision 18). Cap 18 adds
+      no 2× recognizer or rate-change product UI.
+  15. **Cap 19 entry container (item 5; replaces long-press entry).**
+      Product entry is a **fixed bottom-trailing icon**, always visible
+      (not gated by Photos authorization state). Tap opens a half-sheet
+      rising from the bottom. Cap 18 freezes only the icon’s hit-test /
+      arbitration slot (outside scrubber, media-area tap, and vertical
+      swipe). Cap 18 does **not** ship the icon widget, panel, or
+      album-list UI. Cap 19 owns panel contents. The in-panel **Add to
+      Album** row remains bound by kickoff **ADR-K**: under Full Access,
+      show album list normally; under Limited, album enumerate/resolve
+      is unavailable — Limited must either omit that row or show an
+      explicit Full Access requirement, and must **not** open an empty
+      or erroring album panel. That is precise ADR-K application, not a
+      supersession. Other future panel rows are Cap 19’s concern.
+  16. **Pinch reserved rules (item 6).** Cap 20 delivers pinch. Cap 18
+      freezes: still persistent zoom + Reset; video non-persistent
+      (release → fit). While a still is magnified (any non-fit state),
+      the Reset control must remain welded into the visible safe area
+      (not covered or dismissed by other chrome). Pinch-out / reverse
+      pinch may return toward 1× as a second exit beside Reset; forcing
+      below 1× clamps to fit — **no** smaller-than-fit shrink state.
+      Magnified still single-finger drag = pan only (Decision 2
+      exception); fit restores vertical swipe.
+  17. **Live Photo replay control + ADR-019 Decision 8 narrow
+      supplement (item 7).** Product adds an explicit replay control
+      immediately before the existing bottom-trailing LIVE badge;
+      activating it replays Live motion once. MVP does **not** add
+      Photos-style long-press-to-replay; that gesture slot stays unused.
+      This **narrowly supplements** ADR-019 Decision 8: the original
+      “no gesture/tap replay” + disabled
+      `PHLivePhotoView.playbackGestureRecognizer` hard gate remains for
+      accidental recognizer-driven replay; an **independent, explicit
+      control** (not a media-area tap / not a long-press recognizer) is
+      an intentional directed exception because explicit control
+      activation ≠ accidental gesture replay. All other ADR-019 clauses
+      stay. Owning Cap for the control is TBD. Cap 18 does not ship the
+      control. When that work commit exists, the following docs commit
+      must append the narrow-supersede note and real SHA to ADR-019’s
+      Status line (same pattern as ADR-026 in Decision 9) — **not** as
+      part of Cap 18.3 / 18.4 docs acceptance.
+  18. **Left-swipe add to WakeTok album (item 8).** Horizontal
+      left-swipe appends the current asset into a fixed WakeTok album
+      created automatically on first app launch (append-only; does not
+      remove other album memberships). Default **on**; user may disable
+      in Settings (Settings Cap owns the toggle UI; Cap 18 only records
+      the preference intent). Cap 18 freezes the gesture slot and the
+      edge-hold vs horizontal-drag arbitration with item 4 (Decision 2).
+      Cap 18 does not ship the recognizer or album mutation.
+      **Limited Access feasibility is unknown** and must be verified in
+      Cap 19 — do **not** lock a Limited conclusion in this ADR. If Cap
+      19 finds Limited cannot support the append, force the gesture off
+      under Limited by reusing the same user-visible enable bit (no
+      second switch); Full Access keeps the Settings preference.
+      Horizontal-edge interaction with system back / interactive-pop
+      remains a Cap 19 device-acceptance risk, not a Cap 18
+      implementation item.
+  19. **Persistence boundary.** Cap 18 introduces no database table or
+      migration. Playback intent, pending activation, runtime position
+      and scrub state are current-session runtime state.
+      SessionCheckpoint persistence remains deferred. The left-swipe
+      enable preference (Decision 18) is a Settings-owned preference
+      when that Cap lands — not introduced by Cap 18 schema work.
+- Rejected alternatives (why not B):
+  - **Bare bool parameters for intent/activation** — rejected; intent
+    and navigation activation require asset identity and future
+    contract evolution; DTOs match existing Playback contract
+    conventions.
+  - **Separate `beginNavigationActivation()`** — rejected; two Pigeon
+    calls introduce ordering dependency and a second state machine with
+    possible orphaned activation state.
+  - **Infer activation from `load()` or `syncPlanPosition()`** —
+    rejected; those methods already own plan bookkeeping and
+    preparation responsibilities; inference would create a second
+    activation definition outside Dart coordinator control.
+  - **Infer intent from `play()` / `pause()`** — rejected; technical
+    playback operations do not represent user intent
+    (`PvTransitionGuard` Dart resume; Swift background/clear direct
+    pause paths).
+  - **Ask Dart at native item-end** — rejected; introduces an
+    asynchronous race into `AVPlayerItemDidPlayToEndTime` handling and
+    conflicts with `endSeekInFlight`.
+  - **New playback-only Dart generation counter** — rejected;
+    `currentDisplayGate` already provides exactly-once become-current
+    generation semantics and stale-operation validation.
+  - **Keep “no physical placeholders / no reserved regions”** —
+    rejected; owner audit requires Cap 18 to freeze slots and conflict
+    rules for items 4–8 without shipping their product UI.
+  - **Hide scrubber until L2 ready** — rejected; scrubber stays visible
+    and freezes until L2 ready.
+  - **Tap-to-seek on the progress bar / Cap 18 scrub preview** —
+    rejected as Cap 18 hard scope; drag + single seek-on-release only;
+    continuous preview is optional later work.
+  - **Right-edge-only 2×** — rejected; both edges for handedness.
+  - **Long-press-as-Cap-19-entry** — rejected; replaced by always-
+    visible bottom-trailing icon + half-sheet (Decision 15).
+  - **Photos-style Live long-press replay in MVP** — rejected; explicit
+    control only (Decision 17).
+  - **Pretend 2× edge hold and left-swipe do not conflict** —
+    rejected; early-motion threshold rule is mandatory (Decision 2).
+  - **Lock Limited behaviour for left-swipe in Cap 18** — rejected;
+    Cap 19 must verify first (Decision 18).
+- Consequences / constraints accepted:
+  Cap 18 must preserve ADR-006 native player ownership; ADR-019 Live
+  play-once and disabled `playbackGestureRecognizer` except for the
+  recorded Decision 17 explicit-control narrow supplement; ADR-027
+  Settings-leave session behaviour; ADR-026 technical re-entry
+  behaviour outside the stated narrow supplements; Cap 15 transition
+  cover and audio suppression; Cap 16 cancellation and dwell behaviour;
+  kickoff ADR-K for Limited album enumerate/resolve on Cap 19 panel
+  Add-to-Album.
+  Layer responsibilities: domain playback intent/rules + repository
+  interface; `lib/features/main_browse/` owns `PlaybackCoordinator`,
+  reuse of `FeedActivationCoordinator.currentDisplayGate`, tap/scrubber
+  UI and post-await generation/asset validation; `lib/app/browse/`
+  wires providers only; Pigeon adds `PlaybackIntentDto` +
+  `setPlaybackIntent`; gateway maps DTOs; Host owns intent mirror,
+  `PendingActivation?`, asset/clearEpoch validation and runtime event
+  emission; `VideoPlaybackPolicy` stays pure trusted-input policy only.
+  Data Contract: `PlaybackGateway.setPlaybackIntent(intent)` is state
+  sync, not a playback command; `play()`/`pause()` do not mutate intent;
+  intent update must complete before the associated playback command;
+  Dart must revalidate activation generation and asset after awaiting;
+  Host trusts intent/activation only after assetId and clearEpoch
+  validation; activation is one-shot while intent persists for the
+  matching asset/epoch; pool clear resets intent to default true and
+  removes pending activation.
+  Debt **395** cannot close until this specific pre-existing failing
+  branch passes: A plays to mid-position → swipe to B → return to A
+  before A’s old player is evicted from the 1+1 pool → A seeks to zero
+  → A auto-plays — tested with A previously playing and tap-paused.
+  Testing only the already-evicted/rebuilt-player path is insufficient
+  because that path already restarted at zero before Cap 18. After work
+  and unit/device verification, debt **395** becomes
+  **Closed by Cap 18 — intentional design**.
+  Debt **434** acceptance requires: current video playing →
+  inactive/background → return foreground on same item → no automatic
+  playback → center affordance visible → tap resumes.
+  **Accepted narrow intent race.** When
+  `trustedStartsNewNavigationActivation == true` and the matching
+  player still exists in the 1+1 pool, `actionOnBecomeCurrent` returns
+  `seekZeroAndPlay` without consulting a later `wantsPlay = false`
+  update for the same activation. Because a non-navigation intent
+  update does not clear the pending navigation activation, a pause
+  issued between navigation return and Host policy evaluation could
+  theoretically be overwritten by that seek-and-play action. Under the
+  current pooled-player path, this window is expected to complete
+  within the same or an effectively adjacent rendering frame and is
+  judged not human-triggerable; this is an implementation expectation,
+  not a formal impossibility guarantee. Cap 18 adds no branch for it.
+  If device acceptance or later production evidence makes the behaviour
+  reproducible, add a new Known debt row rather than silently expanding
+  Cap 18.
