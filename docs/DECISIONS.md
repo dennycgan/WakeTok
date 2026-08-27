@@ -2377,8 +2377,19 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-026: Cap 14.4d foreground video item-loop + return-to-ended replay
 
-- Status: Accepted (2026-08-16)
-  <!-- Accepted date from `git log -1 --format=%cs 8189543` → 2026-08-16 -->
+- Status: Accepted (2026-08-16); Decision 3’s mid-play re-enter
+  `playOnly` branch is narrowly superseded by ADR-040 Decision 9
+  (2026-08-27; Cap 18.3 work `11c5202`) when
+  `trustedStartsNewNavigationActivation == true` → always
+  `seekZeroAndPlay`; non-navigation technical re-entry retains
+  Decision 3 (mid-play `playOnly`; at-end still seek 0). Decision 1’s
+  foreground item-end loop is narrowly supplemented by ADR-040
+  Decision 10 (same date/anchor): loop only when
+  `trustedUserIntentWantsPlay == true`. ADR-006 D4 and non-navigation
+  mid-play playhead preserve remain binding.
+  <!-- Accepted date from `git log -1 --format=%cs 8189543` → 2026-08-16;
+       narrow-supersede date from `git log -1 --format=%cs 11c5202` →
+       2026-08-27 -->
 - Commit/PR anchor: 8189543
 - Plain summary (owner reads this):
   On Manual Browse, an ordinary video on the current page loops from the
