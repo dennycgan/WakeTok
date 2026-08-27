@@ -2988,7 +2988,12 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-032: Cap 15.11 shared Platform View handoff — ready-for-display trust (not attach-ack)
 
-- Status: Accepted (2026-08-23)
+- Status: Accepted (2026-08-23); architecture-guard clarification
+  (2026-08-27): ADR-032's entering-side `_PvTransitionCover` is the
+  sole `BoxFit.cover` exception to ADR-028's default-Fit scan. It renders
+  an opaque transition mask, not presented feed media, and must fill the
+  viewport without letterbox gaps. Feed still/video/Live defaults remain
+  Fit; no product display-mode decision changed.
   <!-- Accepted date from `git log -1 --format=%cs c8a59b3` → 2026-08-23 -->
 - Commit/PR anchor: c8a59b3
 - Plain summary (owner reads this):
@@ -3956,15 +3961,21 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      operation is stale and no targetless playback command may be sent.
   6. **Explicit Pigeon intent and navigation-activation mirror.** Add
      Pigeon DTO `PlaybackIntentDto` with required fields
-     `assetIdentifier`, `wantsPlay`, and
-     `startsNewNavigationActivation`, plus HostApi
+     `assetIdentifier`, `wantsPlay`, `startsNewNavigationActivation`,
+     and `clearsPendingNavigationActivation`, plus HostApi
      `setPlaybackIntent(PlaybackIntentDto intent)`. A bare-bool method
      shape is not part of the contract. The Dart coordinator must:
      (1) capture the current asset identifier and `currentDisplayGate`
-     generation; (2) compute `startsNewNavigationActivation` once;
-     (3) build one `PlaybackIntentDto`; (4) await `setPlaybackIntent(dto)`;
-     (5) revalidate the captured generation and asset identifier;
-     (6) only while still current, await `play()` or `pause()`.
+     generation; (2) compute the activation / pending-clear flags once
+     for that update; (3) build one `PlaybackIntentDto`; (4) await
+     `setPlaybackIntent(dto)`; (5) revalidate the captured generation
+     and asset identifier; (6) only while still current, await `play()`
+     or `pause()`. Lifecycle-driven leave-foreground updates
+     (`inactive`, `paused`, or background) send `wantsPlay = false`,
+     `startsNewNavigationActivation = false`, and
+     `clearsPendingNavigationActivation = true`. Other updates default
+     `clearsPendingNavigationActivation` to false unless a later ADR
+     explicitly defines another cancellation case.
      `setPlaybackIntent` and the following playback command must not be
      issued concurrently. The Swift implementation must complete the
      mirror update before replying to Pigeon; it must not enqueue the
@@ -3982,10 +3993,19 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      Host synchronously records a mirror bound to
      `(intent.assetIdentifier, current clearEpoch)`. If
      `startsNewNavigationActivation` is true, Host arms a
-     `PendingActivation` for that asset and epoch. A non-navigation
-     intent update for the same asset does not erase a still-pending
-     matching navigation activation before it can be applied. A newer
-     navigation activation replaces the previous pending activation.
+     `PendingActivation` for that asset and epoch. By default, a
+     non-navigation intent update does not erase a still-pending
+     matching navigation activation before it can be applied. The
+     explicit exception is a lifecycle-driven leave-foreground update:
+     when `clearsPendingNavigationActivation` is true, Host must
+     synchronously clear a pending activation **only** when it matches
+     the same `(assetIdentifier, clearEpochAtArm)` validation used by
+     Decision 8, before replying to Pigeon. It must reuse that shared
+     identity/epoch matcher rather than implement a second validation
+     path. A false clear flag preserves the matching pending activation,
+     including when `wantsPlay = false`; implementations must not infer
+     clearing from `wantsPlay` alone. A newer navigation activation
+     replaces the previous pending activation.
   8. **Host identity and epoch validation.** Before using the intent
      mirror, Host validates
      `mirror.assetIdentifier == currentAssetIdentifier &&
