@@ -10,6 +10,7 @@ import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/media_display_repository.dart';
+import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
@@ -26,6 +27,8 @@ import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
+import 'package:waketok/features/main_browse/playback_coordinator.dart';
+import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
@@ -257,9 +260,34 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final previous = _lastLifecycle;
     _lastLifecycle = state;
+
+    final coordinator = ref.read(playbackCoordinatorProvider);
+    final assetId = _activeAssetId;
+    final displayGen = _activeDisplayGeneration;
+
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      if (assetId != null && displayGen != null) {
+        unawaited(
+          coordinator.onLeaveForeground(
+            assetIdentifier: assetId,
+            displayGeneration: displayGen,
+            displayGate: _activation.currentDisplayGate,
+          ),
+        );
+      }
+      return;
+    }
+
     if (state != AppLifecycleState.resumed) {
       return;
     }
+
+    coordinator.onForegroundResume();
+
+    // China-SKU wireless-data alert: typically inactive→resumed (app never
+    // backgrounds). True background uses paused→resumed. Listen for both.
     if (previous != AppLifecycleState.inactive &&
         previous != AppLifecycleState.paused) {
       return;
@@ -377,7 +405,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       return;
     }
     _advancingRound = true;
-    unawaited(ref.read(playbackRepositoryProvider).pause());
+    unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
     ref.read(browseSessionProvider.notifier).advanceToNextRound();
     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -517,7 +545,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
 
     ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
       if (prev != next) {
-        unawaited(ref.read(playbackRepositoryProvider).pause());
+        unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
       }
     });
 
@@ -1380,6 +1408,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cached for async teardown / dispose (Riverpod ref is unsafe after unmount).
   LivePhotoRepository? _liveRepo;
   PlaybackRepository? _playbackRepo;
+  PlaybackCoordinator? _playbackCoordinator;
   MediaDisplayRepository? _displayRepo;
   PvTransitionGuardNotifier? _pvGuardNotifier;
 
@@ -1607,6 +1636,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     super.didChangeDependencies();
     _liveRepo ??= ref.read(livePhotoRepositoryProvider);
     _playbackRepo ??= ref.read(playbackRepositoryProvider);
+    _playbackCoordinator ??= ref.read(playbackCoordinatorProvider);
     _displayRepo ??= ref.read(mediaDisplayRepositoryProvider);
     _readyForDisplaySub ??= ref
         .read(playbackRepositoryProvider)
@@ -1641,10 +1671,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // pause because _startLoad runs and skips the isCurrent-only branch.
     if (leftCurrent) {
       _cancelInitialLayer1CenterLabelDelay(revealImmediately: true);
-      final playback = ref.read(playbackRepositoryProvider);
-      _playbackRepo = playback;
-      unawaited(playback.pause());
-      unawaited(playback.cancelInFlightPrepare(widget.assetIdentifier));
+      final coordinator = ref.read(playbackCoordinatorProvider);
+      _playbackRepo ??= ref.read(playbackRepositoryProvider);
+      unawaited(coordinator.onLeaveCurrent());
+      unawaited(
+        _playbackRepo!.cancelInFlightPrepare(widget.assetIdentifier),
+      );
       _cancelLayer2DwellTimer();
       _displayRepo ??= ref.read(mediaDisplayRepositoryProvider);
       // Shared currentDisplayGate is bumped by the parent
@@ -1771,7 +1803,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final playback = _playbackRepo;
     if (widget.isCurrent && playback != null) {
       unawaited(playback.cancelInFlightPrepare(widget.assetIdentifier));
-      unawaited(playback.pause());
+      unawaited(_playbackCoordinator?.onLeaveCurrent());
     }
     final live = _liveRepo;
     if (widget.isCurrent && _isLiveStillMedia(_media) && live != null) {
@@ -2989,7 +3021,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Cap 15.11b: first-visit full L1→L2 still arms hold on video-slot
       // mount only (defer / in-flight ordering). DEVICE_LOCAL / L2-ready
       // use armPosterHoldOnL2Apply above (15.14b/c).
-      await _syncPlaybackActive();
+      await _syncPlaybackActive(requireSurfaceReady: false);
       return;
     }
     final liveStill =
@@ -3175,18 +3207,47 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
   }
 
+  SystemPlaybackPermission _playbackPermission({bool requireSurfaceReady = true}) {
+    final coordinator = ref.read(playbackCoordinatorProvider);
+    final pvGuard = ref.read(pvTransitionGuardProvider);
+    final media = _media;
+    return SystemPlaybackPermission(
+      isForegroundLifecycle: coordinator.isForegroundLifecycle,
+      isCurrentPage: widget.isCurrent,
+      isL2ReadyVideo:
+          media?.kind == FeedPageMediaKind.video && !_layer2InFlight,
+      isSurfaceReady: !requireSurfaceReady || _surfaceReady,
+      transitionBlocksPlayback: pvGuard.isCovering(widget.assetIdentifier),
+      hasHardPlaybackFailure: _layer2Failed,
+    );
+  }
+
   /// Play when this page is current + surface ready. Never pause from here.
-  Future<void> _syncPlaybackActive() async {
+  Future<void> _syncPlaybackActive({bool requireSurfaceReady = true}) async {
     final media = _media;
     if (media == null || media.kind != FeedPageMediaKind.video) {
       return;
     }
-    if (widget.isCurrent && _surfaceReady) {
-      final playback = ref.read(playbackRepositoryProvider);
-      // Cap 9.6 G3=A: re-apply shared mute before play (pool rebuild / clear).
-      await playback.setMute(ref.read(sharedMuteProvider));
-      await playback.play();
+    if (!widget.isCurrent) {
+      return;
     }
+    if (requireSurfaceReady && !_surfaceReady) {
+      return;
+    }
+    final gate = widget.currentDisplayGate;
+    final generation = widget.assignedDisplayGeneration;
+    if (gate == null || generation == null) {
+      return;
+    }
+    await ref.read(playbackCoordinatorProvider).onVideoBecomeCurrent(
+          assetIdentifier: widget.assetIdentifier,
+          displayGeneration: generation,
+          displayGate: gate,
+          permission: _playbackPermission(
+            requireSurfaceReady: requireSurfaceReady,
+          ),
+          muted: ref.read(sharedMuteProvider),
+        );
   }
 
   @override

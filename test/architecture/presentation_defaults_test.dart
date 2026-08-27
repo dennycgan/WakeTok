@@ -14,10 +14,22 @@ void main() {
       '${packageRoot.path}/lib/features/main_browse/vertical_media_feed.dart',
     ).readAsStringSync();
     expect(source.contains('fit: BoxFit.contain'), isTrue);
+    final coverOccurrences = RegExp(r'fit: BoxFit\.cover').allMatches(source);
     expect(
-      source.contains('BoxFit.cover'),
-      isFalse,
-      reason: 'Browse still must not default to Fill (BoxFit.cover)',
+      coverOccurrences.length,
+      1,
+      reason:
+          'Only ADR-032 entering-side opaque transition cover may use Fill',
+    );
+    expect(
+      RegExp(
+        r'class _PvTransitionCover[\s\S]*?'
+        r'child: Image\.file\([\s\S]*?'
+        r'fit: BoxFit\.cover,',
+      ).hasMatch(source),
+      isTrue,
+      reason:
+          'ADR-032 transition cover fills the viewport; feed media stays Fit',
     );
   });
 

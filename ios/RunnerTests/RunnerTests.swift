@@ -229,7 +229,8 @@ final class VideoPlaybackPolicyTests: XCTestCase {
       isForegroundPageDriven: true,
       isBackgroundPlanAdvance: false,
       isActiveCurrent: true,
-      observedItemIsCurrentItem: true
+      observedItemIsCurrentItem: true,
+      trustedUserIntentWantsPlay: true
     )
     XCTAssertEqual(action, .loopSeekZeroAndPlay)
   }
@@ -239,7 +240,8 @@ final class VideoPlaybackPolicyTests: XCTestCase {
       isForegroundPageDriven: true,
       isBackgroundPlanAdvance: false,
       isActiveCurrent: false,
-      observedItemIsCurrentItem: true
+      observedItemIsCurrentItem: true,
+      trustedUserIntentWantsPlay: true
     )
     XCTAssertEqual(action, .ignore)
   }
@@ -249,7 +251,8 @@ final class VideoPlaybackPolicyTests: XCTestCase {
       isForegroundPageDriven: true,
       isBackgroundPlanAdvance: false,
       isActiveCurrent: true,
-      observedItemIsCurrentItem: false
+      observedItemIsCurrentItem: false,
+      trustedUserIntentWantsPlay: true
     )
     XCTAssertEqual(action, .ignore)
   }
@@ -261,16 +264,66 @@ final class VideoPlaybackPolicyTests: XCTestCase {
       isForegroundPageDriven: true,
       isBackgroundPlanAdvance: true,
       isActiveCurrent: true,
-      observedItemIsCurrentItem: true
+      observedItemIsCurrentItem: true,
+      trustedUserIntentWantsPlay: true
     )
     XCTAssertEqual(action, .stopKeepPosition)
+  }
+
+  /// U-18.3-P1: trusted new navigation activation seeks zero on mid-play re-enter.
+  func testU18_3P1TrustedNavActivationSeeksZeroMidPlay() {
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: true,
+        itemAtEnd: false,
+        trustedStartsNewNavigationActivation: true
+      ),
+      .seekZeroAndPlay
+    )
+  }
+
+  /// U-18.3-P2: foreground technical re-entry preserves playhead.
+  func testU18_3P2TrustedNavFalseMidPlayPlayOnly() {
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: true,
+        itemAtEnd: false,
+        trustedStartsNewNavigationActivation: false
+      ),
+      .playOnly
+    )
+  }
+
+  /// U-18.3-P3: item-end does not loop when trusted intent is false.
+  func testU18_3P3ItemEndIntentFalseStops() {
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: true,
+      isBackgroundPlanAdvance: false,
+      isActiveCurrent: true,
+      observedItemIsCurrentItem: true,
+      trustedUserIntentWantsPlay: false
+    )
+    XCTAssertEqual(action, .stopKeepPosition)
+  }
+
+  /// U-18.3-P4: item-end loops when trusted intent is true (ADR-026 regression).
+  func testU18_3P4ItemEndIntentTrueLoops() {
+    let action = VideoPlaybackPolicy.actionOnItemEnd(
+      isForegroundPageDriven: true,
+      isBackgroundPlanAdvance: false,
+      isActiveCurrent: true,
+      observedItemIsCurrentItem: true,
+      trustedUserIntentWantsPlay: true
+    )
+    XCTAssertEqual(action, .loopSeekZeroAndPlay)
   }
 
   func testReenterAtEndSeeksZeroAndPlays() {
     XCTAssertEqual(
       VideoPlaybackPolicy.actionOnBecomeCurrent(
         playerExists: true,
-        itemAtEnd: true
+        itemAtEnd: true,
+        trustedStartsNewNavigationActivation: false
       ),
       .seekZeroAndPlay
     )
@@ -280,7 +333,8 @@ final class VideoPlaybackPolicyTests: XCTestCase {
     XCTAssertEqual(
       VideoPlaybackPolicy.actionOnBecomeCurrent(
         playerExists: true,
-        itemAtEnd: false
+        itemAtEnd: false,
+        trustedStartsNewNavigationActivation: false
       ),
       .playOnly
     )
@@ -290,10 +344,138 @@ final class VideoPlaybackPolicyTests: XCTestCase {
     XCTAssertEqual(
       VideoPlaybackPolicy.actionOnBecomeCurrent(
         playerExists: false,
-        itemAtEnd: true
+        itemAtEnd: true,
+        trustedStartsNewNavigationActivation: true
       ),
       .prepareNew
     )
+  }
+}
+
+final class PlaybackIntentStateReducerTests: XCTestCase {
+  private func dto(
+    asset: String,
+    wantsPlay: Bool,
+    nav: Bool,
+    clear: Bool
+  ) -> PlaybackIntentDto {
+    PlaybackIntentDto(
+      assetIdentifier: asset,
+      wantsPlay: wantsPlay,
+      startsNewNavigationActivation: nav,
+      clearsPendingNavigationActivation: clear
+    )
+  }
+
+  /// S-18.3-R1: lifecycle clear drops pending; become-current is playOnly.
+  func testS18_3R1LifecycleClearDropsPending() {
+    var state = PlaybackIntentHostState(
+      mirror: nil,
+      pendingNavigationActivation: PendingNavigationActivation(
+        assetIdentifier: "A",
+        clearEpochAtArm: 7
+      )
+    )
+    state = PlaybackIntentStateReducer.applyIntent(
+      state: state,
+      incoming: dto(asset: "A", wantsPlay: false, nav: false, clear: true),
+      currentAssetIdentifier: "A",
+      clearEpoch: 7
+    )
+    XCTAssertEqual(state.mirror?.wantsPlay, false)
+    XCTAssertNil(state.pendingNavigationActivation)
+    let trustedNav =
+      PlaybackIntentStateReducer.validatedPendingNavigationActivation(
+        state: state,
+        currentAssetIdentifier: "A",
+        clearEpoch: 7
+      )
+    XCTAssertNil(trustedNav)
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: true,
+        itemAtEnd: false,
+        trustedStartsNewNavigationActivation: false
+      ),
+      .playOnly
+    )
+  }
+
+  /// S-18.3-R2: non-lifecycle wantsPlay=false must not clear pending nav.
+  func testS18_3R2NonLifecyclePausePreservesPending() {
+    var state = PlaybackIntentHostState(
+      mirror: nil,
+      pendingNavigationActivation: PendingNavigationActivation(
+        assetIdentifier: "A",
+        clearEpochAtArm: 7
+      )
+    )
+    state = PlaybackIntentStateReducer.applyIntent(
+      state: state,
+      incoming: dto(asset: "A", wantsPlay: false, nav: false, clear: false),
+      currentAssetIdentifier: "A",
+      clearEpoch: 7
+    )
+    XCTAssertNotNil(state.pendingNavigationActivation)
+    let trustedNav =
+      PlaybackIntentStateReducer.validatedPendingNavigationActivation(
+        state: state,
+        currentAssetIdentifier: "A",
+        clearEpoch: 7
+      )
+    XCTAssertNotNil(trustedNav)
+    XCTAssertEqual(
+      VideoPlaybackPolicy.actionOnBecomeCurrent(
+        playerExists: true,
+        itemAtEnd: false,
+        trustedStartsNewNavigationActivation: true
+      ),
+      .seekZeroAndPlay
+    )
+  }
+
+  /// S-18.3-R3: lifecycle clear for A must not clear pending on B.
+  func testS18_3R3LifecycleClearDoesNotCrossAsset() {
+    var state = PlaybackIntentHostState(
+      mirror: nil,
+      pendingNavigationActivation: PendingNavigationActivation(
+        assetIdentifier: "B",
+        clearEpochAtArm: 7
+      )
+    )
+    state = PlaybackIntentStateReducer.applyIntent(
+      state: state,
+      incoming: dto(asset: "A", wantsPlay: false, nav: false, clear: true),
+      currentAssetIdentifier: "A",
+      clearEpoch: 7
+    )
+    XCTAssertEqual(state.pendingNavigationActivation?.assetIdentifier, "B")
+  }
+
+  /// S-18.3-R4: stale pending epoch is not cleared by lifecycle update.
+  func testS18_3R4StalePendingEpochNotClearedByLifecycle() {
+    var state = PlaybackIntentHostState(
+      mirror: nil,
+      pendingNavigationActivation: PendingNavigationActivation(
+        assetIdentifier: "A",
+        clearEpochAtArm: 6
+      )
+    )
+    state = PlaybackIntentStateReducer.applyIntent(
+      state: state,
+      incoming: dto(asset: "A", wantsPlay: false, nav: false, clear: true),
+      currentAssetIdentifier: "A",
+      clearEpoch: 7
+    )
+    XCTAssertNotNil(state.pendingNavigationActivation)
+    XCTAssertEqual(state.pendingNavigationActivation?.clearEpochAtArm, 6)
+    let trustedNav =
+      PlaybackIntentStateReducer.validatedPendingNavigationActivation(
+        state: state,
+        currentAssetIdentifier: "A",
+        clearEpoch: 7
+      )
+    XCTAssertNil(trustedNav)
   }
 }
 

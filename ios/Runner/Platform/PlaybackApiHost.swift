@@ -39,6 +39,8 @@ final class PlaybackApiHost: PlaybackApi {
   /// Cap 9 / ADR-019: bumped on each [clearPlaybackPool]. In-flight prepare /
   /// warm callbacks must drop results when their captured epoch is stale.
   private var clearEpoch: UInt64 = 0
+  /// Cap 18.3 / ADR-040: persistent intent mirror + one-shot nav activation.
+  private var playbackIntentHostState = PlaybackIntentHostState()
 
   /// TEMPORARY default `false`. Browse does not wire native plan-advance yet.
   /// Background Audio / lock-screen queue **must** set this from real mode
@@ -255,6 +257,18 @@ final class PlaybackApiHost: PlaybackApi {
     self.plan = plan
   }
 
+  func setPlaybackIntent(intent: PlaybackIntentDto) throws {
+    runOnMain { [weak self] in
+      guard let self else { return }
+      self.playbackIntentHostState = PlaybackIntentStateReducer.applyIntent(
+        state: self.playbackIntentHostState,
+        incoming: intent,
+        currentAssetIdentifier: self.currentAssetIdentifier,
+        clearEpoch: self.clearEpoch
+      )
+    }
+  }
+
   func syncPlanPosition(assetIdentifier: String, feedIndex: Int64) throws {
     // Cap 16.3: index only. Must not prepareActive / replaceCurrentItem.
     let idxBefore = currentFeedIndex
@@ -395,6 +409,7 @@ final class PlaybackApiHost: PlaybackApi {
     currentFeedIndex = 0
     surfaceView?.attach(player: nil)
     finishAllLoadsCancelled()
+    playbackIntentHostState = PlaybackIntentStateReducer.clearIntentStateOnPoolClear()
     // Do not reset `muted` — Dart preference remains; next player re-applies.
   }
 
@@ -774,6 +789,28 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  private func trustedUserIntentWantsPlay() -> Bool {
+    PlaybackIntentStateReducer.trustedWantsPlay(
+      state: playbackIntentHostState,
+      currentAssetIdentifier: currentAssetIdentifier,
+      clearEpoch: clearEpoch
+    )
+  }
+
+  /// One-shot: validated pending navigation activation is consumed here.
+  private func consumeTrustedStartsNewNavigationActivation() -> Bool {
+    let pending = PlaybackIntentStateReducer.validatedPendingNavigationActivation(
+      state: playbackIntentHostState,
+      currentAssetIdentifier: currentAssetIdentifier,
+      clearEpoch: clearEpoch
+    )
+    guard pending != nil else {
+      return false
+    }
+    playbackIntentHostState.pendingNavigationActivation = nil
+    return true
+  }
+
   private func handleItemDidPlayToEnd(_ note: Notification) {
     let ended = note.object as? AVPlayerItem
     let observedIsCurrentItem =
@@ -782,11 +819,13 @@ final class PlaybackApiHost: PlaybackApi {
       && ended === activePlayer?.currentItem
     let isActiveCurrent = activeAssetId == currentAssetIdentifier
     // ADR-006 D4: background plan-advance must stopKeepPosition (no item loop).
+    let trustedIntent = trustedUserIntentWantsPlay()
     let action = VideoPlaybackPolicy.actionOnItemEnd(
       isForegroundPageDriven: !backgroundPlanAdvanceActive,
       isBackgroundPlanAdvance: backgroundPlanAdvanceActive,
       isActiveCurrent: isActiveCurrent,
-      observedItemIsCurrentItem: observedIsCurrentItem
+      observedItemIsCurrentItem: observedIsCurrentItem,
+      trustedUserIntentWantsPlay: trustedIntent
     )
     switch action {
     case .loopSeekZeroAndPlay:
@@ -816,9 +855,11 @@ final class PlaybackApiHost: PlaybackApi {
     }
     pendingPlay = false
     applyMuteToPlayers()
+    let trustedNav = consumeTrustedStartsNewNavigationActivation()
     switch VideoPlaybackPolicy.actionOnBecomeCurrent(
       playerExists: true,
-      itemAtEnd: activeItemDidPlayToEnd
+      itemAtEnd: activeItemDidPlayToEnd,
+      trustedStartsNewNavigationActivation: trustedNav
     ) {
     case .seekZeroAndPlay:
       if endSeekInFlight {

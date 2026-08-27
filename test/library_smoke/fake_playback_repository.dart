@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
 
@@ -8,6 +9,7 @@ class FakePlaybackRepository implements PlaybackRepository {
   FakePlaybackRepository();
 
   final List<String> calls = <String>[];
+  final List<PlaybackIntent> intentCalls = <PlaybackIntent>[];
 
   /// Per-id delayed completion for [load] (Cap 16.3 video Layer 2).
   final Map<String, Completer<void>> loadGates = <String, Completer<void>>{};
@@ -155,4 +157,14 @@ class FakePlaybackRepository implements PlaybackRepository {
 
   @override
   Future<int> getPlaybackPoolEpoch() async => playbackPoolEpoch;
+
+  @override
+  Future<void> setPlaybackIntent(PlaybackIntent intent) async {
+    intentCalls.add(intent);
+    _record(
+      'setPlaybackIntent:${intent.assetIdentifier}:'
+      'w=${intent.wantsPlay}:nav=${intent.startsNewNavigationActivation}:'
+      'clear=${intent.clearsPendingNavigationActivation}',
+    );
+  }
 }

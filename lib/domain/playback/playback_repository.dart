@@ -1,3 +1,4 @@
+import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 
 /// App-scoped playback intents (ADR-006). Errors surface as channel failures.
@@ -50,4 +51,7 @@ abstract class PlaybackRepository {
 
   /// Native → Dart feed restore (Cap 7.5; may be empty until host emits).
   Stream<PlaybackRestoreRequest> get restoreRequests;
+
+  /// Cap 18.3 / ADR-040: sync intent mirror before effective play/pause.
+  Future<void> setPlaybackIntent(PlaybackIntent intent);
 }

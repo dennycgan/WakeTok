@@ -1039,6 +1039,68 @@ class PlaybackSurfaceAttachedDto {
   }
 }
 
+/// Cap 18.3 / ADR-040: Dart-owned user intent + one-shot navigation activation.
+class PlaybackIntentDto {
+  PlaybackIntentDto({
+    required this.assetIdentifier,
+    required this.wantsPlay,
+    required this.startsNewNavigationActivation,
+    required this.clearsPendingNavigationActivation,
+  });
+
+  String assetIdentifier;
+
+  bool wantsPlay;
+
+  bool startsNewNavigationActivation;
+
+  /// Lifecycle leave-foreground sets true to clear a matching pending activation.
+  bool clearsPendingNavigationActivation;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetIdentifier,
+      wantsPlay,
+      startsNewNavigationActivation,
+      clearsPendingNavigationActivation,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static PlaybackIntentDto decode(Object result) {
+    result as List<Object?>;
+    return PlaybackIntentDto(
+      assetIdentifier: result[0]! as String,
+      wantsPlay: result[1]! as bool,
+      startsNewNavigationActivation: result[2]! as bool,
+      clearsPendingNavigationActivation: result[3]! as bool,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! PlaybackIntentDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(wantsPlay, other.wantsPlay) && _deepEquals(startsNewNavigationActivation, other.startsNewNavigationActivation) && _deepEquals(clearsPendingNavigationActivation, other.clearsPendingNavigationActivation);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'PlaybackIntentDto(assetIdentifier: $assetIdentifier, wantsPlay: $wantsPlay, startsNewNavigationActivation: $startsNewNavigationActivation, clearsPendingNavigationActivation: $clearsPendingNavigationActivation)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -1113,6 +1175,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PlaybackSurfaceAttachedDto) {
       buffer.putUint8(150);
       writeValue(buffer, value.encode());
+    }    else if (value is PlaybackIntentDto) {
+      buffer.putUint8(151);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -1173,6 +1238,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlaybackRuntimeEventDto.decode(readValue(buffer)!);
       case 150:
         return PlaybackSurfaceAttachedDto.decode(readValue(buffer)!);
+      case 151:
+        return PlaybackIntentDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -1966,6 +2033,26 @@ class PlaybackApi {
     )
     ;
     return pigeonVar_replyValue! as int;
+  }
+
+  /// Cap 18.3 / ADR-040: sync user intent + optional navigation activation mirror.
+  /// Host must apply mirror synchronously before replying.
+  Future<void> setPlaybackIntent(PlaybackIntentDto intent) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.setPlaybackIntent$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[intent]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
   }
 }
 

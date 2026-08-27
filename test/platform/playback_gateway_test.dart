@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/platform/generated/waketok_platform_apis.g.dart' as pigeon;
 import 'package:waketok/platform/playback_gateway.dart';
+import 'package:waketok/domain/playback/playback_intent.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,7 @@ void main() {
       'cancelInFlightPrepare',
       'setTransitionAudioSuppressed',
       'getPlaybackPoolEpoch',
+      'setPlaybackIntent',
     ]) {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockDecodedMessageHandler<Object?>(
@@ -159,5 +161,33 @@ void main() {
     expect(event.assetIdentifier, 'v3');
     expect(event.feedIndex, 2);
     expect(event.clearEpoch, 9);
+  });
+
+  test('U-18.3-G1 gateway forwards setPlaybackIntent DTO fields', () async {
+    pigeon.PlaybackIntentDto? captured;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(channel('setPlaybackIntent'), codec),
+      (message) async {
+        captured = (message! as List<Object?>)[0] as pigeon.PlaybackIntentDto;
+        return <Object?>[null];
+      },
+    );
+    final gateway = PlaybackGateway();
+    addTearDown(gateway.dispose);
+
+    await gateway.setPlaybackIntent(
+      const PlaybackIntent(
+        assetIdentifier: 'v-nav',
+        wantsPlay: true,
+        startsNewNavigationActivation: true,
+        clearsPendingNavigationActivation: false,
+      ),
+    );
+
+    expect(captured?.assetIdentifier, 'v-nav');
+    expect(captured?.wantsPlay, isTrue);
+    expect(captured?.startsNewNavigationActivation, isTrue);
+    expect(captured?.clearsPendingNavigationActivation, isFalse);
   });
 }

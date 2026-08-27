@@ -1,10 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
+import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 
 /// Per-page handoff eligibility reported by [MediaFeedPage].
 class PvHandoffPageSnapshot {
@@ -213,7 +216,21 @@ class PvTransitionGuardNotifier extends Notifier<PvTransitionGuardState> {
     if (resumePlay &&
         playAsset != null &&
         playIndex == ref.read(mainBrowseFeedIndexProvider)) {
-      await playback.play();
+      await ref.read(playbackCoordinatorProvider).onTransitionHandoffResume(
+            assetIdentifier: playAsset,
+            isStillCurrentPage: () =>
+                playIndex == ref.read(mainBrowseFeedIndexProvider),
+            permission: SystemPlaybackPermission(
+              isForegroundLifecycle:
+                  ref.read(playbackCoordinatorProvider).isForegroundLifecycle,
+              isCurrentPage: true,
+              isL2ReadyVideo: true,
+              isSurfaceReady: true,
+              transitionBlocksPlayback: false,
+              hasHardPlaybackFailure: false,
+            ),
+            muted: ref.read(sharedMuteProvider),
+          );
     }
   }
 
@@ -241,7 +258,20 @@ class PvTransitionGuardNotifier extends Notifier<PvTransitionGuardState> {
     if (resumePlay &&
         hadTarget != null &&
         targetIndex == ref.read(mainBrowseFeedIndexProvider)) {
-      await playback.play();
+      await ref.read(playbackCoordinatorProvider).onTransitionHandoffResume(
+            assetIdentifier: hadTarget,
+            isStillCurrentPage: () =>
+                targetIndex == ref.read(mainBrowseFeedIndexProvider),
+            permission: const SystemPlaybackPermission(
+              isForegroundLifecycle: true,
+              isCurrentPage: true,
+              isL2ReadyVideo: true,
+              isSurfaceReady: true,
+              transitionBlocksPlayback: false,
+              hasHardPlaybackFailure: false,
+            ),
+            muted: ref.read(sharedMuteProvider),
+          );
     }
   }
 

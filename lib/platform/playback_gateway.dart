@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/playback/playback_repository.dart';
 import 'package:waketok/platform/generated/waketok_platform_apis.g.dart' as pigeon;
@@ -168,6 +169,19 @@ class PlaybackGateway
 
   @override
   Future<int> getPlaybackPoolEpoch() => _api.getPlaybackPoolEpoch();
+
+  @override
+  Future<void> setPlaybackIntent(PlaybackIntent intent) {
+    return _api.setPlaybackIntent(
+      pigeon.PlaybackIntentDto(
+        assetIdentifier: intent.assetIdentifier,
+        wantsPlay: intent.wantsPlay,
+        startsNewNavigationActivation: intent.startsNewNavigationActivation,
+        clearsPendingNavigationActivation:
+            intent.clearsPendingNavigationActivation,
+      ),
+    );
+  }
 
   @override
   void onPlaybackSurfaceAttached(pigeon.PlaybackSurfaceAttachedDto event) {

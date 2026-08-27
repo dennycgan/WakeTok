@@ -336,6 +336,23 @@ class PlaybackSurfaceAttachedDto {
   int clearEpoch;
 }
 
+/// Cap 18.3 / ADR-040: Dart-owned user intent + one-shot navigation activation.
+class PlaybackIntentDto {
+  PlaybackIntentDto({
+    required this.assetIdentifier,
+    required this.wantsPlay,
+    required this.startsNewNavigationActivation,
+    required this.clearsPendingNavigationActivation,
+  });
+
+  String assetIdentifier;
+  bool wantsPlay;
+  bool startsNewNavigationActivation;
+
+  /// Lifecycle leave-foreground sets true to clear a matching pending activation.
+  bool clearsPendingNavigationActivation;
+}
+
 /// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
 @HostApi()
 abstract class PhotoLibraryApi {
@@ -560,6 +577,10 @@ abstract class PlaybackApi {
   /// Cap 15.11: snapshot of Host [clearEpoch] at guard arm time (pool invalidation
   /// generation — not Dart [FeedMediaRequestGate] display generation).
   int getPlaybackPoolEpoch();
+
+  /// Cap 18.3 / ADR-040: sync user intent + optional navigation activation mirror.
+  /// Host must apply mirror synchronously before replying.
+  void setPlaybackIntent(PlaybackIntentDto intent);
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).

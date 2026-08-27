@@ -29,7 +29,8 @@ enum VideoPlaybackPolicy {
     isForegroundPageDriven: Bool,
     isBackgroundPlanAdvance: Bool,
     isActiveCurrent: Bool,
-    observedItemIsCurrentItem: Bool
+    observedItemIsCurrentItem: Bool,
+    trustedUserIntentWantsPlay: Bool
   ) -> VideoItemEndAction {
     if !observedItemIsCurrentItem {
       return .ignore
@@ -39,18 +40,25 @@ enum VideoPlaybackPolicy {
     if isBackgroundPlanAdvance {
       return .stopKeepPosition
     }
-    if isForegroundPageDriven, isActiveCurrent {
+    if isForegroundPageDriven, isActiveCurrent, trustedUserIntentWantsPlay {
       return .loopSeekZeroAndPlay
+    }
+    if isForegroundPageDriven, isActiveCurrent, !trustedUserIntentWantsPlay {
+      return .stopKeepPosition
     }
     return .ignore
   }
 
   static func actionOnBecomeCurrent(
     playerExists: Bool,
-    itemAtEnd: Bool
+    itemAtEnd: Bool,
+    trustedStartsNewNavigationActivation: Bool
   ) -> VideoReenterAction {
     if !playerExists {
       return .prepareNew
+    }
+    if trustedStartsNewNavigationActivation {
+      return .seekZeroAndPlay
     }
     if itemAtEnd {
       return .seekZeroAndPlay

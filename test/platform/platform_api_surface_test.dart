@@ -26,6 +26,7 @@ void main() {
     'cancelInFlightPrepare',
     'setTransitionAudioSuppressed',
     'getPlaybackPoolEpoch',
+    'setPlaybackIntent',
   };
 
   const expectedPlaybackFlutterMethods = <String>{

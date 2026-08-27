@@ -987,6 +987,59 @@ struct PlaybackSurfaceAttachedDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Cap 18.3 / ADR-040: Dart-owned user intent + one-shot navigation activation.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct PlaybackIntentDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var wantsPlay: Bool
+  var startsNewNavigationActivation: Bool
+  /// Lifecycle leave-foreground sets true to clear a matching pending activation.
+  var clearsPendingNavigationActivation: Bool
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> PlaybackIntentDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let wantsPlay = pigeonVar_list[1] as! Bool
+    let startsNewNavigationActivation = pigeonVar_list[2] as! Bool
+    let clearsPendingNavigationActivation = pigeonVar_list[3] as! Bool
+
+    return PlaybackIntentDto(
+      assetIdentifier: assetIdentifier,
+      wantsPlay: wantsPlay,
+      startsNewNavigationActivation: startsNewNavigationActivation,
+      clearsPendingNavigationActivation: clearsPendingNavigationActivation
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      wantsPlay,
+      startsNewNavigationActivation,
+      clearsPendingNavigationActivation,
+    ]
+  }
+  static func == (lhs: PlaybackIntentDto, rhs: PlaybackIntentDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.wantsPlay, rhs.wantsPlay) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.startsNewNavigationActivation, rhs.startsNewNavigationActivation) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.clearsPendingNavigationActivation, rhs.clearsPendingNavigationActivation)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("PlaybackIntentDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: wantsPlay, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: startsNewNavigationActivation, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: clearsPendingNavigationActivation, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "PlaybackIntentDto(assetIdentifier: \(String(describing: assetIdentifier)), wantsPlay: \(String(describing: wantsPlay)), startsNewNavigationActivation: \(String(describing: startsNewNavigationActivation)), clearsPendingNavigationActivation: \(String(describing: clearsPendingNavigationActivation)))"
+  }
+}
+
 private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -1066,6 +1119,8 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
       return PlaybackRuntimeEventDto.fromList(self.readValue() as! [Any?])
     case 150:
       return PlaybackSurfaceAttachedDto.fromList(self.readValue() as! [Any?])
+    case 151:
+      return PlaybackIntentDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -1139,6 +1194,9 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? PlaybackSurfaceAttachedDto {
       super.writeByte(150)
+      super.writeValue(value.toList())
+    } else if let value = value as? PlaybackIntentDto {
+      super.writeByte(151)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1756,6 +1814,9 @@ protocol PlaybackApi {
   /// Cap 15.11: snapshot of Host [clearEpoch] at guard arm time (pool invalidation
   /// generation — not Dart [FeedMediaRequestGate] display generation).
   func getPlaybackPoolEpoch() throws -> Int64
+  /// Cap 18.3 / ADR-040: sync user intent + optional navigation activation mirror.
+  /// Host must apply mirror synchronously before replying.
+  func setPlaybackIntent(intent: PlaybackIntentDto) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -1994,6 +2055,23 @@ class PlaybackApiSetup {
       }
     } else {
       getPlaybackPoolEpochChannel.setMessageHandler(nil)
+    }
+    /// Cap 18.3 / ADR-040: sync user intent + optional navigation activation mirror.
+    /// Host must apply mirror synchronously before replying.
+    let setPlaybackIntentChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.setPlaybackIntent\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setPlaybackIntentChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let intentArg = args[0] as! PlaybackIntentDto
+        do {
+          try api.setPlaybackIntent(intent: intentArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setPlaybackIntentChannel.setMessageHandler(nil)
     }
   }
 }

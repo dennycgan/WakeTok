@@ -5714,6 +5714,103 @@ void main() {
       expect(find.byKey(const Key('pvTransitionCover_v2')), findsNothing);
     },
   );
+
+  testWidgets('W-18.3-F1 A→B→A emits nav intent before play on return', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    for (final id in const ['v1', 'v2']) {
+      display.displayErrorById[id] = 'unsupportedMedia';
+      display.previewsById[id] = DisplayAsset(
+        assetIdentifier: id,
+        mediaKind: PlaybackMediaKind.video,
+        localFilePath: '/tmp/fake_preview_$id.jpg',
+      );
+    }
+    final playback = FakePlaybackRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+        mediaDisplay: display,
+        playback: playback,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[0]}')), findsOneWidget);
+
+    await tester.drag(find.byType(PageView), const Offset(0, -280));
+    await pumpAsyncWork(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[1]}')), findsOneWidget);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+
+    await tester.drag(find.byType(PageView), const Offset(0, 280));
+    await pumpAsyncWork(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[0]}')), findsOneWidget);
+
+    final returnIntent = playback.intentCalls.firstWhere(
+      (intent) => intent.assetIdentifier == ids[0],
+    );
+    expect(returnIntent.startsNewNavigationActivation, isTrue);
+    expect(returnIntent.wantsPlay, isTrue);
+    final navIntentCall = playback.calls.firstWhere(
+      (c) =>
+          c.startsWith('setPlaybackIntent:${ids[0]}') &&
+          c.contains('nav=true'),
+    );
+    final playIdx = playback.calls.lastIndexOf('play');
+    expect(playback.calls.indexOf(navIntentCall), lessThan(playIdx));
+  });
+
+  testWidgets('W-18.3-F2 inactive→resumed does not auto-play current video', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    display.previewsById['v1'] = const DisplayAsset(
+      assetIdentifier: 'v1',
+      mediaKind: PlaybackMediaKind.video,
+      localFilePath: '/tmp/fake_preview_v1.jpg',
+    );
+    final playback = FakePlaybackRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+    expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await pumpAsyncWork(tester);
+    expect(
+      playback.intentCalls.any(
+        (intent) =>
+            intent.wantsPlay == false &&
+            intent.clearsPendingNavigationActivation == true,
+      ),
+      isTrue,
+    );
+
+    playback.calls.clear();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await pumpAsyncWork(tester);
+
+    expect(playback.calls.where((c) => c == 'play'), isEmpty);
+  });
 }
 
 /// Session ids plus a built [PageView] (current [MediaFeedPage] mounted).
