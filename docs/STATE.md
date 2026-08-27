@@ -190,6 +190,8 @@ availability hardening (Cap 17)
 > adoption (not “fetch-path optimization”); inserted **17.5b** Retry
 > user-visible definition review; F1 (reduce wasted prepare) → Known
 > debt Unassigned (not a numbered phase).
+> Owner 2026-08-27 (post-17.7 insert): inserted **17.9 Wait copy cleanup**
+> between 17.7 and 17.8; Cap close-out remains **17.8**.
 
 - [x] 17.1 Diagnosis (Cap 15 diagnosis-before-contract pattern).
       Wait-feedback duration (Track A); iCloud fetch observability
@@ -246,17 +248,27 @@ availability hardening (Cap 17)
       smoke PASS iPhone13pro Kafka. Minute-level attempt archived
       locally (`docs/private/cap17-7-minute-wall-clock-archive/`).
       Former Cap close-out remains **17.8**.
+- [x] 17.9 Wait copy cleanup (inserted post-17.7).
+      Work `5643e3f` (Accepted date 2026-08-27 / ADR-039). Delete
+      center Layer2Waiting; normalize coverless re-enter `_loading`
+      before L2 in-flight arm; source-switch-only 150 ms visible
+      Layer1 center label delay (`kSourceSwitchLayer1CenterLabelDelay`
+      independent from a4 `kDefaultA4SuppressBelow`). Corner reassure
+      / Retry / feed-shell library loading semantics unchanged.
+      Feed-shell one-frame tab-switch flash **retained** as optional
+      Known debt. Kafka Profile 4-step device验收 PASS.
 - [ ] 17.8 Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap **17.8** Cap close-out (Main Browse Layer 1→2 /
       iCloud hardening — Cap 17)
-- Sub-steps done: Cap 17.1–17.7 as above (17.7 work `affd948` /
-      ADR-038 Accepted)
+- Sub-steps done: Cap 17.1–17.9 as above (17.9 work `5643e3f` /
+      ADR-039 Accepted)
 - Next step: owner Cap 17 close-out checklist (17.8); YOU ARE HERE stays
       Cap 17 until 17.8 completes
-- Related decisions: ADR-025; ADR-029; ADR-031…038; Cap 8 Overlay;
-      Known debt 400 / 403 / Layer2Waiting / F1 Unassigned; 402 → Cap 18
+- Related decisions: ADR-025; ADR-029; ADR-031…039; Cap 8 Overlay;
+      Known debt 400 / 403 / feed-shell library tab-switch polish /
+      F1 Unassigned; 402 → Cap 18
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -515,7 +527,9 @@ availability hardening (Cap 17)
 | Main Browse Screen | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | Main Browse Screen | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): same `_loading` miss chrome as 399, now `_FeedCornerChrome` not centered. Black wait until Layer 1 still exists (ADR-025); 14.4e remount at index 0 can still land on a miss head (Shuffle). Kafka 2026-08-20 device: miss = corner spinner; library loading still centered. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-027 / ADR-031 |
 | Main Browse Screen | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): miss page is `feedBackground` + `_FeedCornerChrome`; no delay-before-show; new ARB `mainBrowseFeedLayer1Loading`. Library resolve `mainBrowseFeedLoading` stays centered. Kafka device PASS. UX-1 (402) not in this close. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-019 / ADR-031 |
-| Main Browse Screen | **Center Layer2Waiting (`mainBrowseFeedLayer2Waiting` / “Loading…”) necessity unclear — separate from Layer1Loading and corner reassure** | **Three independently bound chrome slots (do not conflate):** (1) **Center Layer1Loading** (`_loading`): “Loading item” while L1 preview is in flight. (2) **Center Layer2Waiting** (`!_loading` ∧ coverless ∧ L2 wait spinner): “Loading…” — Cap 17.4 intent; **device smoke: rarely seen** on production paths (with-poster waits use corner only; L1-miss main path keeps `_loading` through L2 so item copy persists — `_runFullLayer1BecomeCurrentPath` arms L2 on `layer1 == null` but does **not** clear `_loading`; widget tests reach Layer2Waiting via `pendingVideo` seams e.g. `W-17.4c`). (3) **Corner reassure** (Cap 17.5b Package B): “Still loading” after 3s — **own policy** (`shouldShowLayer2CornerReassure`; cover **not** required; mutex vs Layer1Loading page only). **Guard option (future B):** after L1 returns no cover, clear `_loading` + coverless L2 → center “Loading…” (would follow item copy during L1 fetch; not wired today). **Future owner decision after daily use:** **A** delete center Layer2Waiting (item + corner reassure may suffice); **B** wire the L1-miss→L2 guard; **C** collapse to one center wait string. **Deleting center Layer2Waiting does not require changing corner reassure trigger logic** (separate doors; reassure already works with poster — `W-17.5b-covered`). Would revisit dual-copy tests/ADR wording only, not Package B AND gates, unless product wants different long-wait semantics. | Unassigned (owner daily use → product judgment) | ADR-034 / ADR-036; `cap17-17.5b-notes.md` |
+| Main Browse Screen | **Center Layer2Waiting (`mainBrowseFeedLayer2Waiting` / “Loading…”) necessity unclear — separate from Layer1Loading and corner reassure** | **Closed by 17.9** (`5643e3f` / ADR-039): owner option **A** — deleted runtime center copy and ARB key; coverless L2 keeps corner spinner + `mainBrowseFeedLayer3Loading` semantics; corner reassure policy unchanged (`shouldShowLayer2CornerReassure`; `W-17.5b-covered` / coverless ≥3s tests updated). Fixed coverless re-enter `_loading` before L2 in-flight arm (hold/startLoad race). Guard option B (L1-miss→L2 center copy) **not** wired. | Closed by Cap 17.9 (ADR-039) | ADR-034 / ADR-036 |
+| Main Browse Screen | All / Photos / Videos quick tab switch flashes one frame center Layer1Loading (“Loading item” / “正在加载此项”) | **Closed by 17.9** (`5643e3f` / ADR-039): source-switch-only 150 ms delay hides **visible** center copy on first current page after tab change; corner spinner + VoiceOver `mainBrowseFeedLayer1Loading` semantics stay immediate. Vertical swipe / cold start unchanged. Kafka Profile owner验收 PASS (4-step). | Closed by Cap 17.9 (ADR-039) | ADR-039 |
+| Main Browse Screen | All / Photos / Videos quick tab switch may flash one frame feed-shell `mainBrowseFeedLoading` (“Loading library…” / “正在加载图库…”) | **Optional polish (retained).** Tab change starts a new Consumption Session (`browseSessionProvider` reload); cached snapshots typically ≤1–2 frames of shell loading. Semantically distinct from page Layer1 copy (17.9 closed rows above). Owner rejected blank-hold polish (empty feed color reads as bug/stutter). Alternatives (`skipLoadingOnReload`, cache-hit synchronous session swap, delayed whole-screen library chrome) unevaluated. | Unassigned (optional polish; product judgment later) | ADR-023 D8 / ADR-039 |
 | Main Browse Screen | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`52e775c`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. **Cap 17.4 (`cb477fe`):** coverless wait **visibility** improved (centered copy + corner spinner); **residual black accepted**; this row stays **open** (ADR-034: closing 400 not required for 17.4 pass). | Cap 17 (17.4 presentation landed; residual black open) | ADR-025 / ADR-006 / ADR-031 / ADR-034 |
 | Media Info Overlay | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Closed by Cap 17.7** (`affd948` / ADR-038): product goal changed from minute-level Photos wall-clock match to **honest approximate** presentation — row 2 `~ Y-M-D` and row 1 coarse short bands from `creationDate` local calendar only; ±1 calendar day vs Photos at import/timezone edges **accepted** (not a bug to chase in Overlay). Rows share honesty stance but are **not** guaranteed numerically consistent with each other or with Photos for cross-check. Minute-level Host/EXIF attempt reverted (`7c2c0e6`); archive `docs/private/cap17-7-minute-wall-clock-archive/`. Device smoke PASS iPhone13pro Kafka. Cap 19 long-press info may revisit with disclaimer. | Closed by Cap 17.7 | ADR-038; Cap 8 Overlay / ADR-014 family |
 | Main Browse Screen | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer and does **not** `play()`. Dart lifecycle retries failed Layer 2 only. Correct interim vs lock-screen **audio** continue. Missing Manual tap-to-pause/resume (center affordance) is a Browse gesture gap, **not** Auto-play / Background Audio. | Cap 18 (tap pause/resume + unlock return-to-foreground paused path; not lock-screen continue-audio) | ADR-006 |

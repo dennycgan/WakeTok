@@ -3161,6 +3161,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   **ADR-037** (Accepted 2026-08-26, anchor `c8bc56a`) — when Layer-2
   wait chrome already painted this inFlight, motion prepare skips F1
   &lt;T; short / unlatched F1 evidence and intent are unchanged.
+  **17.4 center coverless `Layer2Waiting` copy** superseded by **ADR-039**
+  (Accepted 2026-08-27, anchor `5643e3f`); debt 400 residual black and
+  corner chrome contract here remain binding.
 - Commit/PR anchor: `00b7264` (Cap 17.3 work; first Cap 17 implementing commit)
 - Plain summary (owner reads this):
   Waiting in Main Browse should match how long the wait usually is: a quick
@@ -3510,7 +3513,10 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-036: Cap 17.5b Retry visibility + corner Layer-2 reassure
 
-- Status: Accepted (2026-08-26)
+- Status: Accepted (2026-08-26); center coverless **`Layer2Waiting` dual
+  copy** with corner reassure (Decision 3 coexistence limb) superseded
+  by **ADR-039** (Accepted 2026-08-27, anchor `5643e3f`). Corner
+  reassure AND gates, G1, Retry, and LIVE layout remain binding.
 - Commit/PR anchor: 649e22f
 - Plain summary (owner reads this):
   Peek must not show a leftover full-page Fail+Retry after leave.
@@ -3725,3 +3731,75 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   note. Cap 17 YOU ARE HERE → **17.8** close-out. Cap 19 may add
   creationDate + disclaimer on long-press; does not reopen Overlay minute
   alignment in Cap 17.7 scope.
+
+---
+
+## ADR-039: Cap 17.9 — delete center Layer2Waiting; source-switch Layer1 label delay
+
+- Status: Accepted (2026-08-27)
+- Commit/PR anchor: 5643e3f
+- Plain summary (owner reads this):
+  Remove the redundant center “Loading…” on coverless Layer-2 waits —
+  corner spinner and “Still loading” reassure are enough. Fix a
+  coverless video re-enter race so loading state is correct before
+  Layer-2 arms. When switching All / Photos / Videos, hide the visible
+  “Loading item” center text for 150 ms on the new tab’s first item;
+  the corner spinner and screen-reader feedback stay immediate.
+- Context / what problem forced this:
+  Known debt questioned whether center `Layer2Waiting`
+  (`mainBrowseFeedLayer2Waiting`) added value beyond center
+  `Layer1Loading` and corner reassure (Cap 17.5b). Production paths
+  rarely showed center “Loading…”; coverless L2 often duplicated copy
+  with reassure after 3s (`W-17.5b-dual`). A coverless video
+  leave→re-enter with an L2-ready token could arm in-flight before
+  `_startLoad` finished, briefly exposing the wrong center wait state.
+  Separately, quick All / Photos / Videos tab switches flashed one
+  frame of center “Loading item” on the remounted current page even
+  when Layer 1 completed within milliseconds.
+- Decision (what was chosen):
+  1. **Delete runtime center Layer2Waiting.** Remove
+     `mainBrowseFeedLayer2Waiting` from ARB and all paint paths.
+     Coverless L2 wait keeps bottom-right gold spinner; semantics use
+     `mainBrowseFeedLayer3Loading`. Center fail slot unchanged.
+  2. **Corner reassure unchanged.** `shouldShowLayer2CornerReassure`
+     stays independent (cover not required; mutex vs L1-miss page
+     only). Supersedes ADR-036 Decision 3 dual-copy coexistence when
+     coverless; does **not** change Package B AND gates.
+  3. **Coverless re-enter order fix.** In
+     `_holdVideoSurfaceForL2ReloadIfNeeded`, when the page has no
+     display/poster, set `_loading = true` **before**
+     `_armLayer2InFlight` so the hold/startLoad async gap cannot form
+     `!_loading` + coverless + inFlight.
+  4. **Source-switch-only visible Layer1 center delay.** On the first
+     current `MediaFeedPage` mounted after an All / Photos / Videos
+     source change, delay **visible** center `mainBrowseFeedLayer1Loading`
+     copy for **150 ms** (`kSourceSwitchLayer1CenterLabelDelay`).
+     Corner spinner and VoiceOver semantics remain immediate. Cold
+     start, vertical swipe to a new item, and in-place reload stay
+     immediate center copy. Constant is **independent** from a4
+     suppress `kDefaultA4SuppressBelow` (same initial value, separate
+     product decision).
+  5. **Feed-shell library loading retained.** One-frame
+     `mainBrowseFeedLoading` (“Loading library…”) on tab switch may
+     still appear while `browseSessionProvider` reloads; owner
+     accepted as optional polish debt (blank-hold rejected as
+     bug-like). Not in 17.9 scope.
+- Rejected alternatives (why not B):
+  - **Wire L1-miss→L2 guard (Known debt option B)** — rejected; owner
+    chose delete center Layer2Waiting (option A).
+  - **Collapse to one center wait string (option C)** — rejected with A.
+  - **Reuse a4 T constant for source-switch delay** — rejected; tab
+    switch polish and a4 wait distribution are separate decisions.
+  - **Delay corner spinner / semantics on source switch** — rejected;
+    accessibility and immediate motion feedback must stay.
+  - **Suppress feed-shell library loading on tab switch** — deferred;
+    owner retained one-frame shell flash over empty feed color.
+- Consequences / constraints accepted:
+  Work `5643e3f` + tests (`main_browse_wait_copy_cleanup_widget_test.dart`,
+  updated cap17_3/4/5b). Kafka Profile 4-step device验收 PASS.
+  STATE marks 17.9 `[x]`; Known debt Layer2Waiting + source-switch
+  Layer1 center flash **Closed**; feed-shell library tab-switch flash
+  **Unassigned optional polish**. Docs commit accepts ADR-039;
+  ADR-034 Status notes 17.4 center Layer2Waiting supersession;
+  ADR-036 Status notes dual-copy supersession. `cap17-17.5b-notes.md`
+  supersession note appended (historical dual-copy facts preserved).
