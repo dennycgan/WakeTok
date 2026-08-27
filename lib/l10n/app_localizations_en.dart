@@ -300,9 +300,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedLayer1Loading => 'Loading item';
 
   @override
-  String get mainBrowseFeedLayer2Waiting => 'Loading…';
-
-  @override
   String get mainBrowseFeedLayer2Reassure => 'Still loading';
 
   @override

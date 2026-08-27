@@ -43,7 +43,7 @@ const _tinyPng =
 
 void main() {
   testWidgets(
-    'W-17.5b-dual coverless L2 ≥3s shows center Layer2Waiting and corner reassure',
+    'W-17.5b-coverless L2 ≥3s shows corner spinner and reassure only',
     (tester) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -68,124 +68,140 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')), findsOneWidget);
-      expect(find.text(l10n.mainBrowseFeedLayer2Waiting), findsWidgets);
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsOneWidget);
-      expect(find.text(l10n.mainBrowseFeedLayer2Reassure), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'W-17.5b-covered L1/poster shows corner reassure without center Layer2Waiting',
-    (tester) async {
-      final path = File('${Directory.systemTemp.path}/wt_175b_covered.png');
-      path.writeAsBytesSync(base64Decode(_tinyPng));
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.displaysById['a1'] = DisplayAsset(
-        assetIdentifier: 'a1',
-        mediaKind: PlaybackMediaKind.image,
-        localFilePath: path.path,
-      );
-      display.previewsById['a1'] = display.displaysById['a1']!;
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
-          mediaDisplay: display,
-          browseLayer2Dwell: Duration.zero,
-        ),
-      );
-      await _pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
-
-      page.debugForceLayer2WaitChrome(
-        path: WaitChromePathClass.a2WaitToPlayable,
-        elapsed: kLayer2CornerReassureAfter,
-        mediaKind: FeedPageMediaKind.still,
-      );
-      await tester.pump();
-
-      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsOneWidget);
-      expect(find.text(l10n.mainBrowseFeedLayer2Reassure), findsOneWidget);
       expect(
         find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')),
         findsNothing,
-        reason: 'center Layer2Waiting stays coverless-only; must not cover L1',
       );
-    },
-  );
-
-  testWidgets(
-    'W-17.5b-below-3s coverless wait has center copy but no corner reassure',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.displayGates['a1'] = Completer<void>();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
-          mediaDisplay: display,
-          browseLayer2Dwell: Duration.zero,
-        ),
-      );
-      await _pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
-
-      page.debugForceLayer2WaitChrome(
-        path: WaitChromePathClass.a2WaitToPlayable,
-        elapsed: const Duration(seconds: 2),
-        mediaKind: FeedPageMediaKind.pendingVideo,
-      );
-      await tester.pump();
-
-      expect(find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'W-17.5b-g1 leave current clears page-failed Retry on peek',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.displayGates['a1'] = Completer<void>();
-      display.displayGates['a2'] = Completer<void>();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
-          mediaDisplay: display,
-          browseLayer2Dwell: Duration.zero,
-        ),
-      );
-      await _pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
-
-      page.debugForcePageFailed();
-      await tester.pump();
-      expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
-
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-
       expect(
-        find.byKey(const Key('mainBrowseFeedPageRetry'), skipOffstage: false),
-        findsNothing,
-        reason: 'G1: peek must not keep PageFailed Retry after leave',
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer2Reassure')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.mainBrowseFeedLayer2Reassure), findsOneWidget);
     },
   );
+
+  testWidgets('W-17.5b-covered L1/poster shows corner reassure', (
+    tester,
+  ) async {
+    final path = File('${Directory.systemTemp.path}/wt_175b_covered.png');
+    path.writeAsBytesSync(base64Decode(_tinyPng));
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['a1'] = DisplayAsset(
+      assetIdentifier: 'a1',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: path.path,
+    );
+    display.previewsById['a1'] = display.displaysById['a1']!;
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        browseLayer2Dwell: Duration.zero,
+      ),
+    );
+    await _pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
+
+    page.debugForceLayer2WaitChrome(
+      path: WaitChromePathClass.a2WaitToPlayable,
+      elapsed: kLayer2CornerReassureAfter,
+      mediaKind: FeedPageMediaKind.still,
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mainBrowseFeedLayer2Reassure')),
+      findsOneWidget,
+    );
+    expect(find.text(l10n.mainBrowseFeedLayer2Reassure), findsOneWidget);
+    expect(
+      find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')),
+      findsNothing,
+      reason: 'ADR-039 removed center Layer2Waiting',
+    );
+  });
+
+  testWidgets('W-17.5b-below-3s coverless wait has spinner but no reassure', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayGates['a1'] = Completer<void>();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        browseLayer2Dwell: Duration.zero,
+      ),
+    );
+    await _pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
+
+    page.debugForceLayer2WaitChrome(
+      path: WaitChromePathClass.a2WaitToPlayable,
+      elapsed: const Duration(seconds: 2),
+      mediaKind: FeedPageMediaKind.pendingVideo,
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsNothing);
+  });
+
+  testWidgets('W-17.5b-g1 leave current clears page-failed Retry on peek', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayGates['a1'] = Completer<void>();
+    display.displayGates['a2'] = Completer<void>();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        mediaDisplay: display,
+        browseLayer2Dwell: Duration.zero,
+      ),
+    );
+    await _pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
+
+    page.debugForcePageFailed();
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(
+      find.byKey(const Key('mainBrowseFeedPageRetry'), skipOffstage: false),
+      findsNothing,
+      reason: 'G1: peek must not keep PageFailed Retry after leave',
+    );
+  });
 
   testWidgets(
     'W-17.5b-gen stale 3s timer after re-arm does not paint reassure',
@@ -226,7 +242,10 @@ void main() {
       // Old gen=1 timer would have fired here; must not show reassure
       // (elapsed still 0 under gen=2).
       await tester.pump(kLayer2CornerReassureAfter);
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsNothing);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer2Reassure')),
+        findsNothing,
+      );
 
       // Fresh gen=2 past 3s still shows when elapsed override says so.
       page.debugForceLayer2WaitChrome(
@@ -236,43 +255,43 @@ void main() {
         mediaKind: FeedPageMediaKind.pendingVideo,
       );
       await tester.pump();
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer2Reassure')),
+        findsOneWidget,
+      );
     },
   );
 
-  testWidgets(
-    'W-17.5b-a4 path never shows corner reassure',
-    (tester) async {
-      final path = File('${Directory.systemTemp.path}/wt_175b_a4.png');
-      path.writeAsBytesSync(base64Decode(_tinyPng));
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.displaysById['a1'] = DisplayAsset(
-        assetIdentifier: 'a1',
-        mediaKind: PlaybackMediaKind.image,
-        localFilePath: path.path,
-      );
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
-          mediaDisplay: display,
-          browseLayer2Dwell: Duration.zero,
-        ),
-      );
-      await _pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
+  testWidgets('W-17.5b-a4 path never shows corner reassure', (tester) async {
+    final path = File('${Directory.systemTemp.path}/wt_175b_a4.png');
+    path.writeAsBytesSync(base64Decode(_tinyPng));
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['a1'] = DisplayAsset(
+      assetIdentifier: 'a1',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: path.path,
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+        browseLayer2Dwell: Duration.zero,
+      ),
+    );
+    await _pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
 
-      page.debugForceLayer2WaitChrome(
-        path: WaitChromePathClass.a4L2ReadyEvict,
-        elapsed: kLayer2CornerReassureAfter,
-        mediaKind: FeedPageMediaKind.pendingVideo,
-      );
-      await tester.pump();
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsNothing);
-    },
-  );
+    page.debugForceLayer2WaitChrome(
+      path: WaitChromePathClass.a4L2ReadyEvict,
+      elapsed: kLayer2CornerReassureAfter,
+      mediaKind: FeedPageMediaKind.pendingVideo,
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsNothing);
+  });
 
   testWidgets(
     'W-17.5b-live LIVE badge stacks above spinner/reassure and pins trailing',
@@ -302,9 +321,18 @@ void main() {
       await tester.pump();
 
       expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedLayer2Reassure')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer2Reassure')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedCoverlessWaitLabel')),
+        findsNothing,
+      );
 
       // Corner collision lock: LIVE above spinner/reassure (not a side-by-side
       // row that recreates the horizontal LIVE|reassure|spinner clash).
@@ -335,100 +363,98 @@ void main() {
     },
   );
 
-  testWidgets(
-    'W-17.5b-cancel-order page Retry awaits cancel before load',
-    (tester) async {
-      final playback = FakePlaybackRepository();
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.displayGates['v1'] = Completer<void>();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(
-            allIds: const ['v1'],
-            videosIds: const ['v1'],
-          ),
-          mediaDisplay: display,
-          playback: playback,
-          browseLayer2Dwell: Duration.zero,
+  testWidgets('W-17.5b-cancel-order page Retry awaits cancel before load', (
+    tester,
+  ) async {
+    final playback = FakePlaybackRepository();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayGates['v1'] = Completer<void>();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['v1'],
+          videosIds: const ['v1'],
         ),
-      );
-      await _pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
+        mediaDisplay: display,
+        playback: playback,
+        browseLayer2Dwell: Duration.zero,
+      ),
+    );
+    await _pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
 
-      page.debugForcePageFailed();
-      await tester.pump();
-      expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
+    page.debugForcePageFailed();
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
 
-      playback.calls.clear();
-      await tester.tap(find.byKey(const Key('mainBrowseFeedPageRetry')));
-      await _pumpAsyncWork(tester);
+    playback.calls.clear();
+    await tester.tap(find.byKey(const Key('mainBrowseFeedPageRetry')));
+    await _pumpAsyncWork(tester);
 
-      final cancelIdx = playback.calls.indexWhere(
-        (c) => c.startsWith('cancelInFlightPrepare:'),
-      );
+    final cancelIdx = playback.calls.indexWhere(
+      (c) => c.startsWith('cancelInFlightPrepare:'),
+    );
+    expect(
+      cancelIdx,
+      isNonNegative,
+      reason: 'fail Retry must cancel stale prepare first',
+    );
+    final loadIdx = playback.calls.indexWhere((c) => c.startsWith('load:'));
+    if (loadIdx >= 0) {
       expect(
         cancelIdx,
-        isNonNegative,
-        reason: 'fail Retry must cancel stale prepare first',
+        lessThan(loadIdx),
+        reason: 'Cap16 serial: cancel before same-id load',
       );
-      final loadIdx = playback.calls.indexWhere((c) => c.startsWith('load:'));
-      if (loadIdx >= 0) {
-        expect(
-          cancelIdx,
-          lessThan(loadIdx),
-          reason: 'Cap16 serial: cancel before same-id load',
-        );
-      }
-    },
-  );
+    }
+  });
 
-  testWidgets(
-    'W-17.5b-cancel-order resume-fail awaits cancel before reload',
-    (tester) async {
-      final playback = FakePlaybackRepository();
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.displayGates['v1'] = Completer<void>();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(
-            allIds: const ['v1'],
-            videosIds: const ['v1'],
-          ),
-          mediaDisplay: display,
-          playback: playback,
-          browseLayer2Dwell: Duration.zero,
+  testWidgets('W-17.5b-cancel-order resume-fail awaits cancel before reload', (
+    tester,
+  ) async {
+    final playback = FakePlaybackRepository();
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displayGates['v1'] = Completer<void>();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['v1'],
+          videosIds: const ['v1'],
         ),
-      );
-      await _pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
+        mediaDisplay: display,
+        playback: playback,
+        browseLayer2Dwell: Duration.zero,
+      ),
+    );
+    await _pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final page = tester.state<MediaFeedPageState>(_pageFor(ids[0]));
 
-      page.debugForcePageFailed();
-      await tester.pump();
+    page.debugForcePageFailed();
+    await tester.pump();
 
-      playback.calls.clear();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-      await tester.pump();
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await _pumpAsyncWork(tester);
+    playback.calls.clear();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await _pumpAsyncWork(tester);
 
-      final cancelIdx = playback.calls.indexWhere(
-        (c) => c.startsWith('cancelInFlightPrepare:'),
-      );
-      expect(
-        cancelIdx,
-        isNonNegative,
-        reason: 'resume-fail must cancel stale prepare first',
-      );
-      final loadIdx = playback.calls.indexWhere((c) => c.startsWith('load:'));
-      if (loadIdx >= 0) {
-        expect(cancelIdx, lessThan(loadIdx));
-      }
-    },
-  );
+    final cancelIdx = playback.calls.indexWhere(
+      (c) => c.startsWith('cancelInFlightPrepare:'),
+    );
+    expect(
+      cancelIdx,
+      isNonNegative,
+      reason: 'resume-fail must cancel stale prepare first',
+    );
+    final loadIdx = playback.calls.indexWhere((c) => c.startsWith('load:'));
+    if (loadIdx >= 0) {
+      expect(cancelIdx, lessThan(loadIdx));
+    }
+  });
 }

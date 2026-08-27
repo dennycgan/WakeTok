@@ -138,23 +138,49 @@ void main() {
     });
   });
 
-  group('U-17.4 coverless wait label door', () {
-    test('U-17.4a label shares spinner door (no independent trigger)', () {
-      expect(coverlessWaitShowsLabel(showWaitSpinner: false), isFalse);
-      expect(coverlessWaitShowsLabel(showWaitSpinner: true), isTrue);
+  group('ADR-039 source-switch Layer1 center label', () {
+    test('source-switch and a4 constants are separately named at 150 ms', () {
+      expect(
+        kSourceSwitchLayer1CenterLabelDelay,
+        const Duration(milliseconds: 150),
+      );
+      expect(kDefaultA4SuppressBelow, const Duration(milliseconds: 150));
     });
 
-    test('U-17.4b coverless presentation is loading or no cover', () {
+    test('source-switch label is hidden below band and visible at band', () {
       expect(
-        isCoverlessFeedPresentation(loading: true, hasDisplayableCover: true),
+        shouldShowLayer1CenterLabel(
+          showLoadingSpinner: true,
+          sourceSwitchDelayArmed: true,
+          elapsedSinceArm: const Duration(milliseconds: 149),
+        ),
+        isFalse,
+      );
+      expect(
+        shouldShowLayer1CenterLabel(
+          showLoadingSpinner: true,
+          sourceSwitchDelayArmed: true,
+          elapsedSinceArm: kSourceSwitchLayer1CenterLabelDelay,
+        ),
+        isTrue,
+      );
+    });
+
+    test('ordinary L1 label stays immediate and spinner door stays hard', () {
+      expect(
+        shouldShowLayer1CenterLabel(
+          showLoadingSpinner: true,
+          sourceSwitchDelayArmed: false,
+          elapsedSinceArm: Duration.zero,
+        ),
         isTrue,
       );
       expect(
-        isCoverlessFeedPresentation(loading: false, hasDisplayableCover: false),
-        isTrue,
-      );
-      expect(
-        isCoverlessFeedPresentation(loading: false, hasDisplayableCover: true),
+        shouldShowLayer1CenterLabel(
+          showLoadingSpinner: false,
+          sourceSwitchDelayArmed: false,
+          elapsedSinceArm: kSourceSwitchLayer1CenterLabelDelay,
+        ),
         isFalse,
       );
     });

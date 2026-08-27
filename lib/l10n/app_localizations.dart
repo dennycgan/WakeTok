@@ -597,25 +597,19 @@ abstract class AppLocalizations {
   /// **'Could not load. Allow wireless data, then retry.'**
   String get mainBrowseFeedNetworkFailed;
 
-  /// Visible + VoiceOver on Layer 1 miss / coverless page with no still or poster yet (Cap 15.3; Cap 17.4 visible)
+  /// Visible center copy + immediate VoiceOver on Layer 1 miss; center copy has a source-switch-only 150ms delay (ADR-039)
   ///
   /// In en, this message translates to:
   /// **'Loading item'**
   String get mainBrowseFeedLayer1Loading;
 
-  /// Visible corner copy while coverless Layer 2 / prepare is in flight (Cap 17.4 debt 400). Not Auto-play Waiting for Media.
-  ///
-  /// In en, this message translates to:
-  /// **'Loading…'**
-  String get mainBrowseFeedLayer2Waiting;
-
-  /// Short Cap 17.5b copy left of the corner gold spinner after 3s L2 wait (cover optional; may coexist with center Layer2Waiting when coverless; mutex vs Layer1Loading)
+  /// Short copy left of the corner gold spinner after 3s L2 wait (cover optional; ADR-039 removed center Layer2Waiting)
   ///
   /// In en, this message translates to:
   /// **'Still loading'**
   String get mainBrowseFeedLayer2Reassure;
 
-  /// Semantics for Layer 3 spinner over Layer 1 while Layer 2 is in flight
+  /// Semantics for the Layer 2/full-quality corner spinner, with or without a visible Layer 1 cover
   ///
   /// In en, this message translates to:
   /// **'Loading full quality'**

@@ -11,6 +11,15 @@
 /// owner D1=A; Cap 17.3 lock T=150 ms). Not a claim that every a4 is &lt;200 ms.
 const Duration kDefaultA4SuppressBelow = Duration(milliseconds: 150);
 
+/// ADR-039 source-switch-only Layer-1 visible center-label delay.
+///
+/// This starts at 150 ms to hide one-frame source remount copy while restoring
+/// feedback quickly on a sustained wait. It is intentionally independent from
+/// [kDefaultA4SuppressBelow], whose value came from the a4 wait distribution.
+const Duration kSourceSwitchLayer1CenterLabelDelay = Duration(
+  milliseconds: 150,
+);
+
 /// Track A path classes (Cap 17.1). a5/a6 fold into the a4 band policy.
 enum WaitChromePathClass {
   /// Layer 1 miss — immediate corner chrome (ADR-031 Q2).
@@ -26,11 +35,7 @@ enum WaitChromePathClass {
   a4L2ReadyEvict,
 }
 
-enum WaitChromeKind {
-  none,
-  cornerSpinnerImmediate,
-  cornerSpinnerAfterBand,
-}
+enum WaitChromeKind { none, cornerSpinnerImmediate, cornerSpinnerAfterBand }
 
 /// Resolves whether Main Browse should show Layer-2 wait corner chrome.
 ///
@@ -90,27 +95,24 @@ bool waitChromeShowsSpinner(WaitChromeKind kind) {
       kind == WaitChromeKind.cornerSpinnerAfterBand;
 }
 
-/// Cap 17.4: coverless wait **label** shares the spinner door.
+/// ADR-039: visible Layer-1 center copy is immediate except on the first
+/// current page mounted by an All / Photos / Videos source switch.
 ///
-/// Never trigger label from coverless/in-flight alone — callers must pass the
-/// same [showWaitSpinner] already used for corner chrome (incl. still a2 G,
-/// video a2 immediate, a4 band, and a4+`_loading` B miss suppress).
-bool coverlessWaitShowsLabel({required bool showWaitSpinner}) {
-  return showWaitSpinner;
-}
-
-/// True when the page has no displayable still/poster (debt 400 band).
-///
-/// Live prepare (`_livePreparing`) is out of Cap 17.4 scope — callers must
-/// not treat Live-only chrome as coverless Layer-2 waiting.
-bool isCoverlessFeedPresentation({
-  required bool loading,
-  required bool hasDisplayableCover,
+/// The corner spinner and its semantics remain immediate; this helper controls
+/// visible center copy only.
+bool shouldShowLayer1CenterLabel({
+  required bool showLoadingSpinner,
+  required bool sourceSwitchDelayArmed,
+  required Duration elapsedSinceArm,
+  Duration suppressBelow = kSourceSwitchLayer1CenterLabelDelay,
 }) {
-  if (loading) {
+  if (!showLoadingSpinner) {
+    return false;
+  }
+  if (!sourceSwitchDelayArmed) {
     return true;
   }
-  return !hasDisplayableCover;
+  return elapsedSinceArm >= suppressBelow;
 }
 
 /// Cap 17.5b: corner reassure copy after this dwell of Layer-2 wait chrome.
@@ -122,9 +124,9 @@ const Duration kLayer2CornerReassureAfter = Duration(seconds: 3);
 /// Cap 17.5b Package B: whether to paint short copy left of the gold spinner.
 ///
 /// Pure incremental: may show with Layer 1 / poster present (corner only).
-/// Center [Layer2Waiting] stays coverless-only (separate door). LIVE badge
-/// may coexist: chrome stacks LIVE **above** the spinner row so horizontal
-/// width stays within Overlay [trailingInset] without soft-degrade hide.
+/// LIVE badge may coexist: chrome stacks LIVE **above** the spinner row so
+/// horizontal width stays within Overlay [trailingInset] without soft-degrade
+/// hide. ADR-039 removed the separate center Layer2Waiting copy.
 ///
 /// Trigger AND: current ∧ L2 in-flight ∧ wait spinner visible ∧ ¬a4 ∧
 /// ¬L1-miss page ∧ ¬fail ∧ elapsed ≥ [kLayer2CornerReassureAfter].

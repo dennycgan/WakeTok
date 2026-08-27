@@ -85,7 +85,6 @@
   "mainBrowseFeedMediaFailed": "无法显示此项目。",
   "mainBrowseFeedNetworkFailed": "无法加载。请允许无线数据后重试。",
   "mainBrowseFeedLayer1Loading": "正在加载此项",
-  "mainBrowseFeedLayer2Waiting": "加载中…",
   "mainBrowseFeedLayer2Reassure": "仍在加载",
   "mainBrowseFeedLayer3Loading": "正在加载完整画质",
   "mainBrowseFeedLiveLoading": "正在加载实况照片",

@@ -40,7 +40,6 @@ const double kCoverlessCenterTopChromeBody = 8 + 8 + 20 + 16;
 const double kCoverlessCenterOverlayReserve =
     MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount + 12;
 
-
 /// True when a vertical feed scroll is past the trailing edge (next-item
 /// direction). Used for Endless last-page round advance.
 ///
@@ -79,6 +78,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   List<String> _ids = const [];
   bool _advancingRound = false;
   AppLifecycleState? _lastLifecycle;
+  String? _lastDataSourceId;
 
   final FeedActivationCoordinator _activation = FeedActivationCoordinator();
 
@@ -140,9 +140,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
         (notification is ScrollUpdateNotification &&
             (page - feedIndex).abs() < _pvHandoffScrollEpsilon)) {
       if ((page - feedIndex).abs() < _pvHandoffScrollEpsilon) {
-        ref.read(pvTransitionGuardProvider.notifier).maybeDisarmOnSettled(
-          feedIndex,
-        );
+        ref
+            .read(pvTransitionGuardProvider.notifier)
+            .maybeDisarmOnSettled(feedIndex);
       }
       return false;
     }
@@ -160,14 +160,16 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     }
     final displayGen = _activation.currentDisplayGate.generation;
     unawaited(
-      ref.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: feedIndex,
-        targetFeedIndex: targetIndex,
-        sourceAssetId: _ids[feedIndex],
-        targetAssetId: _ids[targetIndex],
-        displayGeneration: displayGen,
-        displayGate: _activation.currentDisplayGate,
-      ),
+      ref
+          .read(pvTransitionGuardProvider.notifier)
+          .tryArmOnScroll(
+            currentFeedIndex: feedIndex,
+            targetFeedIndex: targetIndex,
+            sourceAssetId: _ids[feedIndex],
+            targetAssetId: _ids[targetIndex],
+            displayGeneration: displayGen,
+            displayGate: _activation.currentDisplayGate,
+          ),
     );
     return false;
   }
@@ -209,10 +211,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       return;
     }
     _handlePvTransitionScroll(
-      ScrollEndNotification(
-        metrics: controller.position,
-        context: context,
-      ),
+      ScrollEndNotification(metrics: controller.position, context: context),
     );
   }
 
@@ -494,16 +493,17 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     ref.listen(mainBrowseDestinationProvider, (previous, next) {
       if (previous == MainBrowseDestination.browse &&
           next != MainBrowseDestination.browse) {
-        unawaited(ref.read(pvTransitionGuardProvider.notifier).disarm(
-          reason: 'leave-browse',
-        ));
+        unawaited(
+          ref
+              .read(pvTransitionGuardProvider.notifier)
+              .disarm(reason: 'leave-browse'),
+        );
       }
     });
     final browseActive = destination == MainBrowseDestination.browse;
     if (browseActive && !_browseWasActive) {
       _browseResumeLatch = true;
-      _generationWhenLatchArmed =
-          _activation.currentDisplayGate.generation;
+      _generationWhenLatchArmed = _activation.currentDisplayGate.generation;
     }
     _browseWasActive = browseActive;
 
@@ -576,6 +576,10 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
         data: (view) {
           final snapshot = view.session.snapshot;
           final ids = view.orderedAssetIds;
+          final previousDataSourceId = _lastDataSourceId;
+          final delayInitialLayer1CenterLabel =
+              previousDataSourceId != null && previousDataSourceId != source.id;
+          _lastDataSourceId = source.id;
           _ids = ids;
           _notePreheatInputs(
             browseActive: browseActive,
@@ -670,7 +674,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                       assetIdentifier: ids[index],
                       feedIndex: index,
                       sourceKind: source.kind,
-                      listTimeAvailability: snapshot.availabilityFor(ids[index]),
+                      listTimeAvailability: snapshot.availabilityFor(
+                        ids[index],
+                      ),
                       isCurrent: isCurrent,
                       isPreheatNeighbor: isPreheatNeighbor,
                       liveHostSerial: liveHostSerial,
@@ -680,6 +686,8 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                       assignedDisplayGeneration: isCurrent
                           ? _activeDisplayGeneration
                           : null,
+                      delayInitialLayer1CenterLabel:
+                          isCurrent && delayInitialLayer1CenterLabel,
                       onCurrentLayer2MediaReady: isCurrent
                           ? _onCurrentLayer2MediaReady
                           : null,
@@ -773,13 +781,12 @@ class _BrowseRetryButton extends StatelessWidget {
         foregroundColor: tokens.accent,
         backgroundColor: tokens.onMedia.withValues(alpha: _fillOpacity),
         disabledForegroundColor: tokens.accent.withValues(alpha: 0.5),
-        disabledBackgroundColor:
-            tokens.onMedia.withValues(alpha: _fillOpacity * 0.5),
+        disabledBackgroundColor: tokens.onMedia.withValues(
+          alpha: _fillOpacity * 0.5,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         minimumSize: const Size(88, 40),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       child: Text(
@@ -818,6 +825,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.liveHostSerial,
     this.currentDisplayGate,
     this.assignedDisplayGeneration,
+    this.delayInitialLayer1CenterLabel = false,
     this.onCurrentLayer2MediaReady,
   });
 
@@ -836,6 +844,10 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   /// When current: feed-owned gate already begun in [_activateCurrentItem].
   final FeedMediaRequestGate? currentDisplayGate;
   final int? assignedDisplayGeneration;
+
+  /// ADR-039: only the first current page mounted after a source switch delays
+  /// visible Layer-1 center copy. Corner spinner + semantics stay immediate.
+  final bool delayInitialLayer1CenterLabel;
 
   /// Current page only. Parent reads metadata generation at callback time.
   final void Function(String assetId)? onCurrentLayer2MediaReady;
@@ -859,29 +871,38 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _loading = true;
   bool _surfaceReady = false;
   bool _layer2InFlight = false;
+
   /// Which display-gate generation last armed [_layer2InFlight].
   /// Abandon clears only when this still matches — never clobber a newer arm.
   int? _layer2InFlightGeneration;
+
   /// Cap 17.3: path-class for wait chrome (set before / at arm).
   WaitChromePathClass _layer2WaitPath = WaitChromePathClass.a2WaitToPlayable;
   DateTime? _layer2InFlightArmedAt;
   Timer? _a4ChromeRevealTimer;
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
+
   /// Cap 15.11b: hide video slot (Opacity 0) until first frame; no Stack reorder.
   /// Armed only when the video child goes null→non-null (A→B relay), never on
   /// L2-complete while guard defer / [_layer2InFlight] keep the slot empty.
   bool _holdPosterUntilFirstFrame = false;
   int? _holdPoolEpoch;
   Timer? _holdPosterTimeout;
+
   /// Tracks whether build last emitted a non-null video child (slot mounted).
   bool _videoSlotMounted = false;
   StreamSubscription<PlaybackSurfaceReadyForDisplayEvent>? _readyForDisplaySub;
+
   /// Cap 16.4: [Timer] from became-current. Cancel on leave / dispose.
   Timer? _layer2DwellTimer;
   Completer<void>? _layer2DwellCompleter;
+
   /// Cap 17.5b: reveal corner reassure after [kLayer2CornerReassureAfter].
   Timer? _layer2ReassureTimer;
+  Timer? _layer1CenterLabelRevealTimer;
+  DateTime? _layer1CenterLabelDelayArmedAt;
+  int? _layer1CenterLabelDelayGeneration;
   AppLifecycleState? _lastLifecycle;
 
   /// Test seam: paint LIVE badge on coverless corner chrome (rare combo).
@@ -907,6 +928,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @visibleForTesting
   bool get debugLayer2InFlight => _layer2InFlight;
+
+  @visibleForTesting
+  bool get debugLoading => _loading;
 
   @visibleForTesting
   int? get debugLayer2InFlightGeneration => _layer2InFlightGeneration;
@@ -1056,9 +1080,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _clearLayer2InFlightUnconditional();
       _layer2Failed = false;
       _layer2FailureReason = FeedFailureReason.generic;
-      _media = FeedPageMedia.failed(
-        reason: FeedFailureReason.generic,
-      );
+      _media = FeedPageMedia.failed(reason: FeedFailureReason.generic);
     }
 
     if (mounted) {
@@ -1133,10 +1155,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   /// Arm Layer-2-in-flight for [generation] (canMountVideo / spinner owner).
-  void _armLayer2InFlight(
-    int generation, {
-    WaitChromePathClass? path,
-  }) {
+  void _armLayer2InFlight(int generation, {WaitChromePathClass? path}) {
     if (path != null) {
       _layer2WaitPath = path;
     }
@@ -1242,8 +1261,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// after arming — does not clear a newer generation's in-flight arm.
   /// Also clears [_loading] (same early-return structural pair).
   void _abandonLayer2Attempt(int generation, {required String reason}) {
-    if (_layer2InFlightGeneration != generation) {      return;
-    }    if (!mounted) {
+    if (_layer2InFlightGeneration != generation) {
+      return;
+    }
+    if (!mounted) {
       _clearLayer2InFlightUnconditional();
       _loading = false;
       return;
@@ -1267,11 +1288,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// suppress so the corner spinner does not dip between phases.
   /// Play-only ([_playLiveMotionOnce]) must never set this flag.
   bool _livePreparing = false;
+
   /// Cap 17.3: wall clock when [_livePreparing] became true (F1 suppress-T).
   DateTime? _livePreparingArmedAt;
   Timer? _livePreparingChromeRevealTimer;
+
   /// ADR-037: skip F1 &lt;T suppress for this prepare arm (L2 chrome latched).
   bool _livePreparingSkipSuppressBelowT = false;
+
   /// F1 reveal latched by Timer (fake-async safe; not DateTime alone).
   bool _livePreparingChromeRevealed = false;
 
@@ -1359,18 +1383,18 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   MediaDisplayRepository? _displayRepo;
   PvTransitionGuardNotifier? _pvGuardNotifier;
 
-
   PvHandoffPageSnapshot _pvHandoffSnapshot() {
     final media = _media;
     final poster = media?.display;
     final isVideoWithPoster =
         media?.kind == FeedPageMediaKind.video && poster != null;
     final guard = ref.read(pvTransitionGuardProvider);
-    final deferVideoForHandoff = widget.isCurrent &&
-        guard.isCovering(widget.assetIdentifier);
+    final deferVideoForHandoff =
+        widget.isCurrent && guard.isCovering(widget.assetIdentifier);
     return PvHandoffPageSnapshot(
       isVideoWithPoster: isVideoWithPoster,
-      isCurrentSurfaceReady: widget.isCurrent &&
+      isCurrentSurfaceReady:
+          widget.isCurrent &&
           isVideoWithPoster &&
           _surfaceReady &&
           !deferVideoForHandoff,
@@ -1391,15 +1415,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _holdPosterTimeout = null;
     if (!_holdPosterUntilFirstFrame && _holdPoolEpoch == null) {
       return;
-    }    _holdPosterUntilFirstFrame = false;
+    }
+    _holdPosterUntilFirstFrame = false;
     _holdPoolEpoch = null;
     // Cap 15.11b: unmute only when THIS page's first-frame hold ends — not on
     // leave/unmount (that would clear a handoff suppress armed for the target).
     if (reason == 'ready-for-display' || reason == 'timeout') {
       unawaited(
-        ref.read(pvTransitionGuardProvider.notifier).releaseTransitionAudio(
-          reason: 'poster-hold-$reason',
-        ),
+        ref
+            .read(pvTransitionGuardProvider.notifier)
+            .releaseTransitionAudio(reason: 'poster-hold-$reason'),
       );
     }
   }
@@ -1419,18 +1444,21 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     _holdPosterUntilFirstFrame = true;
-    _holdPoolEpoch = null;    _holdPosterTimeout?.cancel();
+    _holdPoolEpoch = null;
+    _holdPosterTimeout?.cancel();
     _holdPosterTimeout = Timer(const Duration(seconds: 2), () {
       if (!mounted || !_holdPosterUntilFirstFrame) {
         return;
-      }      setState(() => _clearPosterHold(reason: 'timeout'));
+      }
+      setState(() => _clearPosterHold(reason: 'timeout'));
     });
     unawaited(_fillPosterHoldEpoch());
   }
 
   Future<void> _fillPosterHoldEpoch() async {
-    final epoch =
-        await ref.read(playbackRepositoryProvider).getPlaybackPoolEpoch();
+    final epoch = await ref
+        .read(playbackRepositoryProvider)
+        .getPlaybackPoolEpoch();
     if (!mounted || !_holdPosterUntilFirstFrame) {
       return;
     }
@@ -1439,23 +1467,27 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
     setState(() {
       _holdPoolEpoch = epoch;
-    });  }
+    });
+  }
 
   void _onSurfaceReadyForDisplay(PlaybackSurfaceReadyForDisplayEvent event) {
     if (!_holdPosterUntilFirstFrame) {
-      if (event.assetIdentifier == widget.assetIdentifier) {
-      }
+      if (event.assetIdentifier == widget.assetIdentifier) {}
       return;
     }
-    if (event.assetIdentifier != widget.assetIdentifier) {      return;
+    if (event.assetIdentifier != widget.assetIdentifier) {
+      return;
     }
-    if (event.feedIndex != widget.feedIndex) {      return;
+    if (event.feedIndex != widget.feedIndex) {
+      return;
     }
     // Epoch must be captured before matching — never accept with pending null.
     final holdEpoch = _holdPoolEpoch;
-    if (holdEpoch == null) {      return;
+    if (holdEpoch == null) {
+      return;
     }
-    if (event.clearEpoch != holdEpoch) {      return;
+    if (event.clearEpoch != holdEpoch) {
+      return;
     }
     if (!mounted) {
       return;
@@ -1463,10 +1495,55 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() => _clearPosterHold(reason: 'ready-for-display'));
   }
 
+  void _armInitialLayer1CenterLabelDelay() {
+    if (!widget.delayInitialLayer1CenterLabel || !widget.isCurrent) {
+      return;
+    }
+    _layer1CenterLabelDelayArmedAt = DateTime.now();
+    _layer1CenterLabelDelayGeneration = widget.assignedDisplayGeneration;
+    _layer1CenterLabelRevealTimer?.cancel();
+    _layer1CenterLabelRevealTimer = Timer(
+      kSourceSwitchLayer1CenterLabelDelay,
+      () {
+        _layer1CenterLabelRevealTimer = null;
+        if (!mounted ||
+            !widget.isCurrent ||
+            widget.assignedDisplayGeneration !=
+                _layer1CenterLabelDelayGeneration) {
+          return;
+        }
+        _layer1CenterLabelDelayArmedAt = null;
+        _layer1CenterLabelDelayGeneration = null;
+        if (_loading) {
+          setState(() {});
+        }
+      },
+    );
+  }
+
+  void _cancelInitialLayer1CenterLabelDelay({required bool revealImmediately}) {
+    _layer1CenterLabelRevealTimer?.cancel();
+    _layer1CenterLabelRevealTimer = null;
+    _layer1CenterLabelDelayGeneration = null;
+    if (revealImmediately) {
+      _layer1CenterLabelDelayArmedAt = null;
+    }
+  }
+
+  Duration get _initialLayer1CenterLabelDelayElapsed {
+    final armedAt = _layer1CenterLabelDelayArmedAt;
+    if (armedAt == null) {
+      return kSourceSwitchLayer1CenterLabelDelay;
+    }
+    return DateTime.now().difference(armedAt);
+  }
+
   @override
   void initState() {
-    super.initState();    _lastLifecycle = WidgetsBinding.instance.lifecycleState;
+    super.initState();
+    _lastLifecycle = WidgetsBinding.instance.lifecycleState;
     WidgetsBinding.instance.addObserver(this);
+    _armInitialLayer1CenterLabelDelay();
     if (widget.isCurrent) {
       _armLayer2DwellTimer();
     }
@@ -1541,15 +1618,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
-    if (!oldWidget.isCurrent && widget.isCurrent) {      _armLayer2DwellTimer();
+    if (!oldWidget.isCurrent && widget.isCurrent) {
+      _armLayer2DwellTimer();
       final gen = widget.assignedDisplayGeneration;
       if (gen != null) {
         _holdVideoSurfaceForL2ReloadIfNeeded(gen);
       }
     }
-    if (leftCurrent) {    }
+    if (leftCurrent) {}
     if (oldWidget.isCurrent != widget.isCurrent ||
-        oldWidget.isPreheatNeighbor != widget.isPreheatNeighbor) {    }
+        oldWidget.isPreheatNeighbor != widget.isPreheatNeighbor) {}
     if (oldWidget.isPreheatNeighbor && !widget.isPreheatNeighbor) {
       if (!widget.isCurrent) {
         _localGate.begin();
@@ -1562,6 +1640,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
     // pause because _startLoad runs and skips the isCurrent-only branch.
     if (leftCurrent) {
+      _cancelInitialLayer1CenterLabelDelay(revealImmediately: true);
       final playback = ref.read(playbackRepositoryProvider);
       _playbackRepo = playback;
       unawaited(playback.pause());
@@ -1575,8 +1654,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Cap 15.7: keep video+poster kind so [_StillPage] stays in the
       // same Stack slot. Do not flip to still (destroys Image State) or
       // pendingVideo when a poster already exists.
-      if (_media?.kind == FeedPageMediaKind.video &&
-          _media?.display == null) {
+      if (_media?.kind == FeedPageMediaKind.video && _media?.display == null) {
         setState(() {
           _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
           _surfaceReady = false;
@@ -1677,6 +1755,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _readyForDisplaySub?.cancel();
     _readyForDisplaySub = null;
     _holdPosterTimeout?.cancel();
+    _cancelInitialLayer1CenterLabelDelay(revealImmediately: false);
     _a4ChromeRevealTimer?.cancel();
     _a4ChromeRevealTimer = null;
     _cancelLayer2ReassureTimer();
@@ -2100,7 +2179,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _previewReloadInFlight = false;
       return;
     }
-    final assetId = widget.assetIdentifier;    try {
+    final assetId = widget.assetIdentifier;
+    try {
       final preview = await ref
           .read(mediaDisplayRepositoryProvider)
           .requestPreview(assetId);
@@ -2189,7 +2269,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     await pending.future;
   }
 
-  Future<void> _retryLayer2Only({bool bypassDwell = false}) async {    final FeedMediaRequestGate gate;
+  Future<void> _retryLayer2Only({bool bypassDwell = false}) async {
+    final FeedMediaRequestGate gate;
     final int generation;
     if (widget.isCurrent) {
       final shared = widget.currentDisplayGate;
@@ -2268,7 +2349,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // still-kind [layer1]. Keep the leaving page as video; skip the write.
     if (_media?.kind == FeedPageMediaKind.video &&
         _media?.display != null &&
-        !widget.isCurrent) {      return;
+        !widget.isCurrent) {
+      return;
     }
     final sameStill =
         _media?.display?.assetIdentifier == display.assetIdentifier &&
@@ -2276,7 +2358,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         !_loading;
     if (sameStill && (!layer2Follows || _layer2InFlight)) {
       return;
-    }    setState(() {
+    }
+    setState(() {
       _media = layer1;
       _loading = false;
       if (layer2Follows && layer2Generation != null) {
@@ -2332,12 +2415,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   Future<void> _startLoad({
     bool bypassDwell = false,
+
     /// When true, skip the Cap 15.12 device-local fast path. Used only to
     /// prevent re-entering the fast path if fallback were routed through
     /// [_startLoad]; production fallback calls [_runFullLayer1BecomeCurrentPath]
     /// directly instead. No production caller sets this today.
     bool bypassDeviceLocalFastPath = false,
-  }) async {    final startedOffCurrent = !widget.isCurrent;
+  }) async {
+    final startedOffCurrent = !widget.isCurrent;
     FeedMediaRequestGate? gate;
     int? generation;
     if (!startedOffCurrent) {
@@ -2381,8 +2466,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Cap 17.3: tag a4 before cover-on-disk await so a remount still on
       // [_loading] does not paint ADR-031 miss gold during the gap.
       if (hadSessionToken) {
-        if (_loading &&
-            _layer2WaitPath != WaitChromePathClass.a4L2ReadyEvict) {
+        if (_loading && _layer2WaitPath != WaitChromePathClass.a4L2ReadyEvict) {
           setState(() {
             _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
           });
@@ -2446,7 +2530,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
     }
 
-    if (startedOffCurrent) {      setState(() {
+    if (startedOffCurrent) {
+      setState(() {
         _clearLayer2InFlightUnconditional();
         _layer2Failed = false;
         _layer2FailureReason = null;
@@ -2464,9 +2549,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _loading = false;
         }
       });
-      if (!widget.isPreheatNeighbor) {        return;
+      if (!widget.isPreheatNeighbor) {
+        return;
       }
-      if (_canJoinInFlightLayer1()) {        final layer1 = await _layer1Future;
+      if (_canJoinInFlightLayer1()) {
+        final layer1 = await _layer1Future;
         if (!mounted || !_localGate.isCurrent(_layer1LocalGen!)) {
           return;
         }
@@ -2478,7 +2565,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
         _applyLayer1StillIdempotent(layer1, layer2Follows: false);
         return;
-      }      final localGen = _localGate.begin();
+      }
+      final localGen = _localGate.begin();
       _layer1LocalGen = localGen;
       final displayRepo = ref.read(mediaDisplayRepositoryProvider);
       _displayRepo = displayRepo;
@@ -2507,7 +2595,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         widget.isCurrent &&
         _media?.display != null &&
         _media!.display!.assetIdentifier == widget.assetIdentifier;
-    if (reuseLayer1) {      await Future<void>.value();
+    if (reuseLayer1) {
+      await Future<void>.value();
       if (!mounted || !widget.isCurrent) {
         return;
       }
@@ -2523,7 +2612,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
 
-    if (_canJoinInFlightLayer1()) {      final joinGate = gate!;
+    if (_canJoinInFlightLayer1()) {
+      final joinGate = gate!;
       final joinGeneration = generation!;
       if (_media?.display == null) {
         setState(() {
@@ -2550,7 +2640,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         bypassDwell: bypassDwell,
       );
       return;
-    }    // Current full reload: await host cancel so a new Live request cannot
+    } // Current full reload: await host cancel so a new Live request cannot
     // race leave (F4 / ADR-006). Neighbour reuseLayer1 skips this unless
     // Live flags leaked (above). Leave already queued cancel; maybeBegin
     // shares LiveHostOpSerial with that cancel.
@@ -2844,10 +2934,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required int generation,
     required FeedPageMedia? layer1,
     required FeedPageMedia? layer2,
+
     /// Cap 15.14b/c: L2-ready + DEVICE_LOCAL arm poster-hold at L2 apply —
     /// not first-visit full L1→L2 (15.11b mount-time arm).
     bool armPosterHoldOnL2Apply = false,
-  }) async {    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+  }) async {
+    if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
       // A: drop — this attempt no longer owns the page; clear only if owner.      _abandonLayer2Attempt(generation, reason: 'l2-result-stale');
       return;
     }
@@ -2935,23 +3027,27 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       case FeedPageMediaKind.still:
         if (layer2.displayLayer == FeedDisplayLayer.full &&
             layer2.display != null) {
-          ref.read(browseL2ReadySessionProvider.notifier).record(
-            FeedL2ReadyEntry(
-              assetIdentifier: id,
-              kind: FeedL2ReadyKind.stillFull,
-              cover: layer2.display,
-            ),
-          );
+          ref
+              .read(browseL2ReadySessionProvider.notifier)
+              .record(
+                FeedL2ReadyEntry(
+                  assetIdentifier: id,
+                  kind: FeedL2ReadyKind.stillFull,
+                  cover: layer2.display,
+                ),
+              );
         }
       case FeedPageMediaKind.video:
         final poster = layer1?.display ?? _media?.display;
-        ref.read(browseL2ReadySessionProvider.notifier).record(
-          FeedL2ReadyEntry(
-            assetIdentifier: id,
-            kind: FeedL2ReadyKind.video,
-            cover: poster,
-          ),
-        );
+        ref
+            .read(browseL2ReadySessionProvider.notifier)
+            .record(
+              FeedL2ReadyEntry(
+                assetIdentifier: id,
+                kind: FeedL2ReadyKind.video,
+                cover: poster,
+              ),
+            );
       case FeedPageMediaKind.pendingVideo:
       case FeedPageMediaKind.failed:
         break;
@@ -2972,6 +3068,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (kind != FeedPageMediaKind.video &&
         kind != FeedPageMediaKind.pendingVideo) {
       return;
+    }
+    // ADR-039: normalize the coverless re-enter page before in-flight arm.
+    // `_startLoad` yields in lookupIfCoverOnDisk; arming first while
+    // `_loading == false` exposed a transient center Layer2Waiting state.
+    if (_media?.display == null) {
+      _loading = true;
     }
     _armLayer2InFlight(generation);
     _surfaceReady = false;
@@ -3018,8 +3120,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     if (l2Ready.kind == FeedL2ReadyKind.stillFull && l2Ready.cover != null) {
-      final liveStill =
-          l2Ready.cover!.mediaKind == PlaybackMediaKind.livePhoto;
+      final liveStill = l2Ready.cover!.mediaKind == PlaybackMediaKind.livePhoto;
       setState(() {
         _layer2Failed = false;
         _layer2FailureReason = null;
@@ -3098,7 +3199,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
       final wasCovering = prev?.isCovering(widget.assetIdentifier) ?? false;
       final nowCovering = next.isCovering(widget.assetIdentifier);
-      if (!wasCovering && nowCovering && widget.isCurrent) {        if (_surfaceReady) {
+      if (!wasCovering && nowCovering && widget.isCurrent) {
+        if (_surfaceReady) {
           setState(() => _surfaceReady = false);
         }
       }
@@ -3112,15 +3214,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // no miss gold. E: peek (!isCurrent) — never miss gold (retained, not
       // Decision-2-promoted). After-band Layer3 owns in-flight chrome once
       // media exists.
-      // Cap 17.4: visible Layer1 copy shares the same door as the spinner.
+      // ADR-039: source-switch remounts delay visible center copy only.
+      // Corner spinner + VoiceOver semantics remain immediate.
       final a4Loading = _layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict;
       final showLoadingSpinner = widget.isCurrent && !a4Loading;
-      final coverless = isCoverlessFeedPresentation(
-        loading: true,
-        hasDisplayableCover: false,
+      final showLayer1CenterLabel = shouldShowLayer1CenterLabel(
+        showLoadingSpinner: showLoadingSpinner,
+        sourceSwitchDelayArmed: _layer1CenterLabelDelayArmedAt != null,
+        elapsedSinceArm: _initialLayer1CenterLabelDelayElapsed,
       );
-      final showCoverlessLabel = coverless &&
-          coverlessWaitShowsLabel(showWaitSpinner: showLoadingSpinner);
       return ColoredBox(
         key: const Key('mainBrowseFeedPageLoading'),
         color: tokens.feedBackground,
@@ -3137,7 +3239,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   : null,
             ),
             _coverlessCenterStatus(
-              showWaitLabel: showCoverlessLabel,
+              showWaitLabel: showLayer1CenterLabel,
               waitLabel: l10n.mainBrowseFeedLayer1Loading,
               showFailed: false,
               l10n: l10n,
@@ -3154,28 +3256,21 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     final pvGuard = ref.watch(pvTransitionGuardProvider);
-    final deferVideoForHandoff = widget.isCurrent &&
-        pvGuard.isCovering(widget.assetIdentifier);
+    final deferVideoForHandoff =
+        widget.isCurrent && pvGuard.isCovering(widget.assetIdentifier);
 
-    // Cap 17.4: one wait-chrome evaluation per build; spinner + center copy
-    // (and failed slot) only read these locals.
+    // One wait-chrome evaluation per build. ADR-039 removed the separate
+    // coverless center Layer2Waiting copy; corner feedback remains.
     final showLayer2WaitSpinner = _evaluateShowLayer2WaitChrome();
     if (showLayer2WaitSpinner) {
       // ADR-037: latch real paint, not wall-clock ≥ T alone.
       _layer2WaitChromeLatched = true;
     }
-    final hasDisplayableCover = media.display != null;
-    final coverless = isCoverlessFeedPresentation(
-      loading: false,
-      hasDisplayableCover: hasDisplayableCover,
-    );
-    final showCoverlessLabel = coverless &&
-        coverlessWaitShowsLabel(showWaitSpinner: showLayer2WaitSpinner);
     final showLayer2FailedSlot =
         widget.isCurrent && _layer2Failed && !_layer2InFlight;
-    final showCenterWaitLabel = showCoverlessLabel && !showLayer2FailedSlot;
     // LIVE may coexist with reassure: badge stacks above the spinner row.
-    final liveBadgeVisible = debugForceLiveBadgeVisible ||
+    final liveBadgeVisible =
+        debugForceLiveBadgeVisible ||
         (media.kind == FeedPageMediaKind.still &&
             media.display?.mediaKind == PlaybackMediaKind.livePhoto);
     final showCornerReassure = shouldShowLayer2CornerReassure(
@@ -3187,16 +3282,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       elapsedInFlight: _inFlightElapsed,
       waitSpinnerVisible: showLayer2WaitSpinner,
     );
-    final cornerReassureLabel =
-        showCornerReassure ? l10n.mainBrowseFeedLayer2Reassure : null;
-    final coverlessLiveBadgeLabel =
-        liveBadgeVisible ? l10n.mainBrowseLiveBadge : null;
+    final cornerReassureLabel = showCornerReassure
+        ? l10n.mainBrowseFeedLayer2Reassure
+        : null;
+    final coverlessLiveBadgeLabel = liveBadgeVisible
+        ? l10n.mainBrowseLiveBadge
+        : null;
 
     // Cap 15.14 / 4A: still + video poster share one asset-stable key so
     // STILL→VIDEO promote can reuse the Image Element (path must not be in key).
-    final coverKey = ValueKey<String>(
-      'feedCover_${widget.assetIdentifier}',
-    );
+    final coverKey = ValueKey<String>('feedCover_${widget.assetIdentifier}');
     return switch (media.kind) {
       FeedPageMediaKind.still => _mediaStack(
         still: _StillPage(
@@ -3205,7 +3300,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           liveLabel: l10n.mainBrowseLiveBadge,
           liveLoadLabel: l10n.mainBrowseFeedLiveLoading,
           layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-          showLoadSpinner: widget.isCurrent &&
+          showLoadSpinner:
+              widget.isCurrent &&
               (showLayer2WaitSpinner || _showLiveLoadSpinner),
           reassureLabel: cornerReassureLabel,
           onPreviewFileBroken: _onPreviewFileBroken,
@@ -3230,7 +3326,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         l10n: l10n,
         tokens: tokens,
         showLayer2WaitSpinner: showLayer2WaitSpinner,
-        showCenterWaitLabel: showCenterWaitLabel,
         showLayer2FailedSlot: showLayer2FailedSlot,
         cornerReassureLabel: cornerReassureLabel,
         coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
@@ -3250,11 +3345,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   reassureLabel: cornerReassureLabel,
                   rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
                   spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
-                  semanticsLabel: l10n.mainBrowseFeedLayer2Waiting,
+                  semanticsLabel: l10n.mainBrowseFeedLayer3Loading,
                 ),
               _coverlessCenterStatus(
-                showWaitLabel: showCenterWaitLabel,
-                waitLabel: l10n.mainBrowseFeedLayer2Waiting,
+                showWaitLabel: false,
                 showFailed: showLayer2FailedSlot,
                 l10n: l10n,
                 tokens: tokens,
@@ -3285,13 +3379,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             onSurfaceReady: () async {
               if (!mounted) {
                 return;
-              }              setState(() {
+              }
+              setState(() {
                 _surfaceReady = true;
               });
               if (widget.isCurrent) {
-                widget.onCurrentLayer2MediaReady?.call(
-                  widget.assetIdentifier,
-                );
+                widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
               }
               await ref
                   .read(playbackRepositoryProvider)
@@ -3315,8 +3408,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   display: media.display!,
                   liveLabel: l10n.mainBrowseLiveBadge,
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-                  showLoadSpinner: showLayer2WaitSpinner &&
-                      !deferVideoForHandoff,
+                  showLoadSpinner:
+                      showLayer2WaitSpinner && !deferVideoForHandoff,
                   reassureLabel: cornerReassureLabel,
                   onPreviewFileBroken: _onPreviewFileBroken,
                 )
@@ -3325,28 +3418,28 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           l10n: l10n,
           tokens: tokens,
           showLayer2WaitSpinner: showLayer2WaitSpinner,
-          showCenterWaitLabel: showCenterWaitLabel,
           showLayer2FailedSlot: showLayer2FailedSlot,
           cornerReassureLabel: cornerReassureLabel,
           coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
         );
       }(),
-      FeedPageMediaKind.failed => widget.isCurrent
-          ? _UsableRegionCenter(
-              child: _BrowseStatusPanel(
-                panelKey: const Key('mainBrowseFeedPageFailed'),
-                message: _failureCopy(
-                  l10n,
-                  media.failureReason ?? FeedFailureReason.generic,
+      FeedPageMediaKind.failed =>
+        widget.isCurrent
+            ? _UsableRegionCenter(
+                child: _BrowseStatusPanel(
+                  panelKey: const Key('mainBrowseFeedPageFailed'),
+                  message: _failureCopy(
+                    l10n,
+                    media.failureReason ?? FeedFailureReason.generic,
+                  ),
+                  actionLabel: l10n.mainBrowseFeedRetry,
+                  actionKey: const Key('mainBrowseFeedPageRetry'),
+                  onAction: () {
+                    unawaited(_retryFromFailState(pageFailedMedia: true));
+                  },
                 ),
-                actionLabel: l10n.mainBrowseFeedRetry,
-                actionKey: const Key('mainBrowseFeedPageRetry'),
-                onAction: () {
-                  unawaited(_retryFromFailState(pageFailedMedia: true));
-                },
-              ),
-            )
-          : const SizedBox.expand(),
+              )
+            : const SizedBox.expand(),
     };
   }
 
@@ -3354,7 +3447,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required AppLocalizations l10n,
     required WakeTokTokens tokens,
     required bool showLayer2WaitSpinner,
-    required bool showCenterWaitLabel,
     required bool showLayer2FailedSlot,
     String? cornerReassureLabel,
     String? coverlessLiveBadgeLabel,
@@ -3371,11 +3463,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final showGuardCover = coverPath != null && video != null;
     // Cap 15.11b probe: hide whole video slot (incl. ColoredBox) via Opacity;
     // Stack order stays Cap 15.7 — never reorder poster/video.
-    final hideVideoUntilReady =
-        _holdPosterUntilFirstFrame && video != null;
-    if (hideVideoUntilReady) {    }
-    if (deferVideoForHandoff) {    }
-    if (showGuardCover) {    } else if (coverPath != null) {    }
+    final hideVideoUntilReady = _holdPosterUntilFirstFrame && video != null;
+    if (hideVideoUntilReady) {}
+    if (deferVideoForHandoff) {}
+    if (showGuardCover) {
+    } else if (coverPath != null) {}
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -3404,11 +3496,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             reassureLabel: cornerReassureLabel,
             rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
             spinnerKey: const Key('mainBrowseFeedLayer3Spinner'),
-            semanticsLabel: l10n.mainBrowseFeedLayer2Waiting,
+            semanticsLabel: l10n.mainBrowseFeedLayer3Loading,
           ),
         _coverlessCenterStatus(
-          showWaitLabel: showCenterWaitLabel && still == null && poster == null,
-          waitLabel: l10n.mainBrowseFeedLayer2Waiting,
+          showWaitLabel: false,
           showFailed: showLayer2FailedSlot,
           l10n: l10n,
           tokens: tokens,
@@ -3428,10 +3519,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     };
   }
 
-  /// Cap 17.4: one center slot — wait copy XOR failed (never stacked).
+  /// Center status shared by Layer-1 visible loading copy and coverless fail.
   Widget _coverlessCenterStatus({
     required bool showWaitLabel,
-    required String waitLabel,
+    String? waitLabel,
     required bool showFailed,
     required AppLocalizations l10n,
     required WakeTokTokens tokens,
@@ -3464,10 +3555,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       );
     }
     if (showWaitLabel) {
+      assert(waitLabel != null);
       return _UsableRegionCenter(
         child: ExcludeSemantics(
           child: Text(
-            waitLabel,
+            waitLabel!,
             key: const Key('mainBrowseFeedCoverlessWaitLabel'),
             textAlign: TextAlign.center,
             style: tokens.labelOnMedia.copyWith(
@@ -3540,7 +3632,9 @@ class _StillPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final isLive = display.mediaKind == PlaybackMediaKind.livePhoto;
-    final showChrome = isLive || showLoadSpinner ||
+    final showChrome =
+        isLive ||
+        showLoadSpinner ||
         (reassureLabel != null && reassureLabel!.isNotEmpty);
     final loadLabel = isLive ? liveLoadLabel : layer3LoadLabel;
     return Stack(
@@ -3599,6 +3693,7 @@ class _FeedCornerChrome extends StatelessWidget {
   final Color color;
   final String? badgeLabel;
   final bool showSpinner;
+
   /// Cap 17.5b: short copy immediately left of the spinner (incremental).
   final String? reassureLabel;
   final Key? rowKey;
@@ -3614,8 +3709,8 @@ class _FeedCornerChrome extends StatelessWidget {
     }
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final hasSpinnerRow = showReassure || showSpinner;
-    final badgeBottom = inset +
-        (hasSpinnerRow ? _badgeAboveSpinnerGap + _spinnerSize : 0);
+    final badgeBottom =
+        inset + (hasSpinnerRow ? _badgeAboveSpinnerGap + _spinnerSize : 0);
     return Positioned.fill(
       child: IgnorePointer(
         child: Stack(
