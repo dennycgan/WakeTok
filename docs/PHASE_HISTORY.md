@@ -839,3 +839,55 @@ Session L2-ready vs display ≤1+1 / preview cap-3 temps (still
 revisit spinner) recorded as a new row. iCloud load-speed / wait-UX
 row unchanged. Do not treat 400 as closed because 393 or the spinner
 debt were addressed.
+
+## Main Browse Layer 1→2 chrome and iCloud availability hardening
+— completed 2026-08-27
+
+- [x] 17.1 Diagnosis (Tracks A/B/C) — notes
+      `docs/acceptance/cap17-17.1-notes.md`; WT17 probes **never
+      committed**
+      — docs: `73025b4`
+- [x] 17.2 Contract freeze — ADR-034 Proposed
+      — docs: `31e5f1a`
+- [x] 17.3 Layer 1→2 handoff chrome unification (path-class wait
+      chrome; a4 T=150 ms; promoted G/B/F1(+D))
+      — work: `00b7264`; docs (ADR-034 Accepted): `7258bb6`
+- [x] 17.4 debt 400 wait-state presentation (coverless visibility;
+      residual black accepted)
+      — work: `cb477fe`; docs: `1730100`
+- [x] 17.5 Layer-2 dwell N 500→300 ms
+      — work: `9ffb513`; docs (ADR-035 Accepted): `a1ab3a9`; notes
+      `docs/acceptance/cap17-17.5-notes.md`
+- [x] 17.5b Retry visibility + corner L2 reassure
+      — work: `649e22f`; docs (ADR-036 Accepted): `a0e4b96`; notes
+      `docs/acceptance/cap17-17.5b-notes.md`
+- [x] 17.6 Device acceptance + Live L2→motion handoff latch
+      — work: `c8bc56a`; test: `501bde7`; docs (ADR-037 Accepted):
+      `52f6156`; notes `docs/acceptance/cap17-17.6-notes.md`
+- [x] 17.7 Overlay capture-time honest presentation (~ exact +
+      coarse relative bands; minute-level path reverted `7c2c0e6`)
+      — work: `affd948`; docs (ADR-038 Accepted): `e3c7808`
+- [x] 17.9 Wait copy cleanup (delete center Layer2Waiting;
+      source-switch L1 label delay; coverless re-enter `_loading` fix)
+      — work: `5643e3f`; docs (ADR-039 Accepted): `c3834d5`
+- [x] 17.8 Cap close-out: Cap 17 `[x]`; YOU ARE HERE → Cap 18
+      placeholder; PHASE_HISTORY this snapshot; Known debt **400**
+      Picks it up → Unassigned (accepted residual; no further fix
+      scheduled); debt **403**-class stall/progress Unassigned;
+      Layer2Waiting / tab Layer1 flash rows closed in **17.9**
+      — docs (this commit)
+
+WT17 throwaway probe logs were never committed.
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-034 (`00b7264`); ADR-035 (`9ffb513`); ADR-036
+(`649e22f`); ADR-037 (`c8bc56a`); ADR-038 (`affd948`); ADR-039
+(`5643e3f`).
+Known debt at close: **400 still open** — Picks it up **Unassigned**
+(accepted residual black per ADR-034; not Cap 17 unfinished work).
+**403**-class iCloud load feel / stall·progress **Unassigned**
+(17.5b Retry/reassure limb closed). Overlay capture-time closed
+(17.7 / ADR-038). ≥T wait chrome / F1 wasted prepare / feed-shell
+tab-switch polish Unassigned. Do not close 400 because 17.4
+improved coverless visibility or 17.9 closed wait-copy rows.
