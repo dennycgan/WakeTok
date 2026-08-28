@@ -895,6 +895,9 @@ improved coverless visibility or 17.9 closed wait-copy rows.
 ## Main Browse playback controls and gesture arbitration (Cap 18) — in progress
 
 - [x] 18.1 Contract freeze — ADR-040 Accepted (`d4a3bb6`; Cap 18.4 docs)
+- [x] 18.2 Host runtime observe — work `c9761a8`; docs (this commit);
+      250 ms periodic + immediate emit; no dedupe; Mapper + Host XCTest +
+      Dart platform (scrubber consumer → 18.5)
 - [x] 18.3 Dual-signal + coordinator — work `11c5202`; docs `7c4e061` /
       `a9c5910` (ADR-026 narrow supplement)
 - [x] 18.4 Tap + center affordance + lifecycle auto-resume — work

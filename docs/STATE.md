@@ -187,9 +187,11 @@ arbitration (Cap 18)
       preview; dual-signal + ADR-026 narrow supplement. Same docs
       scope: canonical IDs on the live Known debt table only; do not
       rewrite PHASE_HISTORY / acceptance history
-- [ ] 18.2 Host runtime observe: `PlaybackApiHost` periodically emits
-      `onPlaybackRuntimeEvent`; Host + widget tests. May run in parallel
-      with 18.3 / 18.4; only 18.5 depends on it
+- [x] 18.2 Host runtime observe: `PlaybackApiHost` periodically emits
+      `onPlaybackRuntimeEvent` (250 ms + immediate; no dedupe; honest
+      `paused` during leave-foreground mechanical pause); Mapper +
+      Host XCTest + Dart platform tests (feed/scrubber consumer → 18.5).
+      Work `c9761a8`; docs (this commit)
 - [x] 18.3 Dual-signal + coordinator: domain intent type;
       `PlaybackCoordinator` owns all effective `play()` calls;
       every video become-current activation initializes
@@ -228,11 +230,12 @@ arbitration (Cap 18)
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap **18.5** scrubber + progress-drag + three-way
       gesture arbitration tests
-- Sub-steps done: 18.1 ADR-040 Accepted; 18.3 dual-signal (`11c5202`);
-      18.4 tap / affordance / lifecycle auto-resume (`d4a3bb6`);
-      debt **434** closed; debt **441** opened (video revisit landing
-      flash — continue observation)
-- Next step: 18.2 runtime observe (may parallel) + 18.5 implementation
+- Sub-steps done: 18.1 ADR-040 Accepted; 18.2 runtime observe
+      (`c9761a8`); 18.3 dual-signal (`11c5202`); 18.4 tap / affordance /
+      lifecycle auto-resume (`d4a3bb6`); debt **434** closed; debt **441**
+      opened (video revisit landing flash — continue observation)
+- Next step: 18.5 implementation (scrubber + progress-drag + arbitration
+      tests)
 - Related decisions: ADR-040 **Accepted** (`d4a3bb6`); ADR-006 /
       ADR-019 / ADR-026 / ADR-027; debts **395** → Cap 18.7;
       debt **400** open Unassigned; debt **403** stall/progress
