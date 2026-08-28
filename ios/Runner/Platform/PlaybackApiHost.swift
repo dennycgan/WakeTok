@@ -42,6 +42,12 @@ final class PlaybackApiHost: PlaybackApi {
   /// Cap 18.3 / ADR-040: persistent intent mirror + one-shot nav activation.
   private var playbackIntentHostState = PlaybackIntentHostState()
 
+  /// Cap 18.2 / ADR-040 Decision 13: periodic runtime observe for scrubber (18.5).
+  private let runtimeObserver = PlaybackRuntimeObserver()
+#if DEBUG
+  private(set) var debugRuntimeEventsForTests: [PlaybackRuntimeEventDto] = []
+#endif
+
   /// TEMPORARY default `false`. Browse does not wire native plan-advance yet.
   /// Background Audio / lock-screen queue **must** set this from real mode
   /// state — do not leave it stuck false, or ADR-006 D4 (plan end: no loop)
@@ -77,6 +83,14 @@ final class PlaybackApiHost: PlaybackApi {
 
   init(binaryMessenger: FlutterBinaryMessenger) {
     flutterApi = PlaybackFlutterApi(binaryMessenger: binaryMessenger)
+    runtimeObserver.configure(
+      snapshot: { [weak self] in
+        self?.makeRuntimeSnapshot() ?? .empty
+      },
+      emit: { [weak self] dto in
+        self?.emitRuntimeEvent(dto)
+      }
+    )
     bgObserver = NotificationCenter.default.addObserver(
       forName: UIApplication.didEnterBackgroundNotification,
       object: nil,
@@ -187,6 +201,8 @@ final class PlaybackApiHost: PlaybackApi {
             // After background detach, layer may still be nil — re-adopt before play.
       self.adoptActivePlayerOntoSurface()
       self.playActiveApplyingReenterPolicy()
+      self.syncRuntimeObserve()
+      self.emitRuntimeObserveNow()
     }
   }
 
@@ -194,6 +210,8 @@ final class PlaybackApiHost: PlaybackApi {
     DispatchQueue.main.async { [weak self] in
       self?.pendingPlay = false
       self?.activePlayer?.pause()
+      self?.syncRuntimeObserve()
+      self?.emitRuntimeObserveNow()
     }
   }
 
@@ -225,6 +243,8 @@ final class PlaybackApiHost: PlaybackApi {
     let time = CMTime(seconds: positionSeconds, preferredTimescale: 600)
     DispatchQueue.main.async { [weak self] in
       self?.activePlayer?.seek(to: time)
+      self?.syncRuntimeObserve()
+      self?.emitRuntimeObserveNow()
     }
   }
 
@@ -410,6 +430,8 @@ final class PlaybackApiHost: PlaybackApi {
     surfaceView?.attach(player: nil)
     finishAllLoadsCancelled()
     playbackIntentHostState = PlaybackIntentStateReducer.clearIntentStateOnPoolClear()
+    runtimeObserver.stop()
+    emitRuntimeObserveNow()
     // Do not reset `muted` — Dart preference remains; next player re-applies.
   }
 
@@ -417,6 +439,7 @@ final class PlaybackApiHost: PlaybackApi {
     // Detach picture only; keep AVPlayer alive (ADR-006 surface model).
     surfaceView?.attach(player: nil)
     activePlayer?.pause()
+    emitRuntimeObserveNow()
   }
 
   private func handleWillEnterForeground() {
@@ -592,6 +615,7 @@ final class PlaybackApiHost: PlaybackApi {
       return
     }
     preparingAssetIds.insert(assetId)
+    emitRuntimeObserveNow()
 
     let token = assetId
     let epoch = clearEpoch
@@ -697,6 +721,8 @@ final class PlaybackApiHost: PlaybackApi {
       attachPlayerToSurface(activePlayer)
       registerItemEndObserverIfNeeded()
       consumePendingPlayIfNeeded()
+      syncRuntimeObserve()
+      emitRuntimeObserveNow()
       return
     }
     unregisterItemEndObserver()
@@ -709,6 +735,8 @@ final class PlaybackApiHost: PlaybackApi {
     attachPlayerToSurface(player)
     registerItemEndObserverIfNeeded()
     consumePendingPlayIfNeeded()
+    syncRuntimeObserve()
+    emitRuntimeObserveNow()
   }
 
   /// Fires a play() intent that arrived before the current asset's player
@@ -869,6 +897,8 @@ final class PlaybackApiHost: PlaybackApi {
       seekZeroAndPlay(player)
     case .playOnly:
       player.play()
+      syncRuntimeObserve()
+      emitRuntimeObserveNow()
     case .prepareNew:
       break
     }
@@ -890,7 +920,54 @@ final class PlaybackApiHost: PlaybackApi {
       else { return }
       self.activeItemDidPlayToEnd = false
       player.play()
+      self.syncRuntimeObserve()
+      self.emitRuntimeObserveNow()
     }
+  }
+
+  private func makeRuntimeSnapshot() -> PlaybackRuntimeSnapshot {
+    var position: Double = 0
+    if let player = activePlayer,
+      activeAssetId == currentAssetIdentifier
+    {
+      let time = player.currentTime()
+      if time.isNumeric {
+        position = time.seconds
+      }
+    }
+    let preparing =
+      currentAssetIdentifier.map { preparingAssetIds.contains($0) } ?? false
+    return PlaybackRuntimeSnapshot(
+      planId: plan?.planId ?? "",
+      currentAssetIdentifier: currentAssetIdentifier,
+      currentIndex: currentFeedIndex,
+      playbackPositionSeconds: position,
+      activeAssetId: activeAssetId,
+      hasActivePlayer: activePlayer != nil,
+      isPreparingCurrent: preparing,
+      timeControlStatus: activePlayer?.timeControlStatus,
+      rate: activePlayer?.rate ?? 0,
+      activeItemDidPlayToEnd: activeItemDidPlayToEnd
+    )
+  }
+
+  private func emitRuntimeEvent(_ dto: PlaybackRuntimeEventDto) {
+#if DEBUG
+    debugRuntimeEventsForTests.append(dto)
+#endif
+    flutterApi.onPlaybackRuntimeEvent(event: dto) { _ in }
+  }
+
+  private func syncRuntimeObserve() {
+    if activePlayer != nil, activeAssetId == currentAssetIdentifier {
+      runtimeObserver.sync(to: activePlayer)
+    } else {
+      runtimeObserver.sync(to: nil)
+    }
+  }
+
+  private func emitRuntimeObserveNow() {
+    runtimeObserver.emitImmediate()
   }
 
   /// Local-only AVPlayer create for ±1 warming. Returns nil for iCloud-only
@@ -948,6 +1025,36 @@ final class PlaybackApiHost: PlaybackApi {
     completion: @escaping (Result<Void, Error>) -> Void
   ) {
     enqueueLoadCompletion(assetId: assetId, completion: completion)
+  }
+
+  func debugDrainRuntimeEventsForTests() -> [PlaybackRuntimeEventDto] {
+    defer { debugRuntimeEventsForTests.removeAll() }
+    return debugRuntimeEventsForTests
+  }
+
+  func debugSetRuntimeObserveContextForTests(
+    planId: String,
+    currentAssetIdentifier: String?,
+    feedIndex: Int64,
+    activeAssetId: String?,
+    activePlayer: AVPlayer?,
+    activeItemDidPlayToEnd: Bool = false
+  ) {
+    if planId.isEmpty {
+      plan = nil
+    } else {
+      plan = PlaybackPlanDto(
+        planId: planId,
+        orderedItems: [],
+        currentIndex: feedIndex
+      )
+    }
+    self.currentAssetIdentifier = currentAssetIdentifier
+    currentFeedIndex = feedIndex
+    self.activeAssetId = activeAssetId
+    self.activePlayer = activePlayer
+    self.activeItemDidPlayToEnd = activeItemDidPlayToEnd
+    syncRuntimeObserve()
   }
   #endif
 }

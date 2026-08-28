@@ -1,3 +1,4 @@
+import AVFoundation
 import Photos
 import XCTest
 
@@ -476,6 +477,189 @@ final class PlaybackIntentStateReducerTests: XCTestCase {
         clearEpoch: 7
       )
     XCTAssertNil(trustedNav)
+  }
+}
+
+final class PlaybackRuntimeObserveMapperTests: XCTestCase {
+  func testM18_2_1_noPlayer_isIdle() {
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: .empty)
+    XCTAssertEqual(dto.playbackState, .idle)
+    XCTAssertEqual(dto.playbackPositionSeconds, 0)
+  }
+
+  func testM18_2_2_playing_mapsPosition() {
+    let snapshot = PlaybackRuntimeSnapshot(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      currentIndex: 2,
+      playbackPositionSeconds: 12.3,
+      activeAssetId: "v1",
+      hasActivePlayer: true,
+      timeControlStatus: .playing,
+      rate: 1
+    )
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: snapshot)
+    XCTAssertEqual(dto.playbackState, .playing)
+    XCTAssertEqual(dto.playbackPositionSeconds, 12.3, accuracy: 0.001)
+    XCTAssertEqual(dto.currentItemIdentifier, "v1")
+    XCTAssertEqual(dto.currentIndex, 2)
+  }
+
+  func testM18_2_3_paused_afterPause() {
+    let snapshot = PlaybackRuntimeSnapshot(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      currentIndex: 0,
+      playbackPositionSeconds: 4.5,
+      activeAssetId: "v1",
+      hasActivePlayer: true,
+      timeControlStatus: .paused,
+      rate: 0
+    )
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: snapshot)
+    XCTAssertEqual(dto.playbackState, .paused)
+    XCTAssertEqual(dto.playbackPositionSeconds, 4.5, accuracy: 0.001)
+  }
+
+  func testM18_2_4_waitingToPlayAtSpecifiedRate() {
+    let snapshot = PlaybackRuntimeSnapshot(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      currentIndex: 0,
+      playbackPositionSeconds: 1,
+      activeAssetId: "v1",
+      hasActivePlayer: true,
+      timeControlStatus: .waitingToPlayAtSpecifiedRate,
+      rate: 1
+    )
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: snapshot)
+    XCTAssertEqual(dto.playbackState, .waitingForMedia)
+  }
+
+  func testM18_2_5_activeAssetMismatch_isIdle() {
+    let snapshot = PlaybackRuntimeSnapshot(
+      planId: "p",
+      currentAssetIdentifier: "v2",
+      currentIndex: 1,
+      playbackPositionSeconds: 9,
+      activeAssetId: "v1",
+      hasActivePlayer: true,
+      timeControlStatus: .playing,
+      rate: 1
+    )
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: snapshot)
+    XCTAssertEqual(dto.playbackState, .idle)
+    XCTAssertEqual(dto.playbackPositionSeconds, 0)
+  }
+
+  func testM18_2_6_itemAtEnd_isCompleted() {
+    let snapshot = PlaybackRuntimeSnapshot(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      currentIndex: 0,
+      playbackPositionSeconds: 60,
+      activeAssetId: "v1",
+      hasActivePlayer: true,
+      timeControlStatus: .paused,
+      rate: 0,
+      activeItemDidPlayToEnd: true
+    )
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: snapshot)
+    XCTAssertEqual(dto.playbackState, .completed)
+  }
+
+  func testM18_2_preparingCurrent_isLoading() {
+    let snapshot = PlaybackRuntimeSnapshot(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      currentIndex: 0,
+      isPreparingCurrent: true
+    )
+    let dto = PlaybackRuntimeObserveMapper.makeEvent(from: snapshot)
+    XCTAssertEqual(dto.playbackState, .loading)
+  }
+}
+
+final class PlaybackRuntimeObserveHostTests: XCTestCase {
+  private func waitForMainQueue(timeout: TimeInterval = 1.0) {
+    let exp = expectation(description: "main queue")
+    DispatchQueue.main.async { exp.fulfill() }
+    waitForExpectations(timeout: timeout)
+  }
+
+  func testH18_2_1_play_emitsRuntimeEvent() {
+    let host = PlaybackApiHost()
+    host.debugSetRuntimeObserveContextForTests(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      feedIndex: 0,
+      activeAssetId: "v1",
+      activePlayer: AVPlayer()
+    )
+    _ = host.debugDrainRuntimeEventsForTests()
+
+    XCTAssertNoThrow(try host.play())
+    waitForMainQueue()
+
+    let events = host.debugDrainRuntimeEventsForTests()
+    XCTAssertFalse(events.isEmpty)
+    XCTAssertEqual(events.last?.planId, "p")
+    XCTAssertEqual(events.last?.currentItemIdentifier, "v1")
+  }
+
+  func testH18_2_2_pause_emitsPaused() {
+    let host = PlaybackApiHost()
+    host.debugSetRuntimeObserveContextForTests(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      feedIndex: 0,
+      activeAssetId: "v1",
+      activePlayer: AVPlayer()
+    )
+    _ = host.debugDrainRuntimeEventsForTests()
+
+    XCTAssertNoThrow(try host.pause())
+    waitForMainQueue()
+
+    let events = host.debugDrainRuntimeEventsForTests()
+    XCTAssertEqual(events.last?.playbackState, .paused)
+  }
+
+  func testH18_2_3_clearPlaybackPool_emitsIdle() {
+    let host = PlaybackApiHost()
+    host.debugSetRuntimeObserveContextForTests(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      feedIndex: 0,
+      activeAssetId: "v1",
+      activePlayer: AVPlayer()
+    )
+    _ = host.debugDrainRuntimeEventsForTests()
+
+    XCTAssertNoThrow(try host.clearPlaybackPool())
+    waitForMainQueue()
+
+    let events = host.debugDrainRuntimeEventsForTests()
+    XCTAssertEqual(events.last?.playbackState, .idle)
+  }
+
+  func testH18_2_4_seek_emitsImmediateEvent() {
+    let host = PlaybackApiHost()
+    host.debugSetRuntimeObserveContextForTests(
+      planId: "p",
+      currentAssetIdentifier: "v1",
+      feedIndex: 0,
+      activeAssetId: "v1",
+      activePlayer: AVPlayer()
+    )
+    _ = host.debugDrainRuntimeEventsForTests()
+
+    XCTAssertNoThrow(try host.seek(positionSeconds: 30))
+    waitForMainQueue()
+
+    let events = host.debugDrainRuntimeEventsForTests()
+    XCTAssertFalse(events.isEmpty)
+    XCTAssertEqual(events.last?.currentItemIdentifier, "v1")
   }
 }
 

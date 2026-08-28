@@ -96,7 +96,7 @@ void main() {
     expect(await gateway.getPlaybackPoolEpoch(), 3);
   });
 
-  test('T-P3 FlutterApi runtime event maps into stream', () async {
+  test('T-18.2-1 FlutterApi runtime event maps into stream', () async {
     final gateway = PlaybackGateway();
     addTearDown(gateway.dispose);
 

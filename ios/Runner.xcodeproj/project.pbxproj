@@ -24,6 +24,8 @@
 		B1000000000000000000000E /* PhotoKitRequestTable.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* PhotoKitRequestTable.swift */; };
 		B1000000000000000000000F /* VideoPlaybackPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* VideoPlaybackPolicy.swift */; };
 		B10000000000000000000012 /* PlaybackIntentStateReducer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* PlaybackIntentStateReducer.swift */; };
+		B10000000000000000000013 /* PlaybackRuntimeObserveMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* PlaybackRuntimeObserveMapper.swift */; };
+		B10000000000000000000014 /* PlaybackRuntimeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PlaybackRuntimeObserver.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +82,8 @@
 		B10000000000000000000005 /* PhotoKitRequestTable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoKitRequestTable.swift; sourceTree = "<group>"; };
 		B10000000000000000000006 /* VideoPlaybackPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlaybackPolicy.swift; sourceTree = "<group>"; };
 		B10000000000000000000007 /* PlaybackIntentStateReducer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackIntentStateReducer.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* PlaybackRuntimeObserveMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackRuntimeObserveMapper.swift; sourceTree = "<group>"; };
+		B10000000000000000000009 /* PlaybackRuntimeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackRuntimeObserver.swift; sourceTree = "<group>"; };
 		BE5152C43AB3E06FDA772ADD /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -191,6 +195,8 @@
 				B10000000000000000000003 /* PlaybackApiHost.swift */,
 				B10000000000000000000006 /* VideoPlaybackPolicy.swift */,
 				B10000000000000000000007 /* PlaybackIntentStateReducer.swift */,
+				B10000000000000000000008 /* PlaybackRuntimeObserveMapper.swift */,
+				B10000000000000000000009 /* PlaybackRuntimeObserver.swift */,
 				B10000000000000000000004 /* LivePhotoApiHost.swift */,
 			);
 			path = Platform;
@@ -425,6 +431,8 @@
 				B1000000000000000000000C /* PlaybackApiHost.swift in Sources */,
 				B1000000000000000000000F /* VideoPlaybackPolicy.swift in Sources */,
 				B10000000000000000000012 /* PlaybackIntentStateReducer.swift in Sources */,
+				B10000000000000000000013 /* PlaybackRuntimeObserveMapper.swift in Sources */,
+				B10000000000000000000014 /* PlaybackRuntimeObserver.swift in Sources */,
 				B1000000000000000000000D /* LivePhotoApiHost.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
