@@ -891,3 +891,16 @@ Known debt at close: **400 still open** — Picks it up **Unassigned**
 (17.7 / ADR-038). ≥T wait chrome / F1 wasted prepare / feed-shell
 tab-switch polish Unassigned. Do not close 400 because 17.4
 improved coverless visibility or 17.9 closed wait-copy rows.
+
+## Main Browse playback controls and gesture arbitration (Cap 18) — in progress
+
+- [x] 18.1 Contract freeze — ADR-040 Accepted (`d4a3bb6`; Cap 18.4 docs)
+- [x] 18.3 Dual-signal + coordinator — work `11c5202`; docs `7c4e061` /
+      `a9c5910` (ADR-026 narrow supplement)
+- [x] 18.4 Tap + center affordance + lifecycle auto-resume — work
+      `d4a3bb6`; docs (this commit); Kafka Profile PASS —
+      `cap18-18.4-notes.md`; debt **434** closed; debt **441** opened
+
+Related ADR: ADR-040 (`d4a3bb6`); ADR-026 (narrow supplement `7c4e061`).
+Known debt at 18.4 close: **434 closed**; **441 continue observation**
+(video revisit landing one-frame black); **395** open until 18.7.

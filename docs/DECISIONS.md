@@ -3824,10 +3824,10 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-040: Cap 18 Main Browse gesture arbitration and dual-signal Manual playback control
 
-- Status: Proposed
-- Commit/PR anchor: assigned only after the implementing work commit
-  exists (Cap 18.3 / 18.4 work; Accepted + date + anchor land in a
-  following docs commit — not this Cap 18.1 docs commit)
+- Status: Accepted (2026-08-28)
+- Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
+  lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
+  `11c5202`)
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -3947,11 +3947,18 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      transition-cover release; or tap resume. For every new video
      navigation activation: `userIntentWantsPlay = true`, seek to zero,
      and auto-play when system permission allows — regardless of whether
-     the video was paused or playing when previously left. For lifecycle
-     transitions to `inactive`, `paused` or background:
-     `userIntentWantsPlay = false`. Foreground resume restores only
-     system permission; it does not restore user intent and therefore
-     cannot auto-play the same item.
+     the video was paused or playing when previously left.
+     **Cap 18.4 narrow supplement (device M-434′):** lifecycle leave
+     (`inactive`, `paused`, `hidden`, background) performs a **mechanical
+     pause only** — it does **not** write `userIntentWantsPlay = false`.
+     Leave sets `isForegroundLifecycle = false`, which denies
+     `systemPermissionAllowsPlay` without mutating user intent.
+     Foreground resume (`onForegroundResumeSync`) restores
+     `isForegroundLifecycle = true` and re-applies the **preserved**
+     intent — when `userIntentWantsPlay == true`, playback auto-resumes
+     (respecting mute). User tap-pause before a system interrupt leaves
+     intent false → remain paused on resume with center affordance
+     (Decision 12). Foreground resume is never a navigation activation.
   5. **Dart activation generation source.** Cap 18 reuses the existing
      `FeedActivationCoordinator.currentDisplayGate`. No second
      playback-specific generation counter is introduced. Reasons:
@@ -3982,7 +3989,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
      `setPlaybackIntent(dto)`; (5) revalidate the captured generation
      and asset identifier; (6) only while still current, await `play()`
      or `pause()`. Lifecycle-driven leave-foreground updates
-     (`inactive`, `paused`, or background) send `wantsPlay = false`,
+     (`inactive`, `paused`, `hidden`, or background) send the
+     **preserved** `wantsPlay` value (not forced false),
      `startsNewNavigationActivation = false`, and
      `clearsPendingNavigationActivation = true`. Other updates default
      `clearsPendingNavigationActivation` to false unless a later ADR
@@ -4068,13 +4076,14 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   12. **Tap and center affordance.** For an L2-ready current video:
       media-area tap while playing sets intent false and pauses;
       media-area tap while paused sets intent true and plays when
-      system permission allows; a centered affordance communicates
-      paused/playable state. Tap-to-resume handles any paused current
-      video without distinguishing whether the pause came from user
-      action or lifecycle handling. Debt **434** is therefore closed
-      through general rules (Decision 4 leave-foreground writes intent
-      false; Decision 12 tap resumes any paused current video). No
-      lock-aware special-case implementation is permitted.
+      system permission allows. Center affordance appears only when
+      `userIntentWantsPlay == false` on a foreground current L2-ready
+      video (user tap-pause — not merely lifecycle mechanical pause
+      while intent remains true). Debt **434** closes through: system
+      interrupt auto-resumes when intent was preserved (Decision 4
+      supplement); user tap-pause before interrupt stays paused with
+      affordance + tap resume. No lock-aware special-case
+      implementation is permitted.
   13. **Runtime observe and scrubber (item 3).** `PlaybackApiHost`
       periodically emits the existing `PlaybackRuntimeEventDto` with
       current asset identifier, feed index, playback position and
@@ -4238,9 +4247,12 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   because that path already restarted at zero before Cap 18. After work
   and unit/device verification, debt **395** becomes
   **Closed by Cap 18 — intentional design**.
-  Debt **434** acceptance requires: current video playing →
-  inactive/background → return foreground on same item → no automatic
-  playback → center affordance visible → tap resumes.
+  Debt **434** acceptance (Cap 18.4 device M-434′): current video
+  playing → inactive/background → return foreground on same item →
+  **auto-resumes** when intent preserved (respect mute). User tap-pause
+  before interrupt → stay paused on resume → center affordance → tap
+  resumes. Supersedes the Cap 18.1 draft that required foreground stay
+  paused until tap.
   **Accepted narrow intent race.** When
   `trustedStartsNewNavigationActivation == true` and the matching
   player still exists in the 1+1 pool, `actionOnBecomeCurrent` returns
