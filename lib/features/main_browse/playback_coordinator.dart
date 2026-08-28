@@ -7,7 +7,10 @@ import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 
 /// Cap 18.3 / ADR-040: sole Dart exit for effective [PlaybackRepository.play]
 /// and [PlaybackRepository.pause] after [PlaybackRepository.setPlaybackIntent].
-class PlaybackCoordinator {
+///
+/// Cap 18.4: extends [ChangeNotifier] so UI can rebuild on intent /
+/// foreground-lifecycle changes without Host runtime observe (18.2).
+class PlaybackCoordinator extends ChangeNotifier {
   PlaybackCoordinator({required PlaybackRepository playback})
       : _playback = playback;
 
@@ -23,12 +26,32 @@ class PlaybackCoordinator {
 
   bool get isForegroundLifecycle => _isForegroundLifecycle;
 
-  @visibleForTesting
+  /// When [onLeaveForeground] ran before L2 surface-ready, resume epoch sync
+  /// may miss; call before [onVideoBecomeCurrent] if binding is [resumed].
+  void reconcileAppForegroundResumed() {
+    _setForegroundLifecycle(true);
+  }
   String? get lastIntentSyncAssetId => _lastIntentSyncAssetId;
 
   @visibleForTesting
   int? get lastIntentSyncDisplayGeneration =>
       _lastIntentSyncDisplayGeneration;
+
+  void _setUserIntentWantsPlay(bool value) {
+    if (_userIntentWantsPlay == value) {
+      return;
+    }
+    _userIntentWantsPlay = value;
+    notifyListeners();
+  }
+
+  void _setForegroundLifecycle(bool value) {
+    if (_isForegroundLifecycle == value) {
+      return;
+    }
+    _isForegroundLifecycle = value;
+    notifyListeners();
+  }
 
   bool _isNewNavigationActivation({
     required String assetIdentifier,
@@ -70,7 +93,7 @@ class PlaybackCoordinator {
         displayGeneration: displayGeneration,
       );
       if (nav && _isForegroundLifecycle) {
-        _userIntentWantsPlay = true;
+        _setUserIntentWantsPlay(true);
       }
       await _syncIntentAndPlayback(
         assetIdentifier: assetIdentifier,
@@ -84,15 +107,17 @@ class PlaybackCoordinator {
     });
   }
 
-  /// Lifecycle leave (inactive / paused / background).
+  /// Lifecycle leave (inactive / paused / hidden / background).
+  ///
+  /// Mechanical pause only — preserves [userIntentWantsPlay] so a system
+  /// interrupt can auto-resume on foreground; user tap pause stays paused.
   Future<void> onLeaveForeground({
     required String assetIdentifier,
     required int displayGeneration,
     required FeedMediaRequestGate displayGate,
   }) {
     return _enqueue(() async {
-      _userIntentWantsPlay = false;
-      _isForegroundLifecycle = false;
+      _setForegroundLifecycle(false);
       await _syncIntentAndPlayback(
         assetIdentifier: assetIdentifier,
         displayGeneration: displayGeneration,
@@ -105,9 +130,51 @@ class PlaybackCoordinator {
     });
   }
 
-  /// Foreground resume — restores permission only; does not restore intent.
-  void onForegroundResume() {
-    _isForegroundLifecycle = true;
+  /// Foreground resume after lifecycle leave: restore permission and re-apply
+  /// preserved intent. Never a navigation activation; never mutates intent.
+  Future<void> onForegroundResumeSync({
+    required String assetIdentifier,
+    required int displayGeneration,
+    required FeedMediaRequestGate displayGate,
+    required SystemPlaybackPermission permission,
+    required bool muted,
+  }) {
+    // Synchronous so callers building permission after this see foreground=true.
+    _setForegroundLifecycle(true);
+    return _enqueue(() async {
+      await _syncIntentAndPlayback(
+        assetIdentifier: assetIdentifier,
+        displayGeneration: displayGeneration,
+        displayGate: displayGate,
+        startsNewNavigationActivation: false,
+        clearsPendingNavigationActivation: false,
+        permission: permission,
+        muted: muted,
+      );
+    });
+  }
+
+  /// Cap 18.4: media-area tap toggles user intent (never a navigation
+  /// activation; never clears pending navigation activation).
+  Future<void> onUserTapTogglePlay({
+    required String assetIdentifier,
+    required int displayGeneration,
+    required FeedMediaRequestGate displayGate,
+    required SystemPlaybackPermission permission,
+    required bool muted,
+  }) {
+    return _enqueue(() async {
+      _setUserIntentWantsPlay(!_userIntentWantsPlay);
+      await _syncIntentAndPlayback(
+        assetIdentifier: assetIdentifier,
+        displayGeneration: displayGeneration,
+        displayGate: displayGate,
+        startsNewNavigationActivation: false,
+        clearsPendingNavigationActivation: false,
+        permission: permission,
+        muted: muted,
+      );
+    });
   }
 
   /// Swipe-away / source switch: mechanical pause without intent mutation.

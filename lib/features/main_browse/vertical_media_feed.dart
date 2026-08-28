@@ -27,6 +27,7 @@ import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
+import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
@@ -123,6 +124,10 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   int? _preheatTrackedEpoch;
   List<String> _preheatIdSnapshot = const [];
 
+  /// Bumped on foreground resume so current [MediaFeedPage] runs
+  /// [PlaybackCoordinator.onForegroundResumeSync] via [didUpdateWidget].
+  int _foregroundResumeSyncEpoch = 0;
+
   static const double _pvHandoffScrollEpsilon = 0.02;
 
   bool _handlePvTransitionScroll(ScrollNotification notification) {
@@ -186,6 +191,17 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   @visibleForTesting
   FeedMediaRequestGate get debugCurrentDisplayGate =>
       _activation.currentDisplayGate;
+
+  @visibleForTesting
+  int get debugForegroundResumeSyncEpoch => _foregroundResumeSyncEpoch;
+
+  /// Test seam: epoch-only rebuild path for foreground resume sync (W-18.4-E1).
+  @visibleForTesting
+  void debugBumpForegroundResumeSyncEpoch() {
+    setState(() {
+      _foregroundResumeSyncEpoch++;
+    });
+  }
 
   /// Invokes the same scroll arm path as [NotificationListener] (Cap 15.11 tests).
   ///
@@ -284,12 +300,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       return;
     }
 
-    coordinator.onForegroundResume();
-
     // China-SKU wireless-data alert: typically inactive→resumed (app never
     // backgrounds). True background uses paused→resumed. Listen for both.
-    if (previous != AppLifecycleState.inactive &&
-        previous != AppLifecycleState.paused) {
+    if (previous == AppLifecycleState.inactive ||
+        previous == AppLifecycleState.paused ||
+        previous == AppLifecycleState.hidden) {
+      setState(() {
+        _foregroundResumeSyncEpoch++;
+      });
+    } else {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -716,6 +735,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                           : null,
                       delayInitialLayer1CenterLabel:
                           isCurrent && delayInitialLayer1CenterLabel,
+                      foregroundResumeSyncEpoch: _foregroundResumeSyncEpoch,
                       onCurrentLayer2MediaReady: isCurrent
                           ? _onCurrentLayer2MediaReady
                           : null,
@@ -854,6 +874,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     this.currentDisplayGate,
     this.assignedDisplayGeneration,
     this.delayInitialLayer1CenterLabel = false,
+    this.foregroundResumeSyncEpoch = 0,
     this.onCurrentLayer2MediaReady,
   });
 
@@ -876,6 +897,9 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   /// ADR-039: only the first current page mounted after a source switch delays
   /// visible Layer-1 center copy. Corner spinner + semantics stay immediate.
   final bool delayInitialLayer1CenterLabel;
+
+  /// Feed-owned nonce; bump on lifecycle foreground resume (Cap 18.4).
+  final int foregroundResumeSyncEpoch;
 
   /// Current page only. Parent reads metadata generation at callback time.
   final void Function(String assetId)? onCurrentLayer2MediaReady;
@@ -1647,6 +1671,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @override
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _maybeSyncForegroundResumePlayback(oldWidget.foregroundResumeSyncEpoch);
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
     if (!oldWidget.isCurrent && widget.isCurrent) {
       _armLayer2DwellTimer();
@@ -3207,12 +3232,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
   }
 
-  SystemPlaybackPermission _playbackPermission({bool requireSurfaceReady = true}) {
+  SystemPlaybackPermission _playbackPermission({
+    bool requireSurfaceReady = true,
+    bool assumeForegroundLifecycle = false,
+  }) {
     final coordinator = ref.read(playbackCoordinatorProvider);
     final pvGuard = ref.read(pvTransitionGuardProvider);
     final media = _media;
     return SystemPlaybackPermission(
-      isForegroundLifecycle: coordinator.isForegroundLifecycle,
+      isForegroundLifecycle:
+          assumeForegroundLifecycle || coordinator.isForegroundLifecycle,
       isCurrentPage: widget.isCurrent,
       isL2ReadyVideo:
           media?.kind == FeedPageMediaKind.video && !_layer2InFlight,
@@ -3239,13 +3268,84 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (gate == null || generation == null) {
       return;
     }
-    await ref.read(playbackCoordinatorProvider).onVideoBecomeCurrent(
+    final coordinator = ref.read(playbackCoordinatorProvider);
+    if (!coordinator.isForegroundLifecycle && _bindingLifecycleIsResumed()) {
+      coordinator.reconcileAppForegroundResumed();
+    }
+    await coordinator.onVideoBecomeCurrent(
           assetIdentifier: widget.assetIdentifier,
           displayGeneration: generation,
           displayGate: gate,
           permission: _playbackPermission(
             requireSurfaceReady: requireSurfaceReady,
           ),
+          muted: ref.read(sharedMuteProvider),
+        );
+  }
+
+  bool _bindingLifecycleIsResumed() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null || state == AppLifecycleState.resumed;
+  }
+
+  /// Cap 18.4: lifecycle foreground resume sync (epoch via [didUpdateWidget]).
+  void _maybeSyncForegroundResumePlayback(int oldEpoch) {
+    if (oldEpoch == widget.foregroundResumeSyncEpoch) {
+      return;
+    }
+    if (!widget.isCurrent) {
+      return;
+    }
+    final media = _media;
+    if (media == null || media.kind != FeedPageMediaKind.video) {
+      return;
+    }
+    if (_layer2InFlight || !_surfaceReady || _layer2Failed) {
+      return;
+    }
+    final gate = widget.currentDisplayGate;
+    final generation = widget.assignedDisplayGeneration;
+    if (gate == null || generation == null) {
+      return;
+    }
+    unawaited(
+      ref.read(playbackCoordinatorProvider).onForegroundResumeSync(
+            assetIdentifier: widget.assetIdentifier,
+            displayGeneration: generation,
+            displayGate: gate,
+            permission: _playbackPermission(assumeForegroundLifecycle: true),
+            muted: ref.read(sharedMuteProvider),
+          ),
+    );
+  }
+
+  /// Cap 18.4 media-area tap — not a navigation activation.
+  Future<void> _onMediaAreaTapToggle() async {
+    final media = _media;
+    if (media == null || media.kind != FeedPageMediaKind.video) {
+      return;
+    }
+    if (!widget.isCurrent ||
+        _layer2InFlight ||
+        !_surfaceReady ||
+        _layer2Failed) {
+      return;
+    }
+    final gate = widget.currentDisplayGate;
+    final generation = widget.assignedDisplayGeneration;
+    if (gate == null || generation == null) {
+      return;
+    }
+    if (ref
+        .read(pvTransitionGuardProvider)
+        .isCovering(widget.assetIdentifier)) {
+      return;
+    }
+    await ref.read(playbackCoordinatorProvider).onUserTapTogglePlay(
+          assetIdentifier: widget.assetIdentifier,
+          displayGeneration: generation,
+          displayGate: gate,
+          permission: _playbackPermission(),
           muted: ref.read(sharedMuteProvider),
         );
   }
@@ -3460,6 +3560,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           }
           videoChild = null;
         }
+        final covering = ref
+            .watch(pvTransitionGuardProvider)
+            .isCovering(widget.assetIdentifier);
+        final coordinator = canMountVideo && videoChild != null
+            ? ref.watch(playbackCoordinatorProvider)
+            : null;
         return _mediaStack(
           still: null,
           video: videoChild,
@@ -3482,6 +3588,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           showLayer2FailedSlot: showLayer2FailedSlot,
           cornerReassureLabel: cornerReassureLabel,
           coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
+          onPlaybackTapToggle: coordinator == null
+              ? null
+              : () {
+                  unawaited(_onMediaAreaTapToggle());
+                },
+          playbackCoordinator: coordinator,
+          playbackTapIsCurrent: widget.isCurrent,
+          playbackTapSurfaceReady: _surfaceReady,
+          playbackTapTransitionCovering: covering,
+          playbackTapHardFailure: _layer2Failed,
         );
       }(),
       FeedPageMediaKind.failed =>
@@ -3515,6 +3631,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     Widget? video,
     Widget? poster,
     bool deferVideoForHandoff = false,
+    VoidCallback? onPlaybackTapToggle,
+    PlaybackCoordinator? playbackCoordinator,
+    bool playbackTapIsCurrent = false,
+    bool playbackTapSurfaceReady = false,
+    bool playbackTapTransitionCovering = false,
+    bool playbackTapHardFailure = false,
   }) {
     final guard = ref.watch(pvTransitionGuardProvider);
     final coverPath = guard.isCovering(widget.assetIdentifier)
@@ -3548,6 +3670,31 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             key: Key('pvTransitionCover_${widget.assetIdentifier}'),
             path: coverPath,
             backgroundColor: tokens.feedBackground,
+          ),
+        // Cap 18.4: tap / affordance below chrome so retry + corner stay
+        // hittable. ListenableBuilder is overlay-only so poster Image State
+        // is not rebuilt on intent changes (W-15.7b).
+        if (onPlaybackTapToggle != null && playbackCoordinator != null)
+          ListenableBuilder(
+            listenable: playbackCoordinator,
+            builder: (context, _) {
+              final showAffordance = showCenterPlaybackAffordance(
+                isCurrent: playbackTapIsCurrent,
+                isL2ReadyOrdinaryVideo: true,
+                isSurfaceReady: playbackTapSurfaceReady,
+                transitionCovering: playbackTapTransitionCovering,
+                hardFailure: playbackTapHardFailure,
+                isForegroundLifecycle:
+                    playbackCoordinator.isForegroundLifecycle,
+                userIntentWantsPlay: playbackCoordinator.userIntentWantsPlay,
+              );
+              return MediaPlaybackTapOverlay(
+                onTapToggle: onPlaybackTapToggle,
+                wantsPlay: playbackCoordinator.userIntentWantsPlay,
+                l10n: l10n,
+                showAffordance: showAffordance,
+              );
+            },
           ),
         if (showLayer2WaitSpinner && still == null && poster == null)
           _FeedCornerChrome(

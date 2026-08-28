@@ -5767,7 +5767,7 @@ void main() {
     expect(playback.calls.indexOf(navIntentCall), lessThan(playIdx));
   });
 
-  testWidgets('W-18.3-F2 inactive→resumed does not auto-play current video', (
+  testWidgets('W-18.3-F2 inactive→resumed auto-plays when intent preserved', (
     tester,
   ) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -5799,17 +5799,240 @@ void main() {
     expect(
       playback.intentCalls.any(
         (intent) =>
-            intent.wantsPlay == false &&
+            intent.wantsPlay == true &&
             intent.clearsPendingNavigationActivation == true,
       ),
       isTrue,
     );
+    expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
 
     playback.calls.clear();
+    playback.intentCalls.clear();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await pumpAsyncWork(tester);
 
-    expect(playback.calls.where((c) => c == 'play'), isEmpty);
+    expect(
+      playback.intentCalls.any((intent) => intent.wantsPlay == true),
+      isTrue,
+    );
+    expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+  });
+
+  testWidgets('W-18.4-F1 L2-ready video tap pauses and shows affordance', (
+    tester,
+  ) async {
+    final playback = await _pumpSingleVideoFeed(tester);
+    expect(find.byKey(const Key('mainBrowsePlaybackTapTarget')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+    await tester.tap(find.byKey(const Key('mainBrowsePlaybackTapTarget')));
+    await pumpAsyncWork(tester);
+
+    expect(
+      playback.intentCalls.any(
+        (i) =>
+            i.wantsPlay == false &&
+            i.startsNewNavigationActivation == false &&
+            i.clearsPendingNavigationActivation == false,
+      ),
+      isTrue,
+    );
+    expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsOneWidget);
+  });
+
+  testWidgets('W-18.4-F2 affordance tap resumes and hides affordance', (
+    tester,
+  ) async {
+    final playback = await _pumpSingleVideoFeed(tester);
+    await tester.tap(find.byKey(const Key('mainBrowsePlaybackTapTarget')));
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsOneWidget);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+    await tester.tap(find.byKey(const Key('mainBrowsePlaybackTapTarget')));
+    await pumpAsyncWork(tester);
+
+    expect(
+      playback.intentCalls.any(
+        (i) =>
+            i.wantsPlay == true && i.startsNewNavigationActivation == false,
+      ),
+      isTrue,
+    );
+    expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+  });
+
+  testWidgets(
+    'W-18.4-F3 inactive→resumed auto-plays without center affordance',
+    (tester) async {
+      final playback = await _pumpSingleVideoFeed(tester);
+      expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await pumpAsyncWork(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpAsyncWork(tester);
+
+      expect(
+        playback.intentCalls.any((i) => i.wantsPlay == true),
+        isTrue,
+      );
+      expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+      expect(
+        find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-18.4-F3b tap pause before inactive stays paused after resume',
+    (tester) async {
+      final playback = await _pumpSingleVideoFeed(tester);
+      await tester.tap(find.byKey(const Key('mainBrowsePlaybackTapTarget')));
+      await pumpAsyncWork(tester);
+      expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsOneWidget);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await pumpAsyncWork(tester);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpAsyncWork(tester);
+
+      expect(playback.calls.where((c) => c == 'play'), isEmpty);
+      expect(
+        find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-18.4-E1 epoch-only didUpdateWidget triggers foreground resume sync',
+    (tester) async {
+      final playback = await _pumpSingleVideoFeed(tester);
+      expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await pumpAsyncWork(tester);
+      expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final epochBefore = feedState.debugForegroundResumeSyncEpoch;
+      feedState.debugBumpForegroundResumeSyncEpoch();
+      await tester.pump();
+
+      expect(
+        feedState.debugForegroundResumeSyncEpoch,
+        equals(epochBefore + 1),
+      );
+      expect(
+        playback.intentCalls.any((i) => i.wantsPlay == true),
+        isTrue,
+      );
+      expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+    },
+  );
+
+  testWidgets('W-18.4-F4 still tap does not call playback intent', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.displaysById['s1'] = const DisplayAsset(
+      assetIdentifier: 's1',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/fake_still_s1.jpg',
+    );
+    display.previewsById['s1'] = const DisplayAsset(
+      assetIdentifier: 's1',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/fake_preview_s1.jpg',
+    );
+    final playback = FakePlaybackRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['s1']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedStill_s1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowsePlaybackTapTarget')), findsNothing);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+    await tester.tap(find.byKey(const Key('mainBrowseFeedStill_s1')));
+    await pumpAsyncWork(tester);
+
+    expect(playback.intentCalls, isEmpty);
+    expect(playback.calls.where((c) => c == 'play' || c == 'pause'), isEmpty);
+  });
+
+  testWidgets('W-18.4-F5 vertical drag still changes page', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    for (final id in const ['v1', 'v2']) {
+      display.displayErrorById[id] = 'unsupportedMedia';
+      display.previewsById[id] = DisplayAsset(
+        assetIdentifier: id,
+        mediaKind: PlaybackMediaKind.video,
+        localFilePath: '/tmp/fake_preview_$id.jpg',
+      );
+    }
+    final playback = FakePlaybackRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+        mediaDisplay: display,
+        playback: playback,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[0]}')), findsOneWidget);
+
+    await tester.drag(find.byType(PageView), const Offset(0, -280));
+    await pumpAsyncWork(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[1]}')), findsOneWidget);
+  });
+
+  testWidgets('W-18.4-F6 scrubber band tap is no-op', (tester) async {
+    final playback = await _pumpSingleVideoFeed(tester);
+    expect(find.byKey(const Key('mainBrowseScrubberReserveBand')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+
+    final band = tester.getRect(
+      find.byKey(const Key('mainBrowseScrubberReserveBand')),
+    );
+    await tester.tapAt(band.center);
+    await pumpAsyncWork(tester);
+
+    expect(playback.intentCalls, isEmpty);
+    expect(playback.calls.where((c) => c == 'play' || c == 'pause'), isEmpty);
+    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
   });
 }
 
@@ -5838,6 +6061,37 @@ Future<List<String>> _feedOrderedIds(WidgetTester tester) async {
   final element = tester.element(find.byType(VerticalMediaFeed));
   final container = ProviderScope.containerOf(element);
   return (await container.read(browseSessionProvider.future)).orderedAssetIds;
+}
+
+Future<FakePlaybackRepository> _pumpSingleVideoFeed(WidgetTester tester) async {
+  final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+  final display = FakeMediaDisplayRepository();
+  display.displayErrorById['v1'] = 'unsupportedMedia';
+  display.previewsById['v1'] = const DisplayAsset(
+    assetIdentifier: 'v1',
+    mediaKind: PlaybackMediaKind.video,
+    localFilePath: '/tmp/fake_preview_v1.jpg',
+  );
+  final playback = FakePlaybackRepository();
+  await tester.pumpWidget(
+    permissionUiHarness(
+      repo: repo,
+      assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+      mediaDisplay: display,
+      playback: playback,
+    ),
+  );
+  await pumpAsyncWork(tester);
+  expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+  for (var i = 0; i < 40; i++) {
+    if (find.byKey(const Key('mainBrowsePlaybackTapTarget')).evaluate().isNotEmpty &&
+        playback.calls.any((c) => c == 'play')) {
+      break;
+    }
+    await tester.pump(const Duration(milliseconds: 20));
+  }
+  expect(find.byKey(const Key('mainBrowsePlaybackTapTarget')), findsOneWidget);
+  return playback;
 }
 
 void _seedPvHandoffSnapshots(

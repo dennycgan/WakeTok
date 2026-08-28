@@ -75,6 +75,8 @@
     "mainBrowseStubAutoBody",
     "mainBrowseStubSettingsBody",
     "mainBrowseOpenLibrarySmokeDebug",
+    "mainBrowseVideoTapToPlay",
+    "mainBrowseVideoTapToPause",
     "mediaInfoRelativeWithin3Days",
     "mediaInfoRelativeWithinWeek",
     "mediaInfoRelativeDaysAgo",

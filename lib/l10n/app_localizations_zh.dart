@@ -326,6 +326,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
+  String get mainBrowseVideoTapToPlay => 'Play video';
+
+  @override
+  String get mainBrowseVideoTapToPause => 'Pause video';
+
+  @override
   String get mediaInfoRelativeWithin3Days => 'Within the past 3 days';
 
   @override
@@ -700,6 +706,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => '图库调试（debug）';
+
+  @override
+  String get mainBrowseVideoTapToPlay => '播放视频';
+
+  @override
+  String get mainBrowseVideoTapToPause => '暂停视频';
 
   @override
   String get mediaInfoRelativeWithin3Days => '3天内';

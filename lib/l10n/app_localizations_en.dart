@@ -329,6 +329,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
+  String get mainBrowseVideoTapToPlay => 'Play video';
+
+  @override
+  String get mainBrowseVideoTapToPause => 'Pause video';
+
+  @override
   String get mediaInfoRelativeWithin3Days => 'Within the past 3 days';
 
   @override

@@ -94,6 +94,8 @@
   "mainBrowseStubAutoBody": "自动播放 — 将在后续能力提供。",
   "mainBrowseStubSettingsBody": "设置 — 将在后续能力提供。",
   "mainBrowseOpenLibrarySmokeDebug": "图库调试（debug）",
+  "mainBrowseVideoTapToPlay": "播放视频",
+  "mainBrowseVideoTapToPause": "暂停视频",
   "mediaInfoRelativeWithin3Days": "3天内",
   "mediaInfoRelativeWithinWeek": "一周内",
   "mediaInfoRelativeDaysAgo": "{count} 天前",

@@ -43,7 +43,7 @@ void main() {
     expect(playIdx, greaterThan(intentIdx));
   });
 
-  test('C-18.3-C2 lifecycle leave sends false intent; resume does not play', () async {
+  test('C-18.3-C2 lifecycle leave preserves intent; resume sync plays', () async {
     final playback = FakePlaybackRepository();
     final coordinator = PlaybackCoordinator(playback: playback);
     final gate = FeedMediaRequestGate();
@@ -64,11 +64,25 @@ void main() {
       displayGeneration: generation,
       displayGate: gate,
     );
-    coordinator.onForegroundResume();
-
-    expect(playback.intentCalls.single.wantsPlay, isFalse);
+    expect(coordinator.userIntentWantsPlay, isTrue);
+    expect(playback.intentCalls.single.wantsPlay, isTrue);
     expect(playback.intentCalls.single.clearsPendingNavigationActivation, isTrue);
-    expect(playback.calls.where((c) => c == 'play'), isEmpty);
+    expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+
+    playback.calls.clear();
+    playback.intentCalls.clear();
+
+    await coordinator.onForegroundResumeSync(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      permission: _allAllowed(),
+      muted: false,
+    );
+
+    expect(coordinator.userIntentWantsPlay, isTrue);
+    expect(playback.intentCalls.single.wantsPlay, isTrue);
+    expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
   });
 
   test('C-18.3-C3 stale generation sends no play after intent await', () async {
@@ -138,8 +152,7 @@ void main() {
     expect(playback.intentCalls.last.startsNewNavigationActivation, isFalse);
   });
 
-  test('C-18.3-L1 lifecycle during load completes with clear intent and pause',
-      () async {
+  test('C-18.3-L1 lifecycle during load preserves intent and pauses', () async {
     final playback = FakePlaybackRepository();
     final coordinator = PlaybackCoordinator(playback: playback);
     final gate = FeedMediaRequestGate();
@@ -157,12 +170,19 @@ void main() {
       assetIdentifier: 'a',
       displayGeneration: generation,
       displayGate: gate,
-      permission: _allAllowed(surfaceReady: true),
+      permission: SystemPlaybackPermission(
+        isForegroundLifecycle: false,
+        isCurrentPage: true,
+        isL2ReadyVideo: true,
+        isSurfaceReady: true,
+        transitionBlocksPlayback: false,
+        hasHardPlaybackFailure: false,
+      ),
       muted: false,
     );
 
     final intent = playback.intentCalls.single;
-    expect(intent.wantsPlay, isFalse);
+    expect(intent.wantsPlay, isTrue);
     expect(intent.startsNewNavigationActivation, isFalse);
     expect(intent.clearsPendingNavigationActivation, isTrue);
     final intentIdx = playback.calls.indexWhere(

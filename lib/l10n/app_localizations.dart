@@ -657,6 +657,18 @@ abstract class AppLocalizations {
   /// **'Library smoke (debug)'**
   String get mainBrowseOpenLibrarySmokeDebug;
 
+  /// Semantics / accessibility label when paused video can resume via tap
+  ///
+  /// In en, this message translates to:
+  /// **'Play video'**
+  String get mainBrowseVideoTapToPlay;
+
+  /// Semantics / accessibility label when playing video can pause via tap
+  ///
+  /// In en, this message translates to:
+  /// **'Pause video'**
+  String get mainBrowseVideoTapToPause;
+
   /// Overlay row 1 when local calendar age is 0–2 days (Cap 17.7 coarse band)
   ///
   /// In en, this message translates to:
