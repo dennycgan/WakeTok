@@ -663,3 +663,102 @@ final class PlaybackRuntimeObserveHostTests: XCTestCase {
   }
 }
 
+final class PlaybackScrubPreviewTests: XCTestCase {
+  func testH18_5_1_isTimeSeekable_falseWhenEmptyRanges() {
+    let item = AVPlayerItem(url: URL(fileURLWithPath: "/tmp/missing.mp4"))
+    let time = CMTime(seconds: 1, preferredTimescale: 600)
+    XCTAssertFalse(PlaybackScrubPreview.isTimeSeekable(item: item, time: time))
+  }
+
+  func testH18_5_3_generateResult_localFixture_returnsJPEG() throws {
+    let url = try Self.makeTempVideoURL()
+    addTeardownBlock {
+      try? FileManager.default.removeItem(at: url)
+    }
+    let asset = AVURLAsset(url: url)
+    let result = PlaybackScrubPreview.generateResult(
+      asset: asset,
+      time: CMTime(seconds: 0.1, preferredTimescale: 600)
+    )
+    switch result {
+    case .success(let data):
+      XCTAssertGreaterThan(data.count, 100)
+      XCTAssertEqual(data.prefix(2), Data([0xFF, 0xD8]))
+    case .failure(let reason):
+      XCTFail("expected JPEG, got \(reason)")
+    }
+  }
+
+  private static func makeTempVideoURL() throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("wt185-preview-\(UUID().uuidString).mp4")
+    let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+    let settings: [String: Any] = [
+      AVVideoCodecKey: AVVideoCodecType.h264,
+      AVVideoWidthKey: 320,
+      AVVideoHeightKey: 240,
+    ]
+    let input = AVAssetWriterInput(mediaType: .video, outputSettings: settings)
+    input.expectsMediaDataInRealTime = false
+    let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+      assetWriterInput: input,
+      sourcePixelBufferAttributes: [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
+        kCVPixelBufferWidthKey as String: 320,
+        kCVPixelBufferHeightKey as String: 240,
+      ]
+    )
+    writer.add(input)
+    writer.startWriting()
+    writer.startSession(atSourceTime: .zero)
+    var pixelBuffer: CVPixelBuffer?
+    CVPixelBufferCreate(
+      kCFAllocatorDefault,
+      320,
+      240,
+      kCVPixelFormatType_32ARGB,
+      nil,
+      &pixelBuffer
+    )
+    guard let pixelBuffer else {
+      throw NSError(domain: "WT185", code: 1)
+    }
+    while !input.isReadyForMoreMediaData {
+      Thread.sleep(forTimeInterval: 0.01)
+    }
+    adaptor.append(pixelBuffer, withPresentationTime: .zero)
+    input.markAsFinished()
+    let sem = DispatchSemaphore(value: 0)
+    writer.finishWriting {
+      sem.signal()
+    }
+    sem.wait()
+    guard writer.status == .completed else {
+      throw writer.error ?? NSError(domain: "WT185", code: 2)
+    }
+    return url
+  }
+}
+
+final class PlaybackScrubPreviewHostTests: XCTestCase {
+  private func waitForMainQueue(timeout: TimeInterval = 1.0) {
+    let exp = expectation(description: "main queue")
+    DispatchQueue.main.async { exp.fulfill() }
+    waitForExpectations(timeout: timeout)
+  }
+
+  func testH18_5_2_noActivePlayer_returnsNil() {
+    let host = PlaybackApiHost()
+    let exp = expectation(description: "preview")
+    host.requestScrubPreviewFrame(positionSeconds: 1) { result in
+      if case .success(let data) = result {
+        XCTAssertNil(data)
+      } else {
+        XCTFail("expected success nil")
+      }
+      exp.fulfill()
+    }
+    wait(for: [exp], timeout: 1.0)
+  }
+}
+

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:waketok/domain/playback/playback_intent.dart';
@@ -33,10 +34,21 @@ class FakePlaybackRepository implements PlaybackRepository {
 
   int playbackPoolEpoch = 0;
 
+  /// When non-null, [requestScrubPreviewFrame] returns these bytes (Cap 18.5 tests).
+  Uint8List? scrubPreviewBytes;
+
   bool transitionAudioSuppressed = false;
 
+  final StreamController<PlaybackRuntimeEvent> _runtimeController =
+      StreamController<PlaybackRuntimeEvent>.broadcast();
+
+  /// For widget tests: emit runtime observe ticks.
+  void emitRuntimeEvent(PlaybackRuntimeEvent event) {
+    _runtimeController.add(event);
+  }
+
   @override
-  Stream<PlaybackRuntimeEvent> get runtimeEvents => const Stream.empty();
+  Stream<PlaybackRuntimeEvent> get runtimeEvents => _runtimeController.stream;
 
   @override
   Stream<PlaybackRestoreRequest> get restoreRequests =>
@@ -62,6 +74,7 @@ class FakePlaybackRepository implements PlaybackRepository {
     restoreController.close();
     surfaceAttachedController.close();
     surfaceReadyForDisplayController.close();
+    _runtimeController.close();
   }
 
   void _record(String entry) {
@@ -94,7 +107,13 @@ class FakePlaybackRepository implements PlaybackRepository {
 
   @override
   Future<void> seek(double positionSeconds) async {
-    _record('seek');
+    _record('seek:$positionSeconds');
+  }
+
+  @override
+  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds) async {
+    _record('scrubPreview:$positionSeconds');
+    return scrubPreviewBytes;
   }
 
   @override

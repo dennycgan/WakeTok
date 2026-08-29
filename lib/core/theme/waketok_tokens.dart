@@ -22,6 +22,9 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.onMediaMuted,
     required this.onMediaLabelShadows,
     required this.immersiveBottomBarHeight,
+    required this.scrubProgressTrack,
+    required this.scrubProgressPlayed,
+    required this.scrubPreviewPlaceholderFill,
     required this.titleChrome,
     required this.labelChrome,
     required this.bodyChrome,
@@ -67,6 +70,15 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   /// inflate the grey bar into a two-row-tall block.
   final double immersiveBottomBarHeight;
 
+  /// Cap 18.5 video scrubber track (unfilled portion).
+  final Color scrubProgressTrack;
+
+  /// Cap 18.5 video scrubber played fill.
+  final Color scrubProgressPlayed;
+
+  /// Cap 18.5 scrub preview bubble non-photographic placeholder.
+  final Color scrubPreviewPlaceholderFill;
+
   /// Top bar / AppBar title role.
   final TextStyle titleChrome;
 
@@ -111,6 +123,10 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     onMediaMuted: Color(0xB3FFFFFF),
     onMediaLabelShadows: _onMediaLabelShadows,
     immersiveBottomBarHeight: _immersiveBottomBarHeight,
+    scrubProgressTrack: Color(0x66FFFFFF),
+    scrubProgressPlayed: Color(0xFFFFFFFF),
+    // Opaque — semi-transparent fill lets video show through JPEG decode gaps.
+    scrubPreviewPlaceholderFill: Color(0xFF000000),
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
       fontWeight: FontWeight.w600,
@@ -155,6 +171,10 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     onMediaMuted: Color(0xB3FFFFFF),
     onMediaLabelShadows: _onMediaLabelShadows,
     immersiveBottomBarHeight: _immersiveBottomBarHeight,
+    scrubProgressTrack: Color(0x66FFFFFF),
+    scrubProgressPlayed: Color(0xFFFFFFFF),
+    // Opaque — semi-transparent fill lets video show through JPEG decode gaps.
+    scrubPreviewPlaceholderFill: Color(0xFF000000),
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
       fontWeight: FontWeight.w600,
@@ -200,6 +220,9 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? onMediaMuted,
     List<Shadow>? onMediaLabelShadows,
     double? immersiveBottomBarHeight,
+    Color? scrubProgressTrack,
+    Color? scrubProgressPlayed,
+    Color? scrubPreviewPlaceholderFill,
     TextStyle? titleChrome,
     TextStyle? labelChrome,
     TextStyle? bodyChrome,
@@ -219,6 +242,10 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       onMediaLabelShadows: onMediaLabelShadows ?? this.onMediaLabelShadows,
       immersiveBottomBarHeight:
           immersiveBottomBarHeight ?? this.immersiveBottomBarHeight,
+      scrubProgressTrack: scrubProgressTrack ?? this.scrubProgressTrack,
+      scrubProgressPlayed: scrubProgressPlayed ?? this.scrubProgressPlayed,
+      scrubPreviewPlaceholderFill:
+          scrubPreviewPlaceholderFill ?? this.scrubPreviewPlaceholderFill,
       titleChrome: titleChrome ?? this.titleChrome,
       labelChrome: labelChrome ?? this.labelChrome,
       bodyChrome: bodyChrome ?? this.bodyChrome,
@@ -249,6 +276,15 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
             other.immersiveBottomBarHeight,
             t,
           )!,
+      scrubProgressTrack:
+          Color.lerp(scrubProgressTrack, other.scrubProgressTrack, t)!,
+      scrubProgressPlayed:
+          Color.lerp(scrubProgressPlayed, other.scrubProgressPlayed, t)!,
+      scrubPreviewPlaceholderFill: Color.lerp(
+        scrubPreviewPlaceholderFill,
+        other.scrubPreviewPlaceholderFill,
+        t,
+      )!,
       titleChrome: TextStyle.lerp(titleChrome, other.titleChrome, t)!,
       labelChrome: TextStyle.lerp(labelChrome, other.labelChrome, t)!,
       bodyChrome: TextStyle.lerp(bodyChrome, other.bodyChrome, t)!,

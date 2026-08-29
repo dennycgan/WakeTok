@@ -177,6 +177,51 @@ class PlaybackCoordinator extends ChangeNotifier {
     });
   }
 
+  /// Cap 18.5: scrub drag begin — mechanical pause only; intent unchanged.
+  Future<void> onUserScrubBegin({
+    required String assetIdentifier,
+    required int displayGeneration,
+    required FeedMediaRequestGate displayGate,
+  }) {
+    return _enqueue(() async {
+      final capturedGen = displayGeneration;
+      if (!_gateStillCurrent(displayGate, capturedGen)) {
+        return;
+      }
+      await _playback.pause();
+    });
+  }
+
+  /// Cap 18.5: single seek on release, then restore effective play/pause.
+  Future<void> onUserScrubComplete({
+    required String assetIdentifier,
+    required int displayGeneration,
+    required FeedMediaRequestGate displayGate,
+    required double positionSeconds,
+    required SystemPlaybackPermission permission,
+    required bool muted,
+  }) {
+    return _enqueue(() async {
+      final capturedGen = displayGeneration;
+      if (!_gateStillCurrent(displayGate, capturedGen)) {
+        return;
+      }
+      await _playback.seek(positionSeconds);
+      if (!_gateStillCurrent(displayGate, capturedGen)) {
+        return;
+      }
+      await _syncIntentAndPlayback(
+        assetIdentifier: assetIdentifier,
+        displayGeneration: displayGeneration,
+        displayGate: displayGate,
+        startsNewNavigationActivation: false,
+        clearsPendingNavigationActivation: false,
+        permission: permission,
+        muted: muted,
+      );
+    });
+  }
+
   /// Swipe-away / source switch: mechanical pause without intent mutation.
   Future<void> onLeaveCurrent() {
     return _enqueue(() async {

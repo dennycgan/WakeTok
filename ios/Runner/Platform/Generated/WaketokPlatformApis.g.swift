@@ -886,6 +886,8 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
   var currentIndex: Int64
   var playbackPositionSeconds: Double
   var playbackState: PlaybackState
+  /// Active item duration when known; null when indefinite / unavailable.
+  var durationSeconds: Double? = nil
   var errorCode: ErrorCode? = nil
 
 
@@ -896,7 +898,8 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
     let currentIndex = pigeonVar_list[2] as! Int64
     let playbackPositionSeconds = pigeonVar_list[3] as! Double
     let playbackState = pigeonVar_list[4] as! PlaybackState
-    let errorCode: ErrorCode? = nilOrValue(pigeonVar_list[5])
+    let durationSeconds: Double? = nilOrValue(pigeonVar_list[5])
+    let errorCode: ErrorCode? = nilOrValue(pigeonVar_list[6])
 
     return PlaybackRuntimeEventDto(
       planId: planId,
@@ -904,6 +907,7 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
       currentIndex: currentIndex,
       playbackPositionSeconds: playbackPositionSeconds,
       playbackState: playbackState,
+      durationSeconds: durationSeconds,
       errorCode: errorCode
     )
   }
@@ -914,6 +918,7 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
       currentIndex,
       playbackPositionSeconds,
       playbackState,
+      durationSeconds,
       errorCode,
     ]
   }
@@ -921,7 +926,7 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.planId, rhs.planId) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.currentItemIdentifier, rhs.currentItemIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.currentIndex, rhs.currentIndex) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.playbackPositionSeconds, rhs.playbackPositionSeconds) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.playbackState, rhs.playbackState) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.errorCode, rhs.errorCode)
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.planId, rhs.planId) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.currentItemIdentifier, rhs.currentItemIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.currentIndex, rhs.currentIndex) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.playbackPositionSeconds, rhs.playbackPositionSeconds) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.playbackState, rhs.playbackState) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.durationSeconds, rhs.durationSeconds) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.errorCode, rhs.errorCode)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -931,11 +936,12 @@ struct PlaybackRuntimeEventDto: Hashable, CustomStringConvertible {
     WaketokPlatformApisPigeonInternal.deepHash(value: currentIndex, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: playbackPositionSeconds, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: playbackState, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: durationSeconds, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: errorCode, hasher: &hasher)
   }
 
   public var description: String {
-    return "PlaybackRuntimeEventDto(planId: \(String(describing: planId)), currentItemIdentifier: \(String(describing: currentItemIdentifier)), currentIndex: \(String(describing: currentIndex)), playbackPositionSeconds: \(String(describing: playbackPositionSeconds)), playbackState: \(String(describing: playbackState)), errorCode: \(String(describing: errorCode)))"
+    return "PlaybackRuntimeEventDto(planId: \(String(describing: planId)), currentItemIdentifier: \(String(describing: currentItemIdentifier)), currentIndex: \(String(describing: currentIndex)), playbackPositionSeconds: \(String(describing: playbackPositionSeconds)), playbackState: \(String(describing: playbackState)), durationSeconds: \(String(describing: durationSeconds)), errorCode: \(String(describing: errorCode)))"
   }
 }
 
@@ -1817,6 +1823,10 @@ protocol PlaybackApi {
   /// Cap 18.3 / ADR-040: sync user intent + optional navigation activation mirror.
   /// Host must apply mirror synchronously before replying.
   func setPlaybackIntent(intent: PlaybackIntentDto) throws
+  /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
+  /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+  /// Must not seek the active [AVPlayer] — preview only.
+  func requestScrubPreviewFrame(positionSeconds: Double, completion: @escaping (Result<FlutterStandardTypedData?, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -2072,6 +2082,26 @@ class PlaybackApiSetup {
       }
     } else {
       setPlaybackIntentChannel.setMessageHandler(nil)
+    }
+    /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
+    /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+    /// Must not seek the active [AVPlayer] — preview only.
+    let requestScrubPreviewFrameChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.requestScrubPreviewFrame\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestScrubPreviewFrameChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let positionSecondsArg = args[0] as! Double
+        api.requestScrubPreviewFrame(positionSeconds: positionSecondsArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestScrubPreviewFrameChannel.setMessageHandler(nil)
     }
   }
 }

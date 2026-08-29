@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
@@ -114,6 +115,10 @@ class PlaybackGateway
   Future<void> seek(double positionSeconds) => _api.seek(positionSeconds);
 
   @override
+  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds) =>
+      _api.requestScrubPreviewFrame(positionSeconds);
+
+  @override
   Future<void> setRate(double rate) => _api.setRate(rate);
 
   @override
@@ -223,6 +228,7 @@ class PlaybackGateway
         currentIndex: event.currentIndex,
         playbackPositionSeconds: event.playbackPositionSeconds,
         playbackState: playbackRuntimeStateFromPigeon(event.playbackState),
+        durationSeconds: event.durationSeconds,
       ),
     );
   }

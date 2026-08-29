@@ -919,6 +919,7 @@ class PlaybackRuntimeEventDto {
     required this.currentIndex,
     required this.playbackPositionSeconds,
     required this.playbackState,
+    this.durationSeconds,
     this.errorCode,
   });
 
@@ -932,6 +933,9 @@ class PlaybackRuntimeEventDto {
 
   PlaybackState playbackState;
 
+  /// Active item duration when known; null when indefinite / unavailable.
+  double? durationSeconds;
+
   ErrorCode? errorCode;
 
   List<Object?> _toList() {
@@ -941,6 +945,7 @@ class PlaybackRuntimeEventDto {
       currentIndex,
       playbackPositionSeconds,
       playbackState,
+      durationSeconds,
       errorCode,
     ];
   }
@@ -956,7 +961,8 @@ class PlaybackRuntimeEventDto {
       currentIndex: result[2]! as int,
       playbackPositionSeconds: result[3]! as double,
       playbackState: result[4]! as PlaybackState,
-      errorCode: result[5] as ErrorCode?,
+      durationSeconds: result[5] as double?,
+      errorCode: result[6] as ErrorCode?,
     );
   }
 
@@ -969,7 +975,7 @@ class PlaybackRuntimeEventDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(planId, other.planId) && _deepEquals(currentItemIdentifier, other.currentItemIdentifier) && _deepEquals(currentIndex, other.currentIndex) && _deepEquals(playbackPositionSeconds, other.playbackPositionSeconds) && _deepEquals(playbackState, other.playbackState) && _deepEquals(errorCode, other.errorCode);
+    return _deepEquals(planId, other.planId) && _deepEquals(currentItemIdentifier, other.currentItemIdentifier) && _deepEquals(currentIndex, other.currentIndex) && _deepEquals(playbackPositionSeconds, other.playbackPositionSeconds) && _deepEquals(playbackState, other.playbackState) && _deepEquals(durationSeconds, other.durationSeconds) && _deepEquals(errorCode, other.errorCode);
   }
 
   @override
@@ -978,7 +984,7 @@ class PlaybackRuntimeEventDto {
 
   @override
   String toString() {
-    return 'PlaybackRuntimeEventDto(planId: $planId, currentItemIdentifier: $currentItemIdentifier, currentIndex: $currentIndex, playbackPositionSeconds: $playbackPositionSeconds, playbackState: $playbackState, errorCode: $errorCode)';
+    return 'PlaybackRuntimeEventDto(planId: $planId, currentItemIdentifier: $currentItemIdentifier, currentIndex: $currentIndex, playbackPositionSeconds: $playbackPositionSeconds, playbackState: $playbackState, durationSeconds: $durationSeconds, errorCode: $errorCode)';
   }
 }
 
@@ -2053,6 +2059,28 @@ class PlaybackApi {
         isNullValid: true,
     )
     ;
+  }
+
+  /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
+  /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+  /// Must not seek the active [AVPlayer] — preview only.
+  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.requestScrubPreviewFrame$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[positionSeconds]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+    return pigeonVar_replyValue as Uint8List?;
   }
 }
 

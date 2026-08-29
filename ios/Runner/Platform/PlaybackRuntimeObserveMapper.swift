@@ -13,6 +13,7 @@ struct PlaybackRuntimeSnapshot: Equatable {
   var timeControlStatus: AVPlayer.TimeControlStatus?
   var rate: Float = 0
   var activeItemDidPlayToEnd: Bool = false
+  var durationSeconds: Double? = nil
 
   static let empty = PlaybackRuntimeSnapshot()
 }
@@ -41,6 +42,7 @@ enum PlaybackRuntimeObserveMapper {
         currentIndex: index,
         playbackPositionSeconds: 0,
         playbackState: .idle,
+        durationSeconds: nil,
         errorCode: nil
       )
     }
@@ -89,6 +91,7 @@ enum PlaybackRuntimeObserveMapper {
       currentIndex: snapshot.currentIndex,
       playbackPositionSeconds: position,
       playbackState: state,
+      durationSeconds: snapshot.durationSeconds,
       errorCode: nil
     )
   }

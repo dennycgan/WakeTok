@@ -311,6 +311,7 @@ class PlaybackRuntimeEventDto {
     required this.currentIndex,
     required this.playbackPositionSeconds,
     required this.playbackState,
+    this.durationSeconds,
     this.errorCode,
   });
 
@@ -319,6 +320,9 @@ class PlaybackRuntimeEventDto {
   int currentIndex;
   double playbackPositionSeconds;
   PlaybackState playbackState;
+
+  /// Active item duration when known; null when indefinite / unavailable.
+  double? durationSeconds;
   ErrorCode? errorCode;
 }
 
@@ -581,6 +585,12 @@ abstract class PlaybackApi {
   /// Cap 18.3 / ADR-040: sync user intent + optional navigation activation mirror.
   /// Host must apply mirror synchronously before replying.
   void setPlaybackIntent(PlaybackIntentDto intent);
+
+  /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
+  /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+  /// Must not seek the active [AVPlayer] — preview only.
+  @async
+  Uint8List? requestScrubPreviewFrame(double positionSeconds);
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).

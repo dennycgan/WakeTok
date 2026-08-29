@@ -6018,21 +6018,48 @@ void main() {
 
   testWidgets('W-18.4-F6 scrubber band tap is no-op', (tester) async {
     final playback = await _pumpSingleVideoFeed(tester);
-    expect(find.byKey(const Key('mainBrowseScrubberReserveBand')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseVideoScrubber')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
 
     playback.calls.clear();
     playback.intentCalls.clear();
 
-    final band = tester.getRect(
-      find.byKey(const Key('mainBrowseScrubberReserveBand')),
-    );
-    await tester.tapAt(band.center);
+    await tester.tap(find.byKey(const Key('mainBrowseVideoScrubber')));
     await pumpAsyncWork(tester);
 
     expect(playback.intentCalls, isEmpty);
     expect(playback.calls.where((c) => c == 'play' || c == 'pause'), isEmpty);
     expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+  });
+
+  testWidgets('W-18.5-5 band horizontal drag does not change page', (
+    tester,
+  ) async {
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    await _pumpTwoVideoPosterFeed(tester, playback: playback, display: display);
+    final ids = await _feedOrderedIds(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[0]}')), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('mainBrowseVideoScrubber')),
+      const Offset(120, 0),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[0]}')), findsOneWidget);
+  });
+
+  testWidgets('W-18.5-6 vertical drag outside band still changes page', (
+    tester,
+  ) async {
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    await _pumpTwoVideoPosterFeed(tester, playback: playback, display: display);
+    final ids = await _feedOrderedIds(tester);
+
+    await tester.drag(find.byType(PageView), const Offset(0, -280));
+    await pumpAsyncWork(tester);
+    expect(find.byKey(Key('mainBrowseFeedVideo_${ids[1]}')), findsOneWidget);
   });
 }
 

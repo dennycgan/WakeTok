@@ -138,19 +138,6 @@ class _MediaPlaybackTapOverlayState extends State<MediaPlaybackTapOverlay> {
             ),
           ),
         ),
-        // Hit-test marker only — taps fall through to [Listener], which
-        // no-ops when dy is inside the reserve band.
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: widget.scrubberReserveHeight,
-          child: const IgnorePointer(
-            child: SizedBox.expand(
-              key: Key('mainBrowseScrubberReserveBand'),
-            ),
-          ),
-        ),
         if (widget.showAffordance)
           IgnorePointer(
             child: Center(

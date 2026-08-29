@@ -44,6 +44,15 @@ final class PlaybackApiHost: PlaybackApi {
 
   /// Cap 18.2 / ADR-040 Decision 13: periodic runtime observe for scrubber (18.5).
   private let runtimeObserver = PlaybackRuntimeObserver()
+  private let scrubPreviewQueue = DispatchQueue(
+    label: "com.dennycgan.waketok.playback.scrubpreview",
+    qos: .userInitiated
+  )
+  /// Single-flight guard: one generate at a time; newer calls coalesce.
+  private var scrubPreviewInFlight = false
+  private var scrubPreviewPendingSeconds: Double?
+  private var scrubPreviewPendingCompletion:
+    ((Result<FlutterStandardTypedData?, Error>) -> Void)?
 #if DEBUG
   private(set) var debugRuntimeEventsForTests: [PlaybackRuntimeEventDto] = []
 #endif
@@ -286,6 +295,97 @@ final class PlaybackApiHost: PlaybackApi {
         currentAssetIdentifier: self.currentAssetIdentifier,
         clearEpoch: self.clearEpoch
       )
+    }
+  }
+
+  func requestScrubPreviewFrame(
+    positionSeconds: Double,
+    completion: @escaping (Result<FlutterStandardTypedData?, Error>) -> Void
+  ) {
+    runOnMain { [weak self] in
+      guard let self else {
+        completion(.success(nil))
+        return
+      }
+      guard let player = self.activePlayer,
+        self.activeAssetId == self.currentAssetIdentifier,
+        let item = player.currentItem
+      else {
+        ScrubPreviewProbe.info(
+          "nil position=\(String(format: "%.2f", positionSeconds)) reason=noActivePlayer"
+        )
+        completion(.success(nil))
+        return
+      }
+      if self.scrubPreviewInFlight {
+        self.scrubPreviewPendingCompletion?(.success(nil))
+        self.scrubPreviewPendingSeconds = positionSeconds
+        self.scrubPreviewPendingCompletion = completion
+        ScrubPreviewProbe.info(
+          "coalesced position=\(String(format: "%.2f", positionSeconds)) reason=inFlight"
+        )
+        return
+      }
+      self.startScrubPreviewWork(
+        positionSeconds: positionSeconds,
+        asset: item.asset,
+        completion: completion
+      )
+    }
+  }
+
+  private func startScrubPreviewWork(
+    positionSeconds: Double,
+    asset: AVAsset,
+    completion: @escaping (Result<FlutterStandardTypedData?, Error>) -> Void
+  ) {
+    scrubPreviewInFlight = true
+    scrubPreviewPendingSeconds = nil
+    scrubPreviewPendingCompletion = nil
+    let time = CMTime(seconds: positionSeconds, preferredTimescale: 600)
+    let started = CFAbsoluteTimeGetCurrent()
+    ScrubPreviewProbe.info(
+      "start position=\(String(format: "%.2f", positionSeconds))"
+    )
+    scrubPreviewQueue.async { [weak self] in
+      let previewResult = PlaybackScrubPreview.generateResult(
+        asset: asset,
+        time: time
+      )
+      let elapsedMs = Int((CFAbsoluteTimeGetCurrent() - started) * 1000)
+      DispatchQueue.main.async { [weak self] in
+        guard let self else {
+          completion(.success(nil))
+          return
+        }
+        self.scrubPreviewInFlight = false
+        switch previewResult {
+        case .success(let data):
+          ScrubPreviewProbe.info(
+            "ok position=\(String(format: "%.2f", positionSeconds)) bytes=\(data.count) ms=\(elapsedMs)"
+          )
+          completion(.success(FlutterStandardTypedData(bytes: data)))
+        case .failure(let reason):
+          ScrubPreviewProbe.info(
+            "nil position=\(String(format: "%.2f", positionSeconds)) reason=\(reason) ms=\(elapsedMs)"
+          )
+          completion(.success(nil))
+        }
+        if let pendingSeconds = self.scrubPreviewPendingSeconds,
+          let pendingCompletion = self.scrubPreviewPendingCompletion,
+          let player = self.activePlayer,
+          self.activeAssetId == self.currentAssetIdentifier,
+          let item = player.currentItem
+        {
+          self.scrubPreviewPendingSeconds = nil
+          self.scrubPreviewPendingCompletion = nil
+          self.startScrubPreviewWork(
+            positionSeconds: pendingSeconds,
+            asset: item.asset,
+            completion: pendingCompletion
+          )
+        }
+      }
     }
   }
 
@@ -947,8 +1047,18 @@ final class PlaybackApiHost: PlaybackApi {
       isPreparingCurrent: preparing,
       timeControlStatus: activePlayer?.timeControlStatus,
       rate: activePlayer?.rate ?? 0,
-      activeItemDidPlayToEnd: activeItemDidPlayToEnd
+      activeItemDidPlayToEnd: activeItemDidPlayToEnd,
+      durationSeconds: Self.durationSeconds(for: activePlayer)
     )
+  }
+
+  private static func durationSeconds(for player: AVPlayer?) -> Double? {
+    guard let item = player?.currentItem else { return nil }
+    let duration = item.duration
+    guard duration.isNumeric, !duration.isIndefinite else { return nil }
+    let seconds = duration.seconds
+    guard seconds.isFinite, seconds > 0 else { return nil }
+    return seconds
   }
 
   private func emitRuntimeEvent(_ dto: PlaybackRuntimeEventDto) {

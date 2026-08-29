@@ -49,6 +49,7 @@ class PlaybackRuntimeEvent {
     required this.currentIndex,
     required this.playbackPositionSeconds,
     required this.playbackState,
+    this.durationSeconds,
   });
 
   final String planId;
@@ -56,6 +57,9 @@ class PlaybackRuntimeEvent {
   final int currentIndex;
   final double playbackPositionSeconds;
   final PlaybackRuntimeState playbackState;
+
+  /// When known from Host; null if indefinite or unavailable.
+  final double? durationSeconds;
 }
 
 /// Native asks Dart to sync the feed to [feedIndex] (Cap 7.5).

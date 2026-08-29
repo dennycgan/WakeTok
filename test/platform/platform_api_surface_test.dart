@@ -27,6 +27,7 @@ void main() {
     'setTransitionAudioSuppressed',
     'getPlaybackPoolEpoch',
     'setPlaybackIntent',
+    'requestScrubPreviewFrame',
   };
 
   const expectedPlaybackFlutterMethods = <String>{

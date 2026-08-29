@@ -32,6 +32,8 @@ import 'package:waketok/features/main_browse/playback_coordinator.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
+import 'package:waketok/features/main_browse/scrubber_policy.dart';
+import 'package:waketok/features/main_browse/video_progress_scrubber.dart';
 import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -3350,6 +3352,55 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         );
   }
 
+  Future<void> _onScrubBegin() async {
+    final media = _media;
+    if (media == null || media.kind != FeedPageMediaKind.video) {
+      return;
+    }
+    if (!widget.isCurrent ||
+        _layer2InFlight ||
+        !_surfaceReady ||
+        _layer2Failed) {
+      return;
+    }
+    final gate = widget.currentDisplayGate;
+    final generation = widget.assignedDisplayGeneration;
+    if (gate == null || generation == null) {
+      return;
+    }
+    await ref.read(playbackCoordinatorProvider).onUserScrubBegin(
+          assetIdentifier: widget.assetIdentifier,
+          displayGeneration: generation,
+          displayGate: gate,
+        );
+  }
+
+  Future<void> _onScrubComplete(double positionSeconds) async {
+    final media = _media;
+    if (media == null || media.kind != FeedPageMediaKind.video) {
+      return;
+    }
+    if (!widget.isCurrent ||
+        _layer2InFlight ||
+        !_surfaceReady ||
+        _layer2Failed) {
+      return;
+    }
+    final gate = widget.currentDisplayGate;
+    final generation = widget.assignedDisplayGeneration;
+    if (gate == null || generation == null) {
+      return;
+    }
+    await ref.read(playbackCoordinatorProvider).onUserScrubComplete(
+          assetIdentifier: widget.assetIdentifier,
+          displayGeneration: generation,
+          displayGate: gate,
+          positionSeconds: positionSeconds,
+          permission: _playbackPermission(),
+          muted: ref.read(sharedMuteProvider),
+        );
+  }
+
   @override
   Widget build(BuildContext context) {
     _syncPvHandoffSnapshot();
@@ -3598,6 +3649,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           playbackTapSurfaceReady: _surfaceReady,
           playbackTapTransitionCovering: covering,
           playbackTapHardFailure: _layer2Failed,
+          scrubberLayer2InFlight: _layer2InFlight,
+          onScrubBegin: coordinator == null
+              ? null
+              : () {
+                  unawaited(_onScrubBegin());
+                },
+          onScrubComplete: coordinator == null
+              ? null
+              : (seconds) {
+                  unawaited(_onScrubComplete(seconds));
+                },
+          playbackRepository:
+              coordinator == null ? null : (_playbackRepo ?? ref.read(playbackRepositoryProvider)),
         );
       }(),
       FeedPageMediaKind.failed =>
@@ -3637,6 +3701,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     bool playbackTapSurfaceReady = false,
     bool playbackTapTransitionCovering = false,
     bool playbackTapHardFailure = false,
+    bool scrubberLayer2InFlight = true,
+    VoidCallback? onScrubBegin,
+    void Function(double positionSeconds)? onScrubComplete,
+    PlaybackRepository? playbackRepository,
   }) {
     final guard = ref.watch(pvTransitionGuardProvider);
     final coverPath = guard.isCovering(widget.assetIdentifier)
@@ -3695,6 +3763,25 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 showAffordance: showAffordance,
               );
             },
+          ),
+        if (onScrubBegin != null &&
+            onScrubComplete != null &&
+            playbackRepository != null &&
+            video != null)
+          VideoProgressScrubber(
+            assetIdentifier: widget.assetIdentifier,
+            frozen: scrubberFrozen(
+              isCurrent: playbackTapIsCurrent,
+              isOrdinaryVideo: true,
+              layer2InFlight: scrubberLayer2InFlight,
+              surfaceReady: playbackTapSurfaceReady,
+              hardFailure: playbackTapHardFailure,
+              transitionCovering: playbackTapTransitionCovering,
+            ),
+            runtimeEvents: playbackRepository.runtimeEvents,
+            onScrubBegin: onScrubBegin,
+            onScrubComplete: onScrubComplete,
+            requestPreview: playbackRepository.requestScrubPreviewFrame,
           ),
         if (showLayer2WaitSpinner && still == null && poster == null)
           _FeedCornerChrome(
