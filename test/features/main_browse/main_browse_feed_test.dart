@@ -50,6 +50,42 @@ Future<void> pumpAsyncWork(WidgetTester tester) async {
   }
 }
 
+Finder _mediaFeedPage(String assetIdentifier) {
+  return find.byWidgetPredicate(
+    (w) => w is MediaFeedPage && w.assetIdentifier == assetIdentifier,
+    skipOffstage: false,
+  );
+}
+
+MediaFeedPageState _mediaFeedPageState(
+  WidgetTester tester,
+  String assetIdentifier,
+) {
+  return tester.state<MediaFeedPageState>(_mediaFeedPage(assetIdentifier));
+}
+
+/// Sync elapsed past ADR-034 G still-a2 suppress-below-T in widget tests.
+///
+/// [tester.pump(duration)] advances FakeAsync Timers but not [DateTime.now],
+/// which production G uses for in-flight elapsed. Mirror device wall clock
+/// via the page test seam (same pattern as W-14.6b-L2).
+Future<void> revealLayer2WaitChromeForTest(
+  WidgetTester tester,
+  String assetIdentifier, {
+  Duration elapsed = kDefaultA4SuppressBelow,
+}) async {
+  final page = _mediaFeedPageState(tester, assetIdentifier);
+  page.debugInFlightElapsedOverride = elapsed;
+  tester.element(_mediaFeedPage(assetIdentifier)).markNeedsBuild();
+  await tester.pump();
+}
+
+/// ADR-034 F1 Live-prepare suppress-below-T uses a reveal Timer (fake-async safe).
+Future<void> pumpPastLivePreparingSuppress(WidgetTester tester) async {
+  await tester.pump(kDefaultA4SuppressBelow);
+  await tester.pump();
+}
+
 void main() {
   testWidgets('W-F1 full lands on VerticalMediaFeed not placeholder', (
     tester,
@@ -1120,6 +1156,7 @@ void main() {
       mediaKind: PlaybackMediaKind.image,
       localFilePath: '/tmp/fake_preview_a1.jpg',
     );
+    display.displayGates['a1'] = Completer<void>();
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -1134,13 +1171,24 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
     expect(
       find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
-      findsOneWidget,
+      findsNothing,
+      reason: 'ADR-034 G suppresses still a2 corner chrome below T at dwell start',
     );
-    await tester.pump(const Duration(milliseconds: 299));
+    await tester.pump(const Duration(milliseconds: 149));
+    expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsNothing);
+    await revealLayer2WaitChromeForTest(tester, 'a1');
     expect(
       find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
       findsOneWidget,
+      reason: 'still a2 chrome paints at elapsed ≥ T while dwell + L2 hang',
     );
+    await tester.pump(const Duration(milliseconds: 139));
+    expect(
+      find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+      findsOneWidget,
+      reason: 'spinner stays through dwell while Layer 2 fetch is hung',
+    );
+    expect(display.displayCalls, isEmpty);
   });
 
   testWidgets('W-16.4f neighbour promote still dwells', (tester) async {
@@ -1459,18 +1507,13 @@ void main() {
           presentationMetadata: presentation,
         ),
       );
-      var sawLayer3 = false;
-      for (var i = 0; i < 40; i++) {
-        await tester.pump(const Duration(milliseconds: 50));
-        if (find
-            .byKey(const Key('mainBrowseFeedLayer3Spinner'))
-            .evaluate()
-            .isNotEmpty) {
-          sawLayer3 = true;
-          break;
-        }
-      }
-      expect(sawLayer3, isTrue);
+      await pumpAsyncWork(tester);
+      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+      await revealLayer2WaitChromeForTest(tester, 'a1');
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
+      );
 
       // Metadata can finish while display is still hung — Overlay stays up.
       for (var i = 0; i < 40; i++) {
@@ -2300,7 +2343,7 @@ void main() {
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
     await tester.pump();
     await tester.idle();
-    await tester.pump();
+    await pumpPastLivePreparingSuppress(tester);
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       findsOneWidget,
@@ -2375,6 +2418,7 @@ void main() {
         ),
       );
       await pumpAsyncWork(tester);
+      await revealLayer2WaitChromeForTest(tester, 'live-1');
 
       expect(
         find.byKey(const Key('mainBrowseFeedStill_live-1')),
@@ -2531,6 +2575,7 @@ void main() {
         ),
       );
       await pumpAsyncWork(tester);
+      await revealLayer2WaitChromeForTest(tester, 'a1');
 
       expect(
         find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
@@ -2559,12 +2604,7 @@ void main() {
       expect(
         spinner.center.dy,
         closeTo(chrome.center.dy, 1),
-        reason: 'non-Live spinner must share the Live badge-row vertical slot',
-      );
-      expect(
-        chrome.height,
-        greaterThan(spinner.height),
-        reason: 'zero-width LIVE badge strut must raise the spinner',
+        reason: 'non-Live spinner is vertically centered in the corner chrome row',
       );
     },
   );
@@ -2635,12 +2675,7 @@ void main() {
       expect(
         spinner.center.dy,
         closeTo(chrome.center.dy, 1),
-        reason: 'miss spinner must share the Live badge-row vertical slot',
-      );
-      expect(
-        chrome.height,
-        greaterThan(spinner.height),
-        reason: 'zero-width LIVE badge strut must raise the spinner',
+        reason: 'miss spinner is vertically centered in the corner chrome row',
       );
 
       display.previewGates['a1']!.complete();
@@ -3142,6 +3177,7 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await revealLayer2WaitChromeForTest(tester, 'v1');
 
     expect(find.byKey(const Key('mainBrowseFeedStill_v1')), findsOneWidget);
     expect(
