@@ -210,15 +210,15 @@ arbitration (Cap 18)
 - [x] 18.4 Tap + center affordance + lifecycle auto-resume;
       debt **434** closed. Device Kafka Profile PASS
       (`cap18-18.4-notes.md`). Work `d4a3bb6`; docs (this commit)
-- [ ] 18.5 Scrubber + progress-drag + shipped three-way arbitration:
+- [x] 18.5 Scrubber + progress-drag + shipped three-way arbitration:
       scrubber always visible on current video, frozen until L2 ready;
       drag-only + seek once on release; band tap no-op (no fall-
-      through to media tap); timestamp label while dragging; no Cap
-      18 scrub-preview hard gate; priority
-      scrubber band > media-area tap > vertical PageView via spatial
-      separation + arena tests; POC-04 regression that tap / scrub
-      do not freeze PageView. Optional scrub-preview feasibility
-      may be noted here but must not expand Cap 18 acceptance
+      through to media tap); timestamp label while dragging; scrub
+      preview bubble shipped (ADR-040 Decision 13 Cap 18.5 supplement);
+      priority scrubber band > media-area tap > vertical PageView via
+      spatial separation + arena tests; POC-04 regression that tap /
+      scrub do not freeze PageView. Device i17 Green + Kafka Profile PASS
+      (`cap18-18.5-notes.md`). Work `a87fd7f` + `34e59eb`; docs this commit
 - [ ] 18.6 Device acceptance (Kafka Profile): debt **395**,
       tap, scrub, swipe, Live no-regression, and ADR-027
       Settings-leave no-regression
@@ -228,16 +228,18 @@ arbitration (Cap 18)
       Two-commit discipline unchanged
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **18.5** scrubber + progress-drag + three-way
-      gesture arbitration tests
+- Goal (one line): Cap **18.6** device acceptance (Kafka Profile): debt **395**,
+      tap, scrub, swipe, Live no-regression, and ADR-027 Settings-leave
+      no-regression
 - Sub-steps done: 18.1 ADR-040 Accepted; 18.2 runtime observe
       (`c9761a8`); 18.3 dual-signal (`11c5202`); 18.4 tap / affordance /
-      lifecycle auto-resume (`d4a3bb6`); debt **434** closed; debt **441**
-      opened (video revisit landing flash — continue observation)
-- Next step: 18.5 implementation (scrubber + progress-drag + arbitration
-      tests)
-- Related decisions: ADR-040 **Accepted** (`d4a3bb6`); ADR-006 /
-      ADR-019 / ADR-026 / ADR-027; debts **395** → Cap 18.7;
+      lifecycle auto-resume (`d4a3bb6`); 18.5 scrubber + preview bubble +
+      release seek (`a87fd7f` + `34e59eb`); debt **434** closed; debts **442** /
+      **443** opened (accepted Cap 18.5 residuals); debt **441** continue
+      observation
+- Next step: 18.6 device acceptance pass on Kafka Profile
+- Related decisions: ADR-040 **Accepted** (`d4a3bb6`; 18.5 supplement
+      `34e59eb`); ADR-006 / ADR-019 / ADR-026 / ADR-027; debts **395** → Cap 18.7;
       debt **400** open Unassigned; debt **403** stall/progress
       Unassigned; debt **441** continue observation; debt **432**
       feed-shell tab-switch polish Unassigned; debt **428** F1
@@ -458,6 +460,8 @@ arbitration (Cap 18)
   docs/acceptance/cap17-17.6-notes.md
 - Acceptance notes (Cap 18.4 tap / affordance / lifecycle auto-resume):
   docs/acceptance/cap18-18.4-notes.md
+- Acceptance notes (Cap 18.5 scrubber + preview bubble + release seek):
+  docs/acceptance/cap18-18.5-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
@@ -525,6 +529,8 @@ arbitration (Cap 18)
 | 439 | Live Photo | Live explicit replay control | Owning Cap unassigned; ADR-019 Decision 8 narrow supplement pending that Cap. Persistent anchor for ADR-040 Decision 17 and Phase 18.1 `owning Cap TBD` — **retain through Cap 18.7 close-out**; do not delete when Cap 18 Phase Roadmap is archived unless an owning Cap has landed implementation and picked this up. | Unassigned | ADR-019 / ADR-040 |
 | 440 | Main Browse Screen | Seven existing spinner / preparing-chrome widget tests are red on `main` | Verified against clean baseline `3e3947c` before Cap 18.3: W-16.4e, W-L2, L-S6, W-14.6b-L1/L4, W-15.3, and W-14.4 all fail identically before and after the 18.3 worktree changes. Failures concern missing Layer3 / Live-preparing chrome within test timing windows, except W-15.3's LIVE-badge strut height (`16.0`, expected `>16.0`). They are not Cap 18.3 playback-intent regressions. W-16.4e probe (still a2 + L1 + dwell; real arm+dwell, not debugForce; elapsed synced to FakeAsync): asserts spinner at t≈0, which conflicts with ADR-034 G (suppress &lt;150 ms); at t≥150 ms spinner paints — product chrome healthy. That assert’s timepoint is obsolete post-17.3 (stale assertion, not product regression). Does not re-prove the other six reds in this row. | Before Cap 18.6 (test/chrome reconciliation) | ADR-032 / ADR-034 / ADR-039 |
 | 441 | Main Browse Screen | Session **video** revisit: landing settle may show one-frame full black between blur Layer 1 poster and Layer 2 play | **Known phenomenon family** — same lineage as `cap15-15.10-notes.md` §D (peek blur poster → transition empty window → L2 play). Cap 18.4 device (Kafka Profile, Optimize ON): iCloud video first-visit L2 complete → Session revisit; peek blur L1 OK; **landing settle occasional one-frame full black** then L2 plays directly. Not debt **400** (blur poster present). **15.11** closed local→local matrix only — this trigger outside that matrix. **Suspected mechanism cross-ref (not confirmed):** debt **427** Host-temp cover eviction on a4 video L2-ready revisit may worsen landing flash; **441** can also reproduce as a one-frame settle handoff without ≥T empty window or corner spinner. **Continue observation** — no Cap scheduled. | Continue observation (occasional; unscheduled) | ADR-006 / ADR-025 / ADR-032 / ADR-034; `cap15-15.10-notes.md` §D; debt **427** |
+| 442 | Main Browse Screen | Cap 18.5 scrub preview bubble may show solid placeholder gaps during fast horizontal drag | AVAssetImageGenerator + single-flight coalesce + 1.0s preview bucket + ADR-040 Decision 13 §2.1 borrow (max one bucket step, 350 ms wall-clock) do **not** guarantee a continuous real-frame strip at competitor parity. **Accepted for Cap 18.5 ship.** Optimization order if revisited: `maximumSize` tuning → prefetch adjacent bucket → Option B (new ADR). Widening borrow is **not** a candidate (violates §2.1). | Unassigned (accepted Cap 18.5 residual; optimize later if product asks) | ADR-040 Decision 13; `docs/acceptance/cap18-18.5-notes.md` |
+| 443 | Main Browse Screen | Cap 18.5 progress scrub is **whole-second** granular (not iPhone Photos / slow-mo 0.01s edit resolution) | **Intentional Cap 18.5 scope.** Linear band maps to ratio; label + release seek use `round(ratio × duration)` to the nearest second. Sub-second scrub requires quantizer, Host seek tolerance/timeouts, and preview bucket changes — documented upgrade path in acceptance notes. Not a defect vs Photos frame-accurate trimming. | Unassigned (upgrade when a future Cap schedules sub-second scrub) | ADR-040; `docs/acceptance/cap18-18.5-notes.md` |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

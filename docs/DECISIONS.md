@@ -3824,10 +3824,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-040: Cap 18 Main Browse gesture arbitration and dual-signal Manual playback control
 
-- Status: Accepted (2026-08-28)
+- Status: Accepted (2026-08-28); Decision 13 is narrowly supplemented by
+  Cap 18.5 (2026-08-30; work `a87fd7f` + `34e59eb`)
 - Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
-  `11c5202`)
+  `11c5202`); Cap 18.5 supplement anchor `34e59eb`
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -4268,3 +4269,34 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   If device acceptance or later production evidence makes the behaviour
   reproducible, add a new Known debt row rather than silently expanding
   Cap 18.
+
+**Cap 18.5 Decision 13 narrow supplement (2026-08-30; work `a87fd7f` +
+`34e59eb`; device i17 Green + Kafka Profile PASS —
+`docs/acceptance/cap18-18.5-notes.md`):**
+
+1. **Scrub preview bubble shipped.** Cap 18.5 adds Host
+   `requestScrubPreviewFrame` (AVAssetImageGenerator JPEG; must not seek
+   active AVPlayer) and a drag-only preview bubble above the scrubber band.
+   This narrowly supplements Decision 13’s Cap 18 “no frame-by-frame scrub
+   preview” hard gate — preview is optional enhancement that **did** land in
+   18.5, not a Cap 18 hard acceptance requirement.
+
+2. **Preview pipeline contract.** 1.0s bucket quantize; Dart single-flight
+   throttle; Host coalesce; §2.1 borrow allows at most one bucket-step lag
+   (350 ms wall-clock) when scrub direction is monotonic. Placeholder gaps
+   under fast drag are accepted (debt **442**).
+
+3. **Scrub release seek path.** On finger release: mechanical pause during
+   drag; then `seek(positionSeconds)` with async Pigeon completion (zero
+   tolerance + 450 ms Host wall-clock timeout); clear stale
+   `pendingNavigationActivation`; then `playFromCurrentPosition()` (not
+   `play()` re-enter seek-zero). `playbackSeekEpoch` invalidates overlapping
+   loop seek-zero completions.
+
+4. **Second-granularity quantizer.** Linear ratio drag; label + release seek
+   use `round(ratio × duration)` whole seconds (debt **443** — intentional;
+   not Photos 0.01s). Thumb/fill follow continuous ratio while dragging.
+
+5. **Resident chrome pairing.** Track + `MM:SS / MM:SS` timestamp paint
+   together via `scrubberResidentChromeVisible` (L2-ready and duration known);
+   peek-hide during mid-swipe via vertical-feed settle gate.
