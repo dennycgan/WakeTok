@@ -37,6 +37,9 @@ class FakePlaybackRepository implements PlaybackRepository {
   /// When non-null, [requestScrubPreviewFrame] returns these bytes (Cap 18.5 tests).
   Uint8List? scrubPreviewBytes;
 
+  /// When true, [seek] throws (Cap 18.5 scrub resilience tests).
+  bool seekShouldThrow = false;
+
   bool transitionAudioSuppressed = false;
 
   final StreamController<PlaybackRuntimeEvent> _runtimeController =
@@ -101,6 +104,11 @@ class FakePlaybackRepository implements PlaybackRepository {
   }
 
   @override
+  Future<void> playFromCurrentPosition() async {
+    _record('playFromCurrentPosition');
+  }
+
+  @override
   Future<void> pause() async {
     _record('pause');
   }
@@ -108,6 +116,9 @@ class FakePlaybackRepository implements PlaybackRepository {
   @override
   Future<void> seek(double positionSeconds) async {
     _record('seek:$positionSeconds');
+    if (seekShouldThrow) {
+      throw PlatformException(code: 'seekFailed', message: 'fake seek failure');
+    }
   }
 
   @override

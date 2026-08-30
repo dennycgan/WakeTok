@@ -192,6 +192,23 @@ class PlaybackCoordinator extends ChangeNotifier {
     });
   }
 
+  /// Cap 18.5 scrub release — await seek with wall-clock cap so [_enqueue]
+  /// cannot deadlock when Host zero-tolerance seek never callbacks.
+  static const Duration _scrubSeekTimeout = Duration(milliseconds: 900);
+
+  Future<bool> _attemptScrubSeek(double positionSeconds) async {
+    try {
+      await _playback
+          .seek(positionSeconds)
+          .timeout(_scrubSeekTimeout);
+      return true;
+    } on TimeoutException {
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Cap 18.5: single seek on release, then restore effective play/pause.
   Future<void> onUserScrubComplete({
     required String assetIdentifier,
@@ -203,22 +220,58 @@ class PlaybackCoordinator extends ChangeNotifier {
   }) {
     return _enqueue(() async {
       final capturedGen = displayGeneration;
-      if (!_gateStillCurrent(displayGate, capturedGen)) {
+
+      bool stillCurrent() =>
+          _gateStillCurrent(displayGate, capturedGen);
+
+      if (!stillCurrent()) {
         return;
       }
-      await _playback.seek(positionSeconds);
-      if (!_gateStillCurrent(displayGate, capturedGen)) {
-        return;
-      }
-      await _syncIntentAndPlayback(
-        assetIdentifier: assetIdentifier,
-        displayGeneration: displayGeneration,
-        displayGate: displayGate,
-        startsNewNavigationActivation: false,
-        clearsPendingNavigationActivation: false,
-        permission: permission,
-        muted: muted,
+
+      // Drop stale one-shot nav activation before play — otherwise Host
+      // play() consumes pending and seekZeroAndPlay overwrites scrub seek.
+      await _playback.setPlaybackIntent(
+        PlaybackIntent(
+          assetIdentifier: assetIdentifier,
+          wantsPlay: _userIntentWantsPlay,
+          startsNewNavigationActivation: false,
+          clearsPendingNavigationActivation: true,
+        ),
       );
+      if (!stillCurrent()) {
+        return;
+      }
+
+      var seekApplied = await _attemptScrubSeek(positionSeconds);
+      if (!seekApplied) {
+        seekApplied = await _attemptScrubSeek(positionSeconds);
+      }
+      if (!stillCurrent()) {
+        return;
+      }
+      if (!seekApplied) {
+        // Best-effort resume from current playhead when Host rejected both seeks.
+      }
+
+      _markIntentSynced(
+        assetIdentifier: assetIdentifier,
+        displayGeneration: capturedGen,
+      );
+
+      final effective = effectiveShouldPlay(
+        userIntentWantsPlay: _userIntentWantsPlay,
+        permission: permission,
+      );
+
+      if (effective) {
+        await _playback.setMute(muted);
+        if (!stillCurrent()) {
+          return;
+        }
+        await _playback.playFromCurrentPosition();
+      } else {
+        await _playback.pause();
+      }
     });
   }
 

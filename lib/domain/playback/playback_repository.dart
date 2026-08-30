@@ -9,6 +9,9 @@ abstract class PlaybackRepository {
 
   Future<void> play();
 
+  /// Cap 18.5 scrub release — play without Host re-enter seek-to-zero.
+  Future<void> playFromCurrentPosition();
+
   Future<void> pause();
 
   Future<void> seek(double positionSeconds);

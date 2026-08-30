@@ -1,6 +1,8 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/features/main_browse/media_info_overlay.dart';
+import 'package:waketok/features/main_browse/scrubber_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 18.4 placeholder height for the Cap 18.5 scrubber band.
@@ -9,6 +11,41 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// numeric value. Adjusting the height in 18.5 is not a breaking change to
 /// the 18.4 hit contract.
 const double kMainBrowseScrubberReserveHeight = 48;
+
+/// Vertical gap between scrubber track and timestamp (matches scrubber UI).
+const double kMainBrowseScrubberTimestampAboveTrackGap = 6;
+
+/// Line box height for the scrubber timestamp label.
+double mainBrowseScrubberTimestampLineHeight(WakeTokTokens tokens) {
+  final style = tokens.labelOnMedia;
+  final fontSize = style.fontSize ?? 12;
+  final height = style.height ?? 1.0;
+  return fontSize * height;
+}
+
+/// Feed-bottom inset of scrubber timestamp text (above track + gap).
+double mainBrowseScrubberTimestampBottomInset() {
+  return kScrubProgressTrackHeight + kMainBrowseScrubberTimestampAboveTrackGap;
+}
+
+/// Vertical center of scrubber timestamp line measured from feed bottom.
+double mainBrowseScrubberTimestampCenterFromFeedBottom(WakeTokTokens tokens) {
+  return mainBrowseScrubberTimestampBottomInset() +
+      mainBrowseScrubberTimestampLineHeight(tokens) / 2;
+}
+
+/// Positions overlay row 3 center on scrubber timestamp center (rows 1–2 keep
+/// uniform [MediaInfoOverlay.rowHeight] spacing above).
+double mainBrowseMediaOverlayBottomInset(WakeTokTokens tokens) {
+  return mainBrowseScrubberTimestampCenterFromFeedBottom(tokens) -
+      MediaInfoOverlay.rowHeight / 2;
+}
+
+/// Cap 17.4 usable-region reserve above overlay rows 1–3 (all asset sources).
+double mainBrowseCoverlessCenterOverlayReserve(WakeTokTokens tokens) {
+  return MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount +
+      mainBrowseMediaOverlayBottomInset(tokens);
+}
 
 /// Pure UI predicate for the centered play affordance (ADR-040 Decision 12).
 bool showCenterPlaybackAffordance({

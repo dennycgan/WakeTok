@@ -17,6 +17,33 @@ const int kScrubPreviewInitialThrottleMs = 120;
 
 const int kScrubPreviewMaxThrottleMs = 300;
 
+/// Cap 18.5 progress track thickness (logical px). Tune on device before tokenizing.
+const double kScrubProgressTrackHeight = 4;
+
+/// PageView offset epsilon — matches [VerticalMediaFeedState] handoff scroll gate.
+const double kVerticalFeedSettledPageEpsilon = 0.02;
+
+/// True when the vertical feed PageView has settled on [feedIndex].
+bool verticalFeedPageSettled({
+  required double pageOffset,
+  required int feedIndex,
+}) {
+  return (pageOffset - feedIndex).abs() < kVerticalFeedSettledPageEpsilon;
+}
+
+/// Whether scrubber chrome (track + timestamp + drag bubble) may paint.
+///
+/// All three hide triggers are OR'd — each covers a distinct moment:
+/// neighbour page (`!isCurrent`), mid-swipe peek (`!verticalFeedSettled`),
+/// or PV transition cover on this asset (`transitionCovering`).
+bool scrubberChromeVisible({
+  required bool isCurrent,
+  required bool verticalFeedSettled,
+  required bool transitionCovering,
+}) {
+  return isCurrent && verticalFeedSettled && !transitionCovering;
+}
+
 /// Quantize [seconds] into preview buckets.
 double scrubPreviewBucketSeconds(double seconds) {
   if (!seconds.isFinite || seconds <= 0) {
@@ -44,6 +71,20 @@ bool scrubberFrozen({
       transitionCovering;
 }
 
+/// Track + resident timestamp paint together when L2-ready **and** duration known.
+///
+/// Avoids progress bar appearing before the paired `current / total` label (or
+/// the reverse) during Layer 2 handoff while doom-scrolling.
+bool scrubberResidentChromeVisible({
+  required bool frozen,
+  required double? durationSeconds,
+}) {
+  if (frozen) {
+    return false;
+  }
+  return durationSeconds != null && durationSeconds > 0;
+}
+
 /// Progress fill ratio for track; null when duration unknown (indeterminate).
 double? scrubberFillRatio({
   required double positionSeconds,
@@ -56,29 +97,105 @@ double? scrubberFillRatio({
   return (clamped / durationSeconds).clamp(0.0, 1.0);
 }
 
+/// Horizontal inset matching [VideoProgressScrubber] track [Padding].
+const double kScrubberTrackHorizontalPadding = 12;
+
+/// Inner track width inside the scrubber hit band.
+double scrubberTrackInnerWidth(double hitWidth) {
+  final inner = hitWidth - 2 * kScrubberTrackHorizontalPadding;
+  return inner > 0 ? inner : 0;
+}
+
+/// Maps a scrubber-band local X to track ratio using inner track geometry.
+double scrubberRatioFromLocalX({
+  required double localX,
+  required double hitWidth,
+  double horizontalPadding = kScrubberTrackHorizontalPadding,
+}) {
+  final innerWidth = hitWidth - 2 * horizontalPadding;
+  if (innerWidth <= 0) {
+    return 0;
+  }
+  return ((localX - horizontalPadding) / innerWidth).clamp(0.0, 1.0);
+}
+
+/// Maps track ratio to scrubber-band local X (bubble / thumb anchor).
+double scrubberLocalXFromRatio({
+  required double ratio,
+  required double hitWidth,
+  double horizontalPadding = kScrubberTrackHorizontalPadding,
+}) {
+  final innerWidth = hitWidth - 2 * horizontalPadding;
+  if (innerWidth <= 0) {
+    return horizontalPadding;
+  }
+  return horizontalPadding + ratio.clamp(0.0, 1.0) * innerWidth;
+}
+
 /// Drag ratio anchored at the playhead when the gesture starts, not finger X.
+///
+/// [hitWidth] is the full scrubber band width; inner track subtracts
+/// [horizontalPadding] on each side (must match UI [Padding]).
 double scrubberDragRatio({
   required double anchorRatio,
   required double anchorLocalX,
   required double currentLocalX,
-  required double trackWidth,
+  required double hitWidth,
+  double horizontalPadding = kScrubberTrackHorizontalPadding,
 }) {
-  if (trackWidth <= 0) {
+  final innerWidth = hitWidth - 2 * horizontalPadding;
+  if (innerWidth <= 0) {
     return anchorRatio.clamp(0.0, 1.0);
   }
-  final deltaRatio = (currentLocalX - anchorLocalX) / trackWidth;
+  final anchorInnerX = anchorLocalX - horizontalPadding;
+  final currentInnerX = currentLocalX - horizontalPadding;
+  final deltaRatio = (currentInnerX - anchorInnerX) / innerWidth;
   return (anchorRatio + deltaRatio).clamp(0.0, 1.0);
+}
+
+/// Whole-second scrub target: linear ratio × duration, rounded to nearest
+/// second, clamped to [0, duration.floor()]. Display while dragging and seek
+/// on release both use this quantizer so the label matches the landed playhead.
+/// Cap 18.5 intentionally defers sub-second precision (iPhone slow-mo stores
+/// 0.01s; Main Browse scrub is second-granular until a future cap upgrades it).
+int scrubberSeekSeconds({
+  required double ratio,
+  required double durationSeconds,
+}) {
+  if (durationSeconds <= 0) {
+    return 0;
+  }
+  final maxSecond = durationSeconds.floor();
+  return (ratio.clamp(0.0, 1.0) * durationSeconds).round().clamp(0, maxSecond);
 }
 
 String formatScrubTimestamp(
   double seconds, {
-  double? durationSeconds,
+  required double durationSeconds,
 }) {
   final current = _formatMmSs(seconds);
-  if (durationSeconds != null && durationSeconds > 0) {
-    return '$current / ${_formatMmSs(durationSeconds)}';
+  return '$current / ${_formatMmSs(durationSeconds)}';
+}
+
+/// Timestamp above the scrubber track (idle, drag, or frozen-degraded).
+///
+/// Returns null until [durationSeconds] is known so the paired
+/// `current / total` label appears in one paint (no `/--` placeholder).
+String? scrubberTimestampLabel({
+  required bool frozen,
+  required double positionSeconds,
+  required double? durationSeconds,
+  required double displaySeconds,
+  required bool dragging,
+}) {
+  if (durationSeconds == null || durationSeconds <= 0) {
+    return null;
   }
-  return current;
+  if (frozen) {
+    return '00:00 / ${_formatMmSs(durationSeconds)}';
+  }
+  final seconds = dragging ? displaySeconds : positionSeconds;
+  return formatScrubTimestamp(seconds, durationSeconds: durationSeconds);
 }
 
 String _formatMmSs(double seconds) {

@@ -70,6 +70,10 @@ final class PlaybackApiHost: PlaybackApi {
   private var activeItemDidPlayToEnd = false
   /// Ignore overlapping end notifications while `seek(to: .zero)` is in flight.
   private var endSeekInFlight = false
+  /// Supersedes stale `AVPlayer.seek` completions (scrub vs loop seek-zero).
+  private var playbackSeekEpoch: UInt64 = 0
+  /// Zero-tolerance scrub seeks on short local clips may never call back.
+  private let scrubSeekWallClockTimeoutSeconds: TimeInterval = 0.45
 
   private weak var surfaceView: PlaybackSurfaceView?
 
@@ -215,6 +219,16 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  func playFromCurrentPosition() throws {
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      self.adoptActivePlayerOntoSurface()
+      self.playActiveFromCurrentPosition()
+      self.syncRuntimeObserve()
+      self.emitRuntimeObserveNow()
+    }
+  }
+
   func pause() throws {
     DispatchQueue.main.async { [weak self] in
       self?.pendingPlay = false
@@ -248,13 +262,91 @@ final class PlaybackApiHost: PlaybackApi {
     runOnMain(work)
   }
 
-  func seek(positionSeconds: Double) throws {
-    let time = CMTime(seconds: positionSeconds, preferredTimescale: 600)
-    DispatchQueue.main.async { [weak self] in
-      self?.activePlayer?.seek(to: time)
-      self?.syncRuntimeObserve()
-      self?.emitRuntimeObserveNow()
+  func seek(
+    positionSeconds: Double,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    let work = { [weak self] in
+      guard let self else {
+        completion(
+          .failure(
+            PigeonError(
+              code: String(describing: ErrorCode.unknown),
+              message: "Playback host deallocated",
+              details: nil
+            )
+          )
+        )
+        return
+      }
+      guard let player = self.activePlayer,
+        self.activeAssetId == self.currentAssetIdentifier
+      else {
+        completion(.success(()))
+        return
+      }
+      // User chose an explicit position — cancel loop seek-zero and end state.
+      self.activeItemDidPlayToEnd = false
+      self.endSeekInFlight = false
+      let seekEpoch = self.bumpPlaybackSeekEpoch()
+      let time = CMTime(seconds: positionSeconds, preferredTimescale: 600)
+      var completionSent = false
+      let finishSeek: (Result<Void, Error>) -> Void = { result in
+        guard !completionSent else { return }
+        completionSent = true
+        completion(result)
+      }
+      player.seek(
+        to: time,
+        toleranceBefore: .zero,
+        toleranceAfter: .zero
+      ) { [weak self] _ in
+        guard let self else {
+          finishSeek(.success(()))
+          return
+        }
+        guard seekEpoch == self.playbackSeekEpoch else {
+          finishSeek(
+            .failure(
+              PigeonError(
+                code: String(describing: ErrorCode.unknown),
+                message: "Playback seek superseded",
+                details: nil
+              )
+            )
+          )
+          return
+        }
+        self.syncRuntimeObserve()
+        self.emitRuntimeObserveNow()
+        finishSeek(.success(()))
+      }
+      DispatchQueue.main.asyncAfter(
+        deadline: .now() + self.scrubSeekWallClockTimeoutSeconds
+      ) { [weak self] in
+        guard let self, !completionSent else { return }
+        guard seekEpoch == self.playbackSeekEpoch else {
+          finishSeek(
+            .failure(
+              PigeonError(
+                code: String(describing: ErrorCode.unknown),
+                message: "Playback seek superseded",
+                details: nil
+              )
+            )
+          )
+          return
+        }
+        ScrubPreviewProbe.info(
+          "seek timeout position=\(String(format: "%.2f", positionSeconds)) "
+            + "ms=\(Int(self.scrubSeekWallClockTimeoutSeconds * 1000))"
+        )
+        self.syncRuntimeObserve()
+        self.emitRuntimeObserveNow()
+        finishSeek(.success(()))
+      }
     }
+    runOnMain(work)
   }
 
   func setRate(rate: Double) throws {
@@ -991,6 +1083,7 @@ final class PlaybackApiHost: PlaybackApi {
     ) {
     case .seekZeroAndPlay:
       if endSeekInFlight {
+        pendingPlay = true
         return
       }
       endSeekInFlight = true
@@ -1004,15 +1097,38 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  /// Cap 18.5 scrub release — resume without re-enter seek-to-zero policy.
+  private func playActiveFromCurrentPosition() {
+    guard let player = activePlayer,
+      activeAssetId == currentAssetIdentifier
+    else {
+      pendingPlay = true
+      return
+    }
+    pendingPlay = false
+    applyMuteToPlayers()
+    player.play()
+  }
+
+  private func bumpPlaybackSeekEpoch() -> UInt64 {
+    playbackSeekEpoch &+= 1
+    return playbackSeekEpoch
+  }
+
   private func seekZeroAndPlay(_ player: AVPlayer?) {
     guard let player else {
       endSeekInFlight = false
       return
     }
     let token = activeAssetId
+    // Capture epoch without bumping — user scrub seek bumps to invalidate this.
+    let seekEpoch = playbackSeekEpoch
     player.seek(to: .zero) { [weak self] finished in
       guard let self else { return }
       self.endSeekInFlight = false
+      guard seekEpoch == self.playbackSeekEpoch else {
+        return
+      }
       guard finished else { return }
       guard self.activePlayer === player,
         self.activeAssetId == token,

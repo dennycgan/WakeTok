@@ -52,7 +52,30 @@ void main() {
       playback.calls.where((c) => c.startsWith('seek:')),
       hasLength(1),
     );
-    expect(playback.calls.last, 'play');
+    expect(playback.calls.last, 'playFromCurrentPosition');
+  });
+
+  test('C-18.5-1b scrub complete clears pending nav before seek', () async {
+    final playback = FakePlaybackRepository();
+    final coordinator = PlaybackCoordinator(playback: playback);
+    final gate = FeedMediaRequestGate();
+    final generation = gate.begin();
+
+    await coordinator.onUserScrubComplete(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      positionSeconds: 4,
+      permission: _allAllowed(),
+      muted: false,
+    );
+
+    expect(playback.intentCalls, isNotEmpty);
+    expect(playback.intentCalls.last.clearsPendingNavigationActivation, isTrue);
+    expect(
+      playback.calls.indexWhere((c) => c.startsWith('seek:4')),
+      lessThan(playback.calls.indexOf('playFromCurrentPosition')),
+    );
   });
 
   test('C-18.5-2 scrub complete with intent false does not play', () async {
@@ -89,6 +112,25 @@ void main() {
     expect(playback.calls.where((c) => c.startsWith('seek:')), hasLength(1));
     expect(playback.calls.where((c) => c == 'play'), isEmpty);
     expect(playback.calls.last, 'pause');
+  });
+
+  test('C-18.5-4 scrub complete still resumes when seek fails', () async {
+    final playback = FakePlaybackRepository()..seekShouldThrow = true;
+    final coordinator = PlaybackCoordinator(playback: playback);
+    final gate = FeedMediaRequestGate();
+    final generation = gate.begin();
+
+    await coordinator.onUserScrubComplete(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      positionSeconds: 4,
+      permission: _allAllowed(),
+      muted: false,
+    );
+
+    expect(playback.calls.where((c) => c.startsWith('seek:')), hasLength(2));
+    expect(playback.calls, contains('playFromCurrentPosition'));
   });
 
   test('C-18.5-3 stale generation skips seek', () async {

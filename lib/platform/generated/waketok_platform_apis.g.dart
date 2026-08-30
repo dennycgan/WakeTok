@@ -1799,6 +1799,26 @@ class PlaybackApi {
     ;
   }
 
+  /// Resume from the current playhead without re-enter seek-to-zero policy
+  /// (Cap 18.5 scrub release — must follow a completed [seek]).
+  Future<void> playFromCurrentPosition() async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.playFromCurrentPosition$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(null);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
   Future<void> pause() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.pause$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1817,6 +1837,7 @@ class PlaybackApi {
     ;
   }
 
+  /// Completes when the active player seek finishes (or no-op when idle).
   Future<void> seek(double positionSeconds) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.seek$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(

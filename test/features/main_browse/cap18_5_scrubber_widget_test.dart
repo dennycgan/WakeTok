@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
+import 'package:waketok/features/main_browse/scrubber_policy.dart';
 import 'package:waketok/features/main_browse/video_progress_scrubber.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -52,6 +53,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key('mainBrowseVideoScrubber')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseScrubberTimestamp')), findsNothing);
     await tester.drag(
       find.byKey(const Key('mainBrowseVideoScrubber')),
       const Offset(80, 0),
@@ -84,7 +86,12 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
 
+    expect(
+      tester.widget<Text>(find.byKey(const Key('mainBrowseScrubberTimestamp'))).data,
+      '00:00 / 01:40',
+    );
     await tester.drag(
       find.byKey(const Key('mainBrowseVideoScrubber')),
       const Offset(120, 0),
@@ -117,17 +124,32 @@ void main() {
       ),
     );
     await tester.pump();
+    await tester.pump();
 
+    expect(
+      tester.widget<Text>(find.byKey(const Key('mainBrowseScrubberTimestamp'))).data,
+      '00:50 / 01:40',
+    );
     await tester.drag(
       find.byKey(const Key('mainBrowseVideoScrubber')),
       const Offset(80, 0),
     );
     await tester.pump();
 
-    final trackWidth = tester.getSize(
+    final hitWidth = tester.getSize(
       find.byKey(const Key('mainBrowseVideoScrubber')),
     ).width;
-    final expected = 50 + (80 / trackWidth) * 100;
-    expect(completed, closeTo(expected, 0.5));
+    final dragStartX = hitWidth / 2;
+    final ratio = scrubberDragRatio(
+      anchorRatio: 0.5,
+      anchorLocalX: dragStartX,
+      currentLocalX: dragStartX + 80,
+      hitWidth: hitWidth,
+    );
+    final expected = scrubberSeekSeconds(
+      ratio: ratio,
+      durationSeconds: 100,
+    );
+    expect(completed, expected.toDouble());
   });
 }

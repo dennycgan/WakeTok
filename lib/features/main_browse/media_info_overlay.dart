@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/presentation/presentation_media_kind.dart';
+import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
@@ -57,7 +58,12 @@ class MediaInfoOverlay extends StatelessWidget {
       child: Align(
         alignment: Alignment.bottomLeft,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, trailingInset, 12),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            trailingInset,
+            mainBrowseMediaOverlayBottomInset(tokens),
+          ),
           child: Column(
             key: const Key('mediaInfoOverlay'),
             mainAxisSize: MainAxisSize.min,

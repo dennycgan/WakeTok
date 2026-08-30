@@ -109,6 +109,9 @@ class PlaybackGateway
   Future<void> play() => _api.play();
 
   @override
+  Future<void> playFromCurrentPosition() => _api.playFromCurrentPosition();
+
+  @override
   Future<void> pause() => _api.pause();
 
   @override

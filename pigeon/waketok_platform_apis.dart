@@ -533,8 +533,14 @@ abstract class PlaybackApi {
 
   void play();
 
+  /// Resume from the current playhead without re-enter seek-to-zero policy
+  /// (Cap 18.5 scrub release — must follow a completed [seek]).
+  void playFromCurrentPosition();
+
   void pause();
 
+  /// Completes when the active player seek finishes (or no-op when idle).
+  @async
   void seek(double positionSeconds);
 
   void setRate(double rate);

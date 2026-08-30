@@ -58,6 +58,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   Offset? _pointerDown;
   double? _dragAnchorLocalX;
   double _dragAnchorRatio = 0;
+  double _hitWidth = 0;
 
   @override
   void initState() {
@@ -121,6 +122,18 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       return (_displayRatio * duration).clamp(0, duration);
     }
     return _positionSeconds;
+  }
+
+  /// Rounded whole-second label during drag; matches [scrubberSeekSeconds].
+  double get _labelSeconds {
+    final duration = _effectiveDuration;
+    if (_dragging && duration != null && duration > 0) {
+      return scrubberSeekSeconds(
+        ratio: _dragRatio,
+        durationSeconds: duration,
+      ).toDouble();
+    }
+    return _dragging ? _displaySeconds : _positionSeconds;
   }
 
   bool _dragCommitted = false;
@@ -207,7 +220,8 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   void _endDrag({required bool commitSeek}) {
     final duration = _effectiveDuration;
     final seconds = duration != null && duration > 0
-        ? (_dragRatio.clamp(0.0, 1.0) * duration)
+        ? scrubberSeekSeconds(ratio: _dragRatio, durationSeconds: duration)
+            .toDouble()
         : _positionSeconds;
     final shouldSeek = commitSeek && _dragCommitted;
     setState(() {
@@ -267,24 +281,16 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
     );
   }
 
-  double _trackWidth() {
-    final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) {
-      return 0;
-    }
-    return box.size.width;
-  }
-
   double _dragRatioFromDrag(double currentLocalX) {
     final anchorX = _dragAnchorLocalX;
-    if (anchorX == null) {
+    if (anchorX == null || _hitWidth <= 0) {
       return _dragRatio;
     }
     return scrubberDragRatio(
       anchorRatio: _dragAnchorRatio,
       anchorLocalX: anchorX,
       currentLocalX: currentLocalX,
-      trackWidth: _trackWidth(),
+      hitWidth: _hitWidth,
     );
   }
 
@@ -368,6 +374,22 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final trackHeight = kScrubProgressTrackHeight;
+    final trackRadius = trackHeight / 2;
+    final timestampLabel = scrubberTimestampLabel(
+      frozen: widget.frozen,
+      positionSeconds: _positionSeconds,
+      durationSeconds: _effectiveDuration,
+      displaySeconds: _labelSeconds,
+      dragging: _dragging,
+    );
+    final residentChromeVisible = scrubberResidentChromeVisible(
+      frozen: widget.frozen,
+      durationSeconds: _effectiveDuration,
+    );
+    final timestampStyle = tokens.labelOnMedia.copyWith(
+      shadows: tokens.onMediaLabelShadows,
+    );
     return Positioned(
       left: 0,
       right: 0,
@@ -406,7 +428,11 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
           },
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final thumbX = _displayRatio * constraints.maxWidth;
+              _hitWidth = constraints.maxWidth;
+              final thumbX = scrubberLocalXFromRatio(
+                ratio: _displayRatio,
+                hitWidth: constraints.maxWidth,
+              );
               final nowMs = DateTime.now().millisecondsSinceEpoch;
               final displayBytes = _bubbleDisplayBytes(nowMs);
               return Stack(
@@ -420,63 +446,85 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
                       child: _ScrubPreviewBubble(
                         bytes: displayBytes,
                         timestamp: formatScrubTimestamp(
-                          _displaySeconds,
-                          durationSeconds: _effectiveDuration,
+                          _labelSeconds,
+                          durationSeconds: _effectiveDuration!,
                         ),
                         placeholderFill: tokens.scrubPreviewPlaceholderFill,
-                        labelStyle: tokens.labelOnMedia.copyWith(
-                          shadows: tokens.onMediaLabelShadows,
-                        ),
+                        labelStyle: timestampStyle,
                         borderColor: tokens.onMedia,
                       ),
                     ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: kScrubberTrackHorizontalPadding,
+                    ),
                     child: Align(
                       alignment: Alignment.bottomCenter,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          if (_dragging)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 6),
-                              child: Text(
-                                formatScrubTimestamp(
-                                  _displaySeconds,
-                                  durationSeconds: _effectiveDuration,
-                                ),
-                                style: tokens.labelOnMedia.copyWith(
-                                  shadows: tokens.onMediaLabelShadows,
-                                ),
-                              ),
-                            ),
-                          SizedBox(
-                            height: 3,
-                            child: Stack(
-                              alignment: Alignment.centerLeft,
-                              children: [
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    color: tokens.scrubProgressTrack,
-                                    borderRadius: BorderRadius.circular(1.5),
+                          IgnorePointer(
+                            ignoring: !residentChromeVisible,
+                            child: Opacity(
+                              opacity: residentChromeVisible ? 1 : 0,
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom:
+                                          kMainBrowseScrubberTimestampAboveTrackGap,
+                                    ),
+                                    child: timestampLabel != null
+                                        ? Text(
+                                            timestampLabel,
+                                            key: const Key(
+                                              'mainBrowseScrubberTimestamp',
+                                            ),
+                                            style: timestampStyle,
+                                          )
+                                        : SizedBox(
+                                            height:
+                                                mainBrowseScrubberTimestampLineHeight(
+                                              tokens,
+                                            ),
+                                          ),
                                   ),
-                                  child: const SizedBox.expand(),
-                                ),
-                                if (!widget.frozen && _displayRatio > 0)
-                                  FractionallySizedBox(
-                                    widthFactor: _displayRatio,
-                                    child: DecoratedBox(
-                                      decoration: BoxDecoration(
-                                        color: tokens.scrubProgressPlayed,
-                                        borderRadius: BorderRadius.circular(1.5),
-                                      ),
-                                      child: const SizedBox(height: 3),
+                                  SizedBox(
+                                    height: trackHeight,
+                                    child: Stack(
+                                      alignment: Alignment.centerLeft,
+                                      children: [
+                                        DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            color: tokens.scrubProgressTrack,
+                                            borderRadius: BorderRadius.circular(
+                                              trackRadius,
+                                            ),
+                                          ),
+                                          child: const SizedBox.expand(),
+                                        ),
+                                        if (_displayRatio > 0)
+                                          FractionallySizedBox(
+                                            widthFactor: _displayRatio,
+                                            child: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: tokens.scrubProgressPlayed,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                  trackRadius,
+                                                ),
+                                              ),
+                                              child: SizedBox(height: trackHeight),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 10),
                         ],
                       ),
                     ),

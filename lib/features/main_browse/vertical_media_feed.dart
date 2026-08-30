@@ -41,11 +41,6 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// pools subtitle). Feed is full-bleed under [_TopSourceChrome].
 const double kCoverlessCenterTopChromeBody = 8 + 8 + 20 + 16;
 
-/// Cap 17.4: Overlay rows 1–3 always occupy height (empty still occupies).
-/// Row 4 Location collapses when empty (Cap 8 Q1=B) — not included.
-const double kCoverlessCenterOverlayReserve =
-    MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount + 12;
-
 /// True when a vertical feed scroll is past the trailing edge (next-item
 /// direction). Used for Endless last-page round advance.
 ///
@@ -130,7 +125,29 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   /// [PlaybackCoordinator.onForegroundResumeSync] via [didUpdateWidget].
   int _foregroundResumeSyncEpoch = 0;
 
-  static const double _pvHandoffScrollEpsilon = 0.02;
+  /// Scrubber peek hide — edge-triggered from scroll notifications only.
+  /// Do not drive this from [PageController.addListener]: unconditional
+  /// setState there rebuilds the whole feed every frame and breaks widget
+  /// tests that depend on stable pump timing (Cap 18.5 follow-up).
+  bool _scrubberVerticalFeedSettled = true;
+
+  void _maybeSyncScrubberVerticalFeedSettled(int feedIndex) {
+    final controller = _pageController;
+    var settled = true;
+    if (controller != null && controller.hasClients) {
+      final page = controller.page;
+      if (page != null) {
+        settled = verticalFeedPageSettled(pageOffset: page, feedIndex: feedIndex);
+      }
+    }
+    if (_scrubberVerticalFeedSettled == settled) {
+      return;
+    }
+    _scrubberVerticalFeedSettled = settled;
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   bool _handlePvTransitionScroll(ScrollNotification notification) {
     final controller = _pageController;
@@ -146,10 +163,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     // pre-rebuild listener while page already sits on the new index; a stale
     // curIdx would re-arm toward the page we just settled on.
     final feedIndex = ref.read(mainBrowseFeedIndexProvider);
+    if (notification is ScrollUpdateNotification ||
+        notification is ScrollStartNotification ||
+        notification is ScrollEndNotification) {
+      _maybeSyncScrubberVerticalFeedSettled(feedIndex);
+    }
     if (notification is ScrollEndNotification ||
         (notification is ScrollUpdateNotification &&
-            (page - feedIndex).abs() < _pvHandoffScrollEpsilon)) {
-      if ((page - feedIndex).abs() < _pvHandoffScrollEpsilon) {
+            (page - feedIndex).abs() < kVerticalFeedSettledPageEpsilon)) {
+      if ((page - feedIndex).abs() < kVerticalFeedSettledPageEpsilon) {
         ref
             .read(pvTransitionGuardProvider.notifier)
             .maybeDisarmOnSettled(feedIndex);
@@ -161,7 +183,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       return false;
     }
     final delta = page - feedIndex;
-    if (delta.abs() < _pvHandoffScrollEpsilon) {
+    if (delta.abs() < kVerticalFeedSettledPageEpsilon) {
       return false;
     }
     final targetIndex = delta > 0 ? feedIndex + 1 : feedIndex - 1;
@@ -628,6 +650,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
           final previousDataSourceId = _lastDataSourceId;
           final delayInitialLayer1CenterLabel =
               previousDataSourceId != null && previousDataSourceId != source.id;
+          if (previousDataSourceId != null && previousDataSourceId != source.id) {
+            _scrubberVerticalFeedSettled = true;
+          }
           _lastDataSourceId = source.id;
           _ids = ids;
           _notePreheatInputs(
@@ -709,6 +734,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   itemCount: ids.length,
                   onPageChanged: (i) {
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
+                    _scrubberVerticalFeedSettled = true;
                   },
                   itemBuilder: (context, index) {
                     final isCurrent = browseActive && index == feedIndex;
@@ -716,6 +742,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                         browseActive &&
                         !isCurrent &&
                         _allowedPreheatIndices.contains(index);
+                    final verticalFeedSettled = _scrubberVerticalFeedSettled;
                     return MediaFeedPage(
                       key: ValueKey<String>(
                         'page-${ids[index]}-$index-r${view.roundEpoch}',
@@ -727,6 +754,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                         ids[index],
                       ),
                       isCurrent: isCurrent,
+                      showMediaInfoOverlay: isCurrent && browseActive,
+                      overlaySnapshot: _overlaySnapshot,
+                      verticalFeedSettled: verticalFeedSettled,
                       isPreheatNeighbor: isPreheatNeighbor,
                       liveHostSerial: liveHostSerial,
                       currentDisplayGate: isCurrent
@@ -745,7 +775,6 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   },
                 ),
               ),
-              if (browseActive) MediaInfoOverlay(snapshot: _overlaySnapshot),
             ],
           );
         },
@@ -871,6 +900,9 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     required this.sourceKind,
     this.listTimeAvailability,
     required this.isCurrent,
+    required this.showMediaInfoOverlay,
+    this.overlaySnapshot,
+    required this.verticalFeedSettled,
     required this.isPreheatNeighbor,
     required this.liveHostSerial,
     this.currentDisplayGate,
@@ -887,6 +919,9 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   /// List-time availability from Session Snapshot resolve (Cap 15.12).
   final AssetAvailability? listTimeAvailability;
   final bool isCurrent;
+  final bool showMediaInfoOverlay;
+  final PresentationOverlaySnapshot? overlaySnapshot;
+  final bool verticalFeedSettled;
 
   /// Cap 14.5: ±1 neighbour allowed to [requestPreview] after parent release.
   final bool isPreheatNeighbor;
@@ -3457,6 +3492,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               l10n: l10n,
               tokens: tokens,
             ),
+            if (widget.showMediaInfoOverlay)
+              MediaInfoOverlay(snapshot: widget.overlaySnapshot),
           ],
         ),
       );
@@ -3541,6 +3578,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         showLayer2FailedSlot: showLayer2FailedSlot,
         cornerReassureLabel: cornerReassureLabel,
         coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
+        showMediaInfoOverlay: widget.showMediaInfoOverlay,
+        overlaySnapshot: widget.overlaySnapshot,
       ),
       FeedPageMediaKind.pendingVideo => () {
         return ColoredBox(
@@ -3649,6 +3688,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           playbackTapSurfaceReady: _surfaceReady,
           playbackTapTransitionCovering: covering,
           playbackTapHardFailure: _layer2Failed,
+          scrubberVerticalFeedSettled: widget.verticalFeedSettled,
           scrubberLayer2InFlight: _layer2InFlight,
           onScrubBegin: coordinator == null
               ? null
@@ -3662,23 +3702,32 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 },
           playbackRepository:
               coordinator == null ? null : (_playbackRepo ?? ref.read(playbackRepositoryProvider)),
+          showMediaInfoOverlay: widget.showMediaInfoOverlay,
+          overlaySnapshot: widget.overlaySnapshot,
         );
       }(),
       FeedPageMediaKind.failed =>
         widget.isCurrent
-            ? _UsableRegionCenter(
-                child: _BrowseStatusPanel(
-                  panelKey: const Key('mainBrowseFeedPageFailed'),
-                  message: _failureCopy(
-                    l10n,
-                    media.failureReason ?? FeedFailureReason.generic,
+            ? Stack(
+                fit: StackFit.expand,
+                children: [
+                  _UsableRegionCenter(
+                    child: _BrowseStatusPanel(
+                      panelKey: const Key('mainBrowseFeedPageFailed'),
+                      message: _failureCopy(
+                        l10n,
+                        media.failureReason ?? FeedFailureReason.generic,
+                      ),
+                      actionLabel: l10n.mainBrowseFeedRetry,
+                      actionKey: const Key('mainBrowseFeedPageRetry'),
+                      onAction: () {
+                        unawaited(_retryFromFailState(pageFailedMedia: true));
+                      },
+                    ),
                   ),
-                  actionLabel: l10n.mainBrowseFeedRetry,
-                  actionKey: const Key('mainBrowseFeedPageRetry'),
-                  onAction: () {
-                    unawaited(_retryFromFailState(pageFailedMedia: true));
-                  },
-                ),
+                  if (widget.showMediaInfoOverlay)
+                    MediaInfoOverlay(snapshot: widget.overlaySnapshot),
+                ],
               )
             : const SizedBox.expand(),
     };
@@ -3701,10 +3750,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     bool playbackTapSurfaceReady = false,
     bool playbackTapTransitionCovering = false,
     bool playbackTapHardFailure = false,
+    bool scrubberVerticalFeedSettled = true,
     bool scrubberLayer2InFlight = true,
     VoidCallback? onScrubBegin,
     void Function(double positionSeconds)? onScrubComplete,
     PlaybackRepository? playbackRepository,
+    bool showMediaInfoOverlay = false,
+    PresentationOverlaySnapshot? overlaySnapshot,
   }) {
     final guard = ref.watch(pvTransitionGuardProvider);
     final coverPath = guard.isCovering(widget.assetIdentifier)
@@ -3764,10 +3816,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               );
             },
           ),
+        if (showMediaInfoOverlay)
+          MediaInfoOverlay(snapshot: overlaySnapshot),
         if (onScrubBegin != null &&
             onScrubComplete != null &&
             playbackRepository != null &&
-            video != null)
+            video != null &&
+            scrubberChromeVisible(
+              isCurrent: playbackTapIsCurrent,
+              verticalFeedSettled: scrubberVerticalFeedSettled,
+              transitionCovering: playbackTapTransitionCovering,
+            ))
           VideoProgressScrubber(
             assetIdentifier: widget.assetIdentifier,
             frozen: scrubberFrozen(
@@ -3879,11 +3938,12 @@ class _UsableRegionCenter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final padding = MediaQuery.paddingOf(context);
     return Padding(
       padding: EdgeInsets.only(
         top: padding.top + kCoverlessCenterTopChromeBody,
-        bottom: kCoverlessCenterOverlayReserve,
+        bottom: mainBrowseCoverlessCenterOverlayReserve(tokens),
       ),
       child: Center(child: child),
     );

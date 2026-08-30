@@ -1783,8 +1783,12 @@ protocol PlaybackApi {
   /// Must not return without completing (including cancel / pool clear).
   func load(item: PlaybackItemDto, completion: @escaping (Result<Void, Error>) -> Void)
   func play() throws
+  /// Resume from the current playhead without re-enter seek-to-zero policy
+  /// (Cap 18.5 scrub release — must follow a completed [seek]).
+  func playFromCurrentPosition() throws
   func pause() throws
-  func seek(positionSeconds: Double) throws
+  /// Completes when the active player seek finishes (or no-op when idle).
+  func seek(positionSeconds: Double, completion: @escaping (Result<Void, Error>) -> Void)
   func setRate(rate: Double) throws
   func setMute(muted: Bool) throws
   /// Video-oriented plan with feed indices (ADR-006). Fulfills kickoff
@@ -1868,6 +1872,21 @@ class PlaybackApiSetup {
     } else {
       playChannel.setMessageHandler(nil)
     }
+    /// Resume from the current playhead without re-enter seek-to-zero policy
+    /// (Cap 18.5 scrub release — must follow a completed [seek]).
+    let playFromCurrentPositionChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.playFromCurrentPosition\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      playFromCurrentPositionChannel.setMessageHandler { _, reply in
+        do {
+          try api.playFromCurrentPosition()
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      playFromCurrentPositionChannel.setMessageHandler(nil)
+    }
     let pauseChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.pause\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       pauseChannel.setMessageHandler { _, reply in
@@ -1881,16 +1900,19 @@ class PlaybackApiSetup {
     } else {
       pauseChannel.setMessageHandler(nil)
     }
+    /// Completes when the active player seek finishes (or no-op when idle).
     let seekChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.seek\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       seekChannel.setMessageHandler { message, reply in
         let args = message as! [Any?]
         let positionSecondsArg = args[0] as! Double
-        do {
-          try api.seek(positionSeconds: positionSecondsArg)
-          reply(wrapResult(nil))
-        } catch {
-          reply(wrapError(error))
+        api.seek(positionSeconds: positionSecondsArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
         }
       }
     } else {

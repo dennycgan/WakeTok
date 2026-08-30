@@ -14,6 +14,7 @@ void main() {
   const expectedPlaybackHostMethods = <String>{
     'load',
     'play',
+    'playFromCurrentPosition',
     'pause',
     'seek',
     'setRate',

@@ -654,7 +654,14 @@ final class PlaybackRuntimeObserveHostTests: XCTestCase {
     )
     _ = host.debugDrainRuntimeEventsForTests()
 
-    XCTAssertNoThrow(try host.seek(positionSeconds: 30))
+    let exp = expectation(description: "seek completes")
+    host.seek(positionSeconds: 30) { result in
+      if case .failure = result {
+        XCTFail("seek failed")
+      }
+      exp.fulfill()
+    }
+    wait(for: [exp], timeout: 2)
     waitForMainQueue()
 
     let events = host.debugDrainRuntimeEventsForTests()
