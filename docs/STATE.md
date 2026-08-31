@@ -206,6 +206,23 @@ real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
       this section; pending D2/D3; ADR-041 + Decision 20 after full §5
 - [ ] 19.2a Limited album spike (**before** native write-path product UI)
       — device matrix below; notes `docs/acceptance/cap19-19.2a-notes.md`
+- [ ] 19.2b Scrub drag playback fix (**release-blocking**; Cap 18.5
+      misread of TikTok/抖音 behavior — not deferred debt)
+      — Remove drag-begin mechanical pause: delete
+      `PlaybackCoordinator.onUserScrubBegin` and feed wiring (scheme A;
+      no no-op stub). Main picture during scrub drag follows existing
+      `userIntentWantsPlay` / `effectiveShouldPlay` (no intent mutation).
+      Release path unchanged: single whole-second seek, clear pending nav,
+      then `playFromCurrentPosition()` when effective (Host: adopt surface +
+      `player.play()` at post-seek position — no seek-zero / no pause-only
+      resume path). Scrub preview bubble + Host `requestScrubPreviewFrame`
+      pipeline unchanged (Cap 18.5 through `7b4a0ff`). Docs: ADR-040
+      Decision 13 narrow supplement (supersedes 18.5 supplement item 3
+      «mechanical pause during drag» only) — **separate** from ADR-041
+      batch. Tests: update C-18.5-1; add C-19.2b-* coordinator cases;
+      optional device smoke `docs/acceptance/cap19-19.2b-notes.md`. **Does
+      not** reopen Cap 18 PHASE_HISTORY. Independent of album line; may
+      land immediately after 19.2a.
 - [ ] 19.2 Native album write path — implement Host `createAlbum`,
       `addAssetToAlbum`; map `canAddContent` (`PHAssetCollection` addContent);
       wire error codes `albumUnavailable` / `albumNotWritable`
@@ -250,9 +267,10 @@ KV → list find → create on clean install.
 - Blocked on owner: D2, D3 (until `cap19-19.2a-notes.md` exists)
 - Hard deadline: D2 + D3 before 19.6 coding starts
 - Related decisions: ADR-040 D15 entry icon + D18 left-swipe slot;
-      Decision 20 guard (DECISIONS.md pending); ADR-K / ADR-021 Limited
-      list omission; debt **421** (Settings Limited picker — out of Cap 19);
-      debt **444** → Build a Pool Cap
+      Decision 20 guard (DECISIONS.md pending); ADR-040 D13 supplement
+      for 19.2b scrub drag (separate from ADR-041); ADR-K / ADR-021
+      Limited list omission; debt **421** (Settings Limited picker —
+      out of Cap 19); debt **444** → Build a Pool Cap
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
