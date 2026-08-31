@@ -157,20 +157,102 @@
 ## Phase Roadmap (active capability only)
 Active capability: Add to Album / Cap 19 entry chrome (Cap 19)
 
-> Cap 19 internal phases are not yet owner-approved in STATE. Expand
-> this section after kickoff / scope review — do not invent phases here.
+> Owner-approved 2026-08-31 (§5 partial): D1 + D4 locked; D2 + D3
+> deferred until 19.2a spike; ADR-041 + ADR-040 Decision 20 supplement
+> pending full §5 close (single docs batch after D2/D3 — not split).
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
+### Owner-locked product decisions (§5 — partial)
+
+**D1 — WakeTok album bootstrap (Full Access path)**
+- Photos album title: fixed English `"WakeTok"` (all locales; same string
+  for `createAlbum` and find-by-name).
+- Full Access bootstrap order: KV hit → use cached `albumIdentifier`;
+  KV miss → `listAssetSources` exact-name find → on miss
+  `createAlbum("WakeTok")` → persist KV.
+- Limited bootstrap: **must not** use list find (ADR-021 / ADR-K); KV-only
+  or create-only — outcomes recorded separately in 19.2a matrix.
+
+**D4 — Limited half-sheet (Add to Album row)**
+- Under Limited: show one **non-interactive** Full Access requirement row
+  (upgrade-guidance copy); **do not** open album picker; **do not** list
+  User Albums. Independent of D3 left-swipe outcome.
+
+### Pending owner decisions (deadline: before 19.6 coding starts)
+
+**D2 — Left-swipe trigger range** (left-edge strip vs full media width):
+  owner decision **deferred** until 19.2a spike closes; **must** be locked
+  in the same review round as **D3**; hard deadline **before 19.6**
+  left-swipe recognizer lands.
+
+**D3 — Limited left-swipe policy** (strict ADR-K force-off vs conditional
+  supersede when L-BOOT + L-APPEND PASS): same defer / same round as D2;
+  hard deadline **before 19.6**. Full pros/cons live in chat / acceptance
+  notes only — not expanded here.
+
+### Gesture guard placeholder (ADR-040 Decision 20 — pending)
+
+Cap 19 left-swipe recognizer **must** consult still magnification state:
+while current **still** is **non-fit magnified**, recognizer **does not
+arm / does not fire** (symmetric with Cap 20 pinch-pan owning single-finger
+drag). Video non-persistent pinch (ADR-040 D16) does not arm this guard.
+Cap 19 ships guard + read-only magnification signal stub; Cap 20 wires
+real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
+(after D2/D3 + ADR-041 single batch).
+
+### Phase list
+
+- [~] 19.1 Contract freeze — §5 partial lock (D1, D4); Phase Roadmap
+      this section; pending D2/D3; ADR-041 + Decision 20 after full §5
+- [ ] 19.2a Limited album spike (**before** native write-path product UI)
+      — device matrix below; notes `docs/acceptance/cap19-19.2a-notes.md`
+- [ ] 19.2 Native album write path — implement Host `createAlbum`,
+      `addAssetToAlbum`; map `canAddContent` (`PHAssetCollection` addContent);
+      wire error codes `albumUnavailable` / `albumNotWritable`
+- [ ] 19.3 WakeTok album bootstrap — KV + Full find-or-create per D1;
+      Limited KV/create-only branch per 19.2a outcomes
+- [ ] 19.4 Entry chrome + half-sheet — bottom-trailing icon (ADR-040 D15
+      slot); half-sheet shell; Limited explicit Full Access row (D4)
+- [ ] 19.5 Panel Add-to-Album picker — Full Access only; writable User
+      Album list; append + toast; no Session Queue / Snapshot refresh
+      (ADR-I / kickoff §14)
+- [ ] 19.6 Left-swipe append — horizontal recognizer; Decision 20 guard;
+      edge-hold arbitration tests (ADR-040 D2/D18); **requires D2 + D3
+      locked**; Limited enablement per D3 outcome
+- [ ] 19.7 Preference + polish — `leftSwipeAddEnabled` KV (default on);
+      duplicate-append UX; ARB error/success copy
+- [ ] 19.8 Device acceptance + close-out — Full dual-entry smoke; Limited
+      matrix replay; Cap 19 `[x]` → PHASE_HISTORY; debt rows unchanged
+      unless verified closed
+
+### 19.2a acceptance matrix (Limited — record each row PASS/FAIL)
+
+| ID | Precondition | Action | Records |
+|----|--------------|--------|---------|
+| **L-BOOT** | Limited; **no** KV | `createAlbum("WakeTok")` only (no list find) | Album created? id cached? |
+| **L-BOOT-KV** | Limited; KV holds id from prior Full session | Skip list/create; optional id validity check | Bootstrap skipped? append still possible? |
+| **L-APPEND** | Limited; known `albumIdentifier` | `addAssetToAlbum(currentAssetId, albumId)` | Membership change in Photos? error code? |
+
+Spike records **PhotoKit capability only**. **D3** (product: strict ADR-K
+vs supersede) is decided **after** this matrix — a technical PASS does not
+by itself enable Limited left-swipe without owner D3 = supersede.
+
+Full Access control (optional same notes file): one row confirming D1
+KV → list find → create on clean install.
+
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19 scope gate — owner-approved Phase Roadmap TBD
-- Sub-steps done: Cap 18 complete (`docs/PHASE_HISTORY.md`; acceptance
-      `docs/acceptance/cap18-18.*.md`; debt **395** Closed 18.7)
-- Next step: owner kickoff / scope review for Cap 19 phases before coding
-- Related decisions: ADR-040 frozen slots (Cap 19 bottom-trailing entry
-      icon; left-swipe album vs edge-hold arbitration); debt **444** →
-      **Build a Pool, Ephemeral Pool, and Source ordering**; debt **439**
-      Live explicit replay control Unassigned; debt **442** / **443**
-      Accepted (phase); debt **441** Monitoring
+- Goal (one line): Cap 19.1 contract freeze — Phase Roadmap landed; 19.2a
+      spike prep next
+- Sub-steps done: Cap 18 complete; §5 D1 + D4 locked (2026-08-31); Phase
+      Roadmap owner-approved
+- Next step: 19.2a Limited spike (L-BOOT / L-BOOT-KV / L-APPEND); D2 + D3
+      same round after spike notes; then ADR-041 + Decision 20 single batch
+- Blocked on owner: D2, D3 (until `cap19-19.2a-notes.md` exists)
+- Hard deadline: D2 + D3 before 19.6 coding starts
+- Related decisions: ADR-040 D15 entry icon + D18 left-swipe slot;
+      Decision 20 guard (DECISIONS.md pending); ADR-K / ADR-021 Limited
+      list omission; debt **421** (Settings Limited picker — out of Cap 19);
+      debt **444** → Build a Pool Cap
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
