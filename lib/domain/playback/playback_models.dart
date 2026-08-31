@@ -1,6 +1,8 @@
 /// Domain types for Cap 7.3 playback + display presentation.
 library;
 
+import 'dart:typed_data';
+
 enum PlaybackMediaKind {
   image,
   video,
@@ -116,4 +118,15 @@ class PlayableVideo {
 
   final String assetIdentifier;
   final double? durationSeconds;
+}
+
+/// Cap 18.5 scrub preview still with Host actual presentation time.
+class ScrubPreviewFrame {
+  const ScrubPreviewFrame({
+    required this.jpegBytes,
+    required this.actualSeconds,
+  });
+
+  final Uint8List jpegBytes;
+  final double actualSeconds;
 }

@@ -53,6 +53,42 @@ double scrubPreviewBucketSeconds(double seconds) {
   return bucket * kScrubPreviewBucketStepSeconds;
 }
 
+/// Avoid requesting exact `duration` (some PhotoKit assets fail at EOS).
+const double kScrubPreviewEndEpsilonSeconds = 0.05;
+
+/// True when drag display time has entered the last incomplete second
+/// (or the exact integer duration). Cap 18.5 end-cap preview shot.
+bool scrubPreviewIsEndCap({
+  required double displaySeconds,
+  required double durationSeconds,
+}) {
+  if (!displaySeconds.isFinite || !durationSeconds.isFinite) {
+    return false;
+  }
+  if (durationSeconds <= 0) {
+    return false;
+  }
+  return displaySeconds >= durationSeconds.floor().toDouble();
+}
+
+/// Host preview request time: mid-path floor bucket, or `duration − ε` at end.
+double scrubPreviewRequestSeconds({
+  required double displaySeconds,
+  required double durationSeconds,
+}) {
+  if (!durationSeconds.isFinite || durationSeconds <= 0) {
+    return scrubPreviewBucketSeconds(displaySeconds);
+  }
+  if (scrubPreviewIsEndCap(
+    displaySeconds: displaySeconds,
+    durationSeconds: durationSeconds,
+  )) {
+    final end = durationSeconds - kScrubPreviewEndEpsilonSeconds;
+    return end < 0 ? 0.0 : end;
+  }
+  return scrubPreviewBucketSeconds(displaySeconds);
+}
+
 /// ADR-040 Decision 13: visible, non-interactive until L2-ready ordinary video.
 bool scrubberFrozen({
   required bool isCurrent,
@@ -266,7 +302,27 @@ bool scrubPreviewMayBorrowFrame({
   return nowMs - sourceCapturedAtMs <= kScrubPreviewBorrowMaxWallClockMs;
 }
 
+/// Whether Host `actualSeconds` is close enough to the Dart request time.
+///
+/// Inclusive of exactly [maxDriftSeconds] (aligned with §2.1 max one bucket).
+bool scrubPreviewActualAcceptable({
+  required double requestedSeconds,
+  required double actualSeconds,
+  double maxDriftSeconds = kScrubPreviewBucketStepSeconds,
+}) {
+  if (!requestedSeconds.isFinite || !actualSeconds.isFinite) {
+    return false;
+  }
+  if (!maxDriftSeconds.isFinite || maxDriftSeconds < 0) {
+    return false;
+  }
+  return (requestedSeconds - actualSeconds).abs() <= maxDriftSeconds;
+}
+
 /// Bubble image bytes: current bucket JPEG, else bounded borrow from prior bucket.
+///
+/// [forbidBorrow] is true in the end-cap zone (in-flight or nil): borrowing the
+/// prior second would re-legalize the "frames before the Douyin tail" bug.
 Uint8List? scrubPreviewDisplayBytes({
   required Uint8List? currentBucketBytes,
   required Uint8List? borrowSourceBytes,
@@ -275,11 +331,12 @@ Uint8List? scrubPreviewDisplayBytes({
   required int nowMs,
   required int? borrowSourceCapturedAtMs,
   required bool scrubDirectionReversed,
+  bool forbidBorrow = false,
 }) {
   if (currentBucketBytes != null) {
     return currentBucketBytes;
   }
-  if (borrowSourceBytes == null) {
+  if (forbidBorrow || borrowSourceBytes == null) {
     return null;
   }
   if (!scrubPreviewMayBorrowFrame(

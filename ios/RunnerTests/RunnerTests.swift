@@ -683,7 +683,7 @@ final class PlaybackScrubPreviewTests: XCTestCase {
       try? FileManager.default.removeItem(at: url)
     }
     let asset = AVURLAsset(url: url)
-    let result = PlaybackScrubPreview.generateResult(
+    let (result, _) = PlaybackScrubPreview.generateResult(
       asset: asset,
       time: CMTime(seconds: 0.1, preferredTimescale: 600)
     )
@@ -694,6 +694,67 @@ final class PlaybackScrubPreviewTests: XCTestCase {
     case .failure(let reason):
       XCTFail("expected JPEG, got \(reason)")
     }
+  }
+
+  func testH18_5_E1_endCap_usesExactTolerance() {
+    let mid = PlaybackScrubPreview.toleranceForRequest(
+      positionSeconds: 4.0,
+      durationSeconds: 15.8
+    )
+    XCTAssertEqual(mid.label, "zero")
+
+    let endFrac = PlaybackScrubPreview.toleranceForRequest(
+      positionSeconds: 15.75,
+      durationSeconds: 15.8
+    )
+    XCTAssertEqual(endFrac.label, "zero")
+    XCTAssertTrue(
+      PlaybackScrubPreview.isEndCapRequest(
+        positionSeconds: 15.75,
+        durationSeconds: 15.8
+      )
+    )
+
+    let endInt = PlaybackScrubPreview.toleranceForRequest(
+      positionSeconds: 15.95,
+      durationSeconds: 16.0
+    )
+    XCTAssertEqual(endInt.label, "zero")
+    XCTAssertTrue(
+      PlaybackScrubPreview.isEndCapRequest(
+        positionSeconds: 15.95,
+        durationSeconds: 16.0
+      )
+    )
+
+    // Past asset duration must NOT force zero (Dart/Host duration skew).
+    XCTAssertFalse(
+      PlaybackScrubPreview.isEndCapRequest(
+        positionSeconds: 50.0,
+        durationSeconds: 40.0
+      )
+    )
+    XCTAssertEqual(
+      PlaybackScrubPreview.toleranceForRequest(
+        positionSeconds: 50.0,
+        durationSeconds: 40.0
+      ).label,
+      "infinite"
+    )
+  }
+
+  func testH18_5_E2_midPath_usesExactTolerance() {
+    let tol = PlaybackScrubPreview.toleranceForRequest(
+      positionSeconds: 15.0,
+      durationSeconds: 16.0
+    )
+    XCTAssertEqual(tol.label, "zero")
+    XCTAssertFalse(
+      PlaybackScrubPreview.isEndCapRequest(
+        positionSeconds: 15.0,
+        durationSeconds: 16.0
+      )
+    )
   }
 
   private static func makeTempVideoURL() throws -> URL {

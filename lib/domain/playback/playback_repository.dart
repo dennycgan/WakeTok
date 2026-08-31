@@ -60,6 +60,6 @@ abstract class PlaybackRepository {
   /// Cap 18.3 / ADR-040: sync intent mirror before effective play/pause.
   Future<void> setPlaybackIntent(PlaybackIntent intent);
 
-  /// Cap 18.5 / ADR-040 Decision 13 supplement: JPEG preview bytes or null.
-  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds);
+  /// Cap 18.5 / ADR-040 Decision 13: preview JPEG + Host actual time, or null.
+  Future<ScrubPreviewFrame?> requestScrubPreviewFrame(double positionSeconds);
 }

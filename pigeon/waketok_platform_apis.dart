@@ -357,6 +357,22 @@ class PlaybackIntentDto {
   bool clearsPendingNavigationActivation;
 }
 
+/// Cap 18.5 scrub preview still + Host actual presentation time
+/// (ADR-040 Decision 13 Option B drift gate).
+class ScrubPreviewFrameDto {
+  ScrubPreviewFrameDto({
+    this.jpegBytes,
+    this.actualSeconds,
+  });
+
+  /// Null when preview unavailable.
+  Uint8List? jpegBytes;
+
+  /// AVAssetImageGenerator `actualTime` in seconds. Required when
+  /// [jpegBytes] is non-null; Dart treats missing actual as failure.
+  double? actualSeconds;
+}
+
 /// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
 @HostApi()
 abstract class PhotoLibraryApi {
@@ -593,10 +609,13 @@ abstract class PlaybackApi {
   void setPlaybackIntent(PlaybackIntentDto intent);
 
   /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
-  /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+  /// (JPEG + Host actual time). Null when no active player or generation failed.
   /// Must not seek the active [AVPlayer] — preview only.
+  /// Success requires both [ScrubPreviewFrameDto.jpegBytes] and
+  /// [ScrubPreviewFrameDto.actualSeconds]; Dart rejects oversized
+  /// |requested − actual| drift as equivalent failure.
   @async
-  Uint8List? requestScrubPreviewFrame(double positionSeconds);
+  ScrubPreviewFrameDto? requestScrubPreviewFrame(double positionSeconds);
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).

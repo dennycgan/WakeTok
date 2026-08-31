@@ -13,167 +13,7 @@ import 'package:waketok/platform/generated/waketok_platform_apis.g.dart' as pige
 
 import '../../library_smoke/fake_playback_repository.dart';
 
-/// Minimal valid 1×1 JPEG (proves Flutter [Image.memory] path).
-final Uint8List kCap185TestPreviewJpeg = Uint8List.fromList(<int>[
-  0xFF,
-  0xD8,
-  0xFF,
-  0xE0,
-  0x00,
-  0x10,
-  0x4A,
-  0x46,
-  0x49,
-  0x46,
-  0x00,
-  0x01,
-  0x01,
-  0x00,
-  0x00,
-  0x01,
-  0x00,
-  0x01,
-  0x00,
-  0x00,
-  0xFF,
-  0xDB,
-  0x00,
-  0x43,
-  0x00,
-  0x08,
-  0x06,
-  0x06,
-  0x07,
-  0x06,
-  0x05,
-  0x08,
-  0x07,
-  0x07,
-  0x07,
-  0x09,
-  0x09,
-  0x08,
-  0x0A,
-  0x0C,
-  0x14,
-  0x0D,
-  0x0C,
-  0x0B,
-  0x0B,
-  0x0C,
-  0x19,
-  0x12,
-  0x13,
-  0x0F,
-  0x14,
-  0x1D,
-  0x1A,
-  0x1F,
-  0x1E,
-  0x1D,
-  0x1A,
-  0x1C,
-  0x1C,
-  0x20,
-  0x24,
-  0x2E,
-  0x27,
-  0x20,
-  0x22,
-  0x2C,
-  0x23,
-  0x1C,
-  0x1C,
-  0x28,
-  0x37,
-  0x29,
-  0x2C,
-  0x30,
-  0x31,
-  0x34,
-  0x34,
-  0x34,
-  0x1F,
-  0x27,
-  0x39,
-  0x3D,
-  0x38,
-  0x32,
-  0x3C,
-  0x2E,
-  0x33,
-  0x34,
-  0x32,
-  0xFF,
-  0xC0,
-  0x00,
-  0x0B,
-  0x08,
-  0x00,
-  0x01,
-  0x00,
-  0x01,
-  0x01,
-  0x01,
-  0x11,
-  0x00,
-  0xFF,
-  0xC4,
-  0x00,
-  0x14,
-  0x00,
-  0x01,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0xFF,
-  0xC4,
-  0x00,
-  0x14,
-  0x10,
-  0x01,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0x00,
-  0xFF,
-  0xDA,
-  0x00,
-  0x08,
-  0x01,
-  0x01,
-  0x00,
-  0x00,
-  0x3F,
-  0x00,
-  0x7F,
-  0xFF,
-  0xD9,
-]);
+import 'cap18_5_preview_jpeg.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -223,11 +63,10 @@ void main() {
       final gateway = PlaybackGateway();
       addTearDown(gateway.dispose);
 
-      final bytes = await gateway.requestScrubPreviewFrame(4.5);
-      expect(bytes, isNull);
+      expect(await gateway.requestScrubPreviewFrame(4.5), isNull);
     });
 
-    test('P-18.5-3 Host ok: gateway decodes JPEG bytes from channel', () async {
+    test('P-18.5-3 Host ok: gateway maps JPEG + actual from channel', () async {
       const codec = pigeon.PlaybackApi.pigeonChannelCodec;
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockDecodedMessageHandler<Object?>(
@@ -235,14 +74,21 @@ void main() {
           'dev.flutter.pigeon.waketok.PlaybackApi.requestScrubPreviewFrame',
           codec,
         ),
-        (message) async => <Object?>[kCap185TestPreviewJpeg],
+        (message) async => <Object?>[
+              pigeon.ScrubPreviewFrameDto(
+                jpegBytes: kCap185TestPreviewJpeg,
+                actualSeconds: 4.5,
+              ),
+            ],
       );
 
       final gateway = PlaybackGateway();
       addTearDown(gateway.dispose);
 
-      final bytes = await gateway.requestScrubPreviewFrame(4.5);
-      expect(bytes, kCap185TestPreviewJpeg);
+      final frame = await gateway.requestScrubPreviewFrame(4.5);
+      expect(frame, isNotNull);
+      expect(frame!.jpegBytes, kCap185TestPreviewJpeg);
+      expect(frame.actualSeconds, closeTo(4.5, 0.001));
     });
 
     testWidgets('P-18.5-4 UI: JPEG bytes render bubble without placeholder text',
@@ -416,11 +262,14 @@ void main() {
         (tester) async {
       final playback = FakePlaybackRepository()
         ..scrubPreviewBytes = kCap185TestPreviewJpeg;
-      Future<Uint8List?> requestPreview(double bucketSeconds) async {
+      Future<ScrubPreviewFrame?> requestPreview(double bucketSeconds) async {
         if (bucketSeconds >= 13) {
           return null;
         }
-        return kCap185TestPreviewJpeg;
+        return ScrubPreviewFrame(
+          jpegBytes: kCap185TestPreviewJpeg,
+          actualSeconds: bucketSeconds,
+        );
       }
 
       await tester.pumpWidget(

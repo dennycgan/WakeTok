@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
@@ -118,8 +117,21 @@ class PlaybackGateway
   Future<void> seek(double positionSeconds) => _api.seek(positionSeconds);
 
   @override
-  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds) =>
-      _api.requestScrubPreviewFrame(positionSeconds);
+  Future<ScrubPreviewFrame?> requestScrubPreviewFrame(
+    double positionSeconds,
+  ) async {
+    final dto = await _api.requestScrubPreviewFrame(positionSeconds);
+    if (dto == null) {
+      return null;
+    }
+    final bytes = dto.jpegBytes;
+    final actual = dto.actualSeconds;
+    if (bytes == null || actual == null || !actual.isFinite) {
+      // Missing actual on a "success" wire shape is equivalent failure.
+      return null;
+    }
+    return ScrubPreviewFrame(jpegBytes: bytes, actualSeconds: actual);
+  }
 
   @override
   Future<void> setRate(double rate) => _api.setRate(rate);

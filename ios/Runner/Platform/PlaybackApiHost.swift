@@ -52,7 +52,7 @@ final class PlaybackApiHost: PlaybackApi {
   private var scrubPreviewInFlight = false
   private var scrubPreviewPendingSeconds: Double?
   private var scrubPreviewPendingCompletion:
-    ((Result<FlutterStandardTypedData?, Error>) -> Void)?
+    ((Result<ScrubPreviewFrameDto?, Error>) -> Void)?
 #if DEBUG
   private(set) var debugRuntimeEventsForTests: [PlaybackRuntimeEventDto] = []
 #endif
@@ -392,7 +392,7 @@ final class PlaybackApiHost: PlaybackApi {
 
   func requestScrubPreviewFrame(
     positionSeconds: Double,
-    completion: @escaping (Result<FlutterStandardTypedData?, Error>) -> Void
+    completion: @escaping (Result<ScrubPreviewFrameDto?, Error>) -> Void
   ) {
     runOnMain { [weak self] in
       guard let self else {
@@ -429,22 +429,32 @@ final class PlaybackApiHost: PlaybackApi {
   private func startScrubPreviewWork(
     positionSeconds: Double,
     asset: AVAsset,
-    completion: @escaping (Result<FlutterStandardTypedData?, Error>) -> Void
+    completion: @escaping (Result<ScrubPreviewFrameDto?, Error>) -> Void
   ) {
     scrubPreviewInFlight = true
     scrubPreviewPendingSeconds = nil
     scrubPreviewPendingCompletion = nil
     let time = CMTime(seconds: positionSeconds, preferredTimescale: 600)
     let started = CFAbsoluteTimeGetCurrent()
+    // Duration from the same AVAsset used for generation (PhotoKit-backed).
+    let durationSeconds = CMTimeGetSeconds(asset.duration)
+    let tolerance = PlaybackScrubPreview.toleranceForRequest(
+      positionSeconds: positionSeconds,
+      durationSeconds: durationSeconds
+    )
     ScrubPreviewProbe.info(
-      "start position=\(String(format: "%.2f", positionSeconds))"
+      "start position=\(String(format: "%.2f", positionSeconds)) "
+        + "duration=\(String(format: "%.2f", durationSeconds)) "
+        + "tol=\(tolerance.label) endCap=\(PlaybackScrubPreview.isEndCapRequest(positionSeconds: positionSeconds, durationSeconds: durationSeconds))"
     )
     scrubPreviewQueue.async { [weak self] in
-      let previewResult = PlaybackScrubPreview.generateResult(
+      let (previewResult, actualTime) = PlaybackScrubPreview.generateResult(
         asset: asset,
-        time: time
+        time: time,
+        tolerance: tolerance
       )
       let elapsedMs = Int((CFAbsoluteTimeGetCurrent() - started) * 1000)
+      let actualSeconds = CMTimeGetSeconds(actualTime)
       DispatchQueue.main.async { [weak self] in
         guard let self else {
           completion(.success(nil))
@@ -453,13 +463,29 @@ final class PlaybackApiHost: PlaybackApi {
         self.scrubPreviewInFlight = false
         switch previewResult {
         case .success(let data):
+          let actualFinite = actualSeconds.isFinite
           ScrubPreviewProbe.info(
-            "ok position=\(String(format: "%.2f", positionSeconds)) bytes=\(data.count) ms=\(elapsedMs)"
+            "ok position=\(String(format: "%.2f", positionSeconds)) "
+              + "actual=\(String(format: "%.2f", actualFinite ? actualSeconds : -1)) "
+              + "tol=\(tolerance.label) bytes=\(data.count) ms=\(elapsedMs)"
           )
-          completion(.success(FlutterStandardTypedData(bytes: data)))
+          if actualFinite {
+            completion(
+              .success(
+                ScrubPreviewFrameDto(
+                  jpegBytes: FlutterStandardTypedData(bytes: data),
+                  actualSeconds: actualSeconds
+                )
+              )
+            )
+          } else {
+            // Missing/invalid actual — Dart treats as equivalent failure.
+            completion(.success(nil))
+          }
         case .failure(let reason):
           ScrubPreviewProbe.info(
-            "nil position=\(String(format: "%.2f", positionSeconds)) reason=\(reason) ms=\(elapsedMs)"
+            "nil position=\(String(format: "%.2f", positionSeconds)) "
+              + "tol=\(tolerance.label) reason=\(reason) ms=\(elapsedMs)"
           )
           completion(.success(nil))
         }

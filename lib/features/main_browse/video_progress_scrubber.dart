@@ -9,7 +9,8 @@ import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/scrubber_policy.dart';
 
-typedef ScrubPreviewRequest = Future<Uint8List?> Function(double positionSeconds);
+typedef ScrubPreviewRequest =
+    Future<ScrubPreviewFrame?> Function(double positionSeconds);
 
 /// Cap 18.5 TikTok-style progress scrubber + preview bubble (ADR-040 D13 supplement).
 ///
@@ -55,6 +56,8 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   int? _lastSuccessfulPreviewAtMs;
   int? _scrubBucketDeltaSign;
   bool _scrubPreviewBorrowDisabled = false;
+  /// Set when Host JPEG fails the |requested − actual| drift gate.
+  bool _driftRejectForbidBorrow = false;
   Offset? _pointerDown;
   double? _dragAnchorLocalX;
   double _dragAnchorRatio = 0;
@@ -165,15 +168,16 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       _dragCommitted = true;
       widget.onScrubBegin();
     }
-    final previousBucket = scrubPreviewBucketSeconds(
+    final duration = _effectiveDuration;
+    final previousFloor = scrubPreviewBucketSeconds(
       _secondsForRatio(_dragRatio),
     );
     final nextRatio = _dragRatioFromDrag(details.localPosition.dx);
-    final nextBucket = scrubPreviewBucketSeconds(
+    final nextFloor = scrubPreviewBucketSeconds(
       _secondsForRatio(nextRatio),
     );
-    if (nextBucket != previousBucket) {
-      final delta = nextBucket - previousBucket;
+    if (nextFloor != previousFloor) {
+      final delta = nextFloor - previousFloor;
       if (delta != 0) {
         final sign = delta > 0 ? 1 : -1;
         if (_scrubBucketDeltaSign != null && sign != _scrubBucketDeltaSign) {
@@ -182,11 +186,17 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
         _scrubBucketDeltaSign = sign;
       }
     }
-    final bucketChanged =
-        _previewBucketSeconds != null && _previewBucketSeconds != nextBucket;
+    final nextRequest = duration != null && duration > 0
+        ? scrubPreviewRequestSeconds(
+            displaySeconds: _secondsForRatio(nextRatio),
+            durationSeconds: duration,
+          )
+        : nextFloor;
+    final requestChanged =
+        _previewBucketSeconds != null && _previewBucketSeconds != nextRequest;
     setState(() {
       _dragRatio = nextRatio;
-      if (bucketChanged) {
+      if (requestChanged) {
         _clearCurrentPreviewFrame();
       }
     });
@@ -236,6 +246,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       _lastSuccessfulPreviewAtMs = null;
       _scrubBucketDeltaSign = null;
       _scrubPreviewBorrowDisabled = false;
+      _driftRejectForbidBorrow = false;
     });
     if (shouldSeek) {
       widget.onScrubComplete(seconds);
@@ -250,6 +261,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
     _lastSuccessfulPreviewAtMs = null;
     _scrubBucketDeltaSign = null;
     _scrubPreviewBorrowDisabled = false;
+    _driftRejectForbidBorrow = false;
   }
 
   void _clearCurrentPreviewFrame() {
@@ -269,15 +281,28 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   }
 
   Uint8List? _bubbleDisplayBytes(int nowMs) {
-    final currentBucket = scrubPreviewBucketSeconds(_displaySeconds);
+    final duration = _effectiveDuration;
+    final requestKey = duration != null && duration > 0
+        ? scrubPreviewRequestSeconds(
+            displaySeconds: _displaySeconds,
+            durationSeconds: duration,
+          )
+        : scrubPreviewBucketSeconds(_displaySeconds);
+    final endCap = duration != null &&
+        duration > 0 &&
+        scrubPreviewIsEndCap(
+          displaySeconds: _displaySeconds,
+          durationSeconds: duration,
+        );
     return scrubPreviewDisplayBytes(
       currentBucketBytes: _previewBytes,
       borrowSourceBytes: _lastSuccessfulPreviewBytes,
-      currentBucketSeconds: currentBucket,
+      currentBucketSeconds: requestKey,
       borrowSourceBucketSeconds: _lastSuccessfulPreviewBucket,
       nowMs: nowMs,
       borrowSourceCapturedAtMs: _lastSuccessfulPreviewAtMs,
       scrubDirectionReversed: _scrubPreviewBorrowDisabled,
+      forbidBorrow: endCap || _driftRejectForbidBorrow,
     );
   }
 
@@ -294,8 +319,19 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
     );
   }
 
+  double _previewRequestKey() {
+    final duration = _effectiveDuration;
+    if (duration != null && duration > 0) {
+      return scrubPreviewRequestSeconds(
+        displaySeconds: _displaySeconds,
+        durationSeconds: duration,
+      );
+    }
+    return scrubPreviewBucketSeconds(_displaySeconds);
+  }
+
   void _maybeRequestPreview({required bool force}) {
-    final bucket = scrubPreviewBucketSeconds(_displaySeconds);
+    final requestKey = _previewRequestKey();
     if (_previewInFlight) {
       return;
     }
@@ -305,34 +341,38 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
           nowMs: nowMs,
           lastRequestStartedMs: _lastPreviewRequestMs,
           minRequestIntervalMs: _minPreviewThrottleMs,
-          bucketSeconds: bucket,
+          bucketSeconds: requestKey,
           lastRequestedBucketSeconds: _lastRequestedBucketSeconds,
           hasOutstandingRequest: _previewInFlight,
         )) {
       return;
     }
     _lastPreviewRequestMs = nowMs;
-    _lastRequestedBucketSeconds = bucket;
-    final previousBucket = _previewBucketSeconds;
+    _lastRequestedBucketSeconds = requestKey;
+    final previousKey = _previewBucketSeconds;
     setState(() {
       _previewInFlight = true;
-      _previewBucketSeconds = bucket;
-      if (previousBucket != bucket) {
+      _previewBucketSeconds = requestKey;
+      if (previousKey != requestKey) {
         _previewBytes = null;
+        _driftRejectForbidBorrow = false;
       }
     });
-    debugPrint('WT18.5 dart request bucket=$bucket inFlight=$_previewInFlight');
+    debugPrint(
+      'WT18.5 dart request key=$requestKey inFlight=$_previewInFlight',
+    );
     unawaited(
-      widget.requestPreview(bucket).then((bytes) {
+      widget.requestPreview(requestKey).then((frame) {
         if (!mounted || !_dragging) {
           return;
         }
-        final currentBucket = scrubPreviewBucketSeconds(_displaySeconds);
+        final currentKey = _previewRequestKey();
         debugPrint(
-          'WT18.5 dart response reqBucket=$bucket currentBucket=$currentBucket '
-          'bytes=${bytes?.length ?? 0}',
+          'WT18.5 dart response reqKey=$requestKey currentKey=$currentKey '
+          'bytes=${frame?.jpegBytes.length ?? 0} '
+          'actual=${frame?.actualSeconds}',
         );
-        if (currentBucket != bucket) {
+        if (currentKey != requestKey) {
           setState(() {
             _previewInFlight = false;
           });
@@ -341,19 +381,37 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
         }
         setState(() {
           _previewInFlight = false;
-          if (bytes == null) {
+          if (frame == null) {
+            // Ordinary Host nil — §2.1 borrow still allowed.
             _previewBytes = null;
+            _driftRejectForbidBorrow = false;
+            _slowPreviewStreak++;
+            _minPreviewThrottleMs = scrubPreviewNextThrottleMs(
+              currentMs: _minPreviewThrottleMs,
+              slowOutstandingStreak: _slowPreviewStreak,
+            );
+          } else if (!scrubPreviewActualAcceptable(
+            requestedSeconds: requestKey,
+            actualSeconds: frame.actualSeconds,
+          )) {
+            debugPrint(
+              'WT18.5 dart driftReject req=$requestKey '
+              'actual=${frame.actualSeconds}',
+            );
+            _previewBytes = null;
+            _driftRejectForbidBorrow = true;
             _slowPreviewStreak++;
             _minPreviewThrottleMs = scrubPreviewNextThrottleMs(
               currentMs: _minPreviewThrottleMs,
               slowOutstandingStreak: _slowPreviewStreak,
             );
           } else {
+            _driftRejectForbidBorrow = false;
             _slowPreviewStreak = 0;
             _minPreviewThrottleMs = kScrubPreviewInitialThrottleMs;
             _recordSuccessfulPreview(
-              bytes: bytes,
-              bucketSeconds: bucket,
+              bytes: frame.jpegBytes,
+              bucketSeconds: requestKey,
               capturedAtMs: DateTime.now().millisecondsSinceEpoch,
             );
           }

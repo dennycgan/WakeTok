@@ -20,14 +20,42 @@ void main() {
       (message) async {
         final seconds = (message! as List<Object?>)[0]! as double;
         expect(seconds, closeTo(12.0, 0.001));
-        return <Object?>[Uint8List.fromList(<int>[1, 2, 3])];
+        return <Object?>[
+          pigeon.ScrubPreviewFrameDto(
+            jpegBytes: Uint8List.fromList(<int>[1, 2, 3]),
+            actualSeconds: 12.0,
+          ),
+        ];
       },
     );
 
     final gateway = PlaybackGateway();
     addTearDown(gateway.dispose);
 
-    final bytes = await gateway.requestScrubPreviewFrame(12.0);
-    expect(bytes, Uint8List.fromList(<int>[1, 2, 3]));
+    final frame = await gateway.requestScrubPreviewFrame(12.0);
+    expect(frame, isNotNull);
+    expect(frame!.jpegBytes, Uint8List.fromList(<int>[1, 2, 3]));
+    expect(frame.actualSeconds, closeTo(12.0, 0.001));
+  });
+
+  test('T-18.5-2 gateway nulls when Host omits actualSeconds', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        'dev.flutter.pigeon.waketok.PlaybackApi.requestScrubPreviewFrame',
+        codec,
+      ),
+      (message) async => <Object?>[
+            pigeon.ScrubPreviewFrameDto(
+              jpegBytes: Uint8List.fromList(<int>[1, 2, 3]),
+              actualSeconds: null,
+            ),
+          ],
+    );
+
+    final gateway = PlaybackGateway();
+    addTearDown(gateway.dispose);
+
+    expect(await gateway.requestScrubPreviewFrame(4.0), isNull);
   });
 }

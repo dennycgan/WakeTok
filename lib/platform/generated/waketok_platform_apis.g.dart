@@ -1107,6 +1107,61 @@ class PlaybackIntentDto {
   }
 }
 
+/// Cap 18.5 scrub preview still + Host actual presentation time
+/// (ADR-040 Decision 13 Option B drift gate).
+class ScrubPreviewFrameDto {
+  ScrubPreviewFrameDto({
+    this.jpegBytes,
+    this.actualSeconds,
+  });
+
+  /// Null when preview unavailable.
+  Uint8List? jpegBytes;
+
+  /// AVAssetImageGenerator `actualTime` in seconds. Required when
+  /// [jpegBytes] is non-null; Dart treats missing actual as failure.
+  double? actualSeconds;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      jpegBytes,
+      actualSeconds,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static ScrubPreviewFrameDto decode(Object result) {
+    result as List<Object?>;
+    return ScrubPreviewFrameDto(
+      jpegBytes: result[0] as Uint8List?,
+      actualSeconds: result[1] as double?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! ScrubPreviewFrameDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(jpegBytes, other.jpegBytes) && _deepEquals(actualSeconds, other.actualSeconds);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'ScrubPreviewFrameDto(jpegBytes: $jpegBytes, actualSeconds: $actualSeconds)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -1184,6 +1239,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is PlaybackIntentDto) {
       buffer.putUint8(151);
       writeValue(buffer, value.encode());
+    }    else if (value is ScrubPreviewFrameDto) {
+      buffer.putUint8(152);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -1246,6 +1304,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlaybackSurfaceAttachedDto.decode(readValue(buffer)!);
       case 151:
         return PlaybackIntentDto.decode(readValue(buffer)!);
+      case 152:
+        return ScrubPreviewFrameDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -2083,9 +2143,12 @@ class PlaybackApi {
   }
 
   /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
-  /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+  /// (JPEG + Host actual time). Null when no active player or generation failed.
   /// Must not seek the active [AVPlayer] — preview only.
-  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds) async {
+  /// Success requires both [ScrubPreviewFrameDto.jpegBytes] and
+  /// [ScrubPreviewFrameDto.actualSeconds]; Dart rejects oversized
+  /// |requested − actual| drift as equivalent failure.
+  Future<ScrubPreviewFrameDto?> requestScrubPreviewFrame(double positionSeconds) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.requestScrubPreviewFrame$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
@@ -2101,7 +2164,7 @@ class PlaybackApi {
         isNullValid: true,
     )
     ;
-    return pigeonVar_replyValue as Uint8List?;
+    return pigeonVar_replyValue as ScrubPreviewFrameDto?;
   }
 }
 

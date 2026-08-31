@@ -1046,6 +1046,52 @@ struct PlaybackIntentDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Cap 18.5 scrub preview still + Host actual presentation time
+/// (ADR-040 Decision 13 Option B drift gate).
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct ScrubPreviewFrameDto: Hashable, CustomStringConvertible {
+  /// Null when preview unavailable.
+  var jpegBytes: FlutterStandardTypedData? = nil
+  /// AVAssetImageGenerator `actualTime` in seconds. Required when
+  /// [jpegBytes] is non-null; Dart treats missing actual as failure.
+  var actualSeconds: Double? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> ScrubPreviewFrameDto? {
+    let jpegBytes: FlutterStandardTypedData? = nilOrValue(pigeonVar_list[0])
+    let actualSeconds: Double? = nilOrValue(pigeonVar_list[1])
+
+    return ScrubPreviewFrameDto(
+      jpegBytes: jpegBytes,
+      actualSeconds: actualSeconds
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      jpegBytes,
+      actualSeconds,
+    ]
+  }
+  static func == (lhs: ScrubPreviewFrameDto, rhs: ScrubPreviewFrameDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.jpegBytes, rhs.jpegBytes) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.actualSeconds, rhs.actualSeconds)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("ScrubPreviewFrameDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: jpegBytes, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: actualSeconds, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "ScrubPreviewFrameDto(jpegBytes: \(String(describing: jpegBytes)), actualSeconds: \(String(describing: actualSeconds)))"
+  }
+}
+
 private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -1127,6 +1173,8 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
       return PlaybackSurfaceAttachedDto.fromList(self.readValue() as! [Any?])
     case 151:
       return PlaybackIntentDto.fromList(self.readValue() as! [Any?])
+    case 152:
+      return ScrubPreviewFrameDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -1203,6 +1251,9 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? PlaybackIntentDto {
       super.writeByte(151)
+      super.writeValue(value.toList())
+    } else if let value = value as? ScrubPreviewFrameDto {
+      super.writeByte(152)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1828,9 +1879,12 @@ protocol PlaybackApi {
   /// Host must apply mirror synchronously before replying.
   func setPlaybackIntent(intent: PlaybackIntentDto) throws
   /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
-  /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+  /// (JPEG + Host actual time). Null when no active player or generation failed.
   /// Must not seek the active [AVPlayer] — preview only.
-  func requestScrubPreviewFrame(positionSeconds: Double, completion: @escaping (Result<FlutterStandardTypedData?, Error>) -> Void)
+  /// Success requires both [ScrubPreviewFrameDto.jpegBytes] and
+  /// [ScrubPreviewFrameDto.actualSeconds]; Dart rejects oversized
+  /// |requested − actual| drift as equivalent failure.
+  func requestScrubPreviewFrame(positionSeconds: Double, completion: @escaping (Result<ScrubPreviewFrameDto?, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -2106,8 +2160,11 @@ class PlaybackApiSetup {
       setPlaybackIntentChannel.setMessageHandler(nil)
     }
     /// Cap 18.5 / ADR-040 Decision 13 supplement: best-effort scrub preview still
-    /// (JPEG bytes). Null when no active player, target not seekable, or timeout.
+    /// (JPEG + Host actual time). Null when no active player or generation failed.
     /// Must not seek the active [AVPlayer] — preview only.
+    /// Success requires both [ScrubPreviewFrameDto.jpegBytes] and
+    /// [ScrubPreviewFrameDto.actualSeconds]; Dart rejects oversized
+    /// |requested − actual| drift as equivalent failure.
     let requestScrubPreviewFrameChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.requestScrubPreviewFrame\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       requestScrubPreviewFrameChannel.setMessageHandler { message, reply in

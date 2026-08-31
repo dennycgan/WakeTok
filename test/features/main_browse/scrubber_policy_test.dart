@@ -387,4 +387,189 @@ void main() {
       expect(MediaInfoOverlay.rowHeight, 20);
     });
   });
+
+  group('U-18.5-E end-cap preview request', () {
+    test('U-18.5-E1 non-integer duration before last second stays floor bucket',
+        () {
+      expect(
+        scrubPreviewIsEndCap(displaySeconds: 14.99, durationSeconds: 15.8),
+        isFalse,
+      );
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 14.99,
+          durationSeconds: 15.8,
+        ),
+        14.0,
+      );
+    });
+
+    test('U-18.5-E2 non-integer duration enters end-cap at floor(duration)', () {
+      expect(
+        scrubPreviewIsEndCap(displaySeconds: 15.0, durationSeconds: 15.8),
+        isTrue,
+      );
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 15.0,
+          durationSeconds: 15.8,
+        ),
+        closeTo(15.8 - kScrubPreviewEndEpsilonSeconds, 1e-9),
+      );
+    });
+
+    test('U-18.5-E3 non-integer duration at exact end stays end-cap', () {
+      expect(
+        scrubPreviewIsEndCap(displaySeconds: 15.8, durationSeconds: 15.8),
+        isTrue,
+      );
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 15.8,
+          durationSeconds: 15.8,
+        ),
+        closeTo(15.75, 1e-9),
+      );
+    });
+
+    test('U-18.5-E4 integer duration mid last second is not end-cap', () {
+      expect(
+        scrubPreviewIsEndCap(displaySeconds: 15.9, durationSeconds: 16.0),
+        isFalse,
+      );
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 15.9,
+          durationSeconds: 16.0,
+        ),
+        15.0,
+      );
+    });
+
+    test('U-18.5-E5 integer duration exact end is end-cap', () {
+      expect(
+        scrubPreviewIsEndCap(displaySeconds: 16.0, durationSeconds: 16.0),
+        isTrue,
+      );
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 16.0,
+          durationSeconds: 16.0,
+        ),
+        closeTo(15.95, 1e-9),
+      );
+    });
+
+    test('U-18.5-E6 end-cap identity rejects §2.1 borrow from prior floor', () {
+      expect(
+        scrubPreviewMayBorrowFrame(
+          currentBucketSeconds: 15.75,
+          sourceBucketSeconds: 14.0,
+          nowMs: 1100,
+          sourceCapturedAtMs: 1000,
+          scrubDirectionReversed: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('U-18.5-E7 forbidBorrow blocks prior JPEG even when gap would qualify',
+        () {
+      final sourceBytes = Uint8List.fromList(<int>[9, 9, 9]);
+      expect(
+        scrubPreviewDisplayBytes(
+          currentBucketBytes: null,
+          borrowSourceBytes: sourceBytes,
+          currentBucketSeconds: 12,
+          borrowSourceBucketSeconds: 11,
+          nowMs: 1100,
+          borrowSourceCapturedAtMs: 1000,
+          scrubDirectionReversed: false,
+          forbidBorrow: true,
+        ),
+        isNull,
+      );
+      expect(
+        scrubPreviewDisplayBytes(
+          currentBucketBytes: null,
+          borrowSourceBytes: sourceBytes,
+          currentBucketSeconds: 12,
+          borrowSourceBucketSeconds: 11,
+          nowMs: 1100,
+          borrowSourceCapturedAtMs: 1000,
+          scrubDirectionReversed: false,
+        ),
+        sourceBytes,
+      );
+    });
+  });
+
+  group('U-18.5-A actual drift gate', () {
+    test('U-18.5-A1 drift 0.8s acceptable', () {
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: 7,
+          actualSeconds: 6.2,
+        ),
+        isTrue,
+      );
+    });
+
+    test('U-18.5-A2 drift 1.5s rejected', () {
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: 7,
+          actualSeconds: 5.5,
+        ),
+        isFalse,
+      );
+    });
+
+    test('U-18.5-A3 drift exactly 1.0s acceptable (inclusive)', () {
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: 7,
+          actualSeconds: 6.0,
+        ),
+        isTrue,
+      );
+    });
+
+    test('U-18.5-A4 drift exactly 1.0s forward acceptable', () {
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: 7,
+          actualSeconds: 8.0,
+        ),
+        isTrue,
+      );
+    });
+
+    test('U-18.5-A5 drift just over 1.0s rejected', () {
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: 7,
+          actualSeconds: 8.0 + 1e-6,
+        ),
+        isFalse,
+      );
+    });
+
+    test('U-18.5-A6 non-finite rejected', () {
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: 7,
+          actualSeconds: double.nan,
+        ),
+        isFalse,
+      );
+      expect(
+        scrubPreviewActualAcceptable(
+          requestedSeconds: double.infinity,
+          actualSeconds: 7,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

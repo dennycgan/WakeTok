@@ -37,6 +37,13 @@ class FakePlaybackRepository implements PlaybackRepository {
   /// When non-null, [requestScrubPreviewFrame] returns these bytes (Cap 18.5 tests).
   Uint8List? scrubPreviewBytes;
 
+  /// Host actual time paired with [scrubPreviewBytes]. When null, fake uses
+  /// the requested [positionSeconds] (zero drift — existing tests stay green).
+  double? scrubPreviewActualSeconds;
+
+  /// Optional full frame override (takes precedence over [scrubPreviewBytes]).
+  ScrubPreviewFrame? scrubPreviewFrame;
+
   /// When true, [seek] throws (Cap 18.5 scrub resilience tests).
   bool seekShouldThrow = false;
 
@@ -122,9 +129,22 @@ class FakePlaybackRepository implements PlaybackRepository {
   }
 
   @override
-  Future<Uint8List?> requestScrubPreviewFrame(double positionSeconds) async {
+  Future<ScrubPreviewFrame?> requestScrubPreviewFrame(
+    double positionSeconds,
+  ) async {
     _record('scrubPreview:$positionSeconds');
-    return scrubPreviewBytes;
+    final override = scrubPreviewFrame;
+    if (override != null) {
+      return override;
+    }
+    final bytes = scrubPreviewBytes;
+    if (bytes == null) {
+      return null;
+    }
+    return ScrubPreviewFrame(
+      jpegBytes: bytes,
+      actualSeconds: scrubPreviewActualSeconds ?? positionSeconds,
+    );
   }
 
   @override
