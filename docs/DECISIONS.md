@@ -3825,10 +3825,12 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-040: Cap 18 Main Browse gesture arbitration and dual-signal Manual playback control
 
 - Status: Accepted (2026-08-28); Decision 13 is narrowly supplemented by
-  Cap 18.5 (2026-08-30; work `a87fd7f` + `34e59eb`)
+  Cap 18.5 (2026-08-29 — corrected from an earlier docs-commit-date
+  attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`)
 - Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
-  `11c5202`); Cap 18.5 supplement anchor `34e59eb`
+  `11c5202`); Cap 18.5 supplement anchor `34e59eb`; Cap 18.5 preview
+  tolerance / drift-gate supplement anchor `7b4a0ff`
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -4270,8 +4272,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   reproducible, add a new Known debt row rather than silently expanding
   Cap 18.
 
-**Cap 18.5 Decision 13 narrow supplement (2026-08-30; work `a87fd7f` +
-`34e59eb`; device i17 Green + Kafka Profile PASS —
+**Cap 18.5 Decision 13 narrow supplement (2026-08-29 — corrected from an
+earlier docs-commit-date attribution; work `a87fd7f`, docs `34e59eb`; device
+i17 Green + Kafka Profile PASS —
 `docs/acceptance/cap18-18.5-notes.md`):**
 
 1. **Scrub preview bubble shipped.** Cap 18.5 adds Host
@@ -4300,3 +4303,70 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 5. **Resident chrome pairing.** Track + `MM:SS / MM:SS` timestamp paint
    together via `scrubberResidentChromeVisible` (L2-ready and duration known);
    peek-hide during mid-swipe via vertical-feed settle gate.
+
+**Cap 18.5 Decision 13 narrow supplement — preview end-cap, drift gate, and
+mid-path zero tolerance (2026-08-31; work `7b4a0ff`; device i17 Green +
+iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
+
+1. **Mid-path preview bucket unchanged.** Scrub preview requests remain on the
+   existing 1.0s bucket quantizer (`kScrubPreviewBucketStepSeconds`); label,
+   release seek, and Host `requestScrubPreviewFrame(positionSeconds)` all stay
+   on whole-second keys. This supplement does **not** expose sub-second preview
+   buckets or change `scrubberSeekSeconds` / round-quantizer behaviour (debt
+   **443** unchanged).
+
+2. **End-cap zone definition.** End-cap applies when the preview request falls
+   in the asset's last incomplete second, or when Dart issues the tail shot at
+   `duration − ε` (`kScrubPreviewEndEpsilonSeconds = 0.05`). Requests **past**
+   PhotoKit asset duration (`position > duration + slack`) are **not** end-cap:
+   Host keeps keyframe snap there so Dart/Host duration skew cannot force exact
+   seeks past EOS and starve the single-flight preview queue.
+
+3. **Host zero tolerance on end-cap.** Inside the end-cap zone (and, after
+   item 6, all in-range mid-path requests), `AVAssetImageGenerator` uses
+   `requestedTimeToleranceBefore/After = .zero` so tail watermark frames are
+   not replaced by earlier keyframe snap under infinite tolerance.
+
+4. **End-cap and drift-reject failures forbid borrow.** When preview is in the
+   end-cap zone, or when Dart rejects a returned frame under item 7 (Option B),
+   `forbidBorrow` is true: §2.1 borrow must not fill the bubble with a prior
+   bucket JPEG (prevents re-legalizing “frames before the Douyin tail” and
+   displaying misaligned frames after drift reject). Ordinary Host **nil** on
+   mid-path still allows bounded §2.1 borrow.
+
+5. **Whole-second scrub seek unchanged.** Progress-drag release still uses
+   `round(ratio × duration)` whole-second seek with zero-tolerance async Pigeon
+   seek, 450 ms Host wall-clock timeout, and 900 ms Dart timeout
+   (`docs/acceptance/cap18-18.5-notes.md` scrub-release section). End-cap /
+   preview tolerance changes do not alter release seek quantizer or timeout
+   policy.
+
+6. **Mid-path preview tolerance: infinite → exact (zero).** For all preview
+   requests in range (`position ≤ asset duration + slack`), Host now uses exact
+   (zero) tolerance — not only end-cap. **Reason:** under infinite tolerance,
+   sparse-GOP local videos snapped `actualSeconds` to distant I-frames; with
+   Option B (item 7) this produced high-frequency `driftReject` and solid
+   placeholder that never cleared while holding the same second. Device
+   DiagnosticBenchmark (removed before `7b4a0ff` commit) on five assets (22
+   zero-tolerance probe shots): **0 failures**; `actual` aligned to requested
+   second; Host isolated latency mostly 14–388 ms (see acceptance notes).
+   Past-duration requests remain infinite (item 2).
+
+7. **Option B retained (complementary, not replaced).** Host returns
+   `ScrubPreviewFrameDto.actualSeconds`; Dart rejects when
+   `|requested − actual| > 1.0s` (inclusive of exactly one bucket step),
+   equivalent to Host nil (`forbidBorrow`, not written to `lastSuccessful`).
+   Mid-path zero tolerance **reduces** drift-reject frequency because `actual`
+   usually matches the request; Option B remains the safety net against rare
+   misaligned frames. **Do not revert** to displaying infinite-tolerance
+   misaligned JPEGs without drift gate — that was the original defect this
+   pipeline fixes.
+
+8. **Occasional >350 ms preview latency (accepted acceptance expectation).**
+   Zero-tolerance decode can exceed the 350 ms §2.1 borrow wall-clock window
+   on some assets/positions (Benchmark max **388 ms** on one probe). Product
+   behaviour: brief solid placeholder (or bounded borrow when eligible), then
+   the correct JPEG once Host completes — **not** permanent black while
+   holding. Kafka Profile hold test (2026-08-31): zero-tolerance build,
+   `driftReject = 0`; user confirmed real frame appears after brief wait.
+   This is distinct from the pre-`7b4a0ff` drift-reject stall class.
