@@ -219,28 +219,34 @@ arbitration (Cap 18)
       spatial separation + arena tests; POC-04 regression that tap /
       scrub do not freeze PageView. Device i17 Green + Kafka Profile PASS
       (`cap18-18.5-notes.md`). Work `a87fd7f` + `34e59eb`; docs this commit
-- [ ] 18.6 Device acceptance (Kafka Profile): debt **395**,
-      tap, scrub, swipe, Live no-regression, and ADR-027
-      Settings-leave no-regression
-- [ ] 18.7 Cap close-out: STATE `[x]`; PHASE_HISTORY snapshot;
+- [x] 18.6 Device acceptance (Kafka Profile + i17 Green): debt **395**
+      device-verified (close **18.7**); tap, scrub, swipe, Live
+      no-regression, and ADR-027 Settings-leave no-regression.
+      Deliberate probes: **395-P** / **395-PP**, end-cap scrub.
+      Residuals: debt **442** Item clarified; debt **444** opened.
+      (`cap18-18.6-notes.md`). Docs this commit
+- [ ] 18.7 Cap close-out: STATE Cap 18 `[x]`; PHASE_HISTORY snapshot;
       close debt **395** by canonical ID with accepted mechanism
       wording; YOU ARE HERE → Cap 19.
       Two-commit discipline unchanged
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **18.6** device acceptance (Kafka Profile): debt **395**,
-      tap, scrub, swipe, Live no-regression, and ADR-027 Settings-leave
-      no-regression
+- Goal (one line): Cap **18.7** close-out — PHASE_HISTORY, debt **395**
+      Closed, Capability Roadmap Cap 18 `[x]`, YOU ARE HERE → Cap 19
 - Sub-steps done: 18.1 ADR-040 Accepted; 18.2 runtime observe
       (`c9761a8`); 18.3 dual-signal (`11c5202`); 18.4 tap / affordance /
       lifecycle auto-resume (`d4a3bb6`); 18.5 scrubber + preview bubble +
-      release seek (`a87fd7f` + `34e59eb`); debt **434** closed; debts **442** /
-      **443** opened (`Accepted (phase)` Cap 18.5 residuals); debt **441**
+      release seek (`a87fd7f` + `34e59eb` + `7b4a0ff`); 18.6 device
+      acceptance PASS both devices (`cap18-18.6-notes.md`; docs this
+      commit); **395** device-verified; debt **434** closed; debts **442**
+      Item clarified, **444** opened, **443** Accepted (phase); debt **441**
       Monitoring
-- Next step: 18.6 device acceptance pass on Kafka Profile
-- Related decisions: ADR-040 **Accepted** (`d4a3bb6`; 18.5 supplement
-      `34e59eb`); ADR-006 / ADR-019 / ADR-026 / ADR-027; debts **395** → Cap 18.7;
-      debt **400** Accepted (permanent) Unassigned; debt **403a** Open
+- Next step: 18.7 docs close-out commit(s)
+- Related decisions: ADR-040 **Accepted** (`d4a3bb6`; 18.5 supplements
+      `34e59eb` / `7b4a0ff`); ADR-006 / ADR-019 / ADR-026 / ADR-027;
+      debt **395** → close 18.7; debt **444** → **Build a Pool, Ephemeral
+      Pool, and Source ordering**; debt **442** Accepted (phase) clarified
+      18.6; debt **400** Accepted (permanent) Unassigned; debt **403a** Open
       Unassigned; **403b-progress** / **403b-wallclock** Accepted (phase);
       debt **441** Monitoring; debt **432** feed-shell tab-switch polish
       Unassigned; debt **428** F1 Unassigned; debt **439** Live explicit
@@ -463,6 +469,8 @@ arbitration (Cap 18)
   docs/acceptance/cap18-18.4-notes.md
 - Acceptance notes (Cap 18.5 scrubber + preview bubble + release seek):
   docs/acceptance/cap18-18.5-notes.md
+- Acceptance notes (Cap 18.6 device acceptance + residuals):
+  docs/acceptance/cap18-18.6-notes.md
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
@@ -532,8 +540,9 @@ arbitration (Cap 18)
 | 439 | Open | Live Photo | Cap 18.1 | Live explicit replay control | Owning Cap unassigned; ADR-019 Decision 8 narrow supplement pending that Cap. Persistent anchor for ADR-040 Decision 17 and Phase 18.1 `owning Cap TBD` — **retain through Cap 18.7 close-out**; do not delete when Cap 18 Phase Roadmap is archived unless an owning Cap has landed implementation and picked this up. | Unassigned | ADR-019 / ADR-040 |
 | 440 | Closed | Main Browse Screen | Cap 18.3 | Seven existing spinner / preparing-chrome widget tests are red on `main` | Verified against clean baseline `3e3947c` before Cap 18.3: W-16.4e, W-L2, L-S6, W-14.6b-L1/L4, W-15.3, and W-14.4 all fail identically before and after the 18.3 worktree changes. Failures concern missing Layer3 / Live-preparing chrome within test timing windows, except W-15.3's LIVE-badge strut height (`16.0`, expected `>16.0`). They are not Cap 18.3 playback-intent regressions. W-16.4e probe (still a2 + L1 + dwell; real arm+dwell, not debugForce; elapsed synced to FakeAsync): asserts spinner at t≈0, which conflicts with ADR-034 G (suppress &lt;150 ms); at t≥150 ms spinner paints — product chrome healthy. That assert’s timepoint is obsolete post-17.3 (stale assertion, not product regression). Does not re-prove the other six reds in this row. Widget tests reconciled to ADR-034 G/F1 clock semantics (elapsed sync + F1 timer pump); W-16.4e asserts ≥T dwell chrome; strut-height assertions removed post–Cap 17.5b layout. Seven tests green on `main` as of work commit `13819f2`. | Closed before Cap 18.6 (test/chrome reconciliation) | ADR-032 / ADR-034 / ADR-039 |
 | 441 | Monitoring | Main Browse Screen | Cap 18.4 | Session **video** revisit: landing settle may show one-frame full black between blur Layer 1 poster and Layer 2 play | **Known phenomenon family** — same lineage as `cap15-15.10-notes.md` §D (peek blur poster → transition empty window → L2 play). Cap 18.4 device (Kafka Profile, Optimize ON): iCloud video first-visit L2 complete → Session revisit; peek blur L1 OK; **landing settle occasional one-frame full black** then L2 plays directly. Not debt **400** (blur poster present). **15.11** closed local→local matrix only — this trigger outside that matrix. **Suspected mechanism cross-ref (not confirmed):** debt **427** Host-temp cover eviction on a4 video L2-ready revisit may worsen landing flash; **441** can also reproduce as a one-frame settle handoff without ≥T empty window or corner spinner. **Continue observation** — no Cap scheduled. | Unassigned | ADR-006 / ADR-025 / ADR-032 / ADR-034; `cap15-15.10-notes.md` §D; debt **427** |
-| 442 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 scrub preview bubble may show solid placeholder gaps during fast horizontal drag | AVAssetImageGenerator + single-flight coalesce + 1.0s preview bucket + ADR-040 Decision 13 §2.1 borrow (max one bucket step, 350 ms wall-clock) do **not** guarantee a continuous real-frame strip at competitor parity. **Accepted for Cap 18.5 ship.** Work `7b4a0ff` shipped mid-path zero Host tolerance + Option B drift gate, eliminating sparse-GOP drift-reject permanent black on hold; fast-drag placeholder gaps within §2.1 borrow may still occur. Further optional tuning: `maximumSize` → prefetch adjacent bucket. Widening borrow is **not** a candidate (violates §2.1). | Unassigned | ADR-040 Decision 13; `docs/acceptance/cap18-18.5-notes.md` |
+| 442 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 scrub preview bubble may show async JPEG placeholder gaps (fast-drag strip, first-scrub cold start, in-flight bucket transition) | AVAssetImageGenerator + Host single-flight coalesce + 1.0s preview bucket + ADR-040 Decision 13 §2.1 borrow (max one bucket step, 350 ms wall-clock) do **not** guarantee a continuous real-frame strip at competitor parity. **Three distinct triggers, same architecture:** (1) **fast horizontal drag** — borrow cannot cover every bucket crossing; (2) **first scrub engagement** — no prior successful JPEG to borrow, bubble waits on first Host decode; (3) **mid-drag in-flight / bucket switch** — `#000000` placeholder (or bounded borrow) until async JPEG arrives; **trigger (3) is not fast-drag-specific** — every bucket switch clears the current frame and waits on async Host return; at normal scrub speed that window is often below perception (BENCH typical **14–150 ms**) but is not guaranteed to stay sub-threshold (BENCH max **388 ms** on sparse-GOP zero-tolerance decode). **Accepted for Cap 18.5 ship** (`7b4a0ff` eliminated sparse-GOP drift-reject **permanent** black on hold; placeholder-then-JPEG remains by design per supplement item 8). Cap 18.6 soak: owner-acceptable, not Photos parity. Further optional tuning: scrub-touch prefetch, `maximumSize`; widening borrow is **not** a candidate (violates §2.1). | Unassigned | ADR-040 Decision 13; `docs/acceptance/cap18-18.5-notes.md`; `docs/acceptance/cap18-18.6-notes.md` |
 | 443 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 progress scrub is **whole-second** granular (not iPhone Photos / slow-mo 0.01s edit resolution) | **Intentional Cap 18.5 scope.** Linear band maps to ratio; label + release seek use `round(ratio × duration)` to the nearest second. Sub-second scrub requires quantizer, Host seek tolerance/timeouts, and preview bucket changes — documented upgrade path in acceptance notes. Not a defect vs Photos frame-accurate trimming. | Unassigned | ADR-040; `docs/acceptance/cap18-18.5-notes.md` |
+| 444 | Open | Main Browse Screen | Cap 18.6 | External Photos delete while Consumption Session still lists the asset: misleading Layer 2 fail copy; Retry ineffective | **Verified (owner device, Kafka Profile `1ca0395`):** delete a still in iOS Photos without quitting WakeTok → first return to the same feed item still shows the image; swipe away and back → Layer 2 fail with `Could not load. Allow wireless data, then retry.` + Retry; Overlay metadata rows still visible — **not** a connectivity defect. **Verified (code):** missing `PHAsset` → Host `assetUnavailable`; Dart maps `assetUnavailable` → `FeedFailureReason.network` → that wireless-data string (debt **435** three-bucket collapse); no production `PHPhotoLibraryChangeObserver` / session queue invalidation on external library mutation. **Inferred (architecture — not log-verified this session):** first revisit may use cached L2 (`DisplayTempFileStore` / in-page display state); second remount likely hits fresh `requestDisplayAsset` on a deleted id. **Not Cap 18.6 scope.** | **Build a Pool, Ephemeral Pool, and Source ordering** | ADR-022 / ADR-025; debt **435**; `docs/acceptance/cap18-18.6-notes.md` |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
