@@ -84,25 +84,9 @@
 - [x] Main Browse Layer 1→2 chrome and iCloud
       availability hardening (Cap 17 / ADR-034…039;
       `docs/acceptance/cap17-17.*.md`; PHASE_HISTORY)
-- [ ] <-- YOU ARE HERE: Main Browse playback controls and
-      gesture arbitration (Cap 18). Freezes the Main Browse
-      gesture-arbitration inventory once (eight known items; count
-      not a hard promise — ADR-040). Implements swipe / tap /
-      progress-drag only. Tap pause/resume; dual-signal play model
-      (user intent × system permission — Background Audio later
-      changes only the permission predicate). Scrubber always
-      visible on current video, frozen until L2 ready; drag-only
-      seek-on-release. Does **not** define lock-screen
-      continue-audio; **does** define unlock return-to-foreground
-      paused resume path (Known debt **434** **closed** Cap 18.4):
-      system interrupt auto-resumes when intent preserved; user tap-
-      pause shows center affordance + tap resume (no lock-aware code).
-      Freezes reserved slots/rules for: both-edge 2× hold; Cap 19 bottom-trailing
-      entry icon; pinch-zoomed pan vs vertical swipe; Live explicit
-      replay control (ADR-019 D8 narrow supplement); left-swipe
-      add-to-album vs edge-hold arbitration — without shipping
-      those product UIs. See the Phase Roadmap below.
-- [ ] Add to Album / Cap 19 entry chrome (Cap 19).
+- [x] Main Browse playback controls and gesture arbitration (Cap 18 /
+      ADR-040; `docs/acceptance/cap18-18.*.md`; PHASE_HISTORY)
+- [ ] <-- YOU ARE HERE: Add to Album / Cap 19 entry chrome (Cap 19).
       Owner 2026-08-24 advanced before Build a Pool; no longer
       the pre-authorized downgrade-to-1.1 exit. Entry is a fixed
       bottom-trailing icon → half-sheet (not long-press); slot
@@ -171,86 +155,22 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Main Browse playback controls and gesture
-arbitration (Cap 18)
+Active capability: Add to Album / Cap 19 entry chrome (Cap 19)
 
+> Cap 19 internal phases are not yet owner-approved in STATE. Expand
+> this section after kickoff / scope review — do not invent phases here.
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
-- [x] 18.1 Contract freeze: ADR-040 **Accepted** (`d4a3bb6`) —
-      gesture inventory (8 known items; count not contractual);
-      Cap 18 ships swipe / tap / progress-drag only; freeze slots +
-      conflict rules for both-edge 2×, Cap 19 trailing entry icon
-      (not long-press), pinch-zoomed pan vs PageView, Live explicit
-      replay (ADR-019 D8 narrow supplement; owning Cap TBD),
-      left-swipe album vs edge-hold early-motion arbitration
-      (Limited TBD Cap 19); scrubber always-visible / L2-frozen /
-      drag-only seek-on-release / band tap no-op / no Cap 18 scrub
-      preview; dual-signal + ADR-026 narrow supplement. Same docs
-      scope: canonical IDs on the live Known debt table only; do not
-      rewrite PHASE_HISTORY / acceptance history
-- [x] 18.2 Host runtime observe: `PlaybackApiHost` periodically emits
-      `onPlaybackRuntimeEvent` (250 ms + immediate; no dedupe; honest
-      `paused` during leave-foreground mechanical pause); Mapper +
-      Host XCTest + Dart platform tests (feed/scrubber consumer → 18.5).
-      Work `c9761a8`; docs (this commit)
-- [x] 18.3 Dual-signal + coordinator: domain intent type;
-      `PlaybackCoordinator` owns all effective `play()` calls;
-      every video become-current activation initializes
-      `userIntentWantsPlay = true` and marks one shared new-navigation
-      activation; that same flag makes Host seek 0 before play
-      (debt **395**; no pause / playing branch);
-      inactive / paused / leave-foreground mechanical pause via
-      permission denial (preserves intent for 18.4 auto-resume);
-      coordinator awaits an explicit,
-      synchronously-applied Pigeon intent + activation mirror before
-      `play()` / `pause()`. Host passes those values into ADR-026's
-      pure item-end / become-current policies; `clearPlaybackPool()`
-      resets the Host intent mirror to true.
-      Work `11c5202`; docs `7c4e061` / `a9c5910` (ADR-026 narrow
-      supplement)
-- [x] 18.4 Tap + center affordance + lifecycle auto-resume;
-      debt **434** closed. Device Kafka Profile PASS
-      (`cap18-18.4-notes.md`). Work `d4a3bb6`; docs (this commit)
-- [x] 18.5 Scrubber + progress-drag + shipped three-way arbitration:
-      scrubber always visible on current video, frozen until L2 ready;
-      drag-only + seek once on release; band tap no-op (no fall-
-      through to media tap); timestamp label while dragging; scrub
-      preview bubble shipped (ADR-040 Decision 13 Cap 18.5 supplement);
-      priority scrubber band > media-area tap > vertical PageView via
-      spatial separation + arena tests; POC-04 regression that tap /
-      scrub do not freeze PageView. Device i17 Green + Kafka Profile PASS
-      (`cap18-18.5-notes.md`). Work `a87fd7f` + `34e59eb`; docs this commit
-- [x] 18.6 Device acceptance (Kafka Profile + i17 Green): debt **395**
-      device-verified (close **18.7**); tap, scrub, swipe, Live
-      no-regression, and ADR-027 Settings-leave no-regression.
-      Deliberate probes: **395-P** / **395-PP**, end-cap scrub.
-      Residuals: debt **442** Item clarified; debt **444** opened.
-      (`cap18-18.6-notes.md`). Docs this commit
-- [ ] 18.7 Cap close-out: STATE Cap 18 `[x]`; PHASE_HISTORY snapshot;
-      close debt **395** by canonical ID with accepted mechanism
-      wording; YOU ARE HERE → Cap 19.
-      Two-commit discipline unchanged
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap **18.7** close-out — PHASE_HISTORY, debt **395**
-      Closed, Capability Roadmap Cap 18 `[x]`, YOU ARE HERE → Cap 19
-- Sub-steps done: 18.1 ADR-040 Accepted; 18.2 runtime observe
-      (`c9761a8`); 18.3 dual-signal (`11c5202`); 18.4 tap / affordance /
-      lifecycle auto-resume (`d4a3bb6`); 18.5 scrubber + preview bubble +
-      release seek (`a87fd7f` + `34e59eb` + `7b4a0ff`); 18.6 device
-      acceptance PASS both devices (`cap18-18.6-notes.md`; docs this
-      commit); **395** device-verified; debt **434** closed; debts **442**
-      Item clarified, **444** opened, **443** Accepted (phase); debt **441**
-      Monitoring
-- Next step: 18.7 docs close-out commit(s)
-- Related decisions: ADR-040 **Accepted** (`d4a3bb6`; 18.5 supplements
-      `34e59eb` / `7b4a0ff`); ADR-006 / ADR-019 / ADR-026 / ADR-027;
-      debt **395** → close 18.7; debt **444** → **Build a Pool, Ephemeral
-      Pool, and Source ordering**; debt **442** Accepted (phase) clarified
-      18.6; debt **400** Accepted (permanent) Unassigned; debt **403a** Open
-      Unassigned; **403b-progress** / **403b-wallclock** Accepted (phase);
-      debt **441** Monitoring; debt **432** feed-shell tab-switch polish
-      Unassigned; debt **428** F1 Unassigned; debt **439** Live explicit
-      replay control Unassigned
+- Goal (one line): Cap 19 scope gate — owner-approved Phase Roadmap TBD
+- Sub-steps done: Cap 18 complete (`docs/PHASE_HISTORY.md`; acceptance
+      `docs/acceptance/cap18-18.*.md`; debt **395** Closed 18.7)
+- Next step: owner kickoff / scope review for Cap 19 phases before coding
+- Related decisions: ADR-040 frozen slots (Cap 19 bottom-trailing entry
+      icon; left-swipe album vs edge-hold arbitration); debt **444** →
+      **Build a Pool, Ephemeral Pool, and Source ordering**; debt **439**
+      Live explicit replay control Unassigned; debt **442** / **443**
+      Accepted (phase); debt **441** Monitoring
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -519,7 +439,7 @@ arbitration (Cap 18)
 | 427 | Accepted (phase) | Main Browse Screen |  | Session L2-ready revisit: ≥T wait chrome / zero-spinner product choice (Host temp vs disk-resident L2-ready covers) | **MVP-acceptable product choice (not Cap 17 unfinished work).** After Cap 17.3, ≥T still/a4 wait chrome can still appear when Host temp eviction drops a cover (empty-window guard under ADR-034). Root tension remains Cap 16 tight temps vs disk-resident L2-ready covers. Solution paths (raise Preview/Display temp budgets; keep cover outside Host temp) are **unevaluated and unscheduled**; whether to optimize is a later product judgment. Closing the &lt;T flash row in Cap 17.3 does **not** decide this product limb closed or permanently declined. **Suspected mechanism cross-ref (not confirmed):** debt **441** (Session video revisit landing one-frame black) may share a4 / Host-temp cover-eviction infrastructure; **441** is a distinct symptom (≈1 frame at settle handoff, not ≥T wait-chrome policy). Continue observation on both rows. | Unassigned | ADR-025 / ADR-029 / ADR-034; Cap 16 temps; debt **441** |
 | 428 | Open | Main Browse Screen |  | Cap 17.5 F1 — reduce wasted Layer-2 prepare (beyond Cap 16 leave-cancel / dwell) | Cap 17.5 scoped F1 as optional if tee showed illegal / wasted prepares. 17.1 Track B + Cap 17.5 Kafka dwell=300 dual-column session show cancels are overwhelmingly Cap 16–legitimate leave-cancel, not a bug class. F1 code may be **zero**; do not invent a phase to force a diff. Same recording pattern as the ≥T / temp-budget Unassigned row. | Unassigned | ADR-029 / ADR-034 / ADR-035; `cap17-17.5-notes.md` |
 | 394 | Closed | Main Browse Screen |  | Local Layer 2 completing during a swipe exposes a Layer 1→2 handoff gap (stills and video); consecutive iCloud items stay on Layer 1 and do not flash | Trigger: on-device Layer 2 returns inside the scroll animation; iCloud Layer 2 is slow so the page keeps the preheated Layer 1. **Stills:** **Closed by 15.5** (`6c7d3de`) for local still→still gapless. **Video peek-black (leave-side poster loss):** **Closed by 15.7** (`b21b9fc`) when L1 poster exists. **Revisit blur-first when L2-ready:** **Closed by 15.10** (`750ddd6`). **Entering-peek black gap + settle wrong A/V (debt 393):** **Closed by 15.11** (`c8a59b3` / ADR-032). Debt **400** unchanged. | Closed by Cap 15.11 (debt 393 limb) | ADR-006 / ADR-025 / ADR-032 |
-| 395 | Open | Main Browse Screen |  | Navigation return to a video is not yet uniformly restart-from-0 | **Product decision accepted (Cap 18); implementation awaits the 18.3 work commit and must not be marked Closed until work plus device/unit verification pass.** Current code still retains ADR-026 D3's mid-play `playOnly` branch: while A's `activePlayer` has not yet been evicted from the 1+1 pool (the user returns to A before B takes the player slot), A resumes from its prior position instead of seeking 0. That differs from Cap 18's new rule that every new navigation activation resets intent=true and unconditionally seeks 0 before auto-play, regardless of whether A was paused or playing when left. Foreground resume / surface reattach are not new navigation activations and retain ADR-026 D3. | Cap 18.6 / 18.7 | ADR-006 / ADR-026 / ADR-040 Proposed |
+| 395 | Closed | Main Browse Screen |  | Navigation return to a video is not yet uniformly restart-from-0 | **Closed by Cap 18.7 — intentional product design (ADR-040).** Cap 18.3 work `11c5202`: `PlaybackCoordinator` + Host seek-zero-before-play on every trusted new navigation activation (no pause / playing branch). Pooled-player fast A→B→A path device-verified **395-P** / **395-PP** on Kafka + i17 Green (`cap18-18.6-notes.md`; docs `a14dc32`). Unit: U-18.3-P1 Host policy. Foreground resume / surface reattach are not navigation activations (ADR-026 D3 mid-play preserve unchanged). | Closed by Cap 18.7 | ADR-006 / ADR-026 / ADR-040 |
 | 396 | Closed | Main Browse Screen |  | Becoming current can bump display generation twice (`_activateCurrentItem` in the feed-index listen + `_beginCurrentItemActivation` in build), so Layer 2 may fire twice | **Closed by 15.4** (`ce18a33` / ADR-031 D8): join in-flight Layer 1 on neighbour→current promote; no second `requestPreview` on the same id (`preview_supersede`). Kafka M1+2: zero supersede on five miss `page_changed`; one `layer2_load_start` each. W-15.4 widget tests. | Closed by Cap 15.4 (ADR-031) | ADR-025 / ADR-010 / ADR-031 |
 | 429 | Closed | Main Browse Screen |  | Browse→Settings→Browse while a video is playing flashes one poster frame | **Dissolved by 14.4e** (`fe660dd`): leave Browse ends the Session and returns at queue head, so the 14.4c keep-alive mid-queue resume path is gone. Remaining wait chrome after leave is the Layer 1 cold-start row below, not this poster flash. | Closed by Cap 14.4e (ADR-027) | ADR-006 / ADR-025 / ADR-027 |
 | 398 | Closed | Main Browse Screen |  | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | **Closed by 15.3** (`4767ec4` / ADR-031 Q2): same `_loading` miss chrome as debt **399**, now `_FeedCornerChrome` not centered. Black wait until Layer 1 still exists (ADR-025); 14.4e remount at index 0 can still land on a miss head (Shuffle). Kafka 2026-08-20 device: miss = corner spinner; library loading still centered. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-027 / ADR-031 |
@@ -537,7 +457,7 @@ arbitration (Cap 18)
 | 436 | Open | Live Photo (Cap 9.7) |  | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; historical acceptance label: UX-1 |
 | 437 | Closed | Live Photo (Cap 9.7) |  | LIVE badge + preparing spinner top-left overlaps status-bar time | **Closed by 14.6b** (`16ed6e3`). Badge + item Layer 2 / Live-prepare spinner share `_FeedCornerChrome` at bottom-right; Overlay `trailingInset` 123. Library resolve loading stays centered. Q7 play-once hide/show unchanged. Kafka Profile PASS. Debt **436** untouched. | Closed by 14.6b | ADR-019; historical acceptance label: UX-2 |
 | 438 | Closed | Cap 13 (13.8) |  | **First launch right after granting Limited access shows an empty All tab and does not self-heal** | **Closed by 14.6** (`37821ec` + `7329081`). Bounded re-resolve on successful empty remains; Kafka showed the empty All was started by resume `currentStatus()=.limited` **before** `requestAuthorization` completed. Skip that invalidate while `requestAccess` is in flight, then `restartSession` when the grant completes. Kafka Profile: loading then selected media, not empty copy. ADR-024 empty-not-cached remains as tab-switch backup. | Closed by 14.6 (ADR-025 D8 + grant-complete restart) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
-| 439 | Open | Live Photo | Cap 18.1 | Live explicit replay control | Owning Cap unassigned; ADR-019 Decision 8 narrow supplement pending that Cap. Persistent anchor for ADR-040 Decision 17 and Phase 18.1 `owning Cap TBD` — **retain through Cap 18.7 close-out**; do not delete when Cap 18 Phase Roadmap is archived unless an owning Cap has landed implementation and picked this up. | Unassigned | ADR-019 / ADR-040 |
+| 439 | Open | Live Photo | Cap 18.1 | Live explicit replay control | Owning Cap unassigned; ADR-019 Decision 8 narrow supplement pending that Cap. Persistent anchor for ADR-040 Decision 17 and Phase 18.1 `owning Cap TBD`. Do not delete unless an owning Cap has landed implementation and picked this up. | Unassigned | ADR-019 / ADR-040 |
 | 440 | Closed | Main Browse Screen | Cap 18.3 | Seven existing spinner / preparing-chrome widget tests are red on `main` | Verified against clean baseline `3e3947c` before Cap 18.3: W-16.4e, W-L2, L-S6, W-14.6b-L1/L4, W-15.3, and W-14.4 all fail identically before and after the 18.3 worktree changes. Failures concern missing Layer3 / Live-preparing chrome within test timing windows, except W-15.3's LIVE-badge strut height (`16.0`, expected `>16.0`). They are not Cap 18.3 playback-intent regressions. W-16.4e probe (still a2 + L1 + dwell; real arm+dwell, not debugForce; elapsed synced to FakeAsync): asserts spinner at t≈0, which conflicts with ADR-034 G (suppress &lt;150 ms); at t≥150 ms spinner paints — product chrome healthy. That assert’s timepoint is obsolete post-17.3 (stale assertion, not product regression). Does not re-prove the other six reds in this row. Widget tests reconciled to ADR-034 G/F1 clock semantics (elapsed sync + F1 timer pump); W-16.4e asserts ≥T dwell chrome; strut-height assertions removed post–Cap 17.5b layout. Seven tests green on `main` as of work commit `13819f2`. | Closed before Cap 18.6 (test/chrome reconciliation) | ADR-032 / ADR-034 / ADR-039 |
 | 441 | Monitoring | Main Browse Screen | Cap 18.4 | Session **video** revisit: landing settle may show one-frame full black between blur Layer 1 poster and Layer 2 play | **Known phenomenon family** — same lineage as `cap15-15.10-notes.md` §D (peek blur poster → transition empty window → L2 play). Cap 18.4 device (Kafka Profile, Optimize ON): iCloud video first-visit L2 complete → Session revisit; peek blur L1 OK; **landing settle occasional one-frame full black** then L2 plays directly. Not debt **400** (blur poster present). **15.11** closed local→local matrix only — this trigger outside that matrix. **Suspected mechanism cross-ref (not confirmed):** debt **427** Host-temp cover eviction on a4 video L2-ready revisit may worsen landing flash; **441** can also reproduce as a one-frame settle handoff without ≥T empty window or corner spinner. **Continue observation** — no Cap scheduled. | Unassigned | ADR-006 / ADR-025 / ADR-032 / ADR-034; `cap15-15.10-notes.md` §D; debt **427** |
 | 442 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 scrub preview bubble may show async JPEG placeholder gaps (fast-drag strip, first-scrub cold start, in-flight bucket transition) | AVAssetImageGenerator + Host single-flight coalesce + 1.0s preview bucket + ADR-040 Decision 13 §2.1 borrow (max one bucket step, 350 ms wall-clock) do **not** guarantee a continuous real-frame strip at competitor parity. **Three distinct triggers, same architecture:** (1) **fast horizontal drag** — borrow cannot cover every bucket crossing; (2) **first scrub engagement** — no prior successful JPEG to borrow, bubble waits on first Host decode; (3) **mid-drag in-flight / bucket switch** — `#000000` placeholder (or bounded borrow) until async JPEG arrives; **trigger (3) is not fast-drag-specific** — every bucket switch clears the current frame and waits on async Host return; at normal scrub speed that window is often below perception (BENCH typical **14–150 ms**) but is not guaranteed to stay sub-threshold (BENCH max **388 ms** on sparse-GOP zero-tolerance decode). **Accepted for Cap 18.5 ship** (`7b4a0ff` eliminated sparse-GOP drift-reject **permanent** black on hold; placeholder-then-JPEG remains by design per supplement item 8). Cap 18.6 soak: owner-acceptable, not Photos parity. Further optional tuning: scrub-touch prefetch, `maximumSize`; widening borrow is **not** a candidate (violates §2.1). | Unassigned | ADR-040 Decision 13; `docs/acceptance/cap18-18.5-notes.md`; `docs/acceptance/cap18-18.6-notes.md` |

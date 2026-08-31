@@ -892,18 +892,35 @@ Known debt at close: **400 still open** — Picks it up **Unassigned**
 tab-switch polish Unassigned. Do not close 400 because 17.4
 improved coverless visibility or 17.9 closed wait-copy rows.
 
-## Main Browse playback controls and gesture arbitration (Cap 18) — in progress
+## Main Browse playback controls and gesture arbitration (Cap 18) — 2026-08-31
 
-- [x] 18.1 Contract freeze — ADR-040 Accepted (`d4a3bb6`; Cap 18.4 docs)
-- [x] 18.2 Host runtime observe — work `c9761a8`; docs (this commit);
+- [x] 18.1 Contract freeze — ADR-040 Accepted
+      — docs `3e3947c` (Proposed) / `37e0949` (Accepted); anchor `d4a3bb6`
+- [x] 18.2 Host runtime observe — work `c9761a8`; docs `eee09e2`;
       250 ms periodic + immediate emit; no dedupe; Mapper + Host XCTest +
       Dart platform (scrubber consumer → 18.5)
 - [x] 18.3 Dual-signal + coordinator — work `11c5202`; docs `7c4e061` /
-      `a9c5910` (ADR-026 narrow supplement)
+      `a9c5910` (ADR-026 narrow supplement); debt **395** implementation
 - [x] 18.4 Tap + center affordance + lifecycle auto-resume — work
-      `d4a3bb6`; docs (this commit); Kafka Profile PASS —
+      `d4a3bb6`; docs `37e0949`; Kafka Profile PASS —
       `cap18-18.4-notes.md`; debt **434** closed; debt **441** opened
+- [x] 18.5 Scrubber + progress-drag + preview bubble — work `a87fd7f` +
+      `34e59eb` + `7b4a0ff`; docs `45c66c9` / `1ca0395`; device i17 Green +
+      Kafka Profile PASS — `cap18-18.5-notes.md`; debts **442** / **443**
+      Accepted (phase)
+- [x] 18.6 Device acceptance — Kafka Profile + i17 Green PASS;
+      deliberate **395-P** / **395-PP** + end-cap scrub; debt **442** Item
+      clarified; debt **444** opened — `cap18-18.6-notes.md`; docs `a14dc32`
+- [x] 18.7 Cap close-out: Cap 18 `[x]`; YOU ARE HERE → Cap 19 placeholder;
+      PHASE_HISTORY this snapshot; debt **395** Closed (intentional design)
+      — docs (this commit)
 
-Related ADR: ADR-040 (`d4a3bb6`); ADR-026 (narrow supplement `7c4e061`).
-Known debt at 18.4 close: **434 closed**; **441 continue observation**
-(video revisit landing one-frame black); **395** open until 18.7.
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-040 (`d4a3bb6`; 18.5 supplements `7b4a0ff` / `1ca0395`);
+ADR-026 (narrow supplement `7c4e061`).
+Known debt at close: **395 closed** (intentional design); **434 closed**;
+**440 closed**; **442** / **443** Accepted (phase); **441** Monitoring;
+**444** Open → **Build a Pool, Ephemeral Pool, and Source ordering**;
+**439** Open Unassigned (Live explicit replay). Do not close **442**, **443**,
+**441**, or **444** in this close-out.
