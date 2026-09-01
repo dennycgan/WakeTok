@@ -171,30 +171,20 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       _dragCommitted = true;
       widget.onScrubBegin?.call();
     }
-    final duration = _effectiveDuration;
-    final previousFloor = scrubPreviewBucketSeconds(
-      _secondsForRatio(_dragRatio),
-    );
+    final previousRequest = _previewRequestKeyForRatio(_dragRatio);
     final nextRatio = _dragRatioFromDrag(details.localPosition.dx);
-    final nextFloor = scrubPreviewBucketSeconds(
-      _secondsForRatio(nextRatio),
-    );
-    if (nextFloor != previousFloor) {
-      final delta = nextFloor - previousFloor;
-      if (delta != 0) {
-        final sign = delta > 0 ? 1 : -1;
-        if (_scrubBucketDeltaSign != null && sign != _scrubBucketDeltaSign) {
-          _scrubPreviewBorrowDisabled = true;
-        }
-        _scrubBucketDeltaSign = sign;
+    final nextRequest = _previewRequestKeyForRatio(nextRatio);
+    // Direction sign only on mid-path whole-second keys (skip end-cap ε).
+    if (scrubPreviewIsWholeSecondKey(previousRequest) &&
+        scrubPreviewIsWholeSecondKey(nextRequest) &&
+        nextRequest != previousRequest) {
+      final delta = nextRequest - previousRequest;
+      final sign = delta > 0 ? 1 : -1;
+      if (_scrubBucketDeltaSign != null && sign != _scrubBucketDeltaSign) {
+        _scrubPreviewBorrowDisabled = true;
       }
+      _scrubBucketDeltaSign = sign;
     }
-    final nextRequest = duration != null && duration > 0
-        ? scrubPreviewRequestSeconds(
-            displaySeconds: _secondsForRatio(nextRatio),
-            durationSeconds: duration,
-          )
-        : nextFloor;
     final requestChanged =
         _previewBucketSeconds != null && _previewBucketSeconds != nextRequest;
     setState(() {
@@ -285,12 +275,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
 
   Uint8List? _bubbleDisplayBytes(int nowMs) {
     final duration = _effectiveDuration;
-    final requestKey = duration != null && duration > 0
-        ? scrubPreviewRequestSeconds(
-            displaySeconds: _displaySeconds,
-            durationSeconds: duration,
-          )
-        : scrubPreviewBucketSeconds(_displaySeconds);
+    final requestKey = _previewRequestKey();
     final endCap = duration != null &&
         duration > 0 &&
         scrubPreviewIsEndCap(
@@ -322,6 +307,17 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
     );
   }
 
+  double _previewRequestKeyForRatio(double ratio) {
+    final duration = _effectiveDuration;
+    if (duration != null && duration > 0) {
+      return scrubPreviewRequestSeconds(
+        displaySeconds: _secondsForRatio(ratio),
+        durationSeconds: duration,
+      );
+    }
+    return scrubPreviewFallbackSeconds(_secondsForRatio(ratio));
+  }
+
   double _previewRequestKey() {
     final duration = _effectiveDuration;
     if (duration != null && duration > 0) {
@@ -330,7 +326,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
         durationSeconds: duration,
       );
     }
-    return scrubPreviewBucketSeconds(_displaySeconds);
+    return scrubPreviewFallbackSeconds(_displaySeconds);
   }
 
   void _maybeRequestPreview({required bool force}) {

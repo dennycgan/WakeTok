@@ -256,7 +256,8 @@ void main() {
     await gesture.up();
   });
 
-  testWidgets('W-18.5-E3 integer duration end-cap only at exact end',
+  testWidgets(
+      'W-18.5-E3 integer duration mid last second requests EOS-safe ε (19.2c)',
       (tester) async {
     final playback = FakePlaybackRepository();
     final requested = <double>[];
@@ -294,17 +295,13 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(requested, isNotEmpty);
-    expect(requested.every((s) => s == 15.0), isTrue);
-
-    await gesture.moveBy(Offset(trackWidth * 0.5, 0));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    await gesture.up();
+    // Cap 19.2c: round(15.5)=16 on integer duration → duration − ε, not 15.0.
     expect(
-      requested.any((s) => (s - 15.95).abs() < 1e-6),
+      requested.every((s) => (s - 15.95).abs() < 1e-6),
       isTrue,
-      reason: 'expected end shot among $requested',
+      reason: 'expected EOS-safe end shot among $requested',
     );
+    await gesture.up();
   });
 
   testWidgets('W-18.5-A1 oversized actual drift shows placeholder not Image',

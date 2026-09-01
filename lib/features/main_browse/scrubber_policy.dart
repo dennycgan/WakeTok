@@ -44,17 +44,16 @@ bool scrubberChromeVisible({
   return isCurrent && verticalFeedSettled && !transitionCovering;
 }
 
-/// Quantize [seconds] into preview buckets.
-double scrubPreviewBucketSeconds(double seconds) {
+/// Avoid requesting exact `duration` (some PhotoKit assets fail at EOS).
+const double kScrubPreviewEndEpsilonSeconds = 0.05;
+
+/// Whole-second preview key when duration is unknown (round; Cap 19.2c).
+double scrubPreviewFallbackSeconds(double seconds) {
   if (!seconds.isFinite || seconds <= 0) {
     return 0;
   }
-  final bucket = (seconds / kScrubPreviewBucketStepSeconds).floor();
-  return bucket * kScrubPreviewBucketStepSeconds;
+  return seconds.round().toDouble();
 }
-
-/// Avoid requesting exact `duration` (some PhotoKit assets fail at EOS).
-const double kScrubPreviewEndEpsilonSeconds = 0.05;
 
 /// True when drag display time has entered the last incomplete second
 /// (or the exact integer duration). Cap 18.5 end-cap preview shot.
@@ -71,13 +70,18 @@ bool scrubPreviewIsEndCap({
   return displaySeconds >= durationSeconds.floor().toDouble();
 }
 
-/// Host preview request time: mid-path floor bucket, or `duration − ε` at end.
+/// Host preview request time: mid-path aligned to [scrubberSeekSeconds]
+/// (round), or `duration − ε` at end-cap / integer-duration EOS-safe.
+///
+/// Cap 19.2c: replaces Cap 18.5 mid-path floor buckets so the bubble key
+/// matches label + release seek. Integer duration can round onto exact
+/// `duration` — that path uses `duration − ε` so Host is not asked for EOS.
 double scrubPreviewRequestSeconds({
   required double displaySeconds,
   required double durationSeconds,
 }) {
   if (!durationSeconds.isFinite || durationSeconds <= 0) {
-    return scrubPreviewBucketSeconds(displaySeconds);
+    return scrubPreviewFallbackSeconds(displaySeconds);
   }
   if (scrubPreviewIsEndCap(
     displaySeconds: displaySeconds,
@@ -86,7 +90,26 @@ double scrubPreviewRequestSeconds({
     final end = durationSeconds - kScrubPreviewEndEpsilonSeconds;
     return end < 0 ? 0.0 : end;
   }
-  return scrubPreviewBucketSeconds(displaySeconds);
+  final ratio = (displaySeconds / durationSeconds).clamp(0.0, 1.0);
+  final seekSec = scrubberSeekSeconds(
+    ratio: ratio,
+    durationSeconds: durationSeconds,
+  );
+  final maxSecond = durationSeconds.floor();
+  // Integer duration: round can land on exact duration (EOS) — use end shot.
+  if (seekSec >= maxSecond && (durationSeconds - maxSecond).abs() < 1e-9) {
+    final end = durationSeconds - kScrubPreviewEndEpsilonSeconds;
+    return end < 0 ? 0.0 : end;
+  }
+  return seekSec.toDouble();
+}
+
+/// True when [key] is a mid-path whole-second preview request (not end-cap ε).
+bool scrubPreviewIsWholeSecondKey(double key) {
+  if (!key.isFinite) {
+    return false;
+  }
+  return key == key.roundToDouble();
 }
 
 /// ADR-040 Decision 13: visible, non-interactive until L2-ready ordinary video.

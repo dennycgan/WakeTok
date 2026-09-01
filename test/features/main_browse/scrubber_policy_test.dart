@@ -44,12 +44,6 @@ void main() {
     );
   });
 
-  test('U-18.5-3 scrub preview bucket quantize', () {
-    expect(scrubPreviewBucketSeconds(12.3), 12.0);
-    expect(scrubPreviewBucketSeconds(12.7), 12.0);
-    expect(scrubPreviewBucketSeconds(0.2), 0);
-  });
-
   test('U-18.5-4 scrubberDragRatio anchors at playhead on inner track', () {
     expect(
       scrubberDragRatio(
@@ -388,8 +382,63 @@ void main() {
     });
   });
 
+  group('U-19.2c scrub preview request aligns to seek round', () {
+    test('U-19.2c-1 mid-path 18.6 → 19 matches scrubberSeekSeconds', () {
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 18.6,
+          durationSeconds: 60,
+        ),
+        19.0,
+      );
+      expect(
+        scrubberSeekSeconds(ratio: 18.6 / 60, durationSeconds: 60),
+        19,
+      );
+    });
+
+    test('U-19.2c-2 mid-path 18.4 → 18 matches scrubberSeekSeconds', () {
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 18.4,
+          durationSeconds: 60,
+        ),
+        18.0,
+      );
+      expect(
+        scrubberSeekSeconds(ratio: 18.4 / 60, durationSeconds: 60),
+        18,
+      );
+    });
+
+    test('U-19.2c-3 integer duration round-to-EOS uses duration − ε', () {
+      expect(
+        scrubPreviewIsEndCap(displaySeconds: 15.9, durationSeconds: 16.0),
+        isFalse,
+      );
+      expect(
+        scrubPreviewRequestSeconds(
+          displaySeconds: 15.9,
+          durationSeconds: 16.0,
+        ),
+        closeTo(16.0 - kScrubPreviewEndEpsilonSeconds, 1e-9),
+      );
+    });
+
+    test('U-19.2c-4 duration-unknown fallback rounds', () {
+      expect(scrubPreviewFallbackSeconds(12.3), 12.0);
+      expect(scrubPreviewFallbackSeconds(12.7), 13.0);
+      expect(scrubPreviewFallbackSeconds(0.2), 0);
+    });
+
+    test('U-19.2c-5 whole-second key helper', () {
+      expect(scrubPreviewIsWholeSecondKey(19.0), isTrue);
+      expect(scrubPreviewIsWholeSecondKey(15.95), isFalse);
+    });
+  });
+
   group('U-18.5-E end-cap preview request', () {
-    test('U-18.5-E1 non-integer duration before last second stays floor bucket',
+    test('U-18.5-E1 non-integer duration before last second uses round seek',
         () {
       expect(
         scrubPreviewIsEndCap(displaySeconds: 14.99, durationSeconds: 15.8),
@@ -400,7 +449,7 @@ void main() {
           displaySeconds: 14.99,
           durationSeconds: 15.8,
         ),
-        14.0,
+        15.0,
       );
     });
 
@@ -432,7 +481,9 @@ void main() {
       );
     });
 
-    test('U-18.5-E4 integer duration mid last second is not end-cap', () {
+    test(
+        'U-18.5-E4 integer duration mid last second is EOS-safe (not naive 16)',
+        () {
       expect(
         scrubPreviewIsEndCap(displaySeconds: 15.9, durationSeconds: 16.0),
         isFalse,
@@ -442,7 +493,7 @@ void main() {
           displaySeconds: 15.9,
           durationSeconds: 16.0,
         ),
-        15.0,
+        closeTo(15.95, 1e-9),
       );
     });
 
