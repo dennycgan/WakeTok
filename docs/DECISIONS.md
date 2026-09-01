@@ -3826,7 +3826,9 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 - Status: Accepted (2026-08-28); Decision 13 is narrowly supplemented by
   Cap 18.5 (2026-08-29 — corrected from an earlier docs-commit-date
-  attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`)
+  attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`);
+  Decision 18 Limited deferral superseded by ADR-041 (Proposed);
+  Decision 20 supplement added (Proposed; Cap 19)
 - Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
   `11c5202`); Cap 18.5 supplement anchor `34e59eb`; Cap 18.5 preview
@@ -4370,3 +4372,91 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    holding. Kafka Profile hold test (2026-08-31): zero-tolerance build,
    `driftReject = 0`; user confirmed real frame appears after brief wait.
    This is distinct from the pre-`7b4a0ff` drift-reject stall class.
+
+**Cap 19 Decision 20 supplement — magnified still vs left-swipe
+(Proposed; with ADR-041):**
+
+1. **Gap closed.** ADR-040 Decision 2 / 16 freeze magnified-still
+   single-finger drag as **pan only** (no vertical PageView). Decision 18
+   freezes left-swipe add-to-album. Cap 18 never wrote the cross-rule
+   between item 6 (pinch) and item 8 (left-swipe). Cap 19 supplies it.
+
+2. **Rule.** While the **current still** is in a **non-fit magnified**
+   state, the Cap 19 left-swipe recognizer **does not arm / does not
+   fire**. Single-finger drag remains pan (Decision 2 / 16). Fit restore
+   re-enables left-swipe arming per D2=B (ADR-041).
+
+3. **Video.** Non-persistent video pinch (Decision 16) does **not** arm
+   this guard (no lasting non-fit still state).
+
+4. **Ownership.** Cap 19 ships the guard + a read-only magnification
+   signal stub for tests. Cap 20 wires real pinch magnification state
+   into that signal. No Cap 18 reopen.
+
+5. **Out of scope.** Does not claim interactive-pop / system-back vs
+   left-swipe is solved (device gate at 19.6 / 19.8).
+
+---
+
+## ADR-041: Cap 19 §5 product lock — left-swipe range (D2) and Limited policy (D3)
+
+- Status: Proposed
+- Commit/PR anchor: (pending Accepting docs commit)
+- Plain summary (owner reads this): Cap 19 locks full-width left-swipe to
+  the fixed WakeTok album under both Full and Limited access; Limited
+  panel Add-to-Album stays Full-Access-only. Does not claim system
+  back-gesture conflict is fixed.
+- Context / what problem forced this:
+  Cap 19 §5 had D1 (WakeTok album bootstrap) and D4 (Limited half-sheet
+  row) locked 2026-08-31. D2 (swipe hit region) and D3 (Limited
+  left-swipe vs kickoff ADR-K) waited on the 19.2a PhotoKit spike. Spike
+  SPIKE COMPLETE on Kafka (`b22c07e`,
+  `docs/acceptance/cap19-19.2a-notes.md`): L-BOOT, L-APPEND, L-BOOT-KV,
+  and optional Full D1 all PASS. Owner locked D2=B and D3=B on
+  2026-09-01.
+- Decision (what was chosen):
+  1. **D2 = B — full media width.** Left-swipe recognizer arms across the
+     media area (not a left-edge strip only). Arbitration with future 2×
+     edge-hold reuses Cap 18 / ADR-040 Decision 2 early-motion threshold
+     (early horizontal displacement → swipe; stationary hold →
+     edge-hold). No new arbitration rule for D2.
+  2. **D3 = B — supersede kickoff ADR-K for the left-swipe line only.**
+     Under Limited, left-swipe append to the fixed WakeTok album is
+     enabled the same as Full Access (KV-known or create-only album id;
+     `addAssetToAlbum`). This does **not** authorize Limited
+     `listAssetSources` find / User Album enumerate (ADR-021 / ADR-K
+     list red line unchanged).
+  3. **D4 unchanged.** Limited half-sheet Add-to-Album row remains a
+     non-interactive Full Access requirement row — no picker, no album
+     list. Left-swipe and panel row are independent entries; intentional
+     asymmetry is accepted.
+  4. **Supersedes ADR-040 Decision 18 Limited deferral only.** Decision
+     18’s product slot (left-swipe → fixed WakeTok album; Settings
+     preference; edge-hold arbitration) stands. The Cap 18 clause that
+     forbade locking Limited behaviour is superseded by this ADR’s
+     Decision item 2.
+  5. **Interactive-pop / system back** remains an **unverified Cap 19
+     device risk** for 19.6 / 19.8 acceptance — D2=B does **not**
+     resolve it.
+  6. **Debt 445** (duplicate same-title albums; KV + `localIdentifier`
+     uniqueness) remains Accepted (permanent); more visible under
+     Limited create-only bootstrap — accepted cost of D3=B, not a
+     blocker.
+- Rejected alternatives (why not B’s opposite):
+  - **D2 = A (left-edge strip only):** smaller target; worse for
+    left-handed use; still sits on the same edge as future 2× hold and
+    system interactive-pop — does not remove those conflicts, only
+    shrinks the useful swipe region.
+  - **D3 = A (strict ADR-K force-off under Limited):** after 19.2a proved
+    Limited create + append on a known WakeTok album id without list
+    find, force-off would discard a working path that does not violate
+    the enumerate/list-find red line. Panel (D4) already carries the
+    Full Access upgrade cue for album *picking*.
+- Consequences:
+  - 19.6 may implement full-width left-swipe for Full and Limited per
+    D3=B.
+  - ADR-040 Decision 20 (magnified still vs left-swipe) ships in the
+    same docs batch; Cap 20 still wires real pinch state.
+  - Formal ADR-K “no Limited album features” reading is **narrowly**
+    superseded for **left-swipe → fixed WakeTok album only**; panel
+    enumerate path stays ADR-K / D4.

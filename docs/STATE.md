@@ -157,12 +157,12 @@
 ## Phase Roadmap (active capability only)
 Active capability: Add to Album / Cap 19 entry chrome (Cap 19)
 
-> Owner-approved 2026-08-31 (§5 partial): D1 + D4 locked; D2 + D3
-> deferred until 19.2a spike; ADR-041 + ADR-040 Decision 20 supplement
-> pending full §5 close (single docs batch after D2/D3 — not split).
-> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+> Owner-approved 2026-09-01 (§5 full): D1 + D2 + D3 + D4 locked.
+> ADR-041 + ADR-040 Decision 20 supplement in `docs/DECISIONS.md`
+> (same docs batch). Legend: [x] done  [~] in progress  [ ] todo
+> (blocked) noted inline
 
-### Owner-locked product decisions (§5 — partial)
+### Owner-locked product decisions (§5 — complete)
 
 **D1 — WakeTok album bootstrap (Full Access path)**
 - Photos album title: fixed English `"WakeTok"` (all locales; same string
@@ -171,39 +171,49 @@ Active capability: Add to Album / Cap 19 entry chrome (Cap 19)
   KV miss → `listAssetSources` exact-name find → on miss
   `createAlbum("WakeTok")` → persist KV.
 - Limited bootstrap: **must not** use list find (ADR-021 / ADR-K); KV-only
-  or create-only — outcomes recorded separately in 19.2a matrix.
+  or create-only — outcomes in `docs/acceptance/cap19-19.2a-notes.md`
+  (SPIKE COMPLETE). Uniqueness = KV + `localIdentifier` (debt **445**).
+
+**D2 — Left-swipe trigger range = B (full media width)**
+- Recognizer arms across the media area (not a left-edge strip only).
+- Edge-hold (future 2×) vs left-swipe arbitration: Cap 18 / ADR-040
+  Decision 2 early-motion threshold (early horizontal displacement →
+  swipe; stationary hold → edge-hold). No new rule.
+- System interactive-pop / back-gesture conflict remains an **unverified
+  device risk** for 19.6 / 19.8 — D2=B does **not** claim it is solved.
+
+**D3 — Limited left-swipe = B (supersede ADR-K for this line only)**
+- Left-swipe append to the fixed WakeTok album is enabled under **Full
+  and Limited** (same product behaviour). Path uses known album id
+  (KV) or Limited create-only — **no** list find / User Album enumerate
+  (ADR-021 red line unchanged). Spike evidence: L-BOOT + L-APPEND PASS
+  (`b22c07e` notes).
+- **Does not** change D4. Panel Add-to-Album under Limited stays the
+  non-interactive Full Access row; intentional asymmetry vs left-swipe
+  is accepted.
+- Debt **445** (duplicate same-title albums) more visible under Limited
+  create-only — accepted cost of D3=B, not a blocker.
+- Formal record: ADR-041 (supersedes ADR-040 Decision 18 Limited
+  deferral only).
 
 **D4 — Limited half-sheet (Add to Album row)**
 - Under Limited: show one **non-interactive** Full Access requirement row
   (upgrade-guidance copy); **do not** open album picker; **do not** list
-  User Albums. Independent of D3 left-swipe outcome.
+  User Albums. Independent of D3 left-swipe outcome — **unchanged** by
+  2026-09-01 D2/D3 lock.
 
-### Pending owner decisions (deadline: before 19.6 coding starts)
+### Gesture guard (ADR-040 Decision 20)
 
-**D2 — Left-swipe trigger range** (left-edge strip vs full media width):
-  owner decision **deferred** until 19.2a spike closes; **must** be locked
-  in the same review round as **D3**; hard deadline **before 19.6**
-  left-swipe recognizer lands.
-
-**D3 — Limited left-swipe policy** (strict ADR-K force-off vs conditional
-  supersede when L-BOOT + L-APPEND PASS): same defer / same round as D2;
-  hard deadline **before 19.6**. Full pros/cons live in chat / acceptance
-  notes only — not expanded here.
-
-### Gesture guard placeholder (ADR-040 Decision 20 — pending)
-
-Cap 19 left-swipe recognizer **must** consult still magnification state:
-while current **still** is **non-fit magnified**, recognizer **does not
-arm / does not fire** (symmetric with Cap 20 pinch-pan owning single-finger
-drag). Video non-persistent pinch (ADR-040 D16) does not arm this guard.
-Cap 19 ships guard + read-only magnification signal stub; Cap 20 wires
-real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
-(after D2/D3 + ADR-041 single batch).
+While current **still** is **non-fit magnified**, Cap 19 left-swipe
+**does not arm / does not fire** (pan owns single-finger drag). Video
+non-persistent pinch (ADR-040 D16) does not arm this guard. Cap 19 ships
+guard + read-only magnification stub; Cap 20 wires real pinch state.
+Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
 
 ### Phase list
 
-- [~] 19.1 Contract freeze — §5 partial lock (D1, D4); Phase Roadmap
-      this section; pending D2/D3; ADR-041 + Decision 20 after full §5
+- [x] 19.1 Contract freeze — §5 complete (D1–D4); ADR-041 + Decision 20
+      docs batch
 - [x] 19.2a Limited album spike — work `b22c07e`; notes
       `docs/acceptance/cap19-19.2a-notes.md` (SPIKE COMPLETE; L-BOOT /
       L-APPEND / L-BOOT-KV + Full D1 all PASS on Kafka Debug)
@@ -235,9 +245,10 @@ real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
 - [ ] 19.5 Panel Add-to-Album picker — Full Access only; writable User
       Album list; append + toast; no Session Queue / Snapshot refresh
       (ADR-I / kickoff §14)
-- [ ] 19.6 Left-swipe append — horizontal recognizer; Decision 20 guard;
-      edge-hold arbitration tests (ADR-040 D2/D18); **requires D2 + D3
-      locked**; Limited enablement per D3 outcome
+- [ ] 19.6 Left-swipe append — full-width horizontal recognizer (D2=B);
+      Decision 20 magnification guard; edge-hold arbitration tests
+      (ADR-040 D2/D18); Limited enabled same as Full (D3=B); verify
+      interactive-pop / system-back vs left-swipe on device (19.8)
 - [ ] 19.7 Preference + polish — `leftSwipeAddEnabled` KV (default on);
       duplicate-append UX; ARB error/success copy
 - [ ] 19.8 Device acceptance + close-out — Full dual-entry smoke; Limited
@@ -252,9 +263,9 @@ real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
 | **L-BOOT-KV** | Limited; KV holds id from prior Full session | Skip list/create; optional id validity check | Bootstrap skipped? append still possible? |
 | **L-APPEND** | Limited; known `albumIdentifier` | `addAssetToAlbum(currentAssetId, albumId)` | Membership change in Photos? error code? |
 
-Spike records **PhotoKit capability only**. **D3** (product: strict ADR-K
-vs supersede) is decided **after** this matrix — a technical PASS does not
-by itself enable Limited left-swipe without owner D3 = supersede.
+Spike recorded **PhotoKit capability only**. **D3 = B** locked 2026-09-01
+(ADR-041): Limited left-swipe enabled after L-BOOT + L-APPEND PASS —
+technical PASS was necessary input, not automatic product enablement.
 
 Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
@@ -262,17 +273,16 @@ KV → list find → create on clean install.
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 19.2b scrub drag playback fix (release-blocking; Cap
       18.5 misread — independent of album line)
-- Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`; acceptance notes filed)
+- Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
+      ADR-041 + Decision 20 Proposed (docs batch)
 - Next step: 19.2b — remove drag-begin mechanical pause (scheme A); then 19.2
       hardening
-- Blocked on owner: D2, D3 (same round before 19.6; technical input from
-      19.2a notes — L-BOOT + L-APPEND PASS)
-- Hard deadline: D2 + D3 before 19.6 coding starts
-- Related decisions: ADR-040 D15 entry icon + D18 left-swipe slot;
-      Decision 20 guard (DECISIONS.md pending); ADR-040 D13 supplement
-      for 19.2b scrub drag (separate from ADR-041); ADR-K / ADR-021
+- Blocked on owner: none for §5 / 19.6 prerequisites
+- Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
+      ADR-040 D13 supplement for 19.2b (separate from ADR-041); ADR-021
       Limited list omission; debt **421** (Settings Limited picker —
-      out of Cap 19); debt **444** → Build a Pool Cap
+      out of Cap 19); debt **444** → Build a Pool Cap; debt **445**
+      (WakeTok album uniqueness)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
