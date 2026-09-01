@@ -918,6 +918,11 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Kickoff Item Ordering Open Question is closed for Entire Library +
     Media Type only.
 
+**Cap 19.2 narrow supplement (2026-09-01; work `9977119`):**
+`listAssetSources` user albums wire `AssetSourceDto.canAddContent` from
+`PHAssetCollection.canPerform(.addContent)`; smart albums and built-ins
+remain `false`. Kickoff Data Contract field no longer placeholder-only.
+
 ---
 
 ## ADR-014: Cap 7 slim Main Browse feed model (Sequential + Manual)

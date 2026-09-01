@@ -239,10 +239,11 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       (`scrubProgressLiveGhost`). Cancel path may retain ~one observe-tick
       catch-up (~250ms) — accepted, not zero-jump. ADR-040 Decision 13
       narrow supplement. Device smoke PASS i17 Green Profile.
-- [ ] 19.2 Native album write path hardening — `canAddContent` DTO mapping
-      (`PHAssetCollection.canAddContent`); Host error-mapping matrix
-      hardening; create/add base logic landed in 19.2a (`b22c07e`) — expect
-      small diff if coverage already complete
+- [x] 19.2 Native album write path hardening — work `9977119`. User album
+      `canAddContent` from `canPerform(.addContent)`; smart/built-in
+      `false`; nil change request → `albumNotWritable`; best-effort
+      `notEnoughSpace` → `insufficientStorage`. ADR-013 narrow supplement.
+      Device smoke PASS i17 Green (`docs/acceptance/cap19-19.2-notes.md`).
 - [ ] 19.3 WakeTok album bootstrap — KV + Full find-or-create per D1;
       Limited KV/create-only branch per 19.2a outcomes
 - [ ] 19.4 Entry chrome + half-sheet — bottom-trailing icon (ADR-040 D15
@@ -276,11 +277,11 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.2 Native album write path hardening
+- Goal (one line): Cap 19.3 WakeTok album bootstrap
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
-      `ca3dae6`; 19.2d `a95dd1f` (docs Accepted this commit)
-- Next step: 19.2 hardening (`canAddContent` DTO + Host error-mapping)
+      `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119` (docs Accepted this commit)
+- Next step: 19.3 KV + Full find-or-create bootstrap per D1
 - Blocked on owner: none for §5 / 19.6 prerequisites
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
