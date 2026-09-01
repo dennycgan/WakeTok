@@ -12,7 +12,8 @@ import 'package:waketok/features/main_browse/scrubber_policy.dart';
 typedef ScrubPreviewRequest =
     Future<ScrubPreviewFrame?> Function(double positionSeconds);
 
-/// Cap 18.5 TikTok-style progress scrubber + preview bubble (ADR-040 D13 supplement).
+/// Cap 18.5 short-video-style progress scrubber + preview bubble
+/// (ADR-040 D13 supplement). Cap 19.2b: no drag-begin pause callback.
 ///
 /// Host null / latency gaps show a solid placeholder only — no user-facing
 /// unavailable copy (technical failures are not actionable while scrubbing).
@@ -22,7 +23,7 @@ class VideoProgressScrubber extends StatefulWidget {
     required this.assetIdentifier,
     required this.frozen,
     required this.runtimeEvents,
-    required this.onScrubBegin,
+    this.onScrubBegin,
     required this.onScrubComplete,
     required this.requestPreview,
   });
@@ -30,7 +31,9 @@ class VideoProgressScrubber extends StatefulWidget {
   final String assetIdentifier;
   final bool frozen;
   final Stream<PlaybackRuntimeEvent> runtimeEvents;
-  final VoidCallback onScrubBegin;
+
+  /// Optional; Cap 19.2b product path no longer needs drag-begin side effects.
+  final VoidCallback? onScrubBegin;
   final void Function(double positionSeconds) onScrubComplete;
   final ScrubPreviewRequest requestPreview;
 
@@ -166,7 +169,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
     }
     if (!_dragCommitted) {
       _dragCommitted = true;
-      widget.onScrubBegin();
+      widget.onScrubBegin?.call();
     }
     final duration = _effectiveDuration;
     final previousFloor = scrubPreviewBucketSeconds(

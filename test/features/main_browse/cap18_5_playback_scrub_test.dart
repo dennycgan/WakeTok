@@ -17,7 +17,8 @@ SystemPlaybackPermission _allAllowed({bool surfaceReady = true}) {
 }
 
 void main() {
-  test('C-18.5-1 scrub complete seeks once then plays when intent true', () async {
+  test('C-18.5-1 scrub complete seeks once then plays when intent true',
+      () async {
     final playback = FakePlaybackRepository();
     final coordinator = PlaybackCoordinator(playback: playback);
     final gate = FeedMediaRequestGate();
@@ -32,13 +33,7 @@ void main() {
     );
     playback.calls.clear();
 
-    await coordinator.onUserScrubBegin(
-      assetIdentifier: 'a',
-      displayGeneration: generation,
-      displayGate: gate,
-    );
-    expect(playback.calls, contains('pause'));
-
+    // Cap 19.2b: no drag-begin pause — go straight to release seek/play.
     await coordinator.onUserScrubComplete(
       assetIdentifier: 'a',
       displayGeneration: generation,
@@ -48,11 +43,77 @@ void main() {
       muted: false,
     );
 
+    expect(playback.calls.where((c) => c == 'pause'), isEmpty);
     expect(
       playback.calls.where((c) => c.startsWith('seek:')),
       hasLength(1),
     );
     expect(playback.calls.last, 'playFromCurrentPosition');
+  });
+
+  test('C-19.2b-1 scrub release with intent true has no drag-begin pause',
+      () async {
+    final playback = FakePlaybackRepository();
+    final coordinator = PlaybackCoordinator(playback: playback);
+    final gate = FeedMediaRequestGate();
+    final generation = gate.begin();
+
+    await coordinator.onVideoBecomeCurrent(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      permission: _allAllowed(),
+      muted: false,
+    );
+    playback.calls.clear();
+
+    await coordinator.onUserScrubComplete(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      positionSeconds: 8,
+      permission: _allAllowed(),
+      muted: false,
+    );
+
+    expect(playback.calls.where((c) => c == 'pause'), isEmpty);
+    expect(playback.calls.last, 'playFromCurrentPosition');
+  });
+
+  test('C-19.2b-2 scrub release with intent false ends in pause', () async {
+    final playback = FakePlaybackRepository();
+    final coordinator = PlaybackCoordinator(playback: playback);
+    final gate = FeedMediaRequestGate();
+    final generation = gate.begin();
+
+    await coordinator.onVideoBecomeCurrent(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      permission: _allAllowed(),
+      muted: false,
+    );
+    await coordinator.onUserTapTogglePlay(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      permission: _allAllowed(),
+      muted: false,
+    );
+    playback.calls.clear();
+
+    await coordinator.onUserScrubComplete(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      positionSeconds: 4,
+      permission: _allAllowed(),
+      muted: false,
+    );
+
+    expect(playback.calls.where((c) => c.startsWith('seek:')), hasLength(1));
+    expect(playback.calls.where((c) => c == 'playFromCurrentPosition'), isEmpty);
+    expect(playback.calls.last, 'pause');
   });
 
   test('C-18.5-1b scrub complete clears pending nav before seek', () async {

@@ -3387,29 +3387,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         );
   }
 
-  Future<void> _onScrubBegin() async {
-    final media = _media;
-    if (media == null || media.kind != FeedPageMediaKind.video) {
-      return;
-    }
-    if (!widget.isCurrent ||
-        _layer2InFlight ||
-        !_surfaceReady ||
-        _layer2Failed) {
-      return;
-    }
-    final gate = widget.currentDisplayGate;
-    final generation = widget.assignedDisplayGeneration;
-    if (gate == null || generation == null) {
-      return;
-    }
-    await ref.read(playbackCoordinatorProvider).onUserScrubBegin(
-          assetIdentifier: widget.assetIdentifier,
-          displayGeneration: generation,
-          displayGate: gate,
-        );
-  }
-
   Future<void> _onScrubComplete(double positionSeconds) async {
     final media = _media;
     if (media == null || media.kind != FeedPageMediaKind.video) {
@@ -3690,11 +3667,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           playbackTapHardFailure: _layer2Failed,
           scrubberVerticalFeedSettled: widget.verticalFeedSettled,
           scrubberLayer2InFlight: _layer2InFlight,
-          onScrubBegin: coordinator == null
-              ? null
-              : () {
-                  unawaited(_onScrubBegin());
-                },
           onScrubComplete: coordinator == null
               ? null
               : (seconds) {
@@ -3752,7 +3724,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     bool playbackTapHardFailure = false,
     bool scrubberVerticalFeedSettled = true,
     bool scrubberLayer2InFlight = true,
-    VoidCallback? onScrubBegin,
     void Function(double positionSeconds)? onScrubComplete,
     PlaybackRepository? playbackRepository,
     bool showMediaInfoOverlay = false,
@@ -3818,8 +3789,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           ),
         if (showMediaInfoOverlay)
           MediaInfoOverlay(snapshot: overlaySnapshot),
-        if (onScrubBegin != null &&
-            onScrubComplete != null &&
+        if (onScrubComplete != null &&
             playbackRepository != null &&
             video != null &&
             scrubberChromeVisible(
@@ -3838,7 +3808,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               transitionCovering: playbackTapTransitionCovering,
             ),
             runtimeEvents: playbackRepository.runtimeEvents,
-            onScrubBegin: onScrubBegin,
             onScrubComplete: onScrubComplete,
             requestPreview: playbackRepository.requestScrubPreviewFrame,
           ),
