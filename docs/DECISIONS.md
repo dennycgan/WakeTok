@@ -3827,13 +3827,15 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 - Status: Accepted (2026-08-28); Decision 13 is narrowly supplemented by
   Cap 18.5 (2026-08-29 — corrected from an earlier docs-commit-date
   attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`);
-  Decision 18 Limited deferral superseded by ADR-041 (2026-09-01);
-  Decision 20 supplement added (2026-09-01; docs `49d580b`)
+  Decision 13 Cap 19.2b scrub-drag keep-playing supplement (2026-09-01;
+  work `82d828a`); Decision 18 Limited deferral superseded by ADR-041
+  (2026-09-01); Decision 20 supplement added (2026-09-01; docs `49d580b`)
 - Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
   `11c5202`); Cap 18.5 supplement anchor `34e59eb`; Cap 18.5 preview
-  tolerance / drift-gate supplement anchor `7b4a0ff`; Cap 19 Decision 20
-  supplement anchor `49d580b`
+  tolerance / drift-gate supplement anchor `7b4a0ff`; Cap 19.2b Decision 13
+  supplement anchor `82d828a`; Cap 19 Decision 20 supplement anchor
+  `49d580b`
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -4373,6 +4375,30 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    holding. Kafka Profile hold test (2026-08-31): zero-tolerance build,
    `driftReject = 0`; user confirmed real frame appears after brief wait.
    This is distinct from the pre-`7b4a0ff` drift-reject stall class.
+
+**Cap 19.2b Decision 13 narrow supplement — scrub drag keep-playing
+(2026-09-01; work `82d828a`; device i17 Green Profile PASS):**
+
+1. **Drag-begin mechanical pause removed.** Cap 18.5 Decision 13 supplement
+   item 3 required a mechanical pause for the duration of scrub drag. Cap
+   19.2b deletes `PlaybackCoordinator.onUserScrubBegin` and the Main Browse
+   feed wiring (scheme A; **no** no-op stub). While the finger is down on
+   the scrubber, the main picture follows existing `userIntentWantsPlay` /
+   `effectiveShouldPlay` — no Manual-intent mutation. Release path is
+   unchanged: whole-second `seek`, clear stale `pendingNavigationActivation`,
+   then `playFromCurrentPosition()` when effective.
+
+2. **Product rationale.** Cap 18.5’s drag-freeze was a misread of
+   Video-App-B–class keep-playing scrub UX. 19.2b corrects that product
+   behaviour; it does **not** reopen Cap 18 PHASE_HISTORY.
+
+3. **Out of scope for this supplement.** Scrub preview bubble, Host
+   `requestScrubPreviewFrame`, and the Cap 18.5 dual quantizers (preview
+   mid-path **floor** bucket vs label/release **round** seek) are unchanged
+   here. Any later alignment of those quantizers is a separate phase — not a
+   19.2b regression. (19.2b made the floor/round mismatch easier to see
+   because the main picture keeps moving during drag; it did not introduce
+   the mismatch.)
 
 **Cap 19 Decision 20 supplement — magnified still vs left-swipe
 (2026-09-01; docs `49d580b`; with ADR-041):**

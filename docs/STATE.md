@@ -217,23 +217,22 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
 - [x] 19.2a Limited album spike — work `b22c07e`; notes
       `docs/acceptance/cap19-19.2a-notes.md` (SPIKE COMPLETE; L-BOOT /
       L-APPEND / L-BOOT-KV + Full D1 all PASS on Kafka Debug)
-- [ ] 19.2b Scrub drag playback fix (**release-blocking**; Cap 18.5
-      misread of TikTok/抖音 behavior — not deferred debt)
-      — Remove drag-begin mechanical pause: delete
-      `PlaybackCoordinator.onUserScrubBegin` and feed wiring (scheme A;
-      no no-op stub). Main picture during scrub drag follows existing
-      `userIntentWantsPlay` / `effectiveShouldPlay` (no intent mutation).
-      Release path unchanged: single whole-second seek, clear pending nav,
-      then `playFromCurrentPosition()` when effective (Host: adopt surface +
-      `player.play()` at post-seek position — no seek-zero / no pause-only
-      resume path). Scrub preview bubble + Host `requestScrubPreviewFrame`
-      pipeline unchanged (Cap 18.5 through `7b4a0ff`). Docs: ADR-040
-      Decision 13 narrow supplement (supersedes 18.5 supplement item 3
-      «mechanical pause during drag» only) — **separate** from ADR-041
-      batch. Tests: update C-18.5-1; add C-19.2b-* coordinator cases;
-      optional device smoke `docs/acceptance/cap19-19.2b-notes.md`. **Does
-      not** reopen Cap 18 PHASE_HISTORY. Independent of album line; may
-      land immediately after 19.2a.
+- [x] 19.2b Scrub drag playback fix — work `82d828a` (**release-blocking**;
+      Cap 18.5 misread of Video-App-B–class keep-playing UX — not deferred
+      debt). Removed drag-begin mechanical pause (`onUserScrubBegin` + feed
+      wiring; scheme A; no no-op stub). Main picture during scrub drag
+      follows `userIntentWantsPlay` / `effectiveShouldPlay`. Release path
+      unchanged. Preview bubble / Host preview pipeline unchanged at this
+      phase. ADR-040 Decision 13 narrow supplement (supersedes 18.5
+      supplement item 3 «mechanical pause during drag» only). Device smoke
+      PASS i17 Green Profile. **Does not** reopen Cap 18 PHASE_HISTORY.
+- [ ] 19.2c Scrub preview/seek quantizer align — mid-path preview request
+      keys align to `scrubberSeekSeconds` (round); end-cap + integer-
+      duration EOS-safe stay `duration − ε`; direction detect follows
+      request keys; delete dead `scrubPreviewBucketSeconds`. Cap 18.5
+      floor/round seam made visible by 19.2b keep-playing — **not** a
+      19.2b regression. Docs: ADR-040 Decision 13 narrow supplement
+      (separate work/docs commits after this phase).
 - [ ] 19.2 Native album write path hardening — `canAddContent` DTO mapping
       (`PHAssetCollection.canAddContent`); Host error-mapping matrix
       hardening; create/add base logic landed in 19.2a (`b22c07e`) — expect
@@ -271,18 +270,19 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.2b scrub drag playback fix (release-blocking; Cap
-      18.5 misread — independent of album line)
+- Goal (one line): Cap 19.2c scrub preview/seek quantizer align (Cap 18.5
+      floor/round seam; illuminated by 19.2b — not a 19.2b regression)
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
-      ADR-041 + Decision 20 Accepted (`49d580b`)
-- Next step: 19.2b — remove drag-begin mechanical pause (scheme A); then 19.2
-      hardening
+      ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b work `82d828a`
+      (docs Accepted this commit)
+- Next step: 19.2c implementation (preview request → round / seek; delete
+      `scrubPreviewBucketSeconds`); then 19.2 hardening
 - Blocked on owner: none for §5 / 19.6 prerequisites
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
-      ADR-040 D13 supplement for 19.2b (separate from ADR-041); ADR-021
-      Limited list omission; debt **421** (Settings Limited picker —
-      out of Cap 19); debt **444** → Build a Pool Cap; debt **445**
-      (WakeTok album uniqueness)
+      ADR-040 D13 Cap 19.2b supplement (`82d828a`); ADR-021 Limited list
+      omission; debt **421** (Settings Limited picker — out of Cap 19);
+      debt **444** → Build a Pool Cap; debt **445** (WakeTok album
+      uniqueness)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
