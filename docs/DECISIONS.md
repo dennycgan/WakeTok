@@ -3828,14 +3828,18 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   Cap 18.5 (2026-08-29 — corrected from an earlier docs-commit-date
   attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`);
   Decision 13 Cap 19.2b scrub-drag keep-playing supplement (2026-09-01;
-  work `82d828a`); Decision 18 Limited deferral superseded by ADR-041
-  (2026-09-01); Decision 20 supplement added (2026-09-01; docs `49d580b`)
+  work `82d828a`); Decision 13 Cap 19.2c preview/seek quantizer align
+  (2026-09-01; work `ca3dae6`); Decision 13 Cap 19.2d seek-hold + live
+  ghost (2026-09-01; work `a95dd1f`); Decision 18 Limited deferral
+  superseded by ADR-041 (2026-09-01); Decision 20 supplement added
+  (2026-09-01; docs `49d580b`)
 - Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
   `11c5202`); Cap 18.5 supplement anchor `34e59eb`; Cap 18.5 preview
   tolerance / drift-gate supplement anchor `7b4a0ff`; Cap 19.2b Decision 13
-  supplement anchor `82d828a`; Cap 19 Decision 20 supplement anchor
-  `49d580b`
+  supplement anchor `82d828a`; Cap 19.2c Decision 13 supplement anchor
+  `ca3dae6`; Cap 19.2d Decision 13 supplement anchor `a95dd1f`; Cap 19
+  Decision 20 supplement anchor `49d580b`
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -4399,6 +4403,52 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    19.2b regression. (19.2b made the floor/round mismatch easier to see
    because the main picture keeps moving during drag; it did not introduce
    the mismatch.)
+
+**Cap 19.2c Decision 13 narrow supplement — scrub preview/seek quantizer
+align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
+
+1. **Discovery path.** Cap 18.5 shipped mid-path preview request keys via
+   floor buckets while label + release seek used `scrubberSeekSeconds`
+   (round). Cap 19.2b keep-playing made that dual-quantizer seam easy to
+   see during drag; **19.2b did not introduce the seam** — 19.2c closes it.
+
+2. **Mid-path coupling invariant.** Non-end-cap `scrubPreviewRequestSeconds`
+   must go through `scrubberSeekSeconds` (round). Do **not** reintroduce a
+   parallel floor (or other) quantizer for mid-path preview keys. Changing
+   label, release seek, or preview request quantization requires reviewing
+   the other two in the **same** diff.
+
+3. **Intentional exceptions.** End-cap and integer-duration EOS-safe paths
+   still request `duration − ε` so Host is not asked for exact EOS. Those
+   preview keys may differ from the release seek second by design.
+
+4. **Direction detect.** Scrub borrow reverse detection follows whole-second
+   **request keys** (same mid-path round path), not a separate floor bucket.
+   Dead `scrubPreviewBucketSeconds` was removed.
+
+**Cap 19.2d Decision 13 narrow supplement — seek-hold + live playhead ghost
+(2026-09-01; work `a95dd1f`; device i17 Green Profile PASS):**
+
+1. **Optimistic landing + seek-hold.** On committed scrub release, Dart writes
+   the seek second into `_positionSeconds` in the same `setState` that clears
+   `_dragging`, then ignores Host observe ticks until they settle near the
+   hold (or a ~1.2s hold window expires). Prevents the fill from flashing
+   back to the pre-seek playhead while AVPlayer seek is still in flight.
+
+2. **Live ghost while dragging.** Track stack is track →
+   `scrubProgressLiveGhost` → primary played fill. Ghost follows live
+   runtime playhead; primary follows the finger. Token
+   `scrubProgressLiveGhost` started at ~30% white (`0x4DFFFFFF`); i17 Green
+   Profile smoke confirmed the starting value (retune later only if product
+   asks).
+
+3. **Cancel path.** Uncommitted / cancel release does **not** write an
+   optimistic seek second. With mid-drag runtime collection, cancel follows
+   the latest live observe; residual catch-up of about one Host observe tick
+   (~250ms) is **accepted** and is **not** a zero-jump guarantee.
+
+4. **Dependency.** Ghost UX assumes Cap 19.2b keep-playing during drag; does
+   not reopen Cap 18 PHASE_HISTORY.
 
 **Cap 19 Decision 20 supplement — magnified still vs left-swipe
 (2026-09-01; docs `49d580b`; with ADR-041):**

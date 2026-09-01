@@ -226,13 +226,19 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       phase. ADR-040 Decision 13 narrow supplement (supersedes 18.5
       supplement item 3 «mechanical pause during drag» only). Device smoke
       PASS i17 Green Profile. **Does not** reopen Cap 18 PHASE_HISTORY.
-- [ ] 19.2c Scrub preview/seek quantizer align — mid-path preview request
-      keys align to `scrubberSeekSeconds` (round); end-cap + integer-
-      duration EOS-safe stay `duration − ε`; direction detect follows
-      request keys; delete dead `scrubPreviewBucketSeconds`. Cap 18.5
-      floor/round seam made visible by 19.2b keep-playing — **not** a
-      19.2b regression. Docs: ADR-040 Decision 13 narrow supplement
-      (separate work/docs commits after this phase).
+- [x] 19.2c Scrub preview/seek quantizer align — work `ca3dae6`. Mid-path
+      preview request keys align to `scrubberSeekSeconds` (round); end-cap
+      + integer-duration EOS-safe stay `duration − ε`; direction detect
+      follows request keys; deleted dead `scrubPreviewBucketSeconds`. Cap
+      18.5 floor/round seam made visible by 19.2b keep-playing — **not** a
+      19.2b regression. ADR-040 Decision 13 narrow supplement. Device smoke
+      PASS i17 Green Profile.
+- [x] 19.2d Scrub seek-hold + live playhead ghost — work `a95dd1f`.
+      Optimistic landing on release + seek-hold against stale Host observe
+      (no fill flash); drag paints live ghost under primary fill
+      (`scrubProgressLiveGhost`). Cancel path may retain ~one observe-tick
+      catch-up (~250ms) — accepted, not zero-jump. ADR-040 Decision 13
+      narrow supplement. Device smoke PASS i17 Green Profile.
 - [ ] 19.2 Native album write path hardening — `canAddContent` DTO mapping
       (`PHAssetCollection.canAddContent`); Host error-mapping matrix
       hardening; create/add base logic landed in 19.2a (`b22c07e`) — expect
@@ -270,19 +276,16 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.2c scrub preview/seek quantizer align (Cap 18.5
-      floor/round seam; illuminated by 19.2b — not a 19.2b regression)
+- Goal (one line): Cap 19.2 Native album write path hardening
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
-      ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b work `82d828a`
-      (docs Accepted this commit)
-- Next step: 19.2c implementation (preview request → round / seek; delete
-      `scrubPreviewBucketSeconds`); then 19.2 hardening
+      ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
+      `ca3dae6`; 19.2d `a95dd1f` (docs Accepted this commit)
+- Next step: 19.2 hardening (`canAddContent` DTO + Host error-mapping)
 - Blocked on owner: none for §5 / 19.6 prerequisites
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
-      ADR-040 D13 Cap 19.2b supplement (`82d828a`); ADR-021 Limited list
-      omission; debt **421** (Settings Limited picker — out of Cap 19);
-      debt **444** → Build a Pool Cap; debt **445** (WakeTok album
-      uniqueness)
+      ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
+      debt **421** (Settings Limited picker — out of Cap 19); debt **444**
+      → Build a Pool Cap; debt **445** (WakeTok album uniqueness)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
