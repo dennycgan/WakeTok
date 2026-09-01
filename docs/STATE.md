@@ -173,6 +173,8 @@ Active capability: Add to Album / Cap 19 entry chrome (Cap 19)
 - Limited bootstrap: **must not** use list find (ADR-021 / ADR-K); KV-only
   or create-only — outcomes in `docs/acceptance/cap19-19.2a-notes.md`
   (SPIKE COMPLETE). Uniqueness = KV + `localIdentifier` (debt **445**).
+  List-find tie-break (no KV): min `localIdentifier` among exact-title user
+  albums. **Implemented Cap 19.3, work `7df4862`.**
 
 **D2 — Left-swipe trigger range = B (full media width)**
 - Recognizer arms across the media area (not a left-edge strip only).
@@ -244,8 +246,11 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       `false`; nil change request → `albumNotWritable`; best-effort
       `notEnoughSpace` → `insufficientStorage`. ADR-013 narrow supplement.
       Device smoke PASS i17 Green (`docs/acceptance/cap19-19.2-notes.md`).
-- [ ] 19.3 WakeTok album bootstrap — KV + Full find-or-create per D1;
-      Limited KV/create-only branch per 19.2a outcomes
+- [x] 19.3 WakeTok album bootstrap — work `7df4862`. `bootstrapWakeTokAlbum`
+      + product KV (`lib/data/`); Full list-find min `localIdentifier`
+      tie-break (debt **445**); Limited create-only; lazy API (19.6 wires).
+      Device smoke PASS i17 Green Debug
+      (`docs/acceptance/cap19-19.3-notes.md`).
 - [ ] 19.4 Entry chrome + half-sheet — bottom-trailing icon (ADR-040 D15
       slot); half-sheet shell; Limited explicit Full Access row (D4)
 - [ ] 19.5 Panel Add-to-Album picker — Full Access only; writable User
@@ -277,11 +282,12 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.3 WakeTok album bootstrap
+- Goal (one line): Cap 19.4 Entry chrome + half-sheet
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
-      `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119` (docs Accepted this commit)
-- Next step: 19.3 KV + Full find-or-create bootstrap per D1
+      `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862` (docs
+      Accepted this commit)
+- Next step: 19.4 bottom-trailing icon + half-sheet shell + D4 Limited row
 - Blocked on owner: none for §5 / 19.6 prerequisites
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
