@@ -126,7 +126,8 @@ class AssetSourceDto {
 
   AssetSourceAvailabilityDto availability;
 
-  /// Built-ins and non-writable sources: false. User albums may be true later.
+  /// User albums: PhotoKit canPerform(.addContent). Smart albums and
+  /// built-ins: false (Cap 19.2).
   bool canAddContent;
 }
 

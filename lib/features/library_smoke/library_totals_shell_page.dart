@@ -310,7 +310,8 @@ class _LibraryTotalsShellPageState
           setState(() {
             _waketokAlbumCachedId = source.id;
             _waketokAlbumProbeMessage =
-                'Full D1 PASS: list find id=${source.id}';
+                'Full D1 PASS: list find id=${source.id} '
+                'canAddContent=${source.canAddContent}';
           });
           return;
         }

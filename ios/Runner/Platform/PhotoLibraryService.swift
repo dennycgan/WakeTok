@@ -228,13 +228,22 @@ final class PhotoLibraryService: PhotoLibraryApi {
     kind: AssetSourceKind
   ) -> AssetSourceDto {
     let (count, availability) = albumListCountAndAvailability(collection)
+    let canAddContent: Bool
+    switch kind {
+    case .album:
+      canAddContent = collection.canPerform(.addContent)
+    case .smartAlbum:
+      canAddContent = false
+    default:
+      canAddContent = false
+    }
     return AssetSourceDto(
       sourceIdentifier: collection.localIdentifier,
       displayName: collection.localizedTitle ?? "",
       kind: kind,
       estimatedCount: count,
       availability: availability,
-      canAddContent: false
+      canAddContent: canAddContent
     )
   }
 
@@ -1614,13 +1623,29 @@ final class PhotoLibraryService: PhotoLibraryApi {
       )
       return
     }
+    // Race-condition safety net: the canPerform check above and performChanges
+    // are not atomic — the album may be deleted or lose write permission in
+    // between, yielding a nil change request. Do not treat that as success.
+    var changeRequestUnavailable = false
     PHPhotoLibrary.shared().performChanges({
       guard let request = PHAssetCollectionChangeRequest(for: collection) else {
+        changeRequestUnavailable = true
         return
       }
       request.addAssets([asset] as NSFastEnumeration)
     }) { success, error in
       DispatchQueue.main.async {
+        if changeRequestUnavailable {
+          completion(
+            .failure(
+              self.fail(
+                .albumNotWritable,
+                message: "Album change request unavailable"
+              )
+            )
+          )
+          return
+        }
         if success {
           completion(.success(()))
           return
@@ -1658,6 +1683,9 @@ final class PhotoLibraryService: PhotoLibraryApi {
         return fail(.unauthorized, message: nsError.localizedDescription)
       case PHPhotosError.userCancelled.rawValue:
         return fail(.operationCancelled, message: nsError.localizedDescription)
+      // Best-effort: notEnoughSpace is difficult to trigger on device safely.
+      case PHPhotosError.notEnoughSpace.rawValue:
+        return fail(.insufficientStorage, message: nsError.localizedDescription)
       default:
         break
       }
