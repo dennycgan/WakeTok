@@ -1,5 +1,6 @@
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
+import 'package:waketok/domain/library/album_mutation_repository.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/library/library_asset.dart';
 import 'package:waketok/domain/library/library_catalog_repository.dart';
@@ -230,7 +231,8 @@ class PhotoLibraryGateway
         LibraryCatalogRepository,
         AssetSourceRepository,
         MediaDisplayRepository,
-        PresentationMetadataRepository {
+        PresentationMetadataRepository,
+        AlbumMutationRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -368,4 +370,14 @@ class PhotoLibraryGateway
     final dto = await _api.requestPresentationFileSize(assetIdentifier);
     return presentationFileSizeFromDto(dto);
   }
+
+  @override
+  Future<String> createAlbum(String name) => _api.createAlbum(name);
+
+  @override
+  Future<void> addAssetToAlbum(
+    String assetIdentifier,
+    String albumIdentifier,
+  ) =>
+      _api.addAssetToAlbum(assetIdentifier, albumIdentifier);
 }

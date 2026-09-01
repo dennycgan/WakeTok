@@ -91,6 +91,15 @@
     "mediaInfoFileSizeGb",
     "mediaInfoCharacteristicsJoined",
     "sharedMuteDebugSectionTitle",
-    "sharedMuteDebugSwitchLabel"
+    "sharedMuteDebugSwitchLabel",
+    "cap19AlbumMutationProbeSectionTitle",
+    "cap19WaketokAlbumKvLabel",
+    "cap19ProbeSampleAssetIdLabel",
+    "cap19ProbeUseFirstAllAssetId",
+    "cap19ProbeLBootCreate",
+    "cap19ProbeLBootKvShow",
+    "cap19ProbeLAppend",
+    "cap19ProbeFullD1Smoke",
+    "cap19ProbeClearKv"
   ]
 }

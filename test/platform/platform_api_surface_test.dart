@@ -361,6 +361,16 @@ void main() {
     }
   });
 
+  test('T-19.2a-3 PhotoLibrary create/add success mock paths', () async {
+    final api = PhotoLibraryApi();
+
+    mockSuccess(photoChannel('createAlbum'), 'created-album-id');
+    mockSuccess(photoChannel('addAssetToAlbum'), null);
+
+    expect(await api.createAlbum('WakeTok'), 'created-album-id');
+    await api.addAssetToAlbum('asset-1', 'created-album-id');
+  });
+
   test('T7 Playback Host methods succeed under mock (no-op path)', () async {
     final api = PlaybackApi();
     final item = PlaybackItemDto(

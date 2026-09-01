@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
@@ -29,6 +30,7 @@ Future<void> main() async {
         photosAuthorizationRepositoryProvider.overrideWithValue(gateway),
         libraryCatalogRepositoryProvider.overrideWithValue(gateway),
         assetSourceRepositoryProvider.overrideWithValue(gateway),
+        albumMutationRepositoryProvider.overrideWithValue(gateway),
         mediaDisplayRepositoryProvider.overrideWithValue(gateway),
         presentationMetadataRepositoryProvider.overrideWithValue(gateway),
         playbackRepositoryProvider.overrideWithValue(playback),

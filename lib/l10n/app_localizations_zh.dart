@@ -395,6 +395,36 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sharedMuteDebugSwitchLabel => 'Muted';
+
+  @override
+  String get cap19AlbumMutationProbeSectionTitle =>
+      'Cap 19 Album Mutation Probe (debug)';
+
+  @override
+  String cap19WaketokAlbumKvLabel(String id) {
+    return 'WakeTok album KV: $id';
+  }
+
+  @override
+  String get cap19ProbeSampleAssetIdLabel => 'Sample PHAsset localIdentifier';
+
+  @override
+  String get cap19ProbeUseFirstAllAssetId => 'Use first All asset id';
+
+  @override
+  String get cap19ProbeLBootCreate => 'L-BOOT: Create \"WakeTok\" (no list)';
+
+  @override
+  String get cap19ProbeLBootKvShow => 'L-BOOT-KV: Show cached id';
+
+  @override
+  String get cap19ProbeLAppend => 'L-APPEND: Add sample to WakeTok album';
+
+  @override
+  String get cap19ProbeFullD1Smoke => 'Full: D1 KV→list find→create smoke';
+
+  @override
+  String get cap19ProbeClearKv => 'Clear WakeTok probe KV';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -777,4 +807,33 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get sharedMuteDebugSwitchLabel => '已静音';
+
+  @override
+  String get cap19AlbumMutationProbeSectionTitle => 'Cap 19 相册写入探针（debug）';
+
+  @override
+  String cap19WaketokAlbumKvLabel(String id) {
+    return 'WakeTok 相册 KV：$id';
+  }
+
+  @override
+  String get cap19ProbeSampleAssetIdLabel => 'Sample PHAsset localIdentifier';
+
+  @override
+  String get cap19ProbeUseFirstAllAssetId => '使用 All 首个 asset id';
+
+  @override
+  String get cap19ProbeLBootCreate => 'L-BOOT：创建「WakeTok」（不 list）';
+
+  @override
+  String get cap19ProbeLBootKvShow => 'L-BOOT-KV：显示缓存 id';
+
+  @override
+  String get cap19ProbeLAppend => 'L-APPEND：添加到 WakeTok 相册';
+
+  @override
+  String get cap19ProbeFullD1Smoke => 'Full：D1 KV→list find→create 冒烟';
+
+  @override
+  String get cap19ProbeClearKv => '清除 WakeTok 探针 KV';
 }

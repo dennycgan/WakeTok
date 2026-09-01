@@ -506,5 +506,46 @@
   "sharedMuteDebugSwitchLabel": "Muted",
   "@sharedMuteDebugSwitchLabel": {
     "description": "Cap 9.6 debug switch label; true = muted (no Live/video audio)"
+  },
+  "cap19AlbumMutationProbeSectionTitle": "Cap 19 Album Mutation Probe (debug)",
+  "@cap19AlbumMutationProbeSectionTitle": {
+    "description": "Cap 19.2a library_smoke section for Limited album mutation spike"
+  },
+  "cap19WaketokAlbumKvLabel": "WakeTok album KV: {id}",
+  "@cap19WaketokAlbumKvLabel": {
+    "description": "Shows cached WakeTok probe album id from debug SharedPreferences",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "cap19ProbeSampleAssetIdLabel": "Sample PHAsset localIdentifier",
+  "@cap19ProbeSampleAssetIdLabel": {
+    "description": "Cap 19.2a probe TextField label for append target asset id"
+  },
+  "cap19ProbeUseFirstAllAssetId": "Use first All asset id",
+  "@cap19ProbeUseFirstAllAssetId": {
+    "description": "Cap 19.2a probe button to fill sample asset id from All resolve head"
+  },
+  "cap19ProbeLBootCreate": "L-BOOT: Create \"WakeTok\" (no list)",
+  "@cap19ProbeLBootCreate": {
+    "description": "Cap 19.2a Limited bootstrap probe — create-only, no list find"
+  },
+  "cap19ProbeLBootKvShow": "L-BOOT-KV: Show cached id",
+  "@cap19ProbeLBootKvShow": {
+    "description": "Cap 19.2a Limited KV-only bootstrap probe"
+  },
+  "cap19ProbeLAppend": "L-APPEND: Add sample to WakeTok album",
+  "@cap19ProbeLAppend": {
+    "description": "Cap 19.2a Limited append probe"
+  },
+  "cap19ProbeFullD1Smoke": "Full: D1 KV→list find→create smoke",
+  "@cap19ProbeFullD1Smoke": {
+    "description": "Cap 19.2a Full Access D1 bootstrap smoke probe"
+  },
+  "cap19ProbeClearKv": "Clear WakeTok probe KV",
+  "@cap19ProbeClearKv": {
+    "description": "Cap 19.2a clears debug SharedPreferences album id"
   }
 }

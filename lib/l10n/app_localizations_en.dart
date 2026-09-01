@@ -398,4 +398,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sharedMuteDebugSwitchLabel => 'Muted';
+
+  @override
+  String get cap19AlbumMutationProbeSectionTitle =>
+      'Cap 19 Album Mutation Probe (debug)';
+
+  @override
+  String cap19WaketokAlbumKvLabel(String id) {
+    return 'WakeTok album KV: $id';
+  }
+
+  @override
+  String get cap19ProbeSampleAssetIdLabel => 'Sample PHAsset localIdentifier';
+
+  @override
+  String get cap19ProbeUseFirstAllAssetId => 'Use first All asset id';
+
+  @override
+  String get cap19ProbeLBootCreate => 'L-BOOT: Create \"WakeTok\" (no list)';
+
+  @override
+  String get cap19ProbeLBootKvShow => 'L-BOOT-KV: Show cached id';
+
+  @override
+  String get cap19ProbeLAppend => 'L-APPEND: Add sample to WakeTok album';
+
+  @override
+  String get cap19ProbeFullD1Smoke => 'Full: D1 KV→list find→create smoke';
+
+  @override
+  String get cap19ProbeClearKv => 'Clear WakeTok probe KV';
 }

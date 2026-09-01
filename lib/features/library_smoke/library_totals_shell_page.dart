@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +16,7 @@ import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/domain/source/source_resolve_status.dart';
 import 'package:waketok/features/authorization/limited_access_banner.dart';
+import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/album_resolve_probe_cache.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/builtin_quantile.dart';
@@ -22,6 +24,7 @@ import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/playback_pipeline_probe.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/library_smoke/source_resolve_attempt_mapping.dart';
+import 'package:waketok/features/library_smoke/waketok_album_probe_cache.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Post-authorization landing shell (Cap 5.3 / 5.4 + Cap 6.4 smoke).
@@ -56,10 +59,23 @@ class _LibraryTotalsShellPageState
   String? _poolProbeMessage;
   List<SourceResolveStatus>? _poolStatuses;
 
+  /// Cap 19.2a album-mutation spike (debug probe only).
+  String? _waketokAlbumProbeMessage;
+  String? _waketokAlbumCachedId;
+  late final TextEditingController _probeAssetIdController;
+
   @override
   void initState() {
     super.initState();
+    _probeAssetIdController = TextEditingController();
     _restoreAlbumProbeCache();
+    _restoreWaketokAlbumProbeCache();
+  }
+
+  @override
+  void dispose() {
+    _probeAssetIdController.dispose();
+    super.dispose();
   }
 
   Future<void> _restoreAlbumProbeCache() async {
@@ -74,6 +90,261 @@ class _LibraryTotalsShellPageState
       });
     } catch (_) {
       // Debug probe only; ignore SharedPreferences failures.
+    }
+  }
+
+  Future<void> _restoreWaketokAlbumProbeCache() async {
+    try {
+      final id = await WaketokAlbumProbeCache.loadAlbumId();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _waketokAlbumCachedId = id);
+    } catch (_) {
+      // Debug probe only.
+    }
+  }
+
+  String _platformProbeError(PlatformException e) {
+    final detail = e.message;
+    if (detail == null || detail.isEmpty) {
+      return e.code;
+    }
+    return '${e.code}: $detail';
+  }
+
+  Future<void> _probeLBootCreateWaketokAlbum() async {
+    setState(() {
+      _busy = true;
+      _waketokAlbumProbeMessage = null;
+      _pairProbeMessage = null;
+      _poolProbeMessage = null;
+      _poolStatuses = null;
+    });
+    try {
+      await WaketokAlbumProbeCache.clear();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _waketokAlbumCachedId = null);
+      final id = await ref.read(albumMutationRepositoryProvider).createAlbum(
+            WaketokAlbumProbeCache.waketokAlbumTitle,
+          );
+      await WaketokAlbumProbeCache.save(id);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumCachedId = id;
+        _waketokAlbumProbeMessage = 'L-BOOT PASS: created album id=$id';
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage =
+            'L-BOOT FAIL: ${_platformProbeError(e)}';
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage = 'L-BOOT FAIL: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _probeLBootKvShowCached() async {
+    setState(() {
+      _waketokAlbumProbeMessage = null;
+    });
+    final id = await WaketokAlbumProbeCache.loadAlbumId();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _waketokAlbumCachedId = id;
+      if (id == null) {
+        _waketokAlbumProbeMessage = 'L-BOOT-KV: no cached album id';
+      } else {
+        _waketokAlbumProbeMessage =
+            'L-BOOT-KV: cached id=$id (KV-only bootstrap; not list find)';
+      }
+    });
+  }
+
+  Future<void> _probeClearWaketokAlbumKv() async {
+    await WaketokAlbumProbeCache.clear();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _waketokAlbumCachedId = null;
+      _waketokAlbumProbeMessage = 'Probe KV cleared';
+    });
+  }
+
+  Future<void> _probeFillFirstAllAssetId() async {
+    setState(() {
+      _busy = true;
+      _waketokAlbumProbeMessage = null;
+    });
+    try {
+      final resolved = await ref
+          .read(assetSourceRepositoryProvider)
+          .resolve(SourceReference.all);
+      if (!mounted) {
+        return;
+      }
+      if (resolved.assetIdentifiers.isEmpty) {
+        setState(() {
+          _waketokAlbumProbeMessage = 'No All asset id available';
+        });
+        return;
+      }
+      _probeAssetIdController.text = resolved.assetIdentifiers.first;
+      setState(() {
+        _waketokAlbumProbeMessage =
+            'Sample asset id set (${resolved.assetIdentifiers.first})';
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage = 'Failed to resolve All head: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _probeLAppendToWaketokAlbum() async {
+    final albumId = await WaketokAlbumProbeCache.loadAlbumId();
+    final assetId = _probeAssetIdController.text.trim();
+    if (albumId == null || albumId.isEmpty) {
+      setState(() {
+        _waketokAlbumProbeMessage = 'L-APPEND FAIL: no cached album id';
+      });
+      return;
+    }
+    if (assetId.isEmpty) {
+      setState(() {
+        _waketokAlbumProbeMessage = 'L-APPEND FAIL: sample asset id empty';
+      });
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _waketokAlbumProbeMessage = null;
+    });
+    try {
+      await ref.read(albumMutationRepositoryProvider).addAssetToAlbum(
+            assetId,
+            albumId,
+          );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage =
+            'L-APPEND PASS: asset=$assetId album=$albumId';
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage =
+            'L-APPEND FAIL: ${_platformProbeError(e)}';
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage = 'L-APPEND FAIL: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _probeFullD1Smoke() async {
+    setState(() {
+      _busy = true;
+      _waketokAlbumProbeMessage = null;
+    });
+    try {
+      final cached = await WaketokAlbumProbeCache.loadAlbumId();
+      if (cached != null && cached.isNotEmpty) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _waketokAlbumCachedId = cached;
+          _waketokAlbumProbeMessage =
+              'Full D1 PASS: KV hit id=$cached (skipped list/create)';
+        });
+        return;
+      }
+      final sources =
+          await ref.read(assetSourceRepositoryProvider).listAssetSources();
+      for (final source in sources) {
+        if (source.kind == AssetSourceKind.album &&
+            source.displayName == WaketokAlbumProbeCache.waketokAlbumTitle) {
+          await WaketokAlbumProbeCache.save(source.id);
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _waketokAlbumCachedId = source.id;
+            _waketokAlbumProbeMessage =
+                'Full D1 PASS: list find id=${source.id}';
+          });
+          return;
+        }
+      }
+      final id = await ref.read(albumMutationRepositoryProvider).createAlbum(
+            WaketokAlbumProbeCache.waketokAlbumTitle,
+          );
+      await WaketokAlbumProbeCache.save(id);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumCachedId = id;
+        _waketokAlbumProbeMessage = 'Full D1 PASS: create id=$id';
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage =
+            'Full D1 FAIL: ${_platformProbeError(e)}';
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _waketokAlbumProbeMessage = 'Full D1 FAIL: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
     }
   }
 
@@ -695,6 +966,89 @@ class _LibraryTotalsShellPageState
                       style: bodyStyle,
                     ),
                   ),
+                if (kDebugMode) ...[
+                  const Divider(),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    child: Text(
+                      l10n.cap19AlbumMutationProbeSectionTitle,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: tokens.onSurface,
+                          ),
+                    ),
+                  ),
+                  if (_waketokAlbumCachedId != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        l10n.cap19WaketokAlbumKvLabel(_waketokAlbumCachedId!),
+                        style: bodyStyle,
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: TextField(
+                      controller: _probeAssetIdController,
+                      decoration: InputDecoration(
+                        labelText: l10n.cap19ProbeSampleAssetIdLabel,
+                        isDense: true,
+                      ),
+                      style: bodyStyle,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : _probeFillFirstAllAssetId,
+                      child: Text(l10n.cap19ProbeUseFirstAllAssetId),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: FilledButton(
+                      onPressed:
+                          _busy ? null : _probeLBootCreateWaketokAlbum,
+                      child: Text(l10n.cap19ProbeLBootCreate),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : _probeLBootKvShowCached,
+                      child: Text(l10n.cap19ProbeLBootKvShow),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: FilledButton(
+                      onPressed: _busy ? null : _probeLAppendToWaketokAlbum,
+                      child: Text(l10n.cap19ProbeLAppend),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : _probeFullD1Smoke,
+                      child: Text(l10n.cap19ProbeFullD1Smoke),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : _probeClearWaketokAlbumKv,
+                      child: Text(l10n.cap19ProbeClearKv),
+                    ),
+                  ),
+                  if (_waketokAlbumProbeMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        _waketokAlbumProbeMessage!,
+                        key: const Key('waketokAlbumProbeMessage'),
+                        style: bodyStyle,
+                      ),
+                    ),
+                ],
                 const Divider(),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

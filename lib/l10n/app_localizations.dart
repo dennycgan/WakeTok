@@ -758,6 +758,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Muted'**
   String get sharedMuteDebugSwitchLabel;
+
+  /// Cap 19.2a library_smoke section for Limited album mutation spike
+  ///
+  /// In en, this message translates to:
+  /// **'Cap 19 Album Mutation Probe (debug)'**
+  String get cap19AlbumMutationProbeSectionTitle;
+
+  /// Shows cached WakeTok probe album id from debug SharedPreferences
+  ///
+  /// In en, this message translates to:
+  /// **'WakeTok album KV: {id}'**
+  String cap19WaketokAlbumKvLabel(String id);
+
+  /// Cap 19.2a probe TextField label for append target asset id
+  ///
+  /// In en, this message translates to:
+  /// **'Sample PHAsset localIdentifier'**
+  String get cap19ProbeSampleAssetIdLabel;
+
+  /// Cap 19.2a probe button to fill sample asset id from All resolve head
+  ///
+  /// In en, this message translates to:
+  /// **'Use first All asset id'**
+  String get cap19ProbeUseFirstAllAssetId;
+
+  /// Cap 19.2a Limited bootstrap probe — create-only, no list find
+  ///
+  /// In en, this message translates to:
+  /// **'L-BOOT: Create \"WakeTok\" (no list)'**
+  String get cap19ProbeLBootCreate;
+
+  /// Cap 19.2a Limited KV-only bootstrap probe
+  ///
+  /// In en, this message translates to:
+  /// **'L-BOOT-KV: Show cached id'**
+  String get cap19ProbeLBootKvShow;
+
+  /// Cap 19.2a Limited append probe
+  ///
+  /// In en, this message translates to:
+  /// **'L-APPEND: Add sample to WakeTok album'**
+  String get cap19ProbeLAppend;
+
+  /// Cap 19.2a Full Access D1 bootstrap smoke probe
+  ///
+  /// In en, this message translates to:
+  /// **'Full: D1 KV→list find→create smoke'**
+  String get cap19ProbeFullD1Smoke;
+
+  /// Cap 19.2a clears debug SharedPreferences album id
+  ///
+  /// In en, this message translates to:
+  /// **'Clear WakeTok probe KV'**
+  String get cap19ProbeClearKv;
 }
 
 class _AppLocalizationsDelegate

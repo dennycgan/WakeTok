@@ -1494,11 +1494,51 @@ final class PhotoLibraryService: PhotoLibraryApi {
     name: String,
     completion: @escaping (Result<String, Error>) -> Void
   ) {
-    completion(
-      .failure(
-        fail(.albumUnavailable, message: "stub: createAlbum not implemented")
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album name is empty")
+        )
       )
-    )
+      return
+    }
+    var createdId: String?
+    PHPhotoLibrary.shared().performChanges({
+      let request = PHAssetCollectionChangeRequest.creationRequestForAssetCollection(
+        withTitle: trimmed
+      )
+      createdId = request.placeholderForCreatedAssetCollection.localIdentifier
+    }) { success, error in
+      DispatchQueue.main.async {
+        if success, let id = createdId, !id.isEmpty {
+          completion(.success(id))
+          return
+        }
+        if let error {
+          completion(
+            .failure(
+              self.mapPhotoKitAlbumMutationError(
+                error,
+                fallback: .albumUnavailable
+              )
+            )
+          )
+          return
+        }
+        completion(
+          .failure(
+            self.fail(.albumUnavailable, message: "Failed to create album")
+          )
+        )
+      }
+    }
   }
 
   func importVideo(
@@ -1520,14 +1560,109 @@ final class PhotoLibraryService: PhotoLibraryApi {
     albumIdentifier: String,
     completion: @escaping (Result<Void, Error>) -> Void
   ) {
-    completion(
-      .failure(
-        fail(
-          .albumNotWritable,
-          message: "stub: addAssetToAlbum not implemented"
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !assetIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset identifier is empty")
         )
       )
+      return
+    }
+    guard !albumIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album identifier is empty")
+        )
+      )
+      return
+    }
+    let assets = PHAsset.fetchAssets(
+      withLocalIdentifiers: [assetIdentifier],
+      options: nil
     )
+    guard let asset = assets.firstObject else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset not found")
+        )
+      )
+      return
+    }
+    let collections = PHAssetCollection.fetchAssetCollections(
+      withLocalIdentifiers: [albumIdentifier],
+      options: nil
+    )
+    guard let collection = collections.firstObject else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album not found")
+        )
+      )
+      return
+    }
+    guard collection.canPerform(.addContent) else {
+      completion(
+        .failure(
+          fail(.albumNotWritable, message: "Album does not allow addContent")
+        )
+      )
+      return
+    }
+    PHPhotoLibrary.shared().performChanges({
+      guard let request = PHAssetCollectionChangeRequest(for: collection) else {
+        return
+      }
+      request.addAssets([asset] as NSFastEnumeration)
+    }) { success, error in
+      DispatchQueue.main.async {
+        if success {
+          completion(.success(()))
+          return
+        }
+        if let error {
+          completion(
+            .failure(
+              self.mapPhotoKitAlbumMutationError(
+                error,
+                fallback: .albumNotWritable
+              )
+            )
+          )
+          return
+        }
+        completion(
+          .failure(
+            self.fail(.albumNotWritable, message: "Failed to add asset to album")
+          )
+        )
+      }
+    }
+  }
+
+  /// Maps PhotoKit write failures to stable Pigeon [ErrorCode] values.
+  private func mapPhotoKitAlbumMutationError(
+    _ error: Error,
+    fallback: ErrorCode
+  ) -> PigeonError {
+    let nsError = error as NSError
+    if nsError.domain == PHPhotosErrorDomain {
+      switch nsError.code {
+      case PHPhotosError.accessUserDenied.rawValue,
+        PHPhotosError.accessRestricted.rawValue:
+        return fail(.unauthorized, message: nsError.localizedDescription)
+      case PHPhotosError.userCancelled.rawValue:
+        return fail(.operationCancelled, message: nsError.localizedDescription)
+      default:
+        break
+      }
+    }
+    return fail(fallback, message: nsError.localizedDescription)
   }
 }
 

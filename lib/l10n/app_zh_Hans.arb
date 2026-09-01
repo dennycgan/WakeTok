@@ -110,5 +110,14 @@
   "mediaInfoFileSizeGb": "{count} GB",
   "mediaInfoCharacteristicsJoined": "{live} · {size}",
   "sharedMuteDebugSectionTitle": "共享静音（调试）",
-  "sharedMuteDebugSwitchLabel": "已静音"
+  "sharedMuteDebugSwitchLabel": "已静音",
+  "cap19AlbumMutationProbeSectionTitle": "Cap 19 相册写入探针（debug）",
+  "cap19WaketokAlbumKvLabel": "WakeTok 相册 KV：{id}",
+  "cap19ProbeSampleAssetIdLabel": "Sample PHAsset localIdentifier",
+  "cap19ProbeUseFirstAllAssetId": "使用 All 首个 asset id",
+  "cap19ProbeLBootCreate": "L-BOOT：创建「WakeTok」（不 list）",
+  "cap19ProbeLBootKvShow": "L-BOOT-KV：显示缓存 id",
+  "cap19ProbeLAppend": "L-APPEND：添加到 WakeTok 相册",
+  "cap19ProbeFullD1Smoke": "Full：D1 KV→list find→create 冒烟",
+  "cap19ProbeClearKv": "清除 WakeTok 探针 KV"
 }

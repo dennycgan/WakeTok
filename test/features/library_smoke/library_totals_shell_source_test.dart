@@ -15,12 +15,14 @@ import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
@@ -32,6 +34,9 @@ Widget _harness({
 }) {
   return ProviderScope(
     overrides: [
+      albumMutationRepositoryProvider.overrideWithValue(
+        FakeAlbumMutationRepository(),
+      ),
       assetSourceRepositoryProvider.overrideWithValue(sources),
       libraryCatalogRepositoryProvider.overrideWithValue(catalog),
       mediaDisplayRepositoryProvider.overrideWithValue(
@@ -336,10 +341,10 @@ void main() {
     await tester.pumpWidget(_harness(sources: sources, catalog: catalog));
     await tester.pumpAndSettle();
 
-    await tester.dragUntilVisible(
-      find.text(l10n.sourcePoolProbeButton),
-      find.byType(ListView),
-      const Offset(0, -300),
+    await tester.scrollUntilVisible(
+      find.text(l10n.sourcePoolProbeSectionTitle),
+      200,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
 
