@@ -44,6 +44,28 @@ void main() {
     );
   });
 
+  test('U-19.2d-1 scrubberLiveGhostVisible only while dragging', () {
+    expect(scrubberLiveGhostVisible(dragging: true), isTrue);
+    expect(scrubberLiveGhostVisible(dragging: false), isFalse);
+  });
+
+  test('U-19.2d-2 seek-hold rejects stale observe until near landing', () {
+    expect(
+      scrubberShouldAcceptRuntimeAfterSeekHold(
+        incomingSeconds: 7,
+        seekHoldSeconds: 2,
+      ),
+      isFalse,
+    );
+    expect(
+      scrubberShouldAcceptRuntimeAfterSeekHold(
+        incomingSeconds: 2.2,
+        seekHoldSeconds: 2,
+      ),
+      isTrue,
+    );
+  });
+
   test('U-18.5-4 scrubberDragRatio anchors at playhead on inner track', () {
     expect(
       scrubberDragRatio(

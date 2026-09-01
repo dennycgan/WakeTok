@@ -14,6 +14,8 @@ typedef ScrubPreviewRequest =
 
 /// Cap 18.5 short-video-style progress scrubber + preview bubble
 /// (ADR-040 D13 supplement). Cap 19.2b: no drag-begin pause callback.
+/// Cap 19.2d: live playhead ghost while dragging; optimistic fill on seek
+/// release (cancel may still show ~one Host observe tick of catch-up).
 ///
 /// Host null / latency gaps show a solid placeholder only — no user-facing
 /// unavailable copy (technical failures are not actionable while scrubbing).
@@ -96,12 +98,31 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       if (event.currentItemIdentifier != widget.assetIdentifier) {
         return;
       }
-      if (_dragging) {
-        return;
-      }
+      // Cap 19.2d: keep updating while dragging so the ghost fill tracks the
+      // real playhead. Drag ratio / label / preview keys stay on finger paths.
+      // After seek release, hold the optimistic landing until observe catches
+      // up (or the hold window expires) so stale ticks cannot flash the bar.
       setState(() {
-        _positionSeconds = event.playbackPositionSeconds;
         _durationSeconds = event.durationSeconds ?? _durationSeconds;
+        final incoming = event.playbackPositionSeconds;
+        final hold = _seekHoldSeconds;
+        if (hold != null) {
+          final nowMs = DateTime.now().millisecondsSinceEpoch;
+          final expired =
+              _seekHoldUntilMs != null && nowMs >= _seekHoldUntilMs!;
+          final settled = scrubberShouldAcceptRuntimeAfterSeekHold(
+            incomingSeconds: incoming,
+            seekHoldSeconds: hold,
+          );
+          if (expired || settled) {
+            _seekHoldSeconds = null;
+            _seekHoldUntilMs = null;
+            _positionSeconds = incoming;
+          }
+          // else: keep optimistic _positionSeconds
+        } else {
+          _positionSeconds = incoming;
+        }
       });
     });
   }
@@ -120,6 +141,15 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       durationSeconds: _effectiveDuration,
     );
     return ratio ?? 0;
+  }
+
+  /// Live playhead ratio for Cap 19.2d ghost (independent of drag fill).
+  double get _livePlayheadRatio {
+    return scrubberFillRatio(
+          positionSeconds: _positionSeconds,
+          durationSeconds: _effectiveDuration,
+        ) ??
+        0;
   }
 
   double get _displaySeconds {
@@ -143,6 +173,10 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   }
 
   bool _dragCommitted = false;
+  /// After scrub seek release, ignore Host observe until it nears this second
+  /// (stale playhead ticks would otherwise flash the pre-seek fill).
+  double? _seekHoldSeconds;
+  int? _seekHoldUntilMs;
 
   void _onHorizontalDragStart(DragStartDetails details) {
     if (widget.frozen) {
@@ -156,6 +190,8 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
         0;
     setState(() {
       _dragging = true;
+      _seekHoldSeconds = null;
+      _seekHoldUntilMs = null;
       _dragAnchorLocalX = details.localPosition.dx;
       _dragAnchorRatio = anchorRatio;
       _dragRatio = anchorRatio;
@@ -228,6 +264,17 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
         : _positionSeconds;
     final shouldSeek = commitSeek && _dragCommitted;
     setState(() {
+      // Cap 19.2d: optimistic playhead + seek-hold before clearing drag so
+      // (1) the first non-drag frame paints the landing and (2) stale Host
+      // observe ticks (still at the old playhead until seek applies) cannot
+      // flash the fill back. Cancel / uncommitted end does not hold — fill
+      // follows latest live; residual ~one Host tick (~250ms) is accepted.
+      if (shouldSeek) {
+        _positionSeconds = seconds;
+        _seekHoldSeconds = seconds;
+        _seekHoldUntilMs =
+            DateTime.now().millisecondsSinceEpoch + 1200;
+      }
       _dragging = false;
       _dragCommitted = false;
       _dragAnchorLocalX = null;
@@ -561,8 +608,32 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
                                           ),
                                           child: const SizedBox.expand(),
                                         ),
+                                        if (scrubberLiveGhostVisible(
+                                              dragging: _dragging,
+                                            ) &&
+                                            _livePlayheadRatio > 0)
+                                          FractionallySizedBox(
+                                            key: const Key(
+                                              'mainBrowseScrubberLiveGhost',
+                                            ),
+                                            widthFactor: _livePlayheadRatio,
+                                            child: DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color:
+                                                    tokens.scrubProgressLiveGhost,
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                  trackRadius,
+                                                ),
+                                              ),
+                                              child: SizedBox(height: trackHeight),
+                                            ),
+                                          ),
                                         if (_displayRatio > 0)
                                           FractionallySizedBox(
+                                            key: const Key(
+                                              'mainBrowseScrubberPrimaryFill',
+                                            ),
                                             widthFactor: _displayRatio,
                                             child: DecoratedBox(
                                               decoration: BoxDecoration(

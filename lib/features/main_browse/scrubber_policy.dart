@@ -156,6 +156,21 @@ double? scrubberFillRatio({
   return (clamped / durationSeconds).clamp(0.0, 1.0);
 }
 
+/// Cap 19.2d: live playhead ghost paints only while the finger is down.
+bool scrubberLiveGhostVisible({required bool dragging}) => dragging;
+
+/// Whether a post-scrub Host observe may replace the optimistic landing.
+///
+/// Stale ticks (still near the pre-seek playhead) must be ignored or the
+/// progress fill flashes backward/forward until seek applies.
+bool scrubberShouldAcceptRuntimeAfterSeekHold({
+  required double incomingSeconds,
+  required double seekHoldSeconds,
+  double settleEpsilonSeconds = 0.75,
+}) {
+  return (incomingSeconds - seekHoldSeconds).abs() <= settleEpsilonSeconds;
+}
+
 /// Horizontal inset matching [VideoProgressScrubber] track [Padding].
 const double kScrubberTrackHorizontalPadding = 12;
 
