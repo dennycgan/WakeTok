@@ -274,7 +274,7 @@ KV → list find → create on clean install.
 - Goal (one line): Cap 19.2b scrub drag playback fix (release-blocking; Cap
       18.5 misread — independent of album line)
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
-      ADR-041 + Decision 20 Proposed (docs batch)
+      ADR-041 + Decision 20 Accepted (`49d580b`)
 - Next step: 19.2b — remove drag-begin mechanical pause (scheme A); then 19.2
       hardening
 - Blocked on owner: none for §5 / 19.6 prerequisites

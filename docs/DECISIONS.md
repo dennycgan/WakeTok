@@ -3827,12 +3827,13 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 - Status: Accepted (2026-08-28); Decision 13 is narrowly supplemented by
   Cap 18.5 (2026-08-29 — corrected from an earlier docs-commit-date
   attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`);
-  Decision 18 Limited deferral superseded by ADR-041 (Proposed);
-  Decision 20 supplement added (Proposed; Cap 19)
+  Decision 18 Limited deferral superseded by ADR-041 (2026-09-01);
+  Decision 20 supplement added (2026-09-01; docs `49d580b`)
 - Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
   `11c5202`); Cap 18.5 supplement anchor `34e59eb`; Cap 18.5 preview
-  tolerance / drift-gate supplement anchor `7b4a0ff`
+  tolerance / drift-gate supplement anchor `7b4a0ff`; Cap 19 Decision 20
+  supplement anchor `49d580b`
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -4374,7 +4375,7 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    This is distinct from the pre-`7b4a0ff` drift-reject stall class.
 
 **Cap 19 Decision 20 supplement — magnified still vs left-swipe
-(Proposed; with ADR-041):**
+(2026-09-01; docs `49d580b`; with ADR-041):**
 
 1. **Gap closed.** ADR-040 Decision 2 / 16 freeze magnified-still
    single-finger drag as **pan only** (no vertical PageView). Decision 18
@@ -4400,8 +4401,8 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
 
 ## ADR-041: Cap 19 §5 product lock — left-swipe range (D2) and Limited policy (D3)
 
-- Status: Proposed
-- Commit/PR anchor: (pending Accepting docs commit)
+- Status: Accepted (2026-09-01)
+- Commit/PR anchor: `49d580b`
 - Plain summary (owner reads this): Cap 19 locks full-width left-swipe to
   the fixed WakeTok album under both Full and Limited access; Limited
   panel Add-to-Album stays Full-Access-only. Does not claim system
