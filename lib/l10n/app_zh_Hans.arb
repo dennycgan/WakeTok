@@ -119,5 +119,8 @@
   "cap19ProbeLBootKvShow": "L-BOOT-KV：显示缓存 id",
   "cap19ProbeLAppend": "L-APPEND：添加到 WakeTok 相册",
   "cap19ProbeFullD1Smoke": "Full：D1 KV→list find→create 冒烟",
-  "cap19ProbeClearKv": "清除 WakeTok 探针 KV"
+  "cap19ProbeClearKv": "清除 WakeTok 探针 KV",
+  "cap19ProductAlbumKvLabel": "产品 WakeTok 相册 KV：{id}",
+  "cap19ProbeProductBootstrap": "产品：D1 bootstrap",
+  "cap19ProbeClearProductKv": "清除产品 WakeTok KV"
 }

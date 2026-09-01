@@ -428,4 +428,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19ProbeClearKv => 'Clear WakeTok probe KV';
+
+  @override
+  String cap19ProductAlbumKvLabel(String id) {
+    return 'Product WakeTok album KV: $id';
+  }
+
+  @override
+  String get cap19ProbeProductBootstrap => 'Product: D1 bootstrap';
+
+  @override
+  String get cap19ProbeClearProductKv => 'Clear product WakeTok KV';
 }

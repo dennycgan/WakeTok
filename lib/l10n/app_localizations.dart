@@ -812,6 +812,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear WakeTok probe KV'**
   String get cap19ProbeClearKv;
+
+  /// Shows cached product WakeTok album localIdentifier (Cap 19.3)
+  ///
+  /// In en, this message translates to:
+  /// **'Product WakeTok album KV: {id}'**
+  String cap19ProductAlbumKvLabel(String id);
+
+  /// Cap 19.3 library_smoke probe — product bootstrapWakeTokAlbum
+  ///
+  /// In en, this message translates to:
+  /// **'Product: D1 bootstrap'**
+  String get cap19ProbeProductBootstrap;
+
+  /// Cap 19.3 clears product SharedPreferences album id
+  ///
+  /// In en, this message translates to:
+  /// **'Clear product WakeTok KV'**
+  String get cap19ProbeClearProductKv;
 }
 
 class _AppLocalizationsDelegate

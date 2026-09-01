@@ -100,6 +100,9 @@
     "cap19ProbeLBootKvShow",
     "cap19ProbeLAppend",
     "cap19ProbeFullD1Smoke",
-    "cap19ProbeClearKv"
+    "cap19ProbeClearKv",
+    "cap19ProductAlbumKvLabel",
+    "cap19ProbeProductBootstrap",
+    "cap19ProbeClearProductKv"
   ]
 }

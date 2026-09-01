@@ -425,6 +425,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19ProbeClearKv => 'Clear WakeTok probe KV';
+
+  @override
+  String cap19ProductAlbumKvLabel(String id) {
+    return 'Product WakeTok album KV: $id';
+  }
+
+  @override
+  String get cap19ProbeProductBootstrap => 'Product: D1 bootstrap';
+
+  @override
+  String get cap19ProbeClearProductKv => 'Clear product WakeTok KV';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -836,4 +847,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19ProbeClearKv => '清除 WakeTok 探针 KV';
+
+  @override
+  String cap19ProductAlbumKvLabel(String id) {
+    return '产品 WakeTok 相册 KV：$id';
+  }
+
+  @override
+  String get cap19ProbeProductBootstrap => '产品：D1 bootstrap';
+
+  @override
+  String get cap19ProbeClearProductKv => '清除产品 WakeTok KV';
 }

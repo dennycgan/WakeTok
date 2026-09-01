@@ -547,5 +547,22 @@
   "cap19ProbeClearKv": "Clear WakeTok probe KV",
   "@cap19ProbeClearKv": {
     "description": "Cap 19.2a clears debug SharedPreferences album id"
+  },
+  "cap19ProductAlbumKvLabel": "Product WakeTok album KV: {id}",
+  "@cap19ProductAlbumKvLabel": {
+    "description": "Shows cached product WakeTok album localIdentifier (Cap 19.3)",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "cap19ProbeProductBootstrap": "Product: D1 bootstrap",
+  "@cap19ProbeProductBootstrap": {
+    "description": "Cap 19.3 library_smoke probe — product bootstrapWakeTokAlbum"
+  },
+  "cap19ProbeClearProductKv": "Clear product WakeTok KV",
+  "@cap19ProbeClearProductKv": {
+    "description": "Cap 19.3 clears product SharedPreferences album id"
   }
 }

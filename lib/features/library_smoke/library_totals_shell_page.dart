@@ -4,9 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/domain/library/bootstrap_waketok_album.dart';
 import 'package:waketok/domain/library/library_totals.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
@@ -62,6 +64,10 @@ class _LibraryTotalsShellPageState
   /// Cap 19.2a album-mutation spike (debug probe only).
   String? _waketokAlbumProbeMessage;
   String? _waketokAlbumCachedId;
+
+  /// Cap 19.3 product bootstrap probe (separate KV from 19.2a probe).
+  String? _productBootstrapMessage;
+  String? _productAlbumCachedId;
   late final TextEditingController _probeAssetIdController;
 
   @override
@@ -70,6 +76,9 @@ class _LibraryTotalsShellPageState
     _probeAssetIdController = TextEditingController();
     _restoreAlbumProbeCache();
     _restoreWaketokAlbumProbeCache();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_restoreProductAlbumKv());
+    });
   }
 
   @override
@@ -100,6 +109,18 @@ class _LibraryTotalsShellPageState
         return;
       }
       setState(() => _waketokAlbumCachedId = id);
+    } catch (_) {
+      // Debug probe only.
+    }
+  }
+
+  Future<void> _restoreProductAlbumKv() async {
+    try {
+      final id = await ref.read(wakeTokAlbumStoreProvider).loadAlbumId();
+      if (!mounted) {
+        return;
+      }
+      setState(() => _productAlbumCachedId = id);
     } catch (_) {
       // Debug probe only.
     }
@@ -278,6 +299,60 @@ class _LibraryTotalsShellPageState
         setState(() => _busy = false);
       }
     }
+  }
+
+  Future<void> _probeProductBootstrap() async {
+    setState(() {
+      _busy = true;
+      _productBootstrapMessage = null;
+    });
+    try {
+      final result = await bootstrapWakeTokAlbum(
+        access: widget.access,
+        store: ref.read(wakeTokAlbumStoreProvider),
+        assetSources: ref.read(assetSourceRepositoryProvider),
+        albumMutations: ref.read(albumMutationRepositoryProvider),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _productAlbumCachedId = result.albumId;
+        _productBootstrapMessage =
+            'Product bootstrap PASS: source=${result.source.name} '
+            'id=${result.albumId}';
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _productBootstrapMessage =
+            'Product bootstrap FAIL: ${_platformProbeError(e)}';
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _productBootstrapMessage = 'Product bootstrap FAIL: $e';
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _probeClearProductAlbumKv() async {
+    await ref.read(wakeTokAlbumStoreProvider).clearAlbumId();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _productAlbumCachedId = null;
+      _productBootstrapMessage = 'Product KV cleared';
+    });
   }
 
   Future<void> _probeFullD1Smoke() async {
@@ -1040,6 +1115,37 @@ class _LibraryTotalsShellPageState
                       child: Text(l10n.cap19ProbeClearKv),
                     ),
                   ),
+                  if (_productAlbumCachedId != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                      child: Text(
+                        l10n.cap19ProductAlbumKvLabel(_productAlbumCachedId!),
+                        style: bodyStyle,
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: FilledButton(
+                      onPressed: _busy ? null : _probeProductBootstrap,
+                      child: Text(l10n.cap19ProbeProductBootstrap),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: OutlinedButton(
+                      onPressed: _busy ? null : _probeClearProductAlbumKv,
+                      child: Text(l10n.cap19ProbeClearProductKv),
+                    ),
+                  ),
+                  if (_productBootstrapMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        _productBootstrapMessage!,
+                        key: const Key('productBootstrapMessage'),
+                        style: bodyStyle,
+                      ),
+                    ),
                   if (_waketokAlbumProbeMessage != null)
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
