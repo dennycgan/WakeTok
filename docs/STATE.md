@@ -204,8 +204,9 @@ real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
 
 - [~] 19.1 Contract freeze — §5 partial lock (D1, D4); Phase Roadmap
       this section; pending D2/D3; ADR-041 + Decision 20 after full §5
-- [ ] 19.2a Limited album spike (**before** native write-path product UI)
-      — device matrix below; notes `docs/acceptance/cap19-19.2a-notes.md`
+- [x] 19.2a Limited album spike — work `b22c07e`; notes
+      `docs/acceptance/cap19-19.2a-notes.md` (SPIKE COMPLETE; L-BOOT /
+      L-APPEND / L-BOOT-KV + Full D1 all PASS on Kafka Debug)
 - [ ] 19.2b Scrub drag playback fix (**release-blocking**; Cap 18.5
       misread of TikTok/抖音 behavior — not deferred debt)
       — Remove drag-begin mechanical pause: delete
@@ -223,9 +224,10 @@ real pinch state. Formal Decision 20 text → `docs/DECISIONS.md` only
       optional device smoke `docs/acceptance/cap19-19.2b-notes.md`. **Does
       not** reopen Cap 18 PHASE_HISTORY. Independent of album line; may
       land immediately after 19.2a.
-- [ ] 19.2 Native album write path — implement Host `createAlbum`,
-      `addAssetToAlbum`; map `canAddContent` (`PHAssetCollection` addContent);
-      wire error codes `albumUnavailable` / `albumNotWritable`
+- [ ] 19.2 Native album write path hardening — `canAddContent` DTO mapping
+      (`PHAssetCollection.canAddContent`); Host error-mapping matrix
+      hardening; create/add base logic landed in 19.2a (`b22c07e`) — expect
+      small diff if coverage already complete
 - [ ] 19.3 WakeTok album bootstrap — KV + Full find-or-create per D1;
       Limited KV/create-only branch per 19.2a outcomes
 - [ ] 19.4 Entry chrome + half-sheet — bottom-trailing icon (ADR-040 D15
@@ -258,13 +260,13 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.1 contract freeze — Phase Roadmap landed; 19.2a
-      spike prep next
-- Sub-steps done: Cap 18 complete; §5 D1 + D4 locked (2026-08-31); Phase
-      Roadmap owner-approved
-- Next step: 19.2a Limited spike (L-BOOT / L-BOOT-KV / L-APPEND); D2 + D3
-      same round after spike notes; then ADR-041 + Decision 20 single batch
-- Blocked on owner: D2, D3 (until `cap19-19.2a-notes.md` exists)
+- Goal (one line): Cap 19.2b scrub drag playback fix (release-blocking; Cap
+      18.5 misread — independent of album line)
+- Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`; acceptance notes filed)
+- Next step: 19.2b — remove drag-begin mechanical pause (scheme A); then 19.2
+      hardening
+- Blocked on owner: D2, D3 (same round before 19.6; technical input from
+      19.2a notes — L-BOOT + L-APPEND PASS)
 - Hard deadline: D2 + D3 before 19.6 coding starts
 - Related decisions: ADR-040 D15 entry icon + D18 left-swipe slot;
       Decision 20 guard (DECISIONS.md pending); ADR-040 D13 supplement
@@ -563,6 +565,7 @@ KV → list find → create on clean install.
 | 442 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 scrub preview bubble may show async JPEG placeholder gaps (fast-drag strip, first-scrub cold start, in-flight bucket transition) | AVAssetImageGenerator + Host single-flight coalesce + 1.0s preview bucket + ADR-040 Decision 13 §2.1 borrow (max one bucket step, 350 ms wall-clock) do **not** guarantee a continuous real-frame strip at competitor parity. **Three distinct triggers, same architecture:** (1) **fast horizontal drag** — borrow cannot cover every bucket crossing; (2) **first scrub engagement** — no prior successful JPEG to borrow, bubble waits on first Host decode; (3) **mid-drag in-flight / bucket switch** — `#000000` placeholder (or bounded borrow) until async JPEG arrives; **trigger (3) is not fast-drag-specific** — every bucket switch clears the current frame and waits on async Host return; at normal scrub speed that window is often below perception (BENCH typical **14–150 ms**) but is not guaranteed to stay sub-threshold (BENCH max **388 ms** on sparse-GOP zero-tolerance decode). **Accepted for Cap 18.5 ship** (`7b4a0ff` eliminated sparse-GOP drift-reject **permanent** black on hold; placeholder-then-JPEG remains by design per supplement item 8). Cap 18.6 soak: owner-acceptable, not Photos parity. Further optional tuning: scrub-touch prefetch, `maximumSize`; widening borrow is **not** a candidate (violates §2.1). | Unassigned | ADR-040 Decision 13; `docs/acceptance/cap18-18.5-notes.md`; `docs/acceptance/cap18-18.6-notes.md` |
 | 443 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 progress scrub is **whole-second** granular (not iPhone Photos / slow-mo 0.01s edit resolution) | **Intentional Cap 18.5 scope.** Linear band maps to ratio; label + release seek use `round(ratio × duration)` to the nearest second. Sub-second scrub requires quantizer, Host seek tolerance/timeouts, and preview bucket changes — documented upgrade path in acceptance notes. Not a defect vs Photos frame-accurate trimming. | Unassigned | ADR-040; `docs/acceptance/cap18-18.5-notes.md` |
 | 444 | Open | Main Browse Screen | Cap 18.6 | External Photos delete while Consumption Session still lists the asset: misleading Layer 2 fail copy; Retry ineffective | **Verified (owner device, Kafka Profile `1ca0395`):** delete a still in iOS Photos without quitting WakeTok → first return to the same feed item still shows the image; swipe away and back → Layer 2 fail with `Could not load. Allow wireless data, then retry.` + Retry; Overlay metadata rows still visible — **not** a connectivity defect. **Verified (code):** missing `PHAsset` → Host `assetUnavailable`; Dart maps `assetUnavailable` → `FeedFailureReason.network` → that wireless-data string (debt **435** three-bucket collapse); no production `PHPhotoLibraryChangeObserver` / session queue invalidation on external library mutation. **Inferred (architecture — not log-verified this session):** first revisit may use cached L2 (`DisplayTempFileStore` / in-page display state); second remount likely hits fresh `requestDisplayAsset` on a deleted id. **Not Cap 18.6 scope.** | **Build a Pool, Ephemeral Pool, and Source ordering** | ADR-022 / ADR-025; debt **435**; `docs/acceptance/cap18-18.6-notes.md` |
+| 445 | Accepted (permanent) | Add to Album / Cap 19 | Cap 19-19.2a | WakeTok User Album uniqueness must use KV + `localIdentifier`, not title string — duplicate same-title albums possible | **Device confirmed (19.2a Kafka Debug, `cap19-19.2a-notes.md`):** iOS Photos allows multiple User Albums named `"WakeTok"`; each Limited create-only bootstrap (or KV clear + recreate) adds another album. Limited path forbids list find (ADR-021). **D1 bootstrap must treat persisted `albumIdentifier` as canonical identity** — not display-name dedup. KV loss under Limited may create a second album even when one already exists in Photos. Accepted cost of no-list-find rule; not a 19.2a blocker. | Cap 19.3 (D1 bootstrap) / D3 follow-up | ADR-021 / ADR-K; `docs/acceptance/cap19-19.2a-notes.md` |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
