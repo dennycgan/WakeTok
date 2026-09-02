@@ -251,8 +251,12 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       tie-break (debt **445**); Limited create-only; lazy API (19.6 wires).
       Device smoke PASS i17 Green Debug
       (`docs/acceptance/cap19-19.3-notes.md`).
-- [ ] 19.4 Entry chrome + half-sheet — bottom-trailing icon (ADR-040 D15
-      slot); half-sheet shell; Limited explicit Full Access row (D4)
+- [x] 19.4 Entry chrome + half-sheet — work `b3ea867`. Browse-only
+      bottom-trailing icon (ADR-040 D15 slot; shell-fixed Y inset);
+      half-sheet shell; Limited D4 row + Full placeholder. Icon:
+      Cupertino `rectangle_stack_badge_plus` on `onMedia` white.
+      Device smoke PASS i17 Green Debug
+      (`docs/acceptance/cap19-19.4-notes.md`).
 - [ ] 19.5 Panel Add-to-Album picker — Full Access only; writable User
       Album list; append + toast; no Session Queue / Snapshot refresh
       (ADR-I / kickoff §14)
@@ -282,12 +286,12 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.4 Entry chrome + half-sheet
+- Goal (one line): Cap 19.5 Panel Add-to-Album picker
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
-      `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862` (docs
-      Accepted this commit)
-- Next step: 19.4 bottom-trailing icon + half-sheet shell + D4 Limited row
+      `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
+      `b3ea867` (docs this commit)
+- Next step: 19.5 Full Access writable User Album list + append + toast
 - Blocked on owner: none for §5 / 19.6 prerequisites
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
