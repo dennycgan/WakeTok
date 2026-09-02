@@ -257,9 +257,14 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       Cupertino `rectangle_stack_badge_plus` on `onMedia` white.
       Device smoke PASS i17 Green Debug
       (`docs/acceptance/cap19-19.4-notes.md`).
-- [ ] 19.5 Panel Add-to-Album picker — Full Access only; writable User
-      Album list; append + toast; no Session Queue / Snapshot refresh
-      (ADR-I / kickoff §14)
+- [x] 19.5 Panel Add-to-Album picker — work `95abd12`. Full Access
+      writable User Album list + native cover thumbnails; append +
+      SnackBar; frosted translucent panel; session zero-touch; Limited D4
+      unchanged. Device smoke PASS i17 Green Debug
+      (`docs/acceptance/cap19-19.5-notes.md`).
+- [ ] 19.5b Panel Add-to-Favorites — synthetic first row (Full only);
+      toggle `isFavorite`; new Pigeon read/write; D4 copy generalization
+      for Limited; design approved (`docs/acceptance/cap19-19.5b-notes.md`)
 - [ ] 19.6 Left-swipe append — full-width horizontal recognizer (D2=B);
       Decision 20 magnification guard; edge-hold arbitration tests
       (ADR-040 D2/D18); Limited enabled same as Full (D3=B); verify
@@ -286,13 +291,14 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.5 Panel Add-to-Album picker
+- Goal (one line): Cap 19.5b Panel Add-to-Favorites
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
       `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
-      `b3ea867` (docs this commit)
-- Next step: 19.5 Full Access writable User Album list + append + toast
-- Blocked on owner: none for §5 / 19.6 prerequisites
+      `b3ea867`; 19.5 `95abd12` (docs this commit)
+- Next step: 19.5b work commit — Favorites synthetic row + Pigeon/Host +
+      D4 copy generalization (design approved; await owner OK start coding)
+- Blocked on owner: OK start coding for 19.5b implementation
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
       debt **421** (Settings Limited picker — out of Cap 19); debt **444**
