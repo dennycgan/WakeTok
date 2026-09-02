@@ -276,9 +276,12 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       `createAlbum` title reuse. Device smoke PASS i17 Green Debug
       (`docs/acceptance/cap19-19.6-notes.md`). interactive-pop / system-back
       vs left-swipe → **19.8** (P-19.6-POP deferred).
-- [ ] 19.7 Preference + polish — **Settings toggle UI only** for
-      `leftSwipeAddEnabled` / `leftSwipeGuideEnabled` (KV already in 19.6);
-      duplicate-append UX; remaining ARB/polish copy
+- [x] 19.7 Preference + polish — work `b6f1223`. Settings Gestures toggles
+      for `leftSwipeAddEnabled` / `leftSwipeGuideEnabled` (KV from 19.6);
+      master→tip sync on Settings flip; B1 `albumContainsAsset` left-swipe
+      duplicate toast only (panel excluded by frequency asymmetry); half-sheet
+      tint 0.78 (Media Info crush); title stays Add to Album. Device smoke
+      PASS i17 Green Debug (`docs/acceptance/cap19-19.7-notes.md`).
 - [ ] 19.8 Device acceptance + close-out — Full dual-entry smoke; Limited
       matrix replay; Cap 19 `[x]` → PHASE_HISTORY; debt rows unchanged
       unless verified closed; interactive-pop note (from 19.6)
@@ -299,15 +302,15 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.7 Preference + polish (Settings toggles)
+- Goal (one line): Cap 19.8 Device acceptance + Cap 19 close-out
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
       `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
-      `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b`; 19.6 `7b3d22a`
-      (docs this commit)
-- Next step: 19.7 design / OK start coding — Settings toggle UI for
-      left-swipe + guide KVs; duplicate-append UX
-- Blocked on owner: OK start coding for 19.7 (design-first if non-trivial)
+      `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b`; 19.6 `7b3d22a`;
+      19.7 `b6f1223` (docs this commit)
+- Next step: 19.8 device matrix + Cap 19 `[x]` / PHASE_HISTORY; P-19.6-POP
+      interactive-pop note
+- Blocked on owner: OK start coding / scope for 19.8 close-out
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
       debt **421** (Settings Limited picker — out of Cap 19); debt **444**
