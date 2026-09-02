@@ -6,6 +6,7 @@ import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/data/preferences/waketok_album_preferences_store.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/album_cover_providers.dart';
 import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
@@ -34,6 +35,7 @@ Future<void> main() async {
         libraryCatalogRepositoryProvider.overrideWithValue(gateway),
         assetSourceRepositoryProvider.overrideWithValue(gateway),
         albumMutationRepositoryProvider.overrideWithValue(gateway),
+        albumCoverRepositoryProvider.overrideWithValue(gateway),
         wakeTokAlbumStoreProvider.overrideWithValue(wakeTokAlbumStore),
         mediaDisplayRepositoryProvider.overrideWithValue(gateway),
         presentationMetadataRepositoryProvider.overrideWithValue(gateway),

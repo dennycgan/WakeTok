@@ -108,6 +108,11 @@
     "cap19PanelTitle",
     "cap19PanelAddToAlbumTitle",
     "cap19PanelAddToAlbumLimitedMessage",
-    "cap19PanelAddToAlbumFullPlaceholder"
+    "cap19PanelAddToAlbumFullPlaceholder",
+    "cap19PanelAddToAlbumEmpty",
+    "cap19PanelAddToAlbumListError",
+    "cap19PanelAddToAlbumRetry",
+    "cap19PanelAddToAlbumSuccess",
+    "cap19PanelAddToAlbumError"
   ]
 }

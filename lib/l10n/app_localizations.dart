@@ -860,6 +860,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Album picker arrives in a later update.'**
   String get cap19PanelAddToAlbumFullPlaceholder;
+
+  /// Cap 19.5 picker when no writable User Albums
+  ///
+  /// In en, this message translates to:
+  /// **'No albums you can add to.'**
+  String get cap19PanelAddToAlbumEmpty;
+
+  /// Cap 19.5 listAssetSources failure
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load albums. Try again.'**
+  String get cap19PanelAddToAlbumListError;
+
+  /// Cap 19.5 retry album list load
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get cap19PanelAddToAlbumRetry;
+
+  /// Cap 19.5 append success SnackBar
+  ///
+  /// In en, this message translates to:
+  /// **'Added to {albumName}'**
+  String cap19PanelAddToAlbumSuccess(String albumName);
+
+  /// Cap 19.5 append failure SnackBar
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add to album. Try again.'**
+  String get cap19PanelAddToAlbumError;
 }
 
 class _AppLocalizationsDelegate

@@ -60,9 +60,16 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
   /// coverage set this; default false keeps W-15.12* inject-at-resolve.
   bool resolveOmitsAvailability = false;
 
+  /// When set, [listAssetSources] throws after incrementing [listCalls].
+  Exception? listException;
+
   @override
   Future<List<AssetSource>> listAssetSources() async {
     listCalls += 1;
+    final thrown = listException;
+    if (thrown != null) {
+      throw thrown;
+    }
     return [
       AssetSource(
         kind: AssetSourceKind.entireLibrary,

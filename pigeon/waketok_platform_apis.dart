@@ -374,6 +374,14 @@ class ScrubPreviewFrameDto {
   double? actualSeconds;
 }
 
+/// Cap 19.5: User Album list cover (Photos-style). [jpegBytes] null when the
+/// album is empty or no local-only thumbnail is available (not an error).
+class AlbumCoverThumbnailDto {
+  AlbumCoverThumbnailDto({this.jpegBytes});
+
+  Uint8List? jpegBytes;
+}
+
 /// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
 @HostApi()
 abstract class PhotoLibraryApi {
@@ -518,6 +526,16 @@ abstract class PhotoLibraryApi {
   /// 4.3 empty stub MUST fail with [ErrorCode.photosImportFailed].
   @async
   String importVideo(String tempFilePath);
+
+  /// Cap 19.5: most-recent member thumbnail for a User Album list row.
+  /// Local-only (`isNetworkAccessAllowed` false). Empty album → null
+  /// [AlbumCoverThumbnailDto.jpegBytes]. Missing album →
+  /// [ErrorCode.albumUnavailable].
+  @async
+  AlbumCoverThumbnailDto requestAlbumCoverThumbnail(
+    String albumIdentifier,
+    int targetSizePx,
+  );
 
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   @async

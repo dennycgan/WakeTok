@@ -456,4 +456,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cap19PanelAddToAlbumFullPlaceholder =>
       'Album picker arrives in a later update.';
+
+  @override
+  String get cap19PanelAddToAlbumEmpty => 'No albums you can add to.';
+
+  @override
+  String get cap19PanelAddToAlbumListError =>
+      'Couldn\'t load albums. Try again.';
+
+  @override
+  String get cap19PanelAddToAlbumRetry => 'Retry';
+
+  @override
+  String cap19PanelAddToAlbumSuccess(String albumName) {
+    return 'Added to $albumName';
+  }
+
+  @override
+  String get cap19PanelAddToAlbumError => 'Couldn\'t add to album. Try again.';
 }

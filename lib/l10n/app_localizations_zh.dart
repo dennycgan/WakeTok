@@ -453,6 +453,24 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get cap19PanelAddToAlbumFullPlaceholder =>
       'Album picker arrives in a later update.';
+
+  @override
+  String get cap19PanelAddToAlbumEmpty => 'No albums you can add to.';
+
+  @override
+  String get cap19PanelAddToAlbumListError =>
+      'Couldn\'t load albums. Try again.';
+
+  @override
+  String get cap19PanelAddToAlbumRetry => 'Retry';
+
+  @override
+  String cap19PanelAddToAlbumSuccess(String albumName) {
+    return 'Added to $albumName';
+  }
+
+  @override
+  String get cap19PanelAddToAlbumError => 'Couldn\'t add to album. Try again.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -891,4 +909,21 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19PanelAddToAlbumFullPlaceholder => '相册选择器将在后续更新中提供。';
+
+  @override
+  String get cap19PanelAddToAlbumEmpty => '没有可添加的相册。';
+
+  @override
+  String get cap19PanelAddToAlbumListError => '无法加载相册，请重试。';
+
+  @override
+  String get cap19PanelAddToAlbumRetry => '重试';
+
+  @override
+  String cap19PanelAddToAlbumSuccess(String albumName) {
+    return '已添加到$albumName';
+  }
+
+  @override
+  String get cap19PanelAddToAlbumError => '无法添加到相册，请重试。';
 }

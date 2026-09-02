@@ -1564,6 +1564,85 @@ final class PhotoLibraryService: PhotoLibraryApi {
     )
   }
 
+  func requestAlbumCoverThumbnail(
+    albumIdentifier: String,
+    targetSizePx: Int64,
+    completion: @escaping (Result<AlbumCoverThumbnailDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !albumIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album identifier is empty")
+        )
+      )
+      return
+    }
+    let collections = PHAssetCollection.fetchAssetCollections(
+      withLocalIdentifiers: [albumIdentifier],
+      options: nil
+    )
+    guard let collection = collections.firstObject else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album not found")
+        )
+      )
+      return
+    }
+    let fetchOptions = PHFetchOptions()
+    fetchOptions.sortDescriptors = [
+      NSSortDescriptor(key: "creationDate", ascending: false),
+    ]
+    fetchOptions.fetchLimit = 1
+    let assets = PHAsset.fetchAssets(in: collection, options: fetchOptions)
+    guard let asset = assets.firstObject else {
+      completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+      return
+    }
+
+    let px = CGFloat(max(1, targetSizePx))
+    let targetSize = CGSize(width: px, height: px)
+    let options = PHImageRequestOptions()
+    options.isNetworkAccessAllowed = false
+    options.deliveryMode = .opportunistic
+    options.resizeMode = .fast
+    options.isSynchronous = false
+
+    PHImageManager.default().requestImage(
+      for: asset,
+      targetSize: targetSize,
+      contentMode: .aspectFill,
+      options: options
+    ) { image, info in
+      DispatchQueue.main.async {
+        let cancelled = (info?[PHImageCancelledKey] as? Bool) == true
+        if cancelled {
+          completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+          return
+        }
+        guard let image,
+              let data = image.jpegData(compressionQuality: Self.previewJpegQuality)
+        else {
+          completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+          return
+        }
+        completion(
+          .success(
+            AlbumCoverThumbnailDto(
+              jpegBytes: FlutterStandardTypedData(bytes: data)
+            )
+          )
+        )
+      }
+    }
+  }
+
   func addAssetToAlbum(
     assetIdentifier: String,
     albumIdentifier: String,

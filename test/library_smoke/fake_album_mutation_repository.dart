@@ -2,14 +2,26 @@ import 'package:waketok/domain/library/album_mutation_repository.dart';
 
 class FakeAlbumMutationRepository implements AlbumMutationRepository {
   int createAlbumCalls = 0;
+  int addCalls = 0;
   String? lastCreateName;
+  String? lastAssetId;
+  String? lastAlbumId;
   String createdAlbumId = 'fake-album-id';
+  Exception? addException;
 
   @override
   Future<void> addAssetToAlbum(
     String assetIdentifier,
     String albumIdentifier,
-  ) async {}
+  ) async {
+    addCalls += 1;
+    lastAssetId = assetIdentifier;
+    lastAlbumId = albumIdentifier;
+    final thrown = addException;
+    if (thrown != null) {
+      throw thrown;
+    }
+  }
 
   @override
   Future<String> createAlbum(String name) async {

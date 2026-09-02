@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/domain/source/asset_source.dart';
+import 'package:waketok/domain/source/asset_source_availability.dart';
+import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
@@ -81,26 +84,34 @@ void main() {
   );
 
   testWidgets(
-    'W-19.4-6 Full sheet shows Add to Album placeholder without list',
+    'W-19.4-6 Full sheet shows album picker (not Limited D4)',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+      final sources = FakeAssetSourceRepository(
+        allIds: const ['a1'],
+        extraSources: [
+          AssetSource(
+            kind: AssetSourceKind.album,
+            id: 'album-1',
+            displayName: 'Test Album',
+            estimatedCount: 1,
+            availability: AssetSourceAvailability.available,
+            canAddContent: true,
+          ),
+        ],
+      );
       await tester.pumpWidget(
         permissionUiHarness(repo: repo, assetSources: sources),
       );
       await tester.pumpAndSettle();
 
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      expect(sources.listCalls, 0);
-
       await tester.tap(find.byKey(const Key('cap19EntryIcon')));
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('cap19PanelAddToAlbumFullRow')),
-          findsOneWidget);
-      expect(find.text(l10n.cap19PanelAddToAlbumFullPlaceholder),
-          findsOneWidget);
-      expect(sources.listCalls, 0);
+      expect(find.byKey(const Key('cap19PanelAddToAlbumLimitedRow')),
+          findsNothing);
+      expect(find.byKey(const Key('cap19AlbumPickerRow-album-1')), findsOneWidget);
+      expect(sources.listCalls, 1);
     },
   );
 

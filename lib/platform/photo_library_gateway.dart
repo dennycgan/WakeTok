@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
+import 'package:waketok/domain/library/album_cover_repository.dart';
 import 'package:waketok/domain/library/album_mutation_repository.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/library/library_asset.dart';
@@ -232,7 +235,8 @@ class PhotoLibraryGateway
         AssetSourceRepository,
         MediaDisplayRepository,
         PresentationMetadataRepository,
-        AlbumMutationRepository {
+        AlbumMutationRepository,
+        AlbumCoverRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -373,6 +377,18 @@ class PhotoLibraryGateway
 
   @override
   Future<String> createAlbum(String name) => _api.createAlbum(name);
+
+  @override
+  Future<Uint8List?> requestCoverThumbnail(
+    String albumIdentifier, {
+    required int targetSizePx,
+  }) async {
+    final dto = await _api.requestAlbumCoverThumbnail(
+      albumIdentifier,
+      targetSizePx,
+    );
+    return dto.jpegBytes;
+  }
 
   @override
   Future<void> addAssetToAlbum(

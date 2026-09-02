@@ -287,7 +287,8 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
   /// future Album / Smart Album sources.
   var estimatedCount: Int64? = nil
   var availability: AssetSourceAvailabilityDto
-  /// Built-ins and non-writable sources: false. User albums may be true later.
+  /// User albums: PhotoKit canPerform(.addContent). Smart albums and
+  /// built-ins: false (Cap 19.2).
   var canAddContent: Bool
 
 
@@ -1092,6 +1093,44 @@ struct ScrubPreviewFrameDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Cap 19.5: User Album list cover (Photos-style). [jpegBytes] null when the
+/// album is empty or no local-only thumbnail is available (not an error).
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct AlbumCoverThumbnailDto: Hashable, CustomStringConvertible {
+  var jpegBytes: FlutterStandardTypedData? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> AlbumCoverThumbnailDto? {
+    let jpegBytes: FlutterStandardTypedData? = nilOrValue(pigeonVar_list[0])
+
+    return AlbumCoverThumbnailDto(
+      jpegBytes: jpegBytes
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      jpegBytes
+    ]
+  }
+  static func == (lhs: AlbumCoverThumbnailDto, rhs: AlbumCoverThumbnailDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.jpegBytes, rhs.jpegBytes)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("AlbumCoverThumbnailDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: jpegBytes, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "AlbumCoverThumbnailDto(jpegBytes: \(String(describing: jpegBytes)))"
+  }
+}
+
 private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -1175,6 +1214,8 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
       return PlaybackIntentDto.fromList(self.readValue() as! [Any?])
     case 152:
       return ScrubPreviewFrameDto.fromList(self.readValue() as! [Any?])
+    case 153:
+      return AlbumCoverThumbnailDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -1254,6 +1295,9 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? ScrubPreviewFrameDto {
       super.writeByte(152)
+      super.writeValue(value.toList())
+    } else if let value = value as? AlbumCoverThumbnailDto {
+      super.writeByte(153)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1388,6 +1432,11 @@ protocol PhotoLibraryApi {
   func createAlbum(name: String, completion: @escaping (Result<String, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.photosImportFailed].
   func importVideo(tempFilePath: String, completion: @escaping (Result<String, Error>) -> Void)
+  /// Cap 19.5: most-recent member thumbnail for a User Album list row.
+  /// Local-only (`isNetworkAccessAllowed` false). Empty album → null
+  /// [AlbumCoverThumbnailDto.jpegBytes]. Missing album →
+  /// [ErrorCode.albumUnavailable].
+  func requestAlbumCoverThumbnail(albumIdentifier: String, targetSizePx: Int64, completion: @escaping (Result<AlbumCoverThumbnailDto, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   func addAssetToAlbum(assetIdentifier: String, albumIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
@@ -1788,6 +1837,28 @@ class PhotoLibraryApiSetup {
       }
     } else {
       importVideoChannel.setMessageHandler(nil)
+    }
+    /// Cap 19.5: most-recent member thumbnail for a User Album list row.
+    /// Local-only (`isNetworkAccessAllowed` false). Empty album → null
+    /// [AlbumCoverThumbnailDto.jpegBytes]. Missing album →
+    /// [ErrorCode.albumUnavailable].
+    let requestAlbumCoverThumbnailChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestAlbumCoverThumbnail\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestAlbumCoverThumbnailChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let albumIdentifierArg = args[0] as! String
+        let targetSizePxArg = args[1] as! Int64
+        api.requestAlbumCoverThumbnail(albumIdentifier: albumIdentifierArg, targetSizePx: targetSizePxArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestAlbumCoverThumbnailChannel.setMessageHandler(nil)
     }
     /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
     let addAssetToAlbumChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.addAssetToAlbum\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

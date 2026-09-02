@@ -584,5 +584,30 @@
   "cap19PanelAddToAlbumFullPlaceholder": "Album picker arrives in a later update.",
   "@cap19PanelAddToAlbumFullPlaceholder": {
     "description": "Cap 19.4 Full Access placeholder until Cap 19.5 picker"
+  },
+  "cap19PanelAddToAlbumEmpty": "No albums you can add to.",
+  "@cap19PanelAddToAlbumEmpty": {
+    "description": "Cap 19.5 picker when no writable User Albums"
+  },
+  "cap19PanelAddToAlbumListError": "Couldn't load albums. Try again.",
+  "@cap19PanelAddToAlbumListError": {
+    "description": "Cap 19.5 listAssetSources failure"
+  },
+  "cap19PanelAddToAlbumRetry": "Retry",
+  "@cap19PanelAddToAlbumRetry": {
+    "description": "Cap 19.5 retry album list load"
+  },
+  "cap19PanelAddToAlbumSuccess": "Added to {albumName}",
+  "@cap19PanelAddToAlbumSuccess": {
+    "description": "Cap 19.5 append success SnackBar",
+    "placeholders": {
+      "albumName": {
+        "type": "String"
+      }
+    }
+  },
+  "cap19PanelAddToAlbumError": "Couldn't add to album. Try again.",
+  "@cap19PanelAddToAlbumError": {
+    "description": "Cap 19.5 append failure SnackBar"
   }
 }

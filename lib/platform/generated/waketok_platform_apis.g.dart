@@ -219,7 +219,8 @@ class AssetSourceDto {
 
   AssetSourceAvailabilityDto availability;
 
-  /// Built-ins and non-writable sources: false. User albums may be true later.
+  /// User albums: PhotoKit canPerform(.addContent). Smart albums and
+  /// built-ins: false (Cap 19.2).
   bool canAddContent;
 
   List<Object?> _toList() {
@@ -1162,6 +1163,53 @@ class ScrubPreviewFrameDto {
   }
 }
 
+/// Cap 19.5: User Album list cover (Photos-style). [jpegBytes] null when the
+/// album is empty or no local-only thumbnail is available (not an error).
+class AlbumCoverThumbnailDto {
+  AlbumCoverThumbnailDto({
+    this.jpegBytes,
+  });
+
+  Uint8List? jpegBytes;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      jpegBytes,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static AlbumCoverThumbnailDto decode(Object result) {
+    result as List<Object?>;
+    return AlbumCoverThumbnailDto(
+      jpegBytes: result[0] as Uint8List?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! AlbumCoverThumbnailDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(jpegBytes, other.jpegBytes);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'AlbumCoverThumbnailDto(jpegBytes: $jpegBytes)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -1242,6 +1290,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is ScrubPreviewFrameDto) {
       buffer.putUint8(152);
       writeValue(buffer, value.encode());
+    }    else if (value is AlbumCoverThumbnailDto) {
+      buffer.putUint8(153);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -1306,6 +1357,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return PlaybackIntentDto.decode(readValue(buffer)!);
       case 152:
         return ScrubPreviewFrameDto.decode(readValue(buffer)!);
+      case 153:
+        return AlbumCoverThumbnailDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -1769,6 +1822,29 @@ class PhotoLibraryApi {
     )
     ;
     return pigeonVar_replyValue! as String;
+  }
+
+  /// Cap 19.5: most-recent member thumbnail for a User Album list row.
+  /// Local-only (`isNetworkAccessAllowed` false). Empty album → null
+  /// [AlbumCoverThumbnailDto.jpegBytes]. Missing album →
+  /// [ErrorCode.albumUnavailable].
+  Future<AlbumCoverThumbnailDto> requestAlbumCoverThumbnail(String albumIdentifier, int targetSizePx) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestAlbumCoverThumbnail$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[albumIdentifier, targetSizePx]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as AlbumCoverThumbnailDto;
   }
 
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].

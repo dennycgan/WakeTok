@@ -11,6 +11,8 @@ import 'package:waketok/features/authorization/open_app_settings.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
+import 'package:waketok/features/library_smoke/album_cover_providers.dart';
+import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
@@ -19,6 +21,8 @@ import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+import '../../library_smoke/fake_album_cover_repository.dart';
+import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
@@ -67,6 +71,8 @@ Widget permissionUiHarness({
   ThemeMode themeMode = ThemeMode.system,
   FakeLibraryCatalogRepository? catalog,
   FakeAssetSourceRepository? assetSources,
+  FakeAlbumMutationRepository? albumMutations,
+  FakeAlbumCoverRepository? albumCovers,
   FakeMediaDisplayRepository? mediaDisplay,
   FakePlaybackRepository? playback,
   FakePresentationMetadataRepository? presentationMetadata,
@@ -91,11 +97,15 @@ Widget permissionUiHarness({
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
+  final mutations = albumMutations ?? FakeAlbumMutationRepository();
+  final covers = albumCovers ?? FakeAlbumCoverRepository();
   return ProviderScope(
     overrides: [
       photosAuthorizationRepositoryProvider.overrideWithValue(repo),
       libraryCatalogRepositoryProvider.overrideWithValue(libraryCatalog),
       assetSourceRepositoryProvider.overrideWithValue(sources),
+      albumMutationRepositoryProvider.overrideWithValue(mutations),
+      albumCoverRepositoryProvider.overrideWithValue(covers),
       mediaDisplayRepositoryProvider.overrideWithValue(
         mediaDisplay ?? FakeMediaDisplayRepository(),
       ),

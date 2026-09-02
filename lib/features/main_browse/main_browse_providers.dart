@@ -88,3 +88,18 @@ class MainBrowseFeedIndex extends Notifier<int> {
     setIndex(clamped);
   }
 }
+
+/// Current feed asset id (Cap 19.5 append target).
+final mainBrowseCurrentAssetIdProvider = Provider<String?>((ref) {
+  final sessionAsync = ref.watch(browseSessionProvider);
+  final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
+  final view = sessionAsync.asData?.value;
+  if (view == null) {
+    return null;
+  }
+  final ids = view.orderedAssetIds;
+  if (ids.isEmpty || feedIndex < 0 || feedIndex >= ids.length) {
+    return null;
+  }
+  return ids[feedIndex];
+});

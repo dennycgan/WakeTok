@@ -11,6 +11,15 @@ const double kCap19EntryIconTrailingInset = 12;
 /// page would make the icon jump while scrolling.
 const double kCap19EntryIconAboveScrubberGap = 40;
 
+/// Frosted tint over [BackdropFilter] — TikTok-class panels show feed through.
+const double kCap19ActionsHalfSheetTintOpacity = 0.52;
+
+/// Barrier dim behind the sheet (feed still visible; lighter than full scrim).
+const double kCap19ActionsHalfSheetBarrierOpacity = 0.28;
+
+/// Gaussian blur sigma for the sheet frosted glass (device-tunable in notes).
+const double kCap19ActionsHalfSheetBlurSigma = 22;
+
 /// Bottom inset for [Cap19EntryIcon] on the Browse pane Stack.
 double cap19EntryIconBottomInset() {
   return kMainBrowseScrubberReserveHeight + kCap19EntryIconAboveScrubberGap;

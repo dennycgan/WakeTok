@@ -127,5 +127,10 @@
   "cap19PanelTitle": "操作",
   "cap19PanelAddToAlbumTitle": "添加到相册",
   "cap19PanelAddToAlbumLimitedMessage": "添加到相册需要完整照片访问权限。请打开设置并允许访问所有照片。",
-  "cap19PanelAddToAlbumFullPlaceholder": "相册选择器将在后续更新中提供。"
+  "cap19PanelAddToAlbumFullPlaceholder": "相册选择器将在后续更新中提供。",
+  "cap19PanelAddToAlbumEmpty": "没有可添加的相册。",
+  "cap19PanelAddToAlbumListError": "无法加载相册，请重试。",
+  "cap19PanelAddToAlbumRetry": "重试",
+  "cap19PanelAddToAlbumSuccess": "已添加到{albumName}",
+  "cap19PanelAddToAlbumError": "无法添加到相册，请重试。"
 }
