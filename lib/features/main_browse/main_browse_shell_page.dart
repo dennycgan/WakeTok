@@ -6,6 +6,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
+import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
@@ -454,33 +455,27 @@ class _SettingsStubPane extends StatelessWidget {
 
     return SafeArea(
       bottom: false,
-      child: Padding(
+      child: ListView(
         padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
-            const SizedBox(height: 12),
-            Text(
-              l10n.mainBrowseStubSettingsBody,
-              style: tokens.bodyChrome.copyWith(color: tokens.onSurface),
+        children: [
+          Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
+          const SizedBox(height: 20),
+          const Cap19GesturesSettingsSection(),
+          if (kDebugMode) ...[
+            const SizedBox(height: 28),
+            FilledButton(
+              key: const Key('mainBrowseOpenLibrarySmokeDebug'),
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LibraryTotalsShellPage(access: access),
+                  ),
+                );
+              },
+              child: Text(l10n.mainBrowseOpenLibrarySmokeDebug),
             ),
-            if (kDebugMode) ...[
-              const SizedBox(height: 24),
-              FilledButton(
-                key: const Key('mainBrowseOpenLibrarySmokeDebug'),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => LibraryTotalsShellPage(access: access),
-                    ),
-                  );
-                },
-                child: Text(l10n.mainBrowseOpenLibrarySmokeDebug),
-              ),
-            ],
           ],
-        ),
+        ],
       ),
     );
   }

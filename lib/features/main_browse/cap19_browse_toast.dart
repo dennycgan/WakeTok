@@ -135,6 +135,17 @@ void showCap19LeftSwipeAppendSuccessToast(
   );
 }
 
+void showCap19LeftSwipeAlreadyInAlbumToast(
+  BuildContext context,
+  AppLocalizations l10n,
+) {
+  showCap19BrowseToast(
+    context,
+    message: l10n.cap19LeftSwipeAlreadyInAlbum,
+    toastKey: const Key('cap19LeftSwipeAlreadyInAlbumToast'),
+  );
+}
+
 void showCap19LeftSwipeAppendErrorToast(
   BuildContext context,
   AppLocalizations l10n,

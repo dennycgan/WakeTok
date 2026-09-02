@@ -562,6 +562,13 @@ abstract class PhotoLibraryApi {
     int targetSizePx,
   );
 
+  /// Cap 19.7: whether [assetIdentifier] is already a member of the User
+  /// Album [albumIdentifier]. Single-asset fetch (not User Album enumerate).
+  /// Missing album → [ErrorCode.albumUnavailable]. Missing asset is still
+  /// a valid `false` (not an error) when the album exists.
+  @async
+  bool albumContainsAsset(String albumIdentifier, String assetIdentifier);
+
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   @async
   void addAssetToAlbum(String assetIdentifier, String albumIdentifier);

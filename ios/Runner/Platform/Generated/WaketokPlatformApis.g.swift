@@ -1490,6 +1490,11 @@ protocol PhotoLibraryApi {
   func setAssetFavorite(assetIdentifier: String, favorite: Bool, completion: @escaping (Result<Void, Error>) -> Void)
   /// Cap 19.5b: Favorites smart-album mosaic (subtype favorites; not current asset).
   func requestFavoritesSmartAlbumCoverThumbnail(targetSizePx: Int64, completion: @escaping (Result<AlbumCoverThumbnailDto, Error>) -> Void)
+  /// Cap 19.7: whether [assetIdentifier] is already a member of the User
+  /// Album [albumIdentifier]. Single-asset fetch (not User Album enumerate).
+  /// Missing album → [ErrorCode.albumUnavailable]. Missing asset is still
+  /// a valid `false` (not an error) when the album exists.
+  func albumContainsAsset(albumIdentifier: String, assetIdentifier: String, completion: @escaping (Result<Bool, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   func addAssetToAlbum(assetIdentifier: String, albumIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
@@ -1967,6 +1972,28 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestFavoritesSmartAlbumCoverThumbnailChannel.setMessageHandler(nil)
+    }
+    /// Cap 19.7: whether [assetIdentifier] is already a member of the User
+    /// Album [albumIdentifier]. Single-asset fetch (not User Album enumerate).
+    /// Missing album → [ErrorCode.albumUnavailable]. Missing asset is still
+    /// a valid `false` (not an error) when the album exists.
+    let albumContainsAssetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.albumContainsAsset\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      albumContainsAssetChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let albumIdentifierArg = args[0] as! String
+        let assetIdentifierArg = args[1] as! String
+        api.albumContainsAsset(albumIdentifier: albumIdentifierArg, assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      albumContainsAssetChannel.setMessageHandler(nil)
     }
     /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
     let addAssetToAlbumChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.addAssetToAlbum\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

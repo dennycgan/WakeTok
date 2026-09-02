@@ -23,6 +23,19 @@ class FakeAlbumMutationRepository implements AlbumMutationRepository {
     }
   }
 
+  int containsCalls = 0;
+  final Set<String> containedAssetIds = <String>{};
+
+  @override
+  Future<bool> albumContainsAsset(
+    String albumIdentifier,
+    String assetIdentifier,
+  ) async {
+    containsCalls += 1;
+    lastAlbumId = albumIdentifier;
+    return containedAssetIds.contains(assetIdentifier);
+  }
+
   @override
   Future<String> createAlbum(String name) async {
     createAlbumCalls += 1;

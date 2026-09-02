@@ -125,6 +125,12 @@
     "cap19LeftSwipeGuideSubtitle",
     "cap19LeftSwipeAppendSuccess",
     "cap19LeftSwipeAppendError",
-    "cap19LeftSwipeDragHint"
+    "cap19LeftSwipeDragHint",
+    "cap19LeftSwipeAlreadyInAlbum",
+    "cap19SettingsGesturesSectionTitle",
+    "cap19SettingsLeftSwipeAddTitle",
+    "cap19SettingsLeftSwipeAddSubtitle",
+    "cap19SettingsLeftSwipeGuideTitle",
+    "cap19SettingsLeftSwipeGuideSubtitle"
   ]
 }

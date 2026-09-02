@@ -186,16 +186,19 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
     ref.read(cap19LeftSwipeDragProvider.notifier).reset();
 
     final l10n = AppLocalizations.of(context)!;
-    final success = await ref
+    final outcome = await ref
         .read(cap19LeftSwipeAppendProvider.notifier)
         .appendCurrentAssetToWakeTokAlbum();
     if (!context.mounted) {
       return;
     }
-    if (success) {
-      showCap19LeftSwipeAppendSuccessToast(context, l10n);
-      return;
+    switch (outcome) {
+      case Cap19LeftSwipeAppendOutcome.success:
+        showCap19LeftSwipeAppendSuccessToast(context, l10n);
+      case Cap19LeftSwipeAppendOutcome.alreadyInAlbum:
+        showCap19LeftSwipeAlreadyInAlbumToast(context, l10n);
+      case Cap19LeftSwipeAppendOutcome.failed:
+        showCap19LeftSwipeAppendErrorToast(context, l10n);
     }
-    showCap19LeftSwipeAppendErrorToast(context, l10n);
   }
 }

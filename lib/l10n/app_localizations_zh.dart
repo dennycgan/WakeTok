@@ -510,6 +510,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19LeftSwipeDragHint => 'Add to your WakeTok album';
+
+  @override
+  String get cap19LeftSwipeAlreadyInAlbum => 'Already in your WakeTok album';
+
+  @override
+  String get cap19SettingsGesturesSectionTitle => 'Gestures';
+
+  @override
+  String get cap19SettingsLeftSwipeAddTitle => 'Swipe left to add to WakeTok';
+
+  @override
+  String get cap19SettingsLeftSwipeAddSubtitle =>
+      'Adds the current item to your WakeTok album';
+
+  @override
+  String get cap19SettingsLeftSwipeGuideTitle => 'Show left-swipe tip';
+
+  @override
+  String get cap19SettingsLeftSwipeGuideSubtitle =>
+      'Once per launch when Browse is ready';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1001,4 +1021,22 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19LeftSwipeDragHint => '添加到你的 WakeTok 相册';
+
+  @override
+  String get cap19LeftSwipeAlreadyInAlbum => '已在你的 WakeTok 相册中';
+
+  @override
+  String get cap19SettingsGesturesSectionTitle => '手势';
+
+  @override
+  String get cap19SettingsLeftSwipeAddTitle => '左滑添加到 WakeTok';
+
+  @override
+  String get cap19SettingsLeftSwipeAddSubtitle => '将当前项目添加到你的 WakeTok 相册';
+
+  @override
+  String get cap19SettingsLeftSwipeGuideTitle => '显示左滑提示';
+
+  @override
+  String get cap19SettingsLeftSwipeGuideSubtitle => '每次启动在 Browse 就绪时显示一次';
 }

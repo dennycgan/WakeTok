@@ -12,6 +12,12 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/cap19_still_magnification_stub.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
+enum Cap19LeftSwipeAppendOutcome {
+  success,
+  alreadyInAlbum,
+  failed,
+}
+
 class Cap19LeftSwipeAppendState {
   const Cap19LeftSwipeAppendState({
     this.appending = false,
@@ -52,51 +58,59 @@ final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
 class Cap19LeftSwipeAppendNotifier extends Notifier<Cap19LeftSwipeAppendState> {
   @override
   Cap19LeftSwipeAppendState build() {
-    Future.microtask(_loadPreference);
+    ref.listen(cap19LeftSwipePrefsRevisionProvider, (_, __) {
+      Future.microtask(reloadPreferences);
+    });
+    Future.microtask(reloadPreferences);
     return const Cap19LeftSwipeAppendState();
   }
 
-  Future<void> _loadPreference() async {
+  Future<void> reloadPreferences() async {
     final enabled = await ref
         .read(cap19LeftSwipePreferencesProvider)
         .isLeftSwipeAddEnabled();
     state = state.copyWith(leftSwipeAddEnabled: enabled);
   }
 
-  /// Returns `true` when append succeeds. Does not touch Session/Snapshot.
-  Future<bool> appendCurrentAssetToWakeTokAlbum() async {
+  /// Appends current asset, or reports already-in-album (Cap 19.7 B1).
+  Future<Cap19LeftSwipeAppendOutcome> appendCurrentAssetToWakeTokAlbum() async {
     if (!state.leftSwipeAddEnabled || state.appending) {
-      return false;
+      return Cap19LeftSwipeAppendOutcome.failed;
     }
     final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
     if (assetId == null || assetId.isEmpty) {
-      return false;
+      return Cap19LeftSwipeAppendOutcome.failed;
     }
     final access = ref.read(photosAuthorizationProvider).value;
     if (access == null) {
-      return false;
+      return Cap19LeftSwipeAppendOutcome.failed;
     }
     if (access != PhotosAccess.full && access != PhotosAccess.limited) {
-      return false;
+      return Cap19LeftSwipeAppendOutcome.failed;
     }
     final resolvedAccess = access;
     state = state.copyWith(appending: true);
     try {
+      final mutations = ref.read(albumMutationRepositoryProvider);
       final bootstrap = await bootstrapWakeTokAlbum(
         access: resolvedAccess,
         store: ref.read(wakeTokAlbumStoreProvider),
         assetSources: ref.read(assetSourceRepositoryProvider),
-        albumMutations: ref.read(albumMutationRepositoryProvider),
+        albumMutations: mutations,
       );
-      await ref.read(albumMutationRepositoryProvider).addAssetToAlbum(
-            assetId,
-            bootstrap.albumId,
-          );
-      return true;
+      final already = await mutations.albumContainsAsset(
+        bootstrap.albumId,
+        assetId,
+      );
+      if (already) {
+        return Cap19LeftSwipeAppendOutcome.alreadyInAlbum;
+      }
+      await mutations.addAssetToAlbum(assetId, bootstrap.albumId);
+      return Cap19LeftSwipeAppendOutcome.success;
     } on PlatformException {
-      return false;
+      return Cap19LeftSwipeAppendOutcome.failed;
     } catch (_) {
-      return false;
+      return Cap19LeftSwipeAppendOutcome.failed;
     } finally {
       state = state.copyWith(appending: false);
     }

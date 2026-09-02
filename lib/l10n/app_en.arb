@@ -575,7 +575,7 @@
   },
   "cap19PanelAddToAlbumTitle": "Add to Album",
   "@cap19PanelAddToAlbumTitle": {
-    "description": "Cap 19.4 half-sheet Add to Album section title"
+    "description": "Cap 19 half-sheet title (shared Full/Limited chrome; keep Add to Album — bare Add rejected on device under Limited)"
   },
   "cap19PanelAddToAlbumLimitedMessage": "Favorites and albums need full Photos access. Open Settings to allow access to all photos.",
   "@cap19PanelAddToAlbumLimitedMessage": {
@@ -657,5 +657,29 @@
   "cap19LeftSwipeDragHint": "Add to your WakeTok album",
   "@cap19LeftSwipeDragHint": {
     "description": "Cap 19.6 drop-target chip while left-dragging"
+  },
+  "cap19LeftSwipeAlreadyInAlbum": "Already in your WakeTok album",
+  "@cap19LeftSwipeAlreadyInAlbum": {
+    "description": "Cap 19.7 left-swipe when asset is already a member"
+  },
+  "cap19SettingsGesturesSectionTitle": "Gestures",
+  "@cap19SettingsGesturesSectionTitle": {
+    "description": "Cap 19.7 Settings Gestures section header"
+  },
+  "cap19SettingsLeftSwipeAddTitle": "Swipe left to add to WakeTok",
+  "@cap19SettingsLeftSwipeAddTitle": {
+    "description": "Cap 19.7 master left-swipe toggle title"
+  },
+  "cap19SettingsLeftSwipeAddSubtitle": "Adds the current item to your WakeTok album",
+  "@cap19SettingsLeftSwipeAddSubtitle": {
+    "description": "Cap 19.7 master left-swipe toggle subtitle"
+  },
+  "cap19SettingsLeftSwipeGuideTitle": "Show left-swipe tip",
+  "@cap19SettingsLeftSwipeGuideTitle": {
+    "description": "Cap 19.7 guide tip toggle title"
+  },
+  "cap19SettingsLeftSwipeGuideSubtitle": "Once per launch when Browse is ready",
+  "@cap19SettingsLeftSwipeGuideSubtitle": {
+    "description": "Cap 19.7 guide tip toggle subtitle"
   }
 }

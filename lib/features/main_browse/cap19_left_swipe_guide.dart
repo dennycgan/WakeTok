@@ -90,6 +90,9 @@ class _Cap19LeftSwipeGuideHostState extends ConsumerState<Cap19LeftSwipeGuideHos
   Widget build(BuildContext context) {
     ref.listen(mainBrowseDestinationProvider, (_, __) => _maybeShowGuide());
     ref.listen(mainBrowseCurrentAssetIdProvider, (_, __) => _maybeShowGuide());
+    ref.listen(cap19LeftSwipePrefsRevisionProvider, (_, __) {
+      Future.microtask(_loadPrefs);
+    });
 
     if (!_visible) {
       return const SizedBox.shrink();

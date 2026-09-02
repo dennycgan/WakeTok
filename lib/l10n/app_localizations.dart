@@ -843,7 +843,7 @@ abstract class AppLocalizations {
   /// **'Actions'**
   String get cap19PanelTitle;
 
-  /// Cap 19.4 half-sheet Add to Album section title
+  /// Cap 19 half-sheet title (shared Full/Limited chrome; keep Add to Album — bare Add rejected on device under Limited)
   ///
   /// In en, this message translates to:
   /// **'Add to Album'**
@@ -962,6 +962,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add to your WakeTok album'**
   String get cap19LeftSwipeDragHint;
+
+  /// Cap 19.7 left-swipe when asset is already a member
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your WakeTok album'**
+  String get cap19LeftSwipeAlreadyInAlbum;
+
+  /// Cap 19.7 Settings Gestures section header
+  ///
+  /// In en, this message translates to:
+  /// **'Gestures'**
+  String get cap19SettingsGesturesSectionTitle;
+
+  /// Cap 19.7 master left-swipe toggle title
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left to add to WakeTok'**
+  String get cap19SettingsLeftSwipeAddTitle;
+
+  /// Cap 19.7 master left-swipe toggle subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Adds the current item to your WakeTok album'**
+  String get cap19SettingsLeftSwipeAddSubtitle;
+
+  /// Cap 19.7 guide tip toggle title
+  ///
+  /// In en, this message translates to:
+  /// **'Show left-swipe tip'**
+  String get cap19SettingsLeftSwipeGuideTitle;
+
+  /// Cap 19.7 guide tip toggle subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Once per launch when Browse is ready'**
+  String get cap19SettingsLeftSwipeGuideSubtitle;
 }
 
 class _AppLocalizationsDelegate

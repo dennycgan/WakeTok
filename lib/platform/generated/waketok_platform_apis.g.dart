@@ -1962,6 +1962,29 @@ class PhotoLibraryApi {
     return pigeonVar_replyValue! as AlbumCoverThumbnailDto;
   }
 
+  /// Cap 19.7: whether [assetIdentifier] is already a member of the User
+  /// Album [albumIdentifier]. Single-asset fetch (not User Album enumerate).
+  /// Missing album → [ErrorCode.albumUnavailable]. Missing asset is still
+  /// a valid `false` (not an error) when the album exists.
+  Future<bool> albumContainsAsset(String albumIdentifier, String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.albumContainsAsset$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[albumIdentifier, assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as bool;
+  }
+
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   Future<void> addAssetToAlbum(String assetIdentifier, String albumIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.addAssetToAlbum$pigeonVar_messageChannelSuffix';

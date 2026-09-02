@@ -23,3 +23,16 @@ final cap19ActionsPanelOpenProvider =
     NotifierProvider<Cap19ActionsPanelOpenNotifier, bool>(
       Cap19ActionsPanelOpenNotifier.new,
     );
+
+class Cap19LeftSwipePrefsRevisionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void bump() => state++;
+}
+
+/// Bumped when Settings writes left-swipe KV so Browse reloads without kill.
+final cap19LeftSwipePrefsRevisionProvider =
+    NotifierProvider<Cap19LeftSwipePrefsRevisionNotifier, int>(
+      Cap19LeftSwipePrefsRevisionNotifier.new,
+    );

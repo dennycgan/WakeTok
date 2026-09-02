@@ -513,4 +513,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19LeftSwipeDragHint => 'Add to your WakeTok album';
+
+  @override
+  String get cap19LeftSwipeAlreadyInAlbum => 'Already in your WakeTok album';
+
+  @override
+  String get cap19SettingsGesturesSectionTitle => 'Gestures';
+
+  @override
+  String get cap19SettingsLeftSwipeAddTitle => 'Swipe left to add to WakeTok';
+
+  @override
+  String get cap19SettingsLeftSwipeAddSubtitle =>
+      'Adds the current item to your WakeTok album';
+
+  @override
+  String get cap19SettingsLeftSwipeGuideTitle => 'Show left-swipe tip';
+
+  @override
+  String get cap19SettingsLeftSwipeGuideSubtitle =>
+      'Once per launch when Browse is ready';
 }

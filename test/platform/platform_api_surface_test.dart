@@ -74,6 +74,7 @@ void main() {
     'requestPresentationFileSize',
     'createAlbum',
     'importVideo',
+    'albumContainsAsset',
     'addAssetToAlbum',
   };
 
@@ -166,6 +167,7 @@ void main() {
       containsAll(<String>[
         'createAlbum',
         'importVideo',
+        'albumContainsAsset',
         'addAssetToAlbum',
       ]),
     );
@@ -366,8 +368,10 @@ void main() {
 
     mockSuccess(photoChannel('createAlbum'), 'created-album-id');
     mockSuccess(photoChannel('addAssetToAlbum'), null);
+    mockSuccess(photoChannel('albumContainsAsset'), true);
 
     expect(await api.createAlbum('WakeTok'), 'created-album-id');
+    expect(await api.albumContainsAsset('created-album-id', 'asset-1'), isTrue);
     await api.addAssetToAlbum('asset-1', 'created-album-id');
   });
 

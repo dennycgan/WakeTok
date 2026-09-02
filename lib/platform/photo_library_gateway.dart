@@ -409,6 +409,13 @@ class PhotoLibraryGateway
       _api.addAssetToAlbum(assetIdentifier, albumIdentifier);
 
   @override
+  Future<bool> albumContainsAsset(
+    String albumIdentifier,
+    String assetIdentifier,
+  ) =>
+      _api.albumContainsAsset(albumIdentifier, assetIdentifier);
+
+  @override
   Future<bool> requestFavoriteStatus(String assetIdentifier) async {
     final dto = await _api.requestAssetFavoriteStatus(assetIdentifier);
     return dto.isFavorite;

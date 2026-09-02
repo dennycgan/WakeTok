@@ -1736,6 +1736,50 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  func albumContainsAsset(
+    albumIdentifier: String,
+    assetIdentifier: String,
+    completion: @escaping (Result<Bool, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !albumIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album identifier is empty")
+        )
+      )
+      return
+    }
+    guard !assetIdentifier.isEmpty else {
+      completion(.success(false))
+      return
+    }
+    let collections = PHAssetCollection.fetchAssetCollections(
+      withLocalIdentifiers: [albumIdentifier],
+      options: nil
+    )
+    guard let collection = collections.firstObject else {
+      completion(
+        .failure(
+          fail(.albumUnavailable, message: "Album not found")
+        )
+      )
+      return
+    }
+    let options = PHFetchOptions()
+    options.predicate = NSPredicate(
+      format: "localIdentifier == %@",
+      assetIdentifier
+    )
+    let assets = PHAsset.fetchAssets(in: collection, options: options)
+    completion(.success(assets.count > 0))
+  }
+
   func addAssetToAlbum(
     assetIdentifier: String,
     albumIdentifier: String,
