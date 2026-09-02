@@ -16,6 +16,8 @@ typedef ScrubPreviewRequest =
 /// (ADR-040 D13 supplement). Cap 19.2b: no drag-begin pause callback.
 /// Cap 19.2d: live playhead ghost while dragging; optimistic fill on seek
 /// release (cancel may still show ~one Host observe tick of catch-up).
+/// Cap 19.8: resident timestamp follows live playhead while dragging and
+/// freezes at the pre-release second during seek-hold (fill still optimistic).
 ///
 /// Host null / latency gaps show a solid placeholder only — no user-facing
 /// unavailable copy (technical failures are not actionable while scrubbing).
@@ -117,6 +119,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
           if (expired || settled) {
             _seekHoldSeconds = null;
             _seekHoldUntilMs = null;
+            _residentHoldSeconds = null;
             _positionSeconds = incoming;
           }
           // else: keep optimistic _positionSeconds
@@ -177,6 +180,9 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   /// (stale playhead ticks would otherwise flash the pre-seek fill).
   double? _seekHoldSeconds;
   int? _seekHoldUntilMs;
+  /// Cap 19.8: last confirmed live second before optimistic seek landing —
+  /// resident label stays on this until seek-hold settles.
+  double? _residentHoldSeconds;
 
   void _onHorizontalDragStart(DragStartDetails details) {
     if (widget.frozen) {
@@ -192,6 +198,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       _dragging = true;
       _seekHoldSeconds = null;
       _seekHoldUntilMs = null;
+      _residentHoldSeconds = null;
       _dragAnchorLocalX = details.localPosition.dx;
       _dragAnchorRatio = anchorRatio;
       _dragRatio = anchorRatio;
@@ -270,6 +277,9 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       // flash the fill back. Cancel / uncommitted end does not hold — fill
       // follows latest live; residual ~one Host tick (~250ms) is accepted.
       if (shouldSeek) {
+        // Cap 19.8: snapshot live playhead for resident label before fill
+        // optimism — label must not jump to the seek target until settled.
+        _residentHoldSeconds = _positionSeconds;
         _positionSeconds = seconds;
         _seekHoldSeconds = seconds;
         _seekHoldUntilMs =
@@ -484,8 +494,8 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       frozen: widget.frozen,
       positionSeconds: _positionSeconds,
       durationSeconds: _effectiveDuration,
-      displaySeconds: _labelSeconds,
-      dragging: _dragging,
+      residentHoldSeconds:
+          _seekHoldSeconds != null ? _residentHoldSeconds : null,
     );
     final residentChromeVisible = scrubberResidentChromeVisible(
       frozen: widget.frozen,

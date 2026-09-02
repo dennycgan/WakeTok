@@ -316,8 +316,6 @@ void main() {
           frozen: true,
           positionSeconds: 12,
           durationSeconds: null,
-          displaySeconds: 12,
-          dragging: false,
         ),
         isNull,
       );
@@ -329,8 +327,6 @@ void main() {
           frozen: true,
           positionSeconds: 12,
           durationSeconds: 120,
-          displaySeconds: 12,
-          dragging: false,
         ),
         '00:00 / 02:00',
       );
@@ -342,8 +338,6 @@ void main() {
           frozen: false,
           positionSeconds: 30,
           durationSeconds: 120,
-          displaySeconds: 30,
-          dragging: false,
         ),
         '00:30 / 02:00',
       );
@@ -355,10 +349,50 @@ void main() {
           frozen: false,
           positionSeconds: 0,
           durationSeconds: null,
-          displaySeconds: 0,
-          dragging: false,
         ),
         isNull,
+      );
+    });
+  });
+
+  group('T-19.8-A1 scrubberResidentLabelSeconds', () {
+    test('T-19.8-A1a idle uses live positionSeconds', () {
+      expect(
+        scrubberResidentLabelSeconds(positionSeconds: 12),
+        12,
+      );
+    });
+
+    test('T-19.8-A1b drag uses live position not scrub target', () {
+      expect(
+        scrubberTimestampLabel(
+          frozen: false,
+          positionSeconds: 12,
+          durationSeconds: 120,
+          residentHoldSeconds: null,
+        ),
+        '00:12 / 02:00',
+      );
+      expect(
+        scrubberTimestampLabel(
+          frozen: false,
+          positionSeconds: 12,
+          durationSeconds: 120,
+          residentHoldSeconds: null,
+        ),
+        isNot('00:50 / 02:00'),
+      );
+    });
+
+    test('T-19.8-A1c seek-hold freeze ignores optimistic positionSeconds', () {
+      expect(
+        scrubberTimestampLabel(
+          frozen: false,
+          positionSeconds: 50,
+          durationSeconds: 120,
+          residentHoldSeconds: 10,
+        ),
+        '00:10 / 02:00',
       );
     });
   });

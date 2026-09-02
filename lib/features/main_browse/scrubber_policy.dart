@@ -251,16 +251,30 @@ String formatScrubTimestamp(
   return '$current / ${_formatMmSs(durationSeconds)}';
 }
 
+/// Cap 19.8: whole seconds shown on the resident timestamp above the track.
+///
+/// Uses the live playhead ([positionSeconds]) unless a post-release seek-hold
+/// freeze is active ([residentHoldSeconds]) — never the scrub-target seconds
+/// shown in the preview bubble while dragging.
+double scrubberResidentLabelSeconds({
+  required double positionSeconds,
+  double? residentHoldSeconds,
+}) {
+  return residentHoldSeconds ?? positionSeconds;
+}
+
 /// Timestamp above the scrubber track (idle, drag, or frozen-degraded).
 ///
 /// Returns null until [durationSeconds] is known so the paired
 /// `current / total` label appears in one paint (no `/--` placeholder).
+///
+/// Resident label follows [scrubberResidentLabelSeconds]; preview bubble
+/// timestamp uses scrub-target seconds separately in the widget layer.
 String? scrubberTimestampLabel({
   required bool frozen,
   required double positionSeconds,
   required double? durationSeconds,
-  required double displaySeconds,
-  required bool dragging,
+  double? residentHoldSeconds,
 }) {
   if (durationSeconds == null || durationSeconds <= 0) {
     return null;
@@ -268,7 +282,10 @@ String? scrubberTimestampLabel({
   if (frozen) {
     return '00:00 / ${_formatMmSs(durationSeconds)}';
   }
-  final seconds = dragging ? displaySeconds : positionSeconds;
+  final seconds = scrubberResidentLabelSeconds(
+    positionSeconds: positionSeconds,
+    residentHoldSeconds: residentHoldSeconds,
+  );
   return formatScrubTimestamp(seconds, durationSeconds: durationSeconds);
 }
 
