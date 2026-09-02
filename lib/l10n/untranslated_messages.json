@@ -120,6 +120,11 @@
     "cap19PanelRemoveFromFavorites",
     "cap19PanelFavoritesAddedSuccess",
     "cap19PanelFavoritesRemovedSuccess",
-    "cap19PanelFavoritesError"
+    "cap19PanelFavoritesError",
+    "cap19LeftSwipeGuideTitle",
+    "cap19LeftSwipeGuideSubtitle",
+    "cap19LeftSwipeAppendSuccess",
+    "cap19LeftSwipeAppendError",
+    "cap19LeftSwipeDragHint"
   ]
 }

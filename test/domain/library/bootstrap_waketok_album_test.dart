@@ -25,9 +25,11 @@ AssetSource _userAlbum({
 }
 
 void main() {
-  test('T-19.3-1 Full KV hit uses cached id without list or create', () async {
+  test('T-19.3-1 Full KV hit uses cached id when album still exists', () async {
     final store = FakeWakeTokAlbumStore()..albumId = 'cached-album';
-    final sources = FakeAssetSourceRepository();
+    final sources = FakeAssetSourceRepository(
+      extraSources: [_userAlbum(id: 'cached-album')],
+    );
     final mutations = FakeAlbumMutationRepository();
 
     final result = await bootstrapWakeTokAlbum(
@@ -39,9 +41,30 @@ void main() {
 
     expect(result.source, WakeTokAlbumBootstrapSource.kv);
     expect(result.albumId, 'cached-album');
-    expect(sources.listCalls, 0);
+    expect(sources.listCalls, 1);
     expect(mutations.createAlbumCalls, 0);
     expect(store.saveCalls, 0);
+    expect(store.clearCalls, 0);
+  });
+
+  test('T-19.3-1b Full stale KV clears and list-finds WakeTok album', () async {
+    final store = FakeWakeTokAlbumStore()..albumId = 'deleted-album';
+    final sources = FakeAssetSourceRepository(
+      extraSources: [_userAlbum(id: 'existing-album')],
+    );
+    final mutations = FakeAlbumMutationRepository();
+
+    final result = await bootstrapWakeTokAlbum(
+      access: PhotosAccess.full,
+      store: store,
+      assetSources: sources,
+      albumMutations: mutations,
+    );
+
+    expect(result.source, WakeTokAlbumBootstrapSource.listFind);
+    expect(result.albumId, 'existing-album');
+    expect(store.clearCalls, 1);
+    expect(mutations.createAlbumCalls, 0);
   });
 
   test('T-19.3-2a Full KV miss list-finds single WakeTok user album', () async {

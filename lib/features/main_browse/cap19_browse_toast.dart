@@ -124,6 +124,28 @@ void showCap19FavoritesErrorToast(
   );
 }
 
+void showCap19LeftSwipeAppendSuccessToast(
+  BuildContext context,
+  AppLocalizations l10n,
+) {
+  showCap19BrowseToast(
+    context,
+    message: l10n.cap19LeftSwipeAppendSuccess,
+    toastKey: const Key('cap19LeftSwipeAppendSuccessToast'),
+  );
+}
+
+void showCap19LeftSwipeAppendErrorToast(
+  BuildContext context,
+  AppLocalizations l10n,
+) {
+  showCap19BrowseToast(
+    context,
+    message: l10n.cap19LeftSwipeAppendError,
+    toastKey: const Key('cap19LeftSwipeAppendErrorToast'),
+  );
+}
+
 /// Test-only reset between widget tests.
 @visibleForTesting
 void resetCap19BrowseToastForTest() => hideCap19BrowseToast();

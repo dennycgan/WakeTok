@@ -493,6 +493,23 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get cap19PanelFavoritesError =>
       'Couldn\'t update Favorites. Try again.';
+
+  @override
+  String get cap19LeftSwipeGuideTitle => 'Swipe left to add to WakeTok';
+
+  @override
+  String get cap19LeftSwipeGuideSubtitle =>
+      'Adds it to your WakeTok album — nothing is moved or deleted';
+
+  @override
+  String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
+
+  @override
+  String get cap19LeftSwipeAppendError =>
+      'Couldn\'t add to WakeTok. Try again.';
+
+  @override
+  String get cap19LeftSwipeDragHint => 'Add to your WakeTok album';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -969,4 +986,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19PanelFavoritesError => '无法更新个人收藏，请重试。';
+
+  @override
+  String get cap19LeftSwipeGuideTitle => '左滑添加到 WakeTok';
+
+  @override
+  String get cap19LeftSwipeGuideSubtitle => '将它添加到你的 WakeTok 相册 — 不会移动或删除原文件';
+
+  @override
+  String get cap19LeftSwipeAppendSuccess => '已添加到 WakeTok';
+
+  @override
+  String get cap19LeftSwipeAppendError => '无法添加到 WakeTok，请重试。';
+
+  @override
+  String get cap19LeftSwipeDragHint => '添加到你的 WakeTok 相册';
 }

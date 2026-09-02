@@ -31,10 +31,25 @@ Future<WakeTokAlbumBootstrapResult> bootstrapWakeTokAlbum({
 }) async {
   final cached = await store.loadAlbumId();
   if (cached != null && cached.isNotEmpty) {
-    return WakeTokAlbumBootstrapResult(
-      albumId: cached,
-      source: WakeTokAlbumBootstrapSource.kv,
-    );
+    if (access == PhotosAccess.full) {
+      final sources = await assetSources.listAssetSources();
+      final stillExists = sources.any(
+        (source) =>
+            source.kind == AssetSourceKind.album && source.id == cached,
+      );
+      if (stillExists) {
+        return WakeTokAlbumBootstrapResult(
+          albumId: cached,
+          source: WakeTokAlbumBootstrapSource.kv,
+        );
+      }
+      await store.clearAlbumId();
+    } else {
+      return WakeTokAlbumBootstrapResult(
+        albumId: cached,
+        source: WakeTokAlbumBootstrapSource.kv,
+      );
+    }
   }
 
   if (access == PhotosAccess.full) {

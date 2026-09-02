@@ -637,5 +637,25 @@
   "cap19PanelFavoritesError": "Couldn't update Favorites. Try again.",
   "@cap19PanelFavoritesError": {
     "description": "Cap 19.5b Favorites read/toggle failure"
+  },
+  "cap19LeftSwipeGuideTitle": "Swipe left to add to WakeTok",
+  "@cap19LeftSwipeGuideTitle": {
+    "description": "Cap 19.6 one-shot coach mark title"
+  },
+  "cap19LeftSwipeGuideSubtitle": "Adds it to your WakeTok album — nothing is moved or deleted",
+  "@cap19LeftSwipeGuideSubtitle": {
+    "description": "Cap 19.6 one-shot coach mark subtitle"
+  },
+  "cap19LeftSwipeAppendSuccess": "Added to WakeTok",
+  "@cap19LeftSwipeAppendSuccess": {
+    "description": "Cap 19.6 left-swipe append success toast"
+  },
+  "cap19LeftSwipeAppendError": "Couldn't add to WakeTok. Try again.",
+  "@cap19LeftSwipeAppendError": {
+    "description": "Cap 19.6 left-swipe append failure toast"
+  },
+  "cap19LeftSwipeDragHint": "Add to your WakeTok album",
+  "@cap19LeftSwipeDragHint": {
+    "description": "Cap 19.6 drop-target chip while left-dragging"
   }
 }

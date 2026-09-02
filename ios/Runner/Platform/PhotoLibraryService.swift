@@ -277,6 +277,28 @@ final class PhotoLibraryService: PhotoLibraryApi {
     return sortedByDisplayName(albums)
   }
 
+  /// Reuse an existing user album with the same title (Cap 19.6 reinstall /
+  /// Limited create-only bootstrap).
+  private func findUserAlbumId(byTitle title: String) -> String? {
+    let result = PHAssetCollection.fetchAssetCollections(
+      with: .album,
+      subtype: .albumRegular,
+      options: nil
+    )
+    var matches: [String] = []
+    matches.reserveCapacity(2)
+    result.enumerateObjects { collection, _, _ in
+      let albumTitle = collection.localizedTitle ?? ""
+      if albumTitle.compare(title, options: .caseInsensitive) == .orderedSame {
+        matches.append(collection.localIdentifier)
+      }
+    }
+    guard !matches.isEmpty else {
+      return nil
+    }
+    return matches.sorted().first
+  }
+
   /// Smart albums excluding Hidden / Recently Deleted (Cap 11.2 D3=A).
   ///
   /// PhotoKit has no public `smartAlbumRecentlyDeleted` member. Recently
@@ -1516,6 +1538,10 @@ final class PhotoLibraryService: PhotoLibraryApi {
           fail(.albumUnavailable, message: "Album name is empty")
         )
       )
+      return
+    }
+    if let existingId = self.findUserAlbumId(byTitle: trimmed) {
+      completion(.success(existingId))
       return
     }
     var createdId: String?

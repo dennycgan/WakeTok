@@ -496,4 +496,21 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cap19PanelFavoritesError =>
       'Couldn\'t update Favorites. Try again.';
+
+  @override
+  String get cap19LeftSwipeGuideTitle => 'Swipe left to add to WakeTok';
+
+  @override
+  String get cap19LeftSwipeGuideSubtitle =>
+      'Adds it to your WakeTok album — nothing is moved or deleted';
+
+  @override
+  String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
+
+  @override
+  String get cap19LeftSwipeAppendError =>
+      'Couldn\'t add to WakeTok. Try again.';
+
+  @override
+  String get cap19LeftSwipeDragHint => 'Add to your WakeTok album';
 }

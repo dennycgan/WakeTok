@@ -8,6 +8,7 @@ import 'package:waketok/features/authorization/open_app_settings.dart';
 import 'package:waketok/features/main_browse/cap19_album_picker_list.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_favorites_row.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/cap19_panel_host_context.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -19,6 +20,9 @@ Future<void> showCap19ActionsHalfSheet(
   final darkTheme = waketokTheme(Brightness.dark);
   final tokens = darkTheme.extension<WakeTokTokens>()!;
   final hostContext = context;
+  final panelOpen = ProviderScope.containerOf(context)
+      .read(cap19ActionsPanelOpenProvider.notifier);
+  panelOpen.state = true;
 
   return showModalBottomSheet<void>(
     context: context,
@@ -49,7 +53,7 @@ Future<void> showCap19ActionsHalfSheet(
         ),
       ),
     ),
-  );
+  ).whenComplete(() => panelOpen.state = false);
 }
 
 class Cap19ActionsHalfSheet extends ConsumerWidget {

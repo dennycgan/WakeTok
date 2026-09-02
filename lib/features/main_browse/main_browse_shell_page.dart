@@ -6,6 +6,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -116,6 +117,7 @@ class _BrowsePane extends ConsumerWidget {
                 ref.read(mainBrowseSelectedSourceProvider.notifier).select(next),
           ),
         ),
+        const Cap19LeftSwipeGuideHost(),
       ],
     );
   }

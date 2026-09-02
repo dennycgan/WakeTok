@@ -4,6 +4,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
@@ -20,11 +22,14 @@ import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
+import 'package:waketok/features/main_browse/cap19_still_magnification_stub.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+import '../../domain/library/fake_waketok_album_store.dart';
 import '../../library_smoke/fake_album_cover_repository.dart';
 import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_favorite_repository.dart';
+import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
@@ -76,6 +81,8 @@ Widget permissionUiHarness({
   FakeAlbumMutationRepository? albumMutations,
   FakeAlbumCoverRepository? albumCovers,
   FakeAssetFavoriteRepository? assetFavorites,
+  FakeCap19LeftSwipePreferences? cap19LeftSwipePreferences,
+  FakeWakeTokAlbumStore? wakeTokAlbumStore,
   FakeMediaDisplayRepository? mediaDisplay,
   FakePlaybackRepository? playback,
   FakePresentationMetadataRepository? presentationMetadata,
@@ -97,12 +104,18 @@ Widget permissionUiHarness({
 
   /// Cap 15.12: default zero so existing feed tests do not wait N_local.
   Duration browseLocalFirstVisitDwell = Duration.zero,
+
+  /// Cap 19.6: force Decision 20 magnification stub true for widget tests.
+  bool cap19MagnificationStub = false,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
   final mutations = albumMutations ?? FakeAlbumMutationRepository();
   final covers = albumCovers ?? FakeAlbumCoverRepository();
   final favorites = assetFavorites ?? FakeAssetFavoriteRepository();
+  final leftSwipePrefs =
+      cap19LeftSwipePreferences ?? FakeCap19LeftSwipePreferences();
+  final albumStore = wakeTokAlbumStore ?? FakeWakeTokAlbumStore();
   return ProviderScope(
     overrides: [
       photosAuthorizationRepositoryProvider.overrideWithValue(repo),
@@ -111,6 +124,8 @@ Widget permissionUiHarness({
       albumMutationRepositoryProvider.overrideWithValue(mutations),
       albumCoverRepositoryProvider.overrideWithValue(covers),
       assetFavoriteRepositoryProvider.overrideWithValue(favorites),
+      cap19LeftSwipePreferencesProvider.overrideWithValue(leftSwipePrefs),
+      wakeTokAlbumStoreProvider.overrideWithValue(albumStore),
       mediaDisplayRepositoryProvider.overrideWithValue(
         mediaDisplay ?? FakeMediaDisplayRepository(),
       ),
@@ -136,6 +151,8 @@ Widget permissionUiHarness({
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)
         sharedMuteProvider.overrideWith(_HarnessMutedTrueSharedMute.new),
+      if (cap19MagnificationStub)
+        cap19StillMagnificationStubProvider.overrideWith((ref) => true),
     ],
     child: MaterialApp(
       locale: locale,

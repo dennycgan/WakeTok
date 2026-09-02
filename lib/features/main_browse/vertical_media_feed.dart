@@ -28,6 +28,8 @@ import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_gesture.dart';
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
@@ -3555,6 +3557,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         showLayer2FailedSlot: showLayer2FailedSlot,
         cornerReassureLabel: cornerReassureLabel,
         coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
+        playbackTapIsCurrent: widget.isCurrent,
         showMediaInfoOverlay: widget.showMediaInfoOverlay,
         overlaySnapshot: widget.overlaySnapshot,
       ),
@@ -3789,6 +3792,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           ),
         if (showMediaInfoOverlay)
           MediaInfoOverlay(snapshot: overlaySnapshot),
+        Cap19LeftSwipeAlbumReveal(isCurrent: playbackTapIsCurrent),
         if (onScrubComplete != null &&
             playbackRepository != null &&
             video != null &&
@@ -3829,6 +3833,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           onFailedRetry: () {
             unawaited(_retryFromFailState(pageFailedMedia: false));
           },
+        ),
+        Cap19LeftSwipeGesture(
+          isCurrent: playbackTapIsCurrent,
+          excludeScrubberBand:
+              onScrubComplete != null && video != null,
         ),
       ],
     );

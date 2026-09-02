@@ -932,6 +932,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t update Favorites. Try again.'**
   String get cap19PanelFavoritesError;
+
+  /// Cap 19.6 one-shot coach mark title
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe left to add to WakeTok'**
+  String get cap19LeftSwipeGuideTitle;
+
+  /// Cap 19.6 one-shot coach mark subtitle
+  ///
+  /// In en, this message translates to:
+  /// **'Adds it to your WakeTok album — nothing is moved or deleted'**
+  String get cap19LeftSwipeGuideSubtitle;
+
+  /// Cap 19.6 left-swipe append success toast
+  ///
+  /// In en, this message translates to:
+  /// **'Added to WakeTok'**
+  String get cap19LeftSwipeAppendSuccess;
+
+  /// Cap 19.6 left-swipe append failure toast
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t add to WakeTok. Try again.'**
+  String get cap19LeftSwipeAppendError;
+
+  /// Cap 19.6 drop-target chip while left-dragging
+  ///
+  /// In en, this message translates to:
+  /// **'Add to your WakeTok album'**
+  String get cap19LeftSwipeDragHint;
 }
 
 class _AppLocalizationsDelegate

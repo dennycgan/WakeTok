@@ -6,10 +6,14 @@ import 'package:waketok/features/authorization/photos_authorization_notifier.dar
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
+import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/main.dart';
 
 import 'features/authorization/permission_ui_test_harness.dart';
+import 'domain/library/fake_waketok_album_store.dart';
 import 'library_smoke/fake_asset_source_repository.dart';
+import 'library_smoke/fake_cap19_left_swipe_preferences.dart';
 import 'library_smoke/fake_library_catalog_repository.dart';
 import 'library_smoke/fake_media_display_repository.dart';
 import 'library_smoke/fake_playback_repository.dart';
@@ -37,6 +41,10 @@ void main() {
           presentationMetadataRepositoryProvider.overrideWithValue(
             FakePresentationMetadataRepository(),
           ),
+          cap19LeftSwipePreferencesProvider.overrideWithValue(
+            FakeCap19LeftSwipePreferences(),
+          ),
+          wakeTokAlbumStoreProvider.overrideWithValue(FakeWakeTokAlbumStore()),
         ],
         child: const WakeTokApp(),
       ),

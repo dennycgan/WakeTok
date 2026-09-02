@@ -139,5 +139,10 @@
   "cap19PanelRemoveFromFavorites": "已在个人收藏 — 取消收藏",
   "cap19PanelFavoritesAddedSuccess": "已添加到个人收藏",
   "cap19PanelFavoritesRemovedSuccess": "已从个人收藏移除",
-  "cap19PanelFavoritesError": "无法更新个人收藏，请重试。"
+  "cap19PanelFavoritesError": "无法更新个人收藏，请重试。",
+  "cap19LeftSwipeGuideTitle": "左滑添加到 WakeTok",
+  "cap19LeftSwipeGuideSubtitle": "将它添加到你的 WakeTok 相册 — 不会移动或删除原文件",
+  "cap19LeftSwipeAppendSuccess": "已添加到 WakeTok",
+  "cap19LeftSwipeAppendError": "无法添加到 WakeTok，请重试。",
+  "cap19LeftSwipeDragHint": "添加到你的 WakeTok 相册"
 }

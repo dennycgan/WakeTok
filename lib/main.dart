@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/cap19_left_swipe_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/data/preferences/cap19_left_swipe_preferences_store.dart';
 import 'package:waketok/data/preferences/waketok_album_preferences_store.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
@@ -29,6 +31,7 @@ Future<void> main() async {
   final playback = PlaybackGateway();
   final livePhoto = LivePhotoGateway();
   final wakeTokAlbumStore = WakeTokAlbumPreferencesStore();
+  final cap19LeftSwipePreferences = Cap19LeftSwipePreferencesStore();
   runApp(
     ProviderScope(
       overrides: [
@@ -39,6 +42,9 @@ Future<void> main() async {
         albumCoverRepositoryProvider.overrideWithValue(gateway),
         assetFavoriteRepositoryProvider.overrideWithValue(gateway),
         wakeTokAlbumStoreProvider.overrideWithValue(wakeTokAlbumStore),
+        cap19LeftSwipePreferencesProvider.overrideWithValue(
+          cap19LeftSwipePreferences,
+        ),
         mediaDisplayRepositoryProvider.overrideWithValue(gateway),
         presentationMetadataRepositoryProvider.overrideWithValue(gateway),
         playbackRepositoryProvider.overrideWithValue(playback),
