@@ -267,15 +267,21 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       smart-album cover thumbnail; root-overlay browse toasts (top chrome,
       1.5s replace-on-show); D4 copy generalization (Favorites /
       personal-collection wording). Device smoke PASS i17 Green Debug (`docs/acceptance/cap19-19.5b-notes.md`)
-- [ ] 19.6 Left-swipe append — full-width horizontal recognizer (D2=B);
-      Decision 20 magnification guard; edge-hold arbitration tests
-      (ADR-040 D2/D18); Limited enabled same as Full (D3=B); verify
-      interactive-pop / system-back vs left-swipe on device (19.8)
-- [ ] 19.7 Preference + polish — `leftSwipeAddEnabled` KV (default on);
-      duplicate-append UX; ARB error/success copy
+- [x] 19.6 Left-swipe append — work `7b3d22a`. Full-width horizontal
+      recognizer (D2=B); Decision 20 magnification guard + stub; ADR-040
+      D2/D18 arbitration tests; Limited same as Full (D3=B); **lands**
+      `leftSwipeAddEnabled` + `leftSwipeGuideEnabled` KV read/write
+      (both default on; derived AND guide; no parent→guide KV write-back);
+      PicTok-class one-shot guide; left-edge drop-target chip; Host
+      `createAlbum` title reuse. Device smoke PASS i17 Green Debug
+      (`docs/acceptance/cap19-19.6-notes.md`). interactive-pop / system-back
+      vs left-swipe → **19.8** (P-19.6-POP deferred).
+- [ ] 19.7 Preference + polish — **Settings toggle UI only** for
+      `leftSwipeAddEnabled` / `leftSwipeGuideEnabled` (KV already in 19.6);
+      duplicate-append UX; remaining ARB/polish copy
 - [ ] 19.8 Device acceptance + close-out — Full dual-entry smoke; Limited
       matrix replay; Cap 19 `[x]` → PHASE_HISTORY; debt rows unchanged
-      unless verified closed
+      unless verified closed; interactive-pop note (from 19.6)
 
 ### 19.2a acceptance matrix (Limited — record each row PASS/FAIL)
 
@@ -293,14 +299,15 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.6 Left-swipe append
+- Goal (one line): Cap 19.7 Preference + polish (Settings toggles)
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
       `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
-      `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b` (docs this commit)
-- Next step: 19.6 work — full-width horizontal recognizer (D2=B);
-      Decision 20 magnification guard; edge-hold arbitration tests
-- Blocked on owner: OK start coding for 19.6 implementation
+      `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b`; 19.6 `7b3d22a`
+      (docs this commit)
+- Next step: 19.7 design / OK start coding — Settings toggle UI for
+      left-swipe + guide KVs; duplicate-append UX
+- Blocked on owner: OK start coding for 19.7 (design-first if non-trivial)
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
       debt **421** (Settings Limited picker — out of Cap 19); debt **444**
