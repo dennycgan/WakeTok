@@ -262,9 +262,11 @@ Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
       SnackBar; frosted translucent panel; session zero-touch; Limited D4
       unchanged. Device smoke PASS i17 Green Debug
       (`docs/acceptance/cap19-19.5-notes.md`).
-- [ ] 19.5b Panel Add-to-Favorites — synthetic first row (Full only);
-      toggle `isFavorite`; new Pigeon read/write; D4 copy generalization
-      for Limited; design approved (`docs/acceptance/cap19-19.5b-notes.md`)
+- [x] 19.5b Panel Add-to-Favorites — work `399e43b`. Synthetic first
+      row (Full only); toggle `isFavorite`; Pigeon read/write + Favorites
+      smart-album cover thumbnail; root-overlay browse toasts (top chrome,
+      1.5s replace-on-show); D4 copy generalization (Favorites /
+      personal-collection wording). Device smoke PASS i17 Green Debug (`docs/acceptance/cap19-19.5b-notes.md`)
 - [ ] 19.6 Left-swipe append — full-width horizontal recognizer (D2=B);
       Decision 20 magnification guard; edge-hold arbitration tests
       (ADR-040 D2/D18); Limited enabled same as Full (D3=B); verify
@@ -291,18 +293,19 @@ Full Access control (optional same notes file): one row confirming D1
 KV → list find → create on clean install.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.5b Panel Add-to-Favorites
+- Goal (one line): Cap 19.6 Left-swipe append
 - Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
       `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
-      `b3ea867`; 19.5 `95abd12` (docs this commit)
-- Next step: 19.5b work commit — Favorites synthetic row + Pigeon/Host +
-      D4 copy generalization (design approved; await owner OK start coding)
-- Blocked on owner: OK start coding for 19.5b implementation
+      `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b` (docs this commit)
+- Next step: 19.6 work — full-width horizontal recognizer (D2=B);
+      Decision 20 magnification guard; edge-hold arbitration tests
+- Blocked on owner: OK start coding for 19.6 implementation
 - Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
       ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
       debt **421** (Settings Limited picker — out of Cap 19); debt **444**
-      → Build a Pool Cap; debt **445** (WakeTok album uniqueness)
+      → Build a Pool Cap; debt **445** (WakeTok album uniqueness); debt
+      **446** (panel single-album append — phase accept)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -596,6 +599,7 @@ KV → list find → create on clean install.
 | 443 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 progress scrub is **whole-second** granular (not iPhone Photos / slow-mo 0.01s edit resolution) | **Intentional Cap 18.5 scope.** Linear band maps to ratio; label + release seek use `round(ratio × duration)` to the nearest second. Sub-second scrub requires quantizer, Host seek tolerance/timeouts, and preview bucket changes — documented upgrade path in acceptance notes. Not a defect vs Photos frame-accurate trimming. | Unassigned | ADR-040; `docs/acceptance/cap18-18.5-notes.md` |
 | 444 | Open | Main Browse Screen | Cap 18.6 | External Photos delete while Consumption Session still lists the asset: misleading Layer 2 fail copy; Retry ineffective | **Verified (owner device, Kafka Profile `1ca0395`):** delete a still in iOS Photos without quitting WakeTok → first return to the same feed item still shows the image; swipe away and back → Layer 2 fail with `Could not load. Allow wireless data, then retry.` + Retry; Overlay metadata rows still visible — **not** a connectivity defect. **Verified (code):** missing `PHAsset` → Host `assetUnavailable`; Dart maps `assetUnavailable` → `FeedFailureReason.network` → that wireless-data string (debt **435** three-bucket collapse); no production `PHPhotoLibraryChangeObserver` / session queue invalidation on external library mutation. **Inferred (architecture — not log-verified this session):** first revisit may use cached L2 (`DisplayTempFileStore` / in-page display state); second remount likely hits fresh `requestDisplayAsset` on a deleted id. **Not Cap 18.6 scope.** | **Build a Pool, Ephemeral Pool, and Source ordering** | ADR-022 / ADR-025; debt **435**; `docs/acceptance/cap18-18.6-notes.md` |
 | 445 | Accepted (permanent) | Add to Album / Cap 19 | Cap 19-19.2a | WakeTok User Album uniqueness must use KV + `localIdentifier`, not title string — duplicate same-title albums possible | **Device confirmed (19.2a Kafka Debug, `cap19-19.2a-notes.md`):** iOS Photos allows multiple User Albums named `"WakeTok"`; each Limited create-only bootstrap (or KV clear + recreate) adds another album. Limited path forbids list find (ADR-021). **D1 bootstrap must treat persisted `albumIdentifier` as canonical identity** — not display-name dedup. KV loss under Limited may create a second album even when one already exists in Photos. Accepted cost of no-list-find rule; not a 19.2a blocker. | Cap 19.3 (D1 bootstrap) / D3 follow-up | ADR-021 / ADR-K; `docs/acceptance/cap19-19.2a-notes.md` |
+| 446 | Accepted (phase) | Add to Album / Cap 19 | Cap 19-19.5b | Panel add-to-album is single-select only — one album per sheet open; sheet dismisses on success | MVP scope: append the same asset to multiple albums requires reopening the panel each time. A fuller product may add multi-album multi-select + confirm (sheet stays open). PhotoKit has no single public “add to N albums” call — domain primitive `AlbumMutationRepository.addAssetToAlbum` is correctly one asset+album pair; upgrade is UI orchestration (N sequential calls) or optional Host batch in one `performChanges`. Distinct from Cap 19.7 **duplicate-append** row (re-append to the **same** album). | Unassigned | ADR-040 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
