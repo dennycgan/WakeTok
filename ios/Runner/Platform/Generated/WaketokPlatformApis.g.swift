@@ -1131,6 +1131,48 @@ struct AlbumCoverThumbnailDto: Hashable, CustomStringConvertible {
   }
 }
 
+/// Cap 19.5b: per-asset Favorites flag for panel toggle.
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct AssetFavoriteStatusDto: Hashable, CustomStringConvertible {
+  var assetIdentifier: String
+  var isFavorite: Bool
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> AssetFavoriteStatusDto? {
+    let assetIdentifier = pigeonVar_list[0] as! String
+    let isFavorite = pigeonVar_list[1] as! Bool
+
+    return AssetFavoriteStatusDto(
+      assetIdentifier: assetIdentifier,
+      isFavorite: isFavorite
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      assetIdentifier,
+      isFavorite,
+    ]
+  }
+  static func == (lhs: AssetFavoriteStatusDto, rhs: AssetFavoriteStatusDto) -> Bool {
+    if Swift.type(of: lhs) != Swift.type(of: rhs) {
+      return false
+    }
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.isFavorite, rhs.isFavorite)
+  }
+
+  func hash(into hasher: inout Hasher) {
+    hasher.combine("AssetFavoriteStatusDto")
+    WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: isFavorite, hasher: &hasher)
+  }
+
+  public var description: String {
+    return "AssetFavoriteStatusDto(assetIdentifier: \(String(describing: assetIdentifier)), isFavorite: \(String(describing: isFavorite)))"
+  }
+}
+
 private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
@@ -1216,6 +1258,8 @@ private class WaketokPlatformApisPigeonCodecReader: FlutterStandardReader {
       return ScrubPreviewFrameDto.fromList(self.readValue() as! [Any?])
     case 153:
       return AlbumCoverThumbnailDto.fromList(self.readValue() as! [Any?])
+    case 154:
+      return AssetFavoriteStatusDto.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
     }
@@ -1298,6 +1342,9 @@ private class WaketokPlatformApisPigeonCodecWriter: FlutterStandardWriter {
       super.writeValue(value.toList())
     } else if let value = value as? AlbumCoverThumbnailDto {
       super.writeByte(153)
+      super.writeValue(value.toList())
+    } else if let value = value as? AssetFavoriteStatusDto {
+      super.writeByte(154)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -1437,6 +1484,12 @@ protocol PhotoLibraryApi {
   /// [AlbumCoverThumbnailDto.jpegBytes]. Missing album →
   /// [ErrorCode.albumUnavailable].
   func requestAlbumCoverThumbnail(albumIdentifier: String, targetSizePx: Int64, completion: @escaping (Result<AlbumCoverThumbnailDto, Error>) -> Void)
+  /// Cap 19.5b: read [PHAsset.isFavorite] for the panel toggle (Full Access).
+  func requestAssetFavoriteStatus(assetIdentifier: String, completion: @escaping (Result<AssetFavoriteStatusDto, Error>) -> Void)
+  /// Cap 19.5b: set [PHAssetChangeRequest.isFavorite] on the current asset.
+  func setAssetFavorite(assetIdentifier: String, favorite: Bool, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Cap 19.5b: Favorites smart-album mosaic (subtype favorites; not current asset).
+  func requestFavoritesSmartAlbumCoverThumbnail(targetSizePx: Int64, completion: @escaping (Result<AlbumCoverThumbnailDto, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   func addAssetToAlbum(assetIdentifier: String, albumIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
@@ -1859,6 +1912,61 @@ class PhotoLibraryApiSetup {
       }
     } else {
       requestAlbumCoverThumbnailChannel.setMessageHandler(nil)
+    }
+    /// Cap 19.5b: read [PHAsset.isFavorite] for the panel toggle (Full Access).
+    let requestAssetFavoriteStatusChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestAssetFavoriteStatus\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestAssetFavoriteStatusChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.requestAssetFavoriteStatus(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestAssetFavoriteStatusChannel.setMessageHandler(nil)
+    }
+    /// Cap 19.5b: set [PHAssetChangeRequest.isFavorite] on the current asset.
+    let setAssetFavoriteChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.setAssetFavorite\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setAssetFavoriteChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        let favoriteArg = args[1] as! Bool
+        api.setAssetFavorite(assetIdentifier: assetIdentifierArg, favorite: favoriteArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      setAssetFavoriteChannel.setMessageHandler(nil)
+    }
+    /// Cap 19.5b: Favorites smart-album mosaic (subtype favorites; not current asset).
+    let requestFavoritesSmartAlbumCoverThumbnailChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.requestFavoritesSmartAlbumCoverThumbnail\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      requestFavoritesSmartAlbumCoverThumbnailChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let targetSizePxArg = args[0] as! Int64
+        api.requestFavoritesSmartAlbumCoverThumbnail(targetSizePx: targetSizePxArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      requestFavoritesSmartAlbumCoverThumbnailChannel.setMessageHandler(nil)
     }
     /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
     let addAssetToAlbumChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.addAssetToAlbum\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)

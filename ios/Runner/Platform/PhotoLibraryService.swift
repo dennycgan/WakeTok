@@ -1643,6 +1643,73 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  func requestFavoritesSmartAlbumCoverThumbnail(
+    targetSizePx: Int64,
+    completion: @escaping (Result<AlbumCoverThumbnailDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    let collections = PHAssetCollection.fetchAssetCollections(
+      with: .smartAlbum,
+      subtype: .smartAlbumFavorites,
+      options: nil
+    )
+    guard let collection = collections.firstObject else {
+      completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+      return
+    }
+    let fetchOptions = PHFetchOptions()
+    fetchOptions.sortDescriptors = [
+      NSSortDescriptor(key: "creationDate", ascending: false),
+    ]
+    fetchOptions.fetchLimit = 1
+    let assets = PHAsset.fetchAssets(in: collection, options: fetchOptions)
+    guard let asset = assets.firstObject else {
+      completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+      return
+    }
+
+    let px = CGFloat(max(1, targetSizePx))
+    let targetSize = CGSize(width: px, height: px)
+    let options = PHImageRequestOptions()
+    options.isNetworkAccessAllowed = false
+    options.deliveryMode = .opportunistic
+    options.resizeMode = .fast
+    options.isSynchronous = false
+
+    PHImageManager.default().requestImage(
+      for: asset,
+      targetSize: targetSize,
+      contentMode: .aspectFill,
+      options: options
+    ) { image, info in
+      DispatchQueue.main.async {
+        let cancelled = (info?[PHImageCancelledKey] as? Bool) == true
+        if cancelled {
+          completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+          return
+        }
+        guard let image,
+              let data = image.jpegData(compressionQuality: Self.previewJpegQuality)
+        else {
+          completion(.success(AlbumCoverThumbnailDto(jpegBytes: nil)))
+          return
+        }
+        completion(
+          .success(
+            AlbumCoverThumbnailDto(
+              jpegBytes: FlutterStandardTypedData(bytes: data)
+            )
+          )
+        )
+      }
+    }
+  }
+
   func addAssetToAlbum(
     assetIdentifier: String,
     albumIdentifier: String,
@@ -1743,6 +1810,109 @@ final class PhotoLibraryService: PhotoLibraryApi {
         completion(
           .failure(
             self.fail(.albumNotWritable, message: "Failed to add asset to album")
+          )
+        )
+      }
+    }
+  }
+
+  func requestAssetFavoriteStatus(
+    assetIdentifier: String,
+    completion: @escaping (Result<AssetFavoriteStatusDto, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !assetIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset identifier is empty")
+        )
+      )
+      return
+    }
+    let assets = PHAsset.fetchAssets(
+      withLocalIdentifiers: [assetIdentifier],
+      options: nil
+    )
+    guard let asset = assets.firstObject else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset not found")
+        )
+      )
+      return
+    }
+    completion(
+      .success(
+        AssetFavoriteStatusDto(
+          assetIdentifier: assetIdentifier,
+          isFavorite: asset.isFavorite
+        )
+      )
+    )
+  }
+
+  func setAssetFavorite(
+    assetIdentifier: String,
+    favorite: Bool,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !assetIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset identifier is empty")
+        )
+      )
+      return
+    }
+    let assets = PHAsset.fetchAssets(
+      withLocalIdentifiers: [assetIdentifier],
+      options: nil
+    )
+    guard let asset = assets.firstObject else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset not found")
+        )
+      )
+      return
+    }
+    PHPhotoLibrary.shared().performChanges({
+      let request = PHAssetChangeRequest(for: asset)
+      request.isFavorite = favorite
+    }) { success, error in
+      DispatchQueue.main.async {
+        if success {
+          completion(.success(()))
+          return
+        }
+        if let error {
+          completion(
+            .failure(
+              self.mapPhotoKitAlbumMutationError(
+                error,
+                fallback: .assetUnavailable
+              )
+            )
+          )
+          return
+        }
+        completion(
+          .failure(
+            self.fail(
+              .assetUnavailable,
+              message: "Failed to update favorite status"
+            )
           )
         )
       }

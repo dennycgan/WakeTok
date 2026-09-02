@@ -577,9 +577,9 @@
   "@cap19PanelAddToAlbumTitle": {
     "description": "Cap 19.4 half-sheet Add to Album section title"
   },
-  "cap19PanelAddToAlbumLimitedMessage": "Adding to albums needs full Photos access. Open Settings to allow access to all photos.",
+  "cap19PanelAddToAlbumLimitedMessage": "Favorites and albums need full Photos access. Open Settings to allow access to all photos.",
   "@cap19PanelAddToAlbumLimitedMessage": {
-    "description": "Cap 19.4 D4 non-interactive Limited upgrade copy"
+    "description": "Cap 19.4 D4 non-interactive Limited upgrade copy (Cap 19.5b: favorites + albums)"
   },
   "cap19PanelAddToAlbumFullPlaceholder": "Album picker arrives in a later update.",
   "@cap19PanelAddToAlbumFullPlaceholder": {
@@ -609,5 +609,33 @@
   "cap19PanelAddToAlbumError": "Couldn't add to album. Try again.",
   "@cap19PanelAddToAlbumError": {
     "description": "Cap 19.5 append failure SnackBar"
+  },
+  "cap19PanelFavoritesSectionTitle": "Quick action",
+  "@cap19PanelFavoritesSectionTitle": {
+    "description": "Cap 19.5b Favorites section header above album list"
+  },
+  "cap19PanelAlbumsSectionTitle": "Albums",
+  "@cap19PanelAlbumsSectionTitle": {
+    "description": "Cap 19.5b Albums section header below Favorites row"
+  },
+  "cap19PanelAddToFavorites": "Add to Favorites",
+  "@cap19PanelAddToFavorites": {
+    "description": "Cap 19.5b Favorites row when asset is not favorited"
+  },
+  "cap19PanelRemoveFromFavorites": "Favorited — Remove",
+  "@cap19PanelRemoveFromFavorites": {
+    "description": "Cap 19.5b Favorites row when asset is already favorited; states status then action"
+  },
+  "cap19PanelFavoritesAddedSuccess": "Added to Favorites",
+  "@cap19PanelFavoritesAddedSuccess": {
+    "description": "Cap 19.5b toggle-on success toast"
+  },
+  "cap19PanelFavoritesRemovedSuccess": "Removed from Favorites",
+  "@cap19PanelFavoritesRemovedSuccess": {
+    "description": "Cap 19.5b toggle-off success toast"
+  },
+  "cap19PanelFavoritesError": "Couldn't update Favorites. Try again.",
+  "@cap19PanelFavoritesError": {
+    "description": "Cap 19.5b Favorites read/toggle failure"
   }
 }

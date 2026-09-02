@@ -451,7 +451,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19PanelAddToAlbumLimitedMessage =>
-      'Adding to albums needs full Photos access. Open Settings to allow access to all photos.';
+      'Favorites and albums need full Photos access. Open Settings to allow access to all photos.';
 
   @override
   String get cap19PanelAddToAlbumFullPlaceholder =>
@@ -474,4 +474,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19PanelAddToAlbumError => 'Couldn\'t add to album. Try again.';
+
+  @override
+  String get cap19PanelFavoritesSectionTitle => 'Quick action';
+
+  @override
+  String get cap19PanelAlbumsSectionTitle => 'Albums';
+
+  @override
+  String get cap19PanelAddToFavorites => 'Add to Favorites';
+
+  @override
+  String get cap19PanelRemoveFromFavorites => 'Favorited — Remove';
+
+  @override
+  String get cap19PanelFavoritesAddedSuccess => 'Added to Favorites';
+
+  @override
+  String get cap19PanelFavoritesRemovedSuccess => 'Removed from Favorites';
+
+  @override
+  String get cap19PanelFavoritesError =>
+      'Couldn\'t update Favorites. Try again.';
 }

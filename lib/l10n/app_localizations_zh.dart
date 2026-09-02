@@ -448,7 +448,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19PanelAddToAlbumLimitedMessage =>
-      'Adding to albums needs full Photos access. Open Settings to allow access to all photos.';
+      'Favorites and albums need full Photos access. Open Settings to allow access to all photos.';
 
   @override
   String get cap19PanelAddToAlbumFullPlaceholder =>
@@ -471,6 +471,28 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19PanelAddToAlbumError => 'Couldn\'t add to album. Try again.';
+
+  @override
+  String get cap19PanelFavoritesSectionTitle => 'Quick action';
+
+  @override
+  String get cap19PanelAlbumsSectionTitle => 'Albums';
+
+  @override
+  String get cap19PanelAddToFavorites => 'Add to Favorites';
+
+  @override
+  String get cap19PanelRemoveFromFavorites => 'Favorited — Remove';
+
+  @override
+  String get cap19PanelFavoritesAddedSuccess => 'Added to Favorites';
+
+  @override
+  String get cap19PanelFavoritesRemovedSuccess => 'Removed from Favorites';
+
+  @override
+  String get cap19PanelFavoritesError =>
+      'Couldn\'t update Favorites. Try again.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -905,7 +927,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19PanelAddToAlbumLimitedMessage =>
-      '添加到相册需要完整照片访问权限。请打开设置并允许访问所有照片。';
+      '个人收藏和添加到相册需要完整照片访问权限。请打开设置并允许访问所有照片。';
 
   @override
   String get cap19PanelAddToAlbumFullPlaceholder => '相册选择器将在后续更新中提供。';
@@ -926,4 +948,25 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19PanelAddToAlbumError => '无法添加到相册，请重试。';
+
+  @override
+  String get cap19PanelFavoritesSectionTitle => '快捷操作';
+
+  @override
+  String get cap19PanelAlbumsSectionTitle => '相册';
+
+  @override
+  String get cap19PanelAddToFavorites => '添加到个人收藏';
+
+  @override
+  String get cap19PanelRemoveFromFavorites => '已在个人收藏 — 取消收藏';
+
+  @override
+  String get cap19PanelFavoritesAddedSuccess => '已添加到个人收藏';
+
+  @override
+  String get cap19PanelFavoritesRemovedSuccess => '已从个人收藏移除';
+
+  @override
+  String get cap19PanelFavoritesError => '无法更新个人收藏，请重试。';
 }

@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/features/main_browse/cap19_add_to_album_controller.dart';
-import 'package:waketok/features/main_browse/cap19_add_to_album_toast.dart';
+import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_album_cover_thumbnail.dart';
+import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
+import 'package:waketok/features/main_browse/cap19_panel_host_context.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Full Access Add-to-Album picker (Cap 19.5).
@@ -34,7 +36,20 @@ class _Cap19AlbumPickerListState extends ConsumerState<Cap19AlbumPickerList> {
           color: tokens.onMedia,
         );
 
-    return switch (picker.phase) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            l10n.cap19PanelAlbumsSectionTitle,
+            key: const Key('cap19PanelAlbumsSectionTitle'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: tokens.onMediaMuted,
+                ),
+          ),
+        ),
+        switch (picker.phase) {
       Cap19AlbumPickerPhase.loading => const Padding(
           padding: EdgeInsets.symmetric(vertical: 24),
           child: Center(
@@ -75,7 +90,9 @@ class _Cap19AlbumPickerListState extends ConsumerState<Cap19AlbumPickerList> {
           albums: picker.albums,
           appendingAlbumId: picker.appendingAlbumId,
         ),
-    };
+        },
+      ],
+    );
   }
 }
 
@@ -95,15 +112,13 @@ class _AlbumList extends ConsumerWidget {
     final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: tokens.onMedia,
         );
-    const coverSize = 52.0;
-    final maxHeight = MediaQuery.sizeOf(context).height * 0.45;
+    const coverSize = kCap19PanelRowThumbnailSize;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxHeight),
-      child: ListView.separated(
-        key: const Key('cap19AlbumPickerList'),
-        shrinkWrap: true,
-        itemCount: albums.length,
+    return ListView.separated(
+      key: const Key('cap19AlbumPickerList'),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: albums.length,
         separatorBuilder: (_, __) => Divider(
           height: 1,
           color: tokens.onMedia.withValues(alpha: 0.12),
@@ -132,8 +147,7 @@ class _AlbumList extends ConsumerWidget {
                 : null,
           );
         },
-      ),
-    );
+      );
   }
 
   Future<void> _onAlbumTap(
@@ -142,7 +156,7 @@ class _AlbumList extends ConsumerWidget {
     AssetSource album,
   ) async {
     final l10n = AppLocalizations.of(context)!;
-    final messenger = ScaffoldMessenger.of(context);
+    final hostContext = Cap19PanelHostContext.of(context);
     final success = await ref
         .read(cap19AlbumPickerProvider.notifier)
         .appendToAlbum(album.id);
@@ -151,9 +165,9 @@ class _AlbumList extends ConsumerWidget {
     }
     if (success) {
       Navigator.of(context).pop();
-      showCap19AddToAlbumSuccessToast(messenger, l10n, album.displayName);
+      showCap19AddToAlbumSuccessToast(hostContext, l10n, album.displayName);
       return;
     }
-    showCap19AddToAlbumErrorToast(messenger, l10n);
+    showCap19AddToAlbumErrorToast(hostContext, l10n);
   }
 }

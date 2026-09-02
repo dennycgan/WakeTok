@@ -382,6 +382,17 @@ class AlbumCoverThumbnailDto {
   Uint8List? jpegBytes;
 }
 
+/// Cap 19.5b: per-asset Favorites flag for panel toggle.
+class AssetFavoriteStatusDto {
+  AssetFavoriteStatusDto({
+    required this.assetIdentifier,
+    required this.isFavorite,
+  });
+
+  String assetIdentifier;
+  bool isFavorite;
+}
+
 /// Photos library gateway (kickoff PhotoLibraryGateway → production Api name).
 @HostApi()
 abstract class PhotoLibraryApi {
@@ -534,6 +545,20 @@ abstract class PhotoLibraryApi {
   @async
   AlbumCoverThumbnailDto requestAlbumCoverThumbnail(
     String albumIdentifier,
+    int targetSizePx,
+  );
+
+  /// Cap 19.5b: read [PHAsset.isFavorite] for the panel toggle (Full Access).
+  @async
+  AssetFavoriteStatusDto requestAssetFavoriteStatus(String assetIdentifier);
+
+  /// Cap 19.5b: set [PHAssetChangeRequest.isFavorite] on the current asset.
+  @async
+  void setAssetFavorite(String assetIdentifier, bool favorite);
+
+  /// Cap 19.5b: Favorites smart-album mosaic (subtype favorites; not current asset).
+  @async
+  AlbumCoverThumbnailDto requestFavoritesSmartAlbumCoverThumbnail(
     int targetSizePx,
   );
 

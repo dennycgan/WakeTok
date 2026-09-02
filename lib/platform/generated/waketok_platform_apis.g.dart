@@ -1210,6 +1210,57 @@ class AlbumCoverThumbnailDto {
   }
 }
 
+/// Cap 19.5b: per-asset Favorites flag for panel toggle.
+class AssetFavoriteStatusDto {
+  AssetFavoriteStatusDto({
+    required this.assetIdentifier,
+    required this.isFavorite,
+  });
+
+  String assetIdentifier;
+
+  bool isFavorite;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      assetIdentifier,
+      isFavorite,
+    ];
+  }
+
+  Object encode() {
+    return _toList();  }
+
+  static AssetFavoriteStatusDto decode(Object result) {
+    result as List<Object?>;
+    return AssetFavoriteStatusDto(
+      assetIdentifier: result[0]! as String,
+      isFavorite: result[1]! as bool,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! AssetFavoriteStatusDto || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(isFavorite, other.isFavorite);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'AssetFavoriteStatusDto(assetIdentifier: $assetIdentifier, isFavorite: $isFavorite)';
+  }
+}
+
 
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
@@ -1293,6 +1344,9 @@ class _PigeonCodec extends StandardMessageCodec {
     }    else if (value is AlbumCoverThumbnailDto) {
       buffer.putUint8(153);
       writeValue(buffer, value.encode());
+    }    else if (value is AssetFavoriteStatusDto) {
+      buffer.putUint8(154);
+      writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
     }
@@ -1359,6 +1413,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return ScrubPreviewFrameDto.decode(readValue(buffer)!);
       case 153:
         return AlbumCoverThumbnailDto.decode(readValue(buffer)!);
+      case 154:
+        return AssetFavoriteStatusDto.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -1836,6 +1892,65 @@ class PhotoLibraryApi {
       binaryMessenger: pigeonVar_binaryMessenger,
     );
     final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[albumIdentifier, targetSizePx]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as AlbumCoverThumbnailDto;
+  }
+
+  /// Cap 19.5b: read [PHAsset.isFavorite] for the panel toggle (Full Access).
+  Future<AssetFavoriteStatusDto> requestAssetFavoriteStatus(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestAssetFavoriteStatus$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return pigeonVar_replyValue! as AssetFavoriteStatusDto;
+  }
+
+  /// Cap 19.5b: set [PHAssetChangeRequest.isFavorite] on the current asset.
+  Future<void> setAssetFavorite(String assetIdentifier, bool favorite) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.setAssetFavorite$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier, favorite]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
+
+  /// Cap 19.5b: Favorites smart-album mosaic (subtype favorites; not current asset).
+  Future<AlbumCoverThumbnailDto> requestFavoritesSmartAlbumCoverThumbnail(int targetSizePx) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.requestFavoritesSmartAlbumCoverThumbnail$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[targetSizePx]);
     final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
 
     final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(

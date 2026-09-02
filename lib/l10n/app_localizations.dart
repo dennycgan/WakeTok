@@ -849,10 +849,10 @@ abstract class AppLocalizations {
   /// **'Add to Album'**
   String get cap19PanelAddToAlbumTitle;
 
-  /// Cap 19.4 D4 non-interactive Limited upgrade copy
+  /// Cap 19.4 D4 non-interactive Limited upgrade copy (Cap 19.5b: favorites + albums)
   ///
   /// In en, this message translates to:
-  /// **'Adding to albums needs full Photos access. Open Settings to allow access to all photos.'**
+  /// **'Favorites and albums need full Photos access. Open Settings to allow access to all photos.'**
   String get cap19PanelAddToAlbumLimitedMessage;
 
   /// Cap 19.4 Full Access placeholder until Cap 19.5 picker
@@ -890,6 +890,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t add to album. Try again.'**
   String get cap19PanelAddToAlbumError;
+
+  /// Cap 19.5b Favorites section header above album list
+  ///
+  /// In en, this message translates to:
+  /// **'Quick action'**
+  String get cap19PanelFavoritesSectionTitle;
+
+  /// Cap 19.5b Albums section header below Favorites row
+  ///
+  /// In en, this message translates to:
+  /// **'Albums'**
+  String get cap19PanelAlbumsSectionTitle;
+
+  /// Cap 19.5b Favorites row when asset is not favorited
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Favorites'**
+  String get cap19PanelAddToFavorites;
+
+  /// Cap 19.5b Favorites row when asset is already favorited; states status then action
+  ///
+  /// In en, this message translates to:
+  /// **'Favorited — Remove'**
+  String get cap19PanelRemoveFromFavorites;
+
+  /// Cap 19.5b toggle-on success toast
+  ///
+  /// In en, this message translates to:
+  /// **'Added to Favorites'**
+  String get cap19PanelFavoritesAddedSuccess;
+
+  /// Cap 19.5b toggle-off success toast
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Favorites'**
+  String get cap19PanelFavoritesRemovedSuccess;
+
+  /// Cap 19.5b Favorites read/toggle failure
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update Favorites. Try again.'**
+  String get cap19PanelFavoritesError;
 }
 
 class _AppLocalizationsDelegate

@@ -6,4 +6,9 @@ abstract class AlbumCoverRepository {
     String albumIdentifier, {
     required int targetSizePx,
   });
+
+  /// Cap 19.5b — Photos Favorites smart album cover (not the current feed asset).
+  Future<Uint8List?> requestFavoritesSmartAlbumCoverThumbnail({
+    required int targetSizePx,
+  });
 }

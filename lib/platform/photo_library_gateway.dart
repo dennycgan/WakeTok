@@ -4,6 +4,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
 import 'package:waketok/domain/library/album_cover_repository.dart';
 import 'package:waketok/domain/library/album_mutation_repository.dart';
+import 'package:waketok/domain/library/asset_favorite_repository.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/library/library_asset.dart';
 import 'package:waketok/domain/library/library_catalog_repository.dart';
@@ -236,7 +237,8 @@ class PhotoLibraryGateway
         MediaDisplayRepository,
         PresentationMetadataRepository,
         AlbumMutationRepository,
-        AlbumCoverRepository {
+        AlbumCoverRepository,
+        AssetFavoriteRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -391,9 +393,31 @@ class PhotoLibraryGateway
   }
 
   @override
+  Future<Uint8List?> requestFavoritesSmartAlbumCoverThumbnail({
+    required int targetSizePx,
+  }) async {
+    final dto =
+        await _api.requestFavoritesSmartAlbumCoverThumbnail(targetSizePx);
+    return dto.jpegBytes;
+  }
+
+  @override
   Future<void> addAssetToAlbum(
     String assetIdentifier,
     String albumIdentifier,
   ) =>
       _api.addAssetToAlbum(assetIdentifier, albumIdentifier);
+
+  @override
+  Future<bool> requestFavoriteStatus(String assetIdentifier) async {
+    final dto = await _api.requestAssetFavoriteStatus(assetIdentifier);
+    return dto.isFavorite;
+  }
+
+  @override
+  Future<void> setFavorite(
+    String assetIdentifier, {
+    required bool favorite,
+  }) =>
+      _api.setAssetFavorite(assetIdentifier, favorite);
 }

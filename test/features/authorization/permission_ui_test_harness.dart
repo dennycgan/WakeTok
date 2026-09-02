@@ -13,6 +13,7 @@ import 'package:waketok/features/authorization/photos_authorization_notifier.dar
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/features/library_smoke/album_cover_providers.dart';
 import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
+import 'package:waketok/features/library_smoke/asset_favorite_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
@@ -23,6 +24,7 @@ import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_album_cover_repository.dart';
 import '../../library_smoke/fake_album_mutation_repository.dart';
+import '../../library_smoke/fake_asset_favorite_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
@@ -73,6 +75,7 @@ Widget permissionUiHarness({
   FakeAssetSourceRepository? assetSources,
   FakeAlbumMutationRepository? albumMutations,
   FakeAlbumCoverRepository? albumCovers,
+  FakeAssetFavoriteRepository? assetFavorites,
   FakeMediaDisplayRepository? mediaDisplay,
   FakePlaybackRepository? playback,
   FakePresentationMetadataRepository? presentationMetadata,
@@ -99,6 +102,7 @@ Widget permissionUiHarness({
   final sources = assetSources ?? FakeAssetSourceRepository();
   final mutations = albumMutations ?? FakeAlbumMutationRepository();
   final covers = albumCovers ?? FakeAlbumCoverRepository();
+  final favorites = assetFavorites ?? FakeAssetFavoriteRepository();
   return ProviderScope(
     overrides: [
       photosAuthorizationRepositoryProvider.overrideWithValue(repo),
@@ -106,6 +110,7 @@ Widget permissionUiHarness({
       assetSourceRepositoryProvider.overrideWithValue(sources),
       albumMutationRepositoryProvider.overrideWithValue(mutations),
       albumCoverRepositoryProvider.overrideWithValue(covers),
+      assetFavoriteRepositoryProvider.overrideWithValue(favorites),
       mediaDisplayRepositoryProvider.overrideWithValue(
         mediaDisplay ?? FakeMediaDisplayRepository(),
       ),

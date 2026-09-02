@@ -9,6 +9,8 @@ import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
+import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
+import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_album_mutation_repository.dart';
@@ -35,7 +37,14 @@ Future<void> _openFullSheet(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _settleCap19Toasts(WidgetTester tester) async {
+  await tester.pump(kCap19BrowseToastDuration);
+  resetCap19BrowseToastForTest();
+}
+
 void main() {
+  tearDown(resetCap19BrowseToastForTest);
+
   testWidgets('W-19.5-1 Full sheet lists writable user albums', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
@@ -132,6 +141,7 @@ void main() {
     expect(mutations.addCalls, 1);
     expect(mutations.lastAssetId, 'asset-current');
     expect(mutations.lastAlbumId, 'target-album');
+    await _settleCap19Toasts(tester);
   });
 
   testWidgets('W-19.5-5 append success closes sheet and shows SnackBar',
@@ -154,11 +164,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('cap19ActionsHalfSheet')), findsNothing);
-    expect(find.byKey(const Key('cap19AddToAlbumSuccessSnackBar')), findsOneWidget);
+    expect(find.byKey(const Key('cap19AddToAlbumSuccessToast')), findsOneWidget);
     expect(
       find.text(l10n.cap19PanelAddToAlbumSuccess('Vacation')),
       findsOneWidget,
     );
+    await _settleCap19Toasts(tester);
   });
 
   testWidgets('W-19.5-6 append failure keeps sheet and shows error SnackBar',
@@ -187,8 +198,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('cap19ActionsHalfSheet')), findsOneWidget);
-    expect(find.byKey(const Key('cap19AddToAlbumErrorSnackBar')), findsOneWidget);
+    expect(find.byKey(const Key('cap19AddToAlbumErrorToast')), findsOneWidget);
     expect(find.text(l10n.cap19PanelAddToAlbumError), findsOneWidget);
+    await _settleCap19Toasts(tester);
   });
 
   testWidgets('W-19.5-7 append does not restart browse session', (tester) async {
@@ -221,6 +233,7 @@ void main() {
 
     expect(epochAfter, epochBefore);
     expect(feedIndexAfter, feedIndexBefore);
+    await _settleCap19Toasts(tester);
   });
 
   testWidgets('W-19.5-8 empty writable list shows empty state', (tester) async {

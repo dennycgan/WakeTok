@@ -113,6 +113,13 @@
     "cap19PanelAddToAlbumListError",
     "cap19PanelAddToAlbumRetry",
     "cap19PanelAddToAlbumSuccess",
-    "cap19PanelAddToAlbumError"
+    "cap19PanelAddToAlbumError",
+    "cap19PanelFavoritesSectionTitle",
+    "cap19PanelAlbumsSectionTitle",
+    "cap19PanelAddToFavorites",
+    "cap19PanelRemoveFromFavorites",
+    "cap19PanelFavoritesAddedSuccess",
+    "cap19PanelFavoritesRemovedSuccess",
+    "cap19PanelFavoritesError"
   ]
 }
