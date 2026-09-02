@@ -564,5 +564,25 @@
   "cap19ProbeClearProductKv": "Clear product WakeTok KV",
   "@cap19ProbeClearProductKv": {
     "description": "Cap 19.3 clears product SharedPreferences album id"
+  },
+  "cap19EntryIconSemantics": "Add to album actions",
+  "@cap19EntryIconSemantics": {
+    "description": "Cap 19.4 entry icon accessibility label"
+  },
+  "cap19PanelTitle": "Actions",
+  "@cap19PanelTitle": {
+    "description": "Cap 19.4 half-sheet title"
+  },
+  "cap19PanelAddToAlbumTitle": "Add to Album",
+  "@cap19PanelAddToAlbumTitle": {
+    "description": "Cap 19.4 half-sheet Add to Album section title"
+  },
+  "cap19PanelAddToAlbumLimitedMessage": "Adding to albums needs full Photos access. Open Settings to allow access to all photos.",
+  "@cap19PanelAddToAlbumLimitedMessage": {
+    "description": "Cap 19.4 D4 non-interactive Limited upgrade copy"
+  },
+  "cap19PanelAddToAlbumFullPlaceholder": "Album picker arrives in a later update.",
+  "@cap19PanelAddToAlbumFullPlaceholder": {
+    "description": "Cap 19.4 Full Access placeholder until Cap 19.5 picker"
   }
 }

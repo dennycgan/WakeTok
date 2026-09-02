@@ -122,5 +122,10 @@
   "cap19ProbeClearKv": "清除 WakeTok 探针 KV",
   "cap19ProductAlbumKvLabel": "产品 WakeTok 相册 KV：{id}",
   "cap19ProbeProductBootstrap": "产品：D1 bootstrap",
-  "cap19ProbeClearProductKv": "清除产品 WakeTok KV"
+  "cap19ProbeClearProductKv": "清除产品 WakeTok KV",
+  "cap19EntryIconSemantics": "添加到相册操作",
+  "cap19PanelTitle": "操作",
+  "cap19PanelAddToAlbumTitle": "添加到相册",
+  "cap19PanelAddToAlbumLimitedMessage": "添加到相册需要完整照片访问权限。请打开设置并允许访问所有照片。",
+  "cap19PanelAddToAlbumFullPlaceholder": "相册选择器将在后续更新中提供。"
 }

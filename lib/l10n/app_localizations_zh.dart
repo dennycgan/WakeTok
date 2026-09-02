@@ -436,6 +436,23 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19ProbeClearProductKv => 'Clear product WakeTok KV';
+
+  @override
+  String get cap19EntryIconSemantics => 'Add to album actions';
+
+  @override
+  String get cap19PanelTitle => 'Actions';
+
+  @override
+  String get cap19PanelAddToAlbumTitle => 'Add to Album';
+
+  @override
+  String get cap19PanelAddToAlbumLimitedMessage =>
+      'Adding to albums needs full Photos access. Open Settings to allow access to all photos.';
+
+  @override
+  String get cap19PanelAddToAlbumFullPlaceholder =>
+      'Album picker arrives in a later update.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -858,4 +875,20 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19ProbeClearProductKv => '清除产品 WakeTok KV';
+
+  @override
+  String get cap19EntryIconSemantics => '添加到相册操作';
+
+  @override
+  String get cap19PanelTitle => '操作';
+
+  @override
+  String get cap19PanelAddToAlbumTitle => '添加到相册';
+
+  @override
+  String get cap19PanelAddToAlbumLimitedMessage =>
+      '添加到相册需要完整照片访问权限。请打开设置并允许访问所有照片。';
+
+  @override
+  String get cap19PanelAddToAlbumFullPlaceholder => '相册选择器将在后续更新中提供。';
 }

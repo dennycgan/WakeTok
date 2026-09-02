@@ -830,6 +830,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clear product WakeTok KV'**
   String get cap19ProbeClearProductKv;
+
+  /// Cap 19.4 entry icon accessibility label
+  ///
+  /// In en, this message translates to:
+  /// **'Add to album actions'**
+  String get cap19EntryIconSemantics;
+
+  /// Cap 19.4 half-sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get cap19PanelTitle;
+
+  /// Cap 19.4 half-sheet Add to Album section title
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Album'**
+  String get cap19PanelAddToAlbumTitle;
+
+  /// Cap 19.4 D4 non-interactive Limited upgrade copy
+  ///
+  /// In en, this message translates to:
+  /// **'Adding to albums needs full Photos access. Open Settings to allow access to all photos.'**
+  String get cap19PanelAddToAlbumLimitedMessage;
+
+  /// Cap 19.4 Full Access placeholder until Cap 19.5 picker
+  ///
+  /// In en, this message translates to:
+  /// **'Album picker arrives in a later update.'**
+  String get cap19PanelAddToAlbumFullPlaceholder;
 }
 
 class _AppLocalizationsDelegate

@@ -103,6 +103,11 @@
     "cap19ProbeClearKv",
     "cap19ProductAlbumKvLabel",
     "cap19ProbeProductBootstrap",
-    "cap19ProbeClearProductKv"
+    "cap19ProbeClearProductKv",
+    "cap19EntryIconSemantics",
+    "cap19PanelTitle",
+    "cap19PanelAddToAlbumTitle",
+    "cap19PanelAddToAlbumLimitedMessage",
+    "cap19PanelAddToAlbumFullPlaceholder"
   ]
 }

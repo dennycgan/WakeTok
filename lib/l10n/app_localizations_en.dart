@@ -439,4 +439,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19ProbeClearProductKv => 'Clear product WakeTok KV';
+
+  @override
+  String get cap19EntryIconSemantics => 'Add to album actions';
+
+  @override
+  String get cap19PanelTitle => 'Actions';
+
+  @override
+  String get cap19PanelAddToAlbumTitle => 'Add to Album';
+
+  @override
+  String get cap19PanelAddToAlbumLimitedMessage =>
+      'Adding to albums needs full Photos access. Open Settings to allow access to all photos.';
+
+  @override
+  String get cap19PanelAddToAlbumFullPlaceholder =>
+      'Album picker arrives in a later update.';
 }
