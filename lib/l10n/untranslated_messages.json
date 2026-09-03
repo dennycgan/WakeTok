@@ -121,6 +121,7 @@
     "cap19PanelFavoritesAddedSuccess",
     "cap19PanelFavoritesRemovedSuccess",
     "cap19PanelFavoritesError",
+    "cap19CurrentMediaNotReady",
     "cap19LeftSwipeGuideTitle",
     "cap19LeftSwipeGuideSubtitle",
     "cap19LeftSwipeAppendSuccess",

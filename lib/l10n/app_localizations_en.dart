@@ -498,6 +498,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t update Favorites. Try again.';
 
   @override
+  String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
+
+  @override
   String get cap19LeftSwipeGuideTitle => 'Swipe left to add to WakeTok';
 
   @override

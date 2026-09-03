@@ -74,11 +74,13 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   /// Cap 18.5 video scrubber track (unfilled portion).
   final Color scrubProgressTrack;
 
-  /// Cap 18.5 video scrubber played fill.
+  /// Cap 18.5 video scrubber played fill (idle) and Cap 19.8 live-playhead
+  /// ghost while dragging (solid; same color for drag continuity).
   final Color scrubProgressPlayed;
 
-  /// Cap 19.2d live playhead ghost while scrub-dragging (under primary fill).
-  /// Initial alpha ~30% white — pending device visual confirm; may retune.
+  /// Cap 19.8 finger-target fill while scrub-dragging (above solid live ghost).
+  /// Translucent brand-gold so the white live ghost can read through on
+  /// forward scrubs; ~65% opacity (`0xA6`) — retune on device if needed.
   final Color scrubProgressLiveGhost;
 
   /// Cap 18.5 scrub preview bubble non-photographic placeholder.
@@ -130,8 +132,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     immersiveBottomBarHeight: _immersiveBottomBarHeight,
     scrubProgressTrack: Color(0x66FFFFFF),
     scrubProgressPlayed: Color(0xFFFFFFFF),
-    // Initial ~30% white — Cap 19.2d; retune after device smoke if needed.
-    scrubProgressLiveGhost: Color(0x4DFFFFFF),
+    // Cap 19.8: ~65% brandGold drag-target (solid live ghost uses played).
+    scrubProgressLiveGhost: Color(0xA6E0C590),
     // Opaque — semi-transparent fill lets video show through JPEG decode gaps.
     scrubPreviewPlaceholderFill: Color(0xFF000000),
     titleChrome: TextStyle(
@@ -180,8 +182,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     immersiveBottomBarHeight: _immersiveBottomBarHeight,
     scrubProgressTrack: Color(0x66FFFFFF),
     scrubProgressPlayed: Color(0xFFFFFFFF),
-    // Initial ~30% white — Cap 19.2d; retune after device smoke if needed.
-    scrubProgressLiveGhost: Color(0x4DFFFFFF),
+    // Cap 19.8: ~65% brandGold drag-target (solid live ghost uses played).
+    scrubProgressLiveGhost: Color(0xA6E0C590),
     // Opaque — semi-transparent fill lets video show through JPEG decode gaps.
     scrubPreviewPlaceholderFill: Color(0xFF000000),
     titleChrome: TextStyle(

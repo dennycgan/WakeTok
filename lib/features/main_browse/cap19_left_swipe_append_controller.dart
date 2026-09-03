@@ -15,6 +15,7 @@ import 'package:waketok/features/main_browse/main_browse_providers.dart';
 enum Cap19LeftSwipeAppendOutcome {
   success,
   alreadyInAlbum,
+  mediaNotReady,
   failed,
 }
 
@@ -48,10 +49,12 @@ final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
   final appendState = ref.watch(cap19LeftSwipeAppendProvider);
   final magnified = ref.watch(cap19StillMagnificationStubProvider);
   final panelOpen = ref.watch(cap19ActionsPanelOpenProvider);
+  final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
   return leftSwipeArmingAllowed(
     leftSwipeAddEnabled: appendState.leftSwipeAddEnabled,
     isCurrentStillMagnified: magnified,
     cap19PanelOpen: panelOpen,
+    currentAssetActionable: actionable,
   );
 });
 
@@ -79,7 +82,7 @@ class Cap19LeftSwipeAppendNotifier extends Notifier<Cap19LeftSwipeAppendState> {
     }
     final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
     if (assetId == null || assetId.isEmpty) {
-      return Cap19LeftSwipeAppendOutcome.failed;
+      return Cap19LeftSwipeAppendOutcome.mediaNotReady;
     }
     final access = ref.read(photosAuthorizationProvider).value;
     if (access == null) {

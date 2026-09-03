@@ -8,6 +8,9 @@ import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
 enum Cap19AlbumPickerPhase { loading, loaded, empty, listError }
 
+enum Cap19AlbumAppendOutcome { success, mediaNotReady, failed }
+
+
 class Cap19AlbumPickerState {
   const Cap19AlbumPickerState({
     this.phase = Cap19AlbumPickerPhase.loading,
@@ -62,11 +65,11 @@ class Cap19AlbumPickerNotifier extends Notifier<Cap19AlbumPickerState> {
     }
   }
 
-  /// Returns `true` when append succeeds. Does not touch Session/Snapshot.
-  Future<bool> appendToAlbum(String albumId) async {
+  /// Appends current asset to [albumId]. Does not touch Session/Snapshot.
+  Future<Cap19AlbumAppendOutcome> appendToAlbum(String albumId) async {
     final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
     if (assetId == null || assetId.isEmpty) {
-      return false;
+      return Cap19AlbumAppendOutcome.mediaNotReady;
     }
     state = state.copyWith(appendingAlbumId: albumId);
     try {
@@ -74,11 +77,11 @@ class Cap19AlbumPickerNotifier extends Notifier<Cap19AlbumPickerState> {
             assetId,
             albumId,
           );
-      return true;
+      return Cap19AlbumAppendOutcome.success;
     } on PlatformException {
-      return false;
+      return Cap19AlbumAppendOutcome.failed;
     } catch (_) {
-      return false;
+      return Cap19AlbumAppendOutcome.failed;
     } finally {
       state = state.copyWith(clearAppendingAlbumId: true);
     }

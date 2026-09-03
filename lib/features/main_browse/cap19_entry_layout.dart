@@ -27,6 +27,9 @@ const double kCap19ActionsHalfSheetMaxHeightFactor = 0.5;
 /// Album / Favorites picker row thumbnail edge length.
 const double kCap19PanelRowThumbnailSize = 52;
 
+/// Opacity for Cap 19 entry (and future share) when current asset is not actionable.
+const double kCap19EntryIconDisabledOpacity = 0.38;
+
 /// Top chrome body below [MediaQuery.padding.top] (SafeArea + cells; ADR-016).
 const double kCap19BrowseTopChromeBodyHeight = 56;
 

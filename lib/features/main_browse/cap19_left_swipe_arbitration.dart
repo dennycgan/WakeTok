@@ -42,6 +42,7 @@ bool leftSwipeArmingAllowed({
   required bool leftSwipeAddEnabled,
   required bool isCurrentStillMagnified,
   required bool cap19PanelOpen,
+  required bool currentAssetActionable,
 }) {
   if (!leftSwipeAddEnabled) {
     return false;
@@ -50,6 +51,9 @@ bool leftSwipeArmingAllowed({
     return false;
   }
   if (cap19PanelOpen) {
+    return false;
+  }
+  if (!currentAssetActionable) {
     return false;
   }
   return true;

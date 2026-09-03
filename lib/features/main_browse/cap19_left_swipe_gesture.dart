@@ -197,6 +197,8 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
         showCap19LeftSwipeAppendSuccessToast(context, l10n);
       case Cap19LeftSwipeAppendOutcome.alreadyInAlbum:
         showCap19LeftSwipeAlreadyInAlbumToast(context, l10n);
+      case Cap19LeftSwipeAppendOutcome.mediaNotReady:
+        showCap19CurrentMediaNotReadyToast(context, l10n);
       case Cap19LeftSwipeAppendOutcome.failed:
         showCap19LeftSwipeAppendErrorToast(context, l10n);
     }

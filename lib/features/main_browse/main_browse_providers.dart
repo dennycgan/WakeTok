@@ -103,3 +103,10 @@ final mainBrowseCurrentAssetIdProvider = Provider<String?>((ref) {
   }
   return ids[feedIndex];
 });
+
+/// True when Browse has a determinate current asset id (Cap 19 entry / future
+/// share / left-swipe arm). Not playback-ready — distinct from scrubber L2 gates.
+final mainBrowseCurrentAssetActionableProvider = Provider<bool>((ref) {
+  final id = ref.watch(mainBrowseCurrentAssetIdProvider);
+  return id != null && id.isNotEmpty;
+});

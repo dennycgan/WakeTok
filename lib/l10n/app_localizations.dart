@@ -927,11 +927,17 @@ abstract class AppLocalizations {
   /// **'Removed from Favorites'**
   String get cap19PanelFavoritesRemovedSuccess;
 
-  /// Cap 19.5b Favorites read/toggle failure
+  /// Cap 19.5b Favorites Host read/toggle failure (not media-not-ready)
   ///
   /// In en, this message translates to:
   /// **'Couldn\'t update Favorites. Try again.'**
   String get cap19PanelFavoritesError;
+
+  /// Cap 19 when current asset id is unset (panel row or toast; may split later)
+  ///
+  /// In en, this message translates to:
+  /// **'Media isn\'t ready yet.'**
+  String get cap19CurrentMediaNotReady;
 
   /// Cap 19.6 one-shot coach mark title
   ///

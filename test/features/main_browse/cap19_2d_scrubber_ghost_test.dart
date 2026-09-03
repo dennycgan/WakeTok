@@ -70,6 +70,28 @@ void main() {
     expect(ghost.widthFactor, closeTo(0.40, 0.03));
     expect(primary.widthFactor!, lessThan(ghost.widthFactor! - 0.05));
 
+    final tokens = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+    final ghostBox = tester.widget<DecoratedBox>(
+      find.descendant(
+        of: find.byKey(const Key('mainBrowseScrubberLiveGhost')),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
+    final primaryBox = tester.widget<DecoratedBox>(
+      find.descendant(
+        of: find.byKey(const Key('mainBrowseScrubberPrimaryFill')),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
+    expect(
+      (ghostBox.decoration as BoxDecoration).color,
+      tokens.scrubProgressPlayed,
+    );
+    expect(
+      (primaryBox.decoration as BoxDecoration).color,
+      tokens.scrubProgressLiveGhost,
+    );
+
     // Live catch-up while dragging is covered by W-19.2d-3 (emit mid-drag,
     // then cancel — fill follows the latest live ratio).
     await gesture.up();

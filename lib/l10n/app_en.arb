@@ -636,7 +636,11 @@
   },
   "cap19PanelFavoritesError": "Couldn't update Favorites. Try again.",
   "@cap19PanelFavoritesError": {
-    "description": "Cap 19.5b Favorites read/toggle failure"
+    "description": "Cap 19.5b Favorites Host read/toggle failure (not media-not-ready)"
+  },
+  "cap19CurrentMediaNotReady": "Media isn't ready yet.",
+  "@cap19CurrentMediaNotReady": {
+    "description": "Cap 19 when current asset id is unset (panel row or toast; may split later)"
   },
   "cap19LeftSwipeGuideTitle": "Swipe left to add to WakeTok",
   "@cap19LeftSwipeGuideTitle": {

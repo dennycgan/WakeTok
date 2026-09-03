@@ -157,6 +157,17 @@ void showCap19LeftSwipeAppendErrorToast(
   );
 }
 
+void showCap19CurrentMediaNotReadyToast(
+  BuildContext context,
+  AppLocalizations l10n,
+) {
+  showCap19BrowseToast(
+    context,
+    message: l10n.cap19CurrentMediaNotReady,
+    toastKey: const Key('cap19CurrentMediaNotReadyToast'),
+  );
+}
+
 /// Test-only reset between widget tests.
 @visibleForTesting
 void resetCap19BrowseToastForTest() => hideCap19BrowseToast();

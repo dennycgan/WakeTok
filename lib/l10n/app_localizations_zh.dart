@@ -495,6 +495,9 @@ class AppLocalizationsZh extends AppLocalizations {
       'Couldn\'t update Favorites. Try again.';
 
   @override
+  String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
+
+  @override
   String get cap19LeftSwipeGuideTitle => 'Swipe left to add to WakeTok';
 
   @override
@@ -1006,6 +1009,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19PanelFavoritesError => '无法更新个人收藏，请重试。';
+
+  @override
+  String get cap19CurrentMediaNotReady => '媒体尚未就绪。';
 
   @override
   String get cap19LeftSwipeGuideTitle => '左滑添加到 WakeTok';

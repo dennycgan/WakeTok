@@ -62,6 +62,11 @@ class _Cap19FavoritesRowState extends ConsumerState<Cap19FavoritesRow> {
                 ),
               ),
             ),
+          Cap19FavoritesPhase.mediaNotReady => Text(
+              l10n.cap19CurrentMediaNotReady,
+              key: const Key('cap19FavoritesMediaNotReady'),
+              style: titleStyle,
+            ),
           Cap19FavoritesPhase.loadError => Text(
               l10n.cap19PanelFavoritesError,
               key: const Key('cap19FavoritesLoadError'),

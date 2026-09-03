@@ -41,6 +41,19 @@ void main() {
         leftSwipeAddEnabled: true,
         isCurrentStillMagnified: true,
         cap19PanelOpen: false,
+        currentAssetActionable: true,
+      ),
+      isFalse,
+    );
+  });
+
+  test('T-19.8-arm current asset not actionable blocks arming', () {
+    expect(
+      leftSwipeArmingAllowed(
+        leftSwipeAddEnabled: true,
+        isCurrentStillMagnified: false,
+        cap19PanelOpen: false,
+        currentAssetActionable: false,
       ),
       isFalse,
     );

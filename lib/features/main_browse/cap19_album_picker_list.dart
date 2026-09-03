@@ -157,17 +157,20 @@ class _AlbumList extends ConsumerWidget {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final hostContext = Cap19PanelHostContext.of(context);
-    final success = await ref
+    final outcome = await ref
         .read(cap19AlbumPickerProvider.notifier)
         .appendToAlbum(album.id);
     if (!context.mounted) {
       return;
     }
-    if (success) {
-      Navigator.of(context).pop();
-      showCap19AddToAlbumSuccessToast(hostContext, l10n, album.displayName);
-      return;
+    switch (outcome) {
+      case Cap19AlbumAppendOutcome.success:
+        Navigator.of(context).pop();
+        showCap19AddToAlbumSuccessToast(hostContext, l10n, album.displayName);
+      case Cap19AlbumAppendOutcome.mediaNotReady:
+        showCap19CurrentMediaNotReadyToast(hostContext, l10n);
+      case Cap19AlbumAppendOutcome.failed:
+        showCap19AddToAlbumErrorToast(hostContext, l10n);
     }
-    showCap19AddToAlbumErrorToast(hostContext, l10n);
   }
 }

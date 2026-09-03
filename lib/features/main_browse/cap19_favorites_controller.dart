@@ -3,7 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/features/library_smoke/asset_favorite_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
-enum Cap19FavoritesPhase { loading, loaded, loadError, toggling }
+enum Cap19FavoritesPhase {
+  loading,
+  mediaNotReady,
+  loaded,
+  loadError,
+  toggling,
+}
+
 
 class Cap19FavoritesState {
   const Cap19FavoritesState({
@@ -38,7 +45,7 @@ class Cap19FavoritesNotifier extends Notifier<Cap19FavoritesState> {
     state = const Cap19FavoritesState();
     final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
     if (assetId == null || assetId.isEmpty) {
-      state = const Cap19FavoritesState(phase: Cap19FavoritesPhase.loadError);
+      state = const Cap19FavoritesState(phase: Cap19FavoritesPhase.mediaNotReady);
       return;
     }
     try {

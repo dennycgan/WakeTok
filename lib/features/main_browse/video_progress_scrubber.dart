@@ -20,6 +20,8 @@ typedef ScrubPreviewRequest =
 /// freezes at the pre-release second during seek-hold (fill still optimistic).
 /// Cap 19.8 Bug B: release seek / fill optimism commit the last **painted**
 /// bubble label second (post-frame), not an unpainted final onUpdate sample.
+/// Cap 19.8: while dragging, solid live ghost (idle played color) under a
+/// translucent brandGold finger-target fill so both stay readable.
 ///
 /// Host null / latency gaps show a solid placeholder only — no user-facing
 /// unavailable copy (technical failures are not actionable while scrubbing).
@@ -800,8 +802,10 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
                                             widthFactor: _livePlayheadRatio,
                                             child: DecoratedBox(
                                               decoration: BoxDecoration(
+                                                // Same solid as idle played —
+                                                // continuity when drag begins.
                                                 color:
-                                                    tokens.scrubProgressLiveGhost,
+                                                    tokens.scrubProgressPlayed,
                                                 borderRadius:
                                                     BorderRadius.circular(
                                                   trackRadius,
@@ -818,7 +822,13 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
                                             widthFactor: _displayRatio,
                                             child: DecoratedBox(
                                               decoration: BoxDecoration(
-                                                color: tokens.scrubProgressPlayed,
+                                                // Drag: translucent brandGold
+                                                // so solid white live ghost
+                                                // reads through; idle: played.
+                                                color: _dragging
+                                                    ? tokens
+                                                        .scrubProgressLiveGhost
+                                                    : tokens.scrubProgressPlayed,
                                                 borderRadius:
                                                     BorderRadius.circular(
                                                   trackRadius,

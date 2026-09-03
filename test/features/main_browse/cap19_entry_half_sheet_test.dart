@@ -44,7 +44,10 @@ void main() {
   testWidgets('W-19.4-4 tap entry icon opens cap19 actions half-sheet',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-    await tester.pumpWidget(permissionUiHarness(repo: repo));
+    final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+    await tester.pumpWidget(
+      permissionUiHarness(repo: repo, assetSources: sources),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('cap19EntryIcon')));
@@ -120,9 +123,11 @@ void main() {
     var opened = false;
     final repo =
         ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
+    final sources = FakeAssetSourceRepository(allIds: const ['a1']);
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
+        assetSources: sources,
         openSettings: () async {
           opened = true;
         },
