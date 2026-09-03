@@ -308,15 +308,17 @@ KV → list find → create on clean install.
       `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
       `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b`; 19.6 `7b3d22a`;
       19.7 `b6f1223`; Cap 19.8 actionable gate + scrub gold ghost work
-      `ff59be9` (ADR-042; debt **447** half-sheet enter Accepted (phase))
+      `ff59be9` (ADR-042 Decisions 1–7; debt **447** half-sheet enter
+      Accepted (phase)); Cap 19.8 trailing chrome peek/cover hide work
+      `70db74b` (ADR-042 Decision 8; Kafka PASS)
 - Next step: 19.8 device matrix + Cap 19 `[x]` / PHASE_HISTORY; P-19.6-POP
       interactive-pop note
 - Blocked on owner: OK start coding / scope for remaining 19.8 close-out
-- Related decisions: ADR-042 (current-asset actionable); ADR-041 (D2=B /
-      D3=B); ADR-040 D15 / D18 / Decision 20; ADR-040 D13 Cap 19.2b/c/d
-      supplements; ADR-021 Limited list omission; debt **421** (Settings
-      Limited picker — out of Cap 19); debt **444** → Build a Pool Cap;
-      debt **445** (WakeTok album uniqueness); debt **446** (panel
+- Related decisions: ADR-042 (actionable + Decision 8 settle/cover); ADR-041
+      (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20; ADR-040 D13 Cap
+      19.2b/c/d supplements; ADR-021 Limited list omission; debt **421**
+      (Settings Limited picker — out of Cap 19); debt **444** → Build a Pool
+      Cap; debt **445** (WakeTok album uniqueness); debt **446** (panel
       single-album append — phase accept); debt **447** (half-sheet enter
       flash / tap hitch — phase accept)
 

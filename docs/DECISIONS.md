@@ -4547,12 +4547,15 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
 
 ## ADR-042: Cap 19 current-asset actionable signal (Browse mutation entries)
 
-- Status: Accepted (2026-09-04)
-- Commit/PR anchor: `ff59be9`
+- Status: Accepted (2026-09-04); Decision 8 narrow supplement Accepted
+  (2026-09-04, work `70db74b`)
+- Commit/PR anchor: `ff59be9` (Decisions 1–7); Decision 8 work `70db74b`
 - Plain summary (owner reads this): Browse actions that need a real current
   photo/video (add to album, Favorites, left-swipe, and later share) all ask
   one shared “is the current item determined?” flag — they must not invent
-  their own checks or reuse the scrubber’s “ready to play” freeze.
+  their own checks or reuse the scrubber’s “ready to play” freeze. Trailing
+  mutation chrome also hides fully while the vertical feed is peeking or
+  under PV transition cover (Decision 8).
 - Context / what problem forced this:
   Cap 19.8 device diagnosis (Kafka Profile): the bottom-trailing Add-to-Album
   entry was mounted whenever Browse was selected, ignoring whether
@@ -4594,6 +4597,23 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
      shell-fixed slot; disable with reduced opacity
      (`kCap19EntryIconDisabledOpacity`); do not hide (avoids flicker on brief
      session loading). Instant opacity switch — no AnimatedOpacity.
+  8. **Trailing mutation chrome settle visibility (narrow supplement):**
+     Trailing current-asset mutation chrome on Browse (Cap 19 entry icon;
+     future share; **same slot family**) is interaction-ready only when all
+     of: (1) `mainBrowseCurrentAssetActionableProvider` is true, (2) vertical
+     feed is settled (`mainBrowseVerticalFeedSettledProvider`; same
+     peek/settle epsilon discipline as Cap 18.5 scrubber), (3) current asset
+     is not under PV transition cover
+     (`!pvTransitionGuard.isCovering(currentId)`). Pure predicate:
+     `mainBrowseTrailingMutationChromeVisible` in
+     `main_browse_trailing_chrome_policy.dart` (not `scrubber_policy.dart`).
+     While peeking or covering: **fully hidden** (not opacity-disabled).
+     Decision 7 still owns only the not-actionable axis (slot visible +
+     reduced opacity; do not hide). Do not gate this chrome on
+     `scrubberFrozen` / L2-ready. Feed publishes settle via Riverpod; shell
+     must not read `VerticalMediaFeedState` private fields. Covering is
+     derived from existing `pvTransitionGuardProvider`, not a duplicate
+     provider.
 - Rejected alternatives (why not):
   - **Gate with `scrubberFrozen` / L2-ready:** Wrong product axis — still /
     Live / not-yet-ready video must still allow Favorites and add-to-album;
@@ -4609,12 +4629,27 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
     chrome slots; current-asset actionability is Browse data readiness for
     mutations — keep a separate ADR (same boundary discipline as ADR-041
     vs stuffing D1 into ADR-040).
+  - **New ADR for peek/settle chrome visibility:** Rejected — same
+    “when may trailing mutation chrome engage?” concern as Decisions 1–7;
+    Decision 8 is a narrow supplement.
+  - **Dim (Decision 7 opacity) while peeking or covering:** Rejected —
+    wrong axis; peek/cover must fully hide (scrubber mid-swipe chrome
+    precedent), not look like not-actionable.
+  - **Omit `transitionCovering` from the settle gate:** Rejected — after
+    page settle, PV cover can still show an unclean handoff; mutation chrome
+    must wait for the same clean window as scrubber chrome.
+  - **Put `mainBrowseTrailingMutationChromeVisible` in
+    `scrubber_policy.dart`:** Rejected — trailing mutation slot family is
+    not scrubber-specific; keep
+    `main_browse_trailing_chrome_policy.dart` for discoverability.
 - Consequences / constraints accepted:
   - Share and any later current-asset mutation entry must reuse
-    `mainBrowseCurrentAssetActionableProvider`.
+    `mainBrowseCurrentAssetActionableProvider` **and** Decision 8 settle /
+    cover visibility (same slot family).
   - Generic failure ARB keys stay for true Host/PhotoKit failures only.
   - Vertical page changes do not null the id between valid indices; brief
     not-actionable windows are expected on session loading / empty / error
     (and rare clamp races), showing as disabled opacity — accepted.
   - Implementing Cap 19.8 work commit anchors Accepted (`ff59be9`,
-    2026-09-04).
+    2026-09-04). Decision 8 work `70db74b` (2026-09-04); Kafka device PASS
+    for peek hide / no early show under covering / restore when settled.
