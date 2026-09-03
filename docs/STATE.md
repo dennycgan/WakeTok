@@ -307,15 +307,18 @@ KV → list find → create on clean install.
       ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
       `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
       `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b`; 19.6 `7b3d22a`;
-      19.7 `b6f1223` (docs this commit)
+      19.7 `b6f1223`; Cap 19.8 actionable gate + scrub gold ghost work
+      `ff59be9` (ADR-042; debt **447** half-sheet enter Accepted (phase))
 - Next step: 19.8 device matrix + Cap 19 `[x]` / PHASE_HISTORY; P-19.6-POP
       interactive-pop note
-- Blocked on owner: OK start coding / scope for 19.8 close-out
-- Related decisions: ADR-041 (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20;
-      ADR-040 D13 Cap 19.2b/c/d supplements; ADR-021 Limited list omission;
-      debt **421** (Settings Limited picker — out of Cap 19); debt **444**
-      → Build a Pool Cap; debt **445** (WakeTok album uniqueness); debt
-      **446** (panel single-album append — phase accept)
+- Blocked on owner: OK start coding / scope for remaining 19.8 close-out
+- Related decisions: ADR-042 (current-asset actionable); ADR-041 (D2=B /
+      D3=B); ADR-040 D15 / D18 / Decision 20; ADR-040 D13 Cap 19.2b/c/d
+      supplements; ADR-021 Limited list omission; debt **421** (Settings
+      Limited picker — out of Cap 19); debt **444** → Build a Pool Cap;
+      debt **445** (WakeTok album uniqueness); debt **446** (panel
+      single-album append — phase accept); debt **447** (half-sheet enter
+      flash / tap hitch — phase accept)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -610,6 +613,7 @@ KV → list find → create on clean install.
 | 444 | Open | Main Browse Screen | Cap 18.6 | External Photos delete while Consumption Session still lists the asset: misleading Layer 2 fail copy; Retry ineffective | **Verified (owner device, Kafka Profile `1ca0395`):** delete a still in iOS Photos without quitting WakeTok → first return to the same feed item still shows the image; swipe away and back → Layer 2 fail with `Could not load. Allow wireless data, then retry.` + Retry; Overlay metadata rows still visible — **not** a connectivity defect. **Verified (code):** missing `PHAsset` → Host `assetUnavailable`; Dart maps `assetUnavailable` → `FeedFailureReason.network` → that wireless-data string (debt **435** three-bucket collapse); no production `PHPhotoLibraryChangeObserver` / session queue invalidation on external library mutation. **Inferred (architecture — not log-verified this session):** first revisit may use cached L2 (`DisplayTempFileStore` / in-page display state); second remount likely hits fresh `requestDisplayAsset` on a deleted id. **Not Cap 18.6 scope.** | **Build a Pool, Ephemeral Pool, and Source ordering** | ADR-022 / ADR-025; debt **435**; `docs/acceptance/cap18-18.6-notes.md` |
 | 445 | Accepted (permanent) | Add to Album / Cap 19 | Cap 19-19.2a | WakeTok User Album uniqueness must use KV + `localIdentifier`, not title string — duplicate same-title albums possible | **Device confirmed (19.2a Kafka Debug, `cap19-19.2a-notes.md`):** iOS Photos allows multiple User Albums named `"WakeTok"`; each Limited create-only bootstrap (or KV clear + recreate) adds another album. Limited path forbids list find (ADR-021). **D1 bootstrap must treat persisted `albumIdentifier` as canonical identity** — not display-name dedup. KV loss under Limited may create a second album even when one already exists in Photos. Accepted cost of no-list-find rule; not a 19.2a blocker. | Cap 19.3 (D1 bootstrap) / D3 follow-up | ADR-021 / ADR-K; `docs/acceptance/cap19-19.2a-notes.md` |
 | 446 | Accepted (phase) | Add to Album / Cap 19 | Cap 19-19.5b | Panel add-to-album is single-select only — one album per sheet open; sheet dismisses on success | MVP scope: append the same asset to multiple albums requires reopening the panel each time. A fuller product may add multi-album multi-select + confirm (sheet stays open). PhotoKit has no single public “add to N albums” call — domain primitive `AlbumMutationRepository.addAssetToAlbum` is correctly one asset+album pair; upgrade is UI orchestration (N sequential calls) or optional Host batch in one `performChanges`. Distinct from Cap 19.7 **duplicate-append** row (re-append to the **same** album). | Unassigned | ADR-040 |
+| 447 | Accepted (phase) | Add to Album / Cap 19 | Cap 19.8 | Cap 19 actions half-sheet: (1) enter has no visible bottom-up slide; (2) occasional tap→open hitch — after tapping the bottom-trailing icon, the UI sometimes does not react immediately (brief blank / light stutter) before the sheet appears | **Profile-confirmed (Kafka, Cap 19.8).** **Root cause (both limbs):** on tap the main isolate must cold-build the full half-sheet (Favorites + album picker + frost) while the playing feed still contends for frame budget; when that first paint overruns the ~250ms wall-clock enter, the slide is skipped (exit still animates — warm tree); when the thread is only intermittently busy, the same cost shows as post-tap hitch then pop-in. Empty fixed shell slides (isolates content cost). Two mounting strategies tried (defer-one-frame; defer-to-completed) both rejected — neither achieves single-phase visible slide. Profile full-content with `BackdropFilter` removed still flashed (Experiment 1 / Profile full control) — first-paint content cost alone can skip enter, so deferring only frost while keeping Favorites/album sync is unlikely to restore the slide. **Not exhaustively ruled out:** reducing the loading-skeleton build cost of Favorites/Album rows themselves (near-zero-cost static placeholders before real `ConsumerWidget` loading), and/or Host pre-warm (may only marginally cut hitch frequency). Future revisit should try those before assuming architecture-level rework. Reverted defer/frost staging; keep stock sheet. Distinct from ADR-042 (current-asset actionable gating). | Unassigned | ADR-040; Cap 19.8 Profile A/B |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

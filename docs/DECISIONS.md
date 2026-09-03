@@ -4542,3 +4542,79 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
   - Formal ADR-K “no Limited album features” reading is **narrowly**
     superseded for **left-swipe → fixed WakeTok album only**; panel
     enumerate path stays ADR-K / D4.
+
+---
+
+## ADR-042: Cap 19 current-asset actionable signal (Browse mutation entries)
+
+- Status: Accepted (2026-09-04)
+- Commit/PR anchor: `ff59be9`
+- Plain summary (owner reads this): Browse actions that need a real current
+  photo/video (add to album, Favorites, left-swipe, and later share) all ask
+  one shared “is the current item determined?” flag — they must not invent
+  their own checks or reuse the scrubber’s “ready to play” freeze.
+- Context / what problem forced this:
+  Cap 19.8 device diagnosis (Kafka Profile): the bottom-trailing Add-to-Album
+  entry was mounted whenever Browse was selected, ignoring whether
+  `browseSessionProvider` had a determinate current asset. Opening the panel
+  or mutating while `mainBrowseCurrentAssetIdProvider` was null produced
+  generic failure copy (“Couldn't add… Try again.”) that reads like network
+  or permission failure. Left-swipe guide checked asset id for coach display,
+  but arming did not share one actionability predicate with the entry icon —
+  inconsistent gates. Future share chrome will need the same gate. This is a
+  **data-availability / mutation-entry** concern, orthogonal to ADR-040
+  gesture arbitration and entry *slot geometry*, and to scrubber L2-ready
+  freeze (ADR-040 Decision 13).
+- Decision (what was chosen):
+  1. **Canonical signal:** `mainBrowseCurrentAssetActionableProvider` in
+     `lib/features/main_browse/main_browse_providers.dart` — `true` iff
+     `mainBrowseCurrentAssetIdProvider` is non-null and non-empty. This is
+     the sole **actionability** signal for current-asset mutation entries.
+  2. **Required consumers (gate / arm / enable):** Cap 19 entry icon (and
+     future share control), left-swipe arming (`leftSwipeArmingAllowed` /
+     `cap19LeftSwipeArmingProvider`). New current-asset mutation chrome must
+     `watch`/`read` this provider — do **not** invent a parallel null check
+     for “may the user engage this entry?”, and do **not** reuse
+     `scrubberFrozen` or other playback-ready predicates.
+  3. **Id for mutations:** Controllers that need the asset string still read
+     `mainBrowseCurrentAssetIdProvider`. Null remains a defensive last line
+     (extreme timing); it must not be the primary UI enable path.
+  4. **Not-ready vs real failure copy:** When the defensive null path fires,
+     surface `cap19CurrentMediaNotReady` (“Media isn't ready yet.” /
+     「媒体尚未就绪。」) — not generic operation-failure toasts. No
+     “Try again” for not-ready (retry is meaningless until an asset exists).
+  5. **Favorites state machine:** `Cap19FavoritesPhase.mediaNotReady` is
+     distinct from `loadError` (Host/status failure). Do not overload
+     `loadError` with not-ready semantics.
+  6. **Album list orthogonality:** `listAssetSources` / picker list load does
+     **not** depend on current asset id and must not be forced through the
+     actionable gate. Append-to-album row taps still use not-ready vs failed
+     outcomes when id is missing.
+  7. **Entry chrome when not actionable:** Keep the icon visible at the
+     shell-fixed slot; disable with reduced opacity
+     (`kCap19EntryIconDisabledOpacity`); do not hide (avoids flicker on brief
+     session loading). Instant opacity switch — no AnimatedOpacity.
+- Rejected alternatives (why not):
+  - **Gate with `scrubberFrozen` / L2-ready:** Wrong product axis — still /
+    Live / not-yet-ready video must still allow Favorites and add-to-album;
+    “can play” ≠ “current asset identity is known.”
+  - **Per-entry ad-hoc `assetId == null` for enablement:** Causes gate drift
+    (observed: guide vs arm vs icon). Actionability belongs in one provider.
+  - **Hide entry icon when not actionable:** Conflicts with Cap 19.4
+    shell-fixed slot / no jump on short loading; prefer disabled opacity.
+  - **Defer / two-phase half-sheet enter as the “fix” for related polish:**
+    Separate Cap 19.8 debt **447** (enter animation); out of scope for this
+    ADR. Actionable gating does not claim to solve enter hitch.
+  - **Fold this into ADR-040:** ADR-040 owns gesture arbitration and frozen
+    chrome slots; current-asset actionability is Browse data readiness for
+    mutations — keep a separate ADR (same boundary discipline as ADR-041
+    vs stuffing D1 into ADR-040).
+- Consequences / constraints accepted:
+  - Share and any later current-asset mutation entry must reuse
+    `mainBrowseCurrentAssetActionableProvider`.
+  - Generic failure ARB keys stay for true Host/PhotoKit failures only.
+  - Vertical page changes do not null the id between valid indices; brief
+    not-actionable windows are expected on session loading / empty / error
+    (and rare clamp races), showing as disabled opacity — accepted.
+  - Implementing Cap 19.8 work commit anchors Accepted (`ff59be9`,
+    2026-09-04).
