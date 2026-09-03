@@ -397,6 +397,54 @@ void main() {
     });
   });
 
+  group('T-19.8-P resident unfreeze probe', () {
+    test('T-19.8-P1 settled wins when expired on the same tick', () {
+      expect(
+        scrubberResidentUnfreezeVia(expired: true, settled: true),
+        ScrubResidentUnfreezeVia.settled,
+      );
+      expect(
+        scrubberResidentUnfreezeVia(expired: true, settled: false),
+        ScrubResidentUnfreezeVia.holdTimeout,
+      );
+      expect(
+        scrubberResidentUnfreezeVia(expired: false, settled: true),
+        ScrubResidentUnfreezeVia.settled,
+      );
+      expect(
+        scrubberResidentUnfreezeVia(expired: false, settled: false),
+        isNull,
+      );
+    });
+
+    test('T-19.8-P2 driftDisplaySec is floor(resident) − floor(bubble)', () {
+      expect(
+        scrubberDriftDisplaySeconds(
+          bubbleSeconds: 45,
+          residentAfterStartSeconds: 44.6,
+        ),
+        -1,
+      );
+      expect(
+        scrubberDriftDisplaySeconds(
+          bubbleSeconds: 549,
+          residentAfterStartSeconds: 547.2,
+        ),
+        -2,
+      );
+    });
+
+    test('T-19.8-B-J0b release commit prefers painted over live ratio', () {
+      expect(
+        scrubberReleaseCommitSeconds(
+          paintedBubbleSeekSec: 2996,
+          liveRatioSeekSec: 2956,
+        ),
+        2996,
+      );
+    });
+  });
+
   group('U-18.5-G scrubberResidentChromeVisible', () {
     test('U-18.5-G1 hidden while frozen even with duration', () {
       expect(

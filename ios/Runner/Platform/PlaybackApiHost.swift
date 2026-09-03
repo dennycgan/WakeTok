@@ -74,6 +74,11 @@ final class PlaybackApiHost: PlaybackApi {
   private var playbackSeekEpoch: UInt64 = 0
   /// Zero-tolerance scrub seeks on short local clips may never call back.
   private let scrubSeekWallClockTimeoutSeconds: TimeInterval = 0.45
+  /// Cap 19.8 Bug B probe — in-flight until the real AVPlayer seek callback.
+  private var scrubSeekProbeSeq: UInt64 = 0
+  private var scrubSeekInFlight = false
+  private var scrubSeekStartedAtMs: Int64 = 0
+  private var scrubSeekTargetSeconds: Double = 0
 
   private weak var surfaceView: PlaybackSurfaceView?
 
@@ -231,10 +236,19 @@ final class PlaybackApiHost: PlaybackApi {
 
   func pause() throws {
     DispatchQueue.main.async { [weak self] in
-      self?.pendingPlay = false
-      self?.activePlayer?.pause()
-      self?.syncRuntimeObserve()
-      self?.emitRuntimeObserveNow()
+      guard let self else { return }
+      if self.scrubSeekInFlight {
+        ScrubPreviewProbe.seekDiag(
+          "host pause seq=\(self.scrubSeekProbeSeq) "
+            + "targetSec=\(String(format: "%.2f", self.scrubSeekTargetSeconds)) "
+            + "playerTime=\(self.scrubProbePlayerTimeLabel()) "
+            + "seekInFlightAtPause=true"
+        )
+      }
+      self.pendingPlay = false
+      self.activePlayer?.pause()
+      self.syncRuntimeObserve()
+      self.emitRuntimeObserveNow()
     }
   }
 
@@ -296,16 +310,42 @@ final class PlaybackApiHost: PlaybackApi {
         completionSent = true
         completion(result)
       }
+      self.scrubSeekProbeSeq &+= 1
+      let probeSeq = self.scrubSeekProbeSeq
+      self.scrubSeekInFlight = true
+      self.scrubSeekTargetSeconds = positionSeconds
+      self.scrubSeekStartedAtMs = self.scrubProbeNowMs()
+      ScrubPreviewProbe.seekDiag(
+        "host start seq=\(probeSeq) "
+          + "targetSec=\(String(format: "%.2f", positionSeconds)) "
+          + "playerTime=\(self.scrubProbePlayerTimeLabel()) "
+          + "inFlight=true"
+      )
       player.seek(
         to: time,
         toleranceBefore: .zero,
         toleranceAfter: .zero
-      ) { [weak self] _ in
+      ) { [weak self] finished in
         guard let self else {
           finishSeek(.success(()))
           return
         }
-        guard seekEpoch == self.playbackSeekEpoch else {
+        let elapsedMs = self.scrubProbeNowMs() - self.scrubSeekStartedAtMs
+        let afterTimeout = completionSent
+        let stillCurrentSeek = seekEpoch == self.playbackSeekEpoch
+        if stillCurrentSeek {
+          self.scrubSeekInFlight = false
+        }
+        ScrubPreviewProbe.seekDiag(
+          "host realComplete seq=\(probeSeq) "
+            + "targetSec=\(String(format: "%.2f", positionSeconds)) "
+            + "elapsedMs=\(elapsedMs) "
+            + "playerTime=\(self.scrubProbePlayerTimeLabel()) "
+            + "finished=\(finished) "
+            + "completedAfterTimeout=\(afterTimeout) "
+            + "superseded=\(!stillCurrentSeek)"
+        )
+        guard stillCurrentSeek else {
           finishSeek(
             .failure(
               PigeonError(
@@ -337,9 +377,15 @@ final class PlaybackApiHost: PlaybackApi {
           )
           return
         }
-        ScrubPreviewProbe.info(
-          "seek timeout position=\(String(format: "%.2f", positionSeconds)) "
-            + "ms=\(Int(self.scrubSeekWallClockTimeoutSeconds * 1000))"
+        let elapsedMs = self.scrubProbeNowMs() - self.scrubSeekStartedAtMs
+        ScrubPreviewProbe.seekDiag(
+          "host timeout seq=\(probeSeq) "
+            + "targetSec=\(String(format: "%.2f", positionSeconds)) "
+            + "elapsedMs=\(elapsedMs) "
+            + "playerTime=\(self.scrubProbePlayerTimeLabel()) "
+            + "timedOut=true "
+            + "wouldHaveFailedHonestTimeout=true "
+            + "seekInFlight=\(self.scrubSeekInFlight)"
         )
         self.syncRuntimeObserve()
         self.emitRuntimeObserveNow()
@@ -1131,9 +1177,26 @@ final class PlaybackApiHost: PlaybackApi {
       pendingPlay = true
       return
     }
+    ScrubPreviewProbe.seekDiag(
+      "host play seq=\(scrubSeekProbeSeq) "
+        + "targetSec=\(String(format: "%.2f", scrubSeekTargetSeconds)) "
+        + "playerTime=\(scrubProbePlayerTimeLabel()) "
+        + "seekInFlightAtPlay=\(scrubSeekInFlight)"
+    )
     pendingPlay = false
     applyMuteToPlayers()
     player.play()
+  }
+
+  private func scrubProbeNowMs() -> Int64 {
+    Int64(Date().timeIntervalSince1970 * 1000)
+  }
+
+  private func scrubProbePlayerTimeLabel() -> String {
+    guard let seconds = activePlayer?.currentTime().seconds, seconds.isFinite else {
+      return "na"
+    }
+    return String(format: "%.2f", seconds)
   }
 
   private func bumpPlaybackSeekEpoch() -> UInt64 {

@@ -188,6 +188,10 @@ class PlaybackCoordinator extends ChangeNotifier {
           .timeout(_scrubSeekTimeout);
       return true;
     } on TimeoutException {
+      debugPrint(
+        'WT18.5.scrubPreview seekDiag dartTimeout '
+        'requestSec=${positionSeconds.toStringAsFixed(2)}',
+      );
       return true;
     } catch (_) {
       return false;

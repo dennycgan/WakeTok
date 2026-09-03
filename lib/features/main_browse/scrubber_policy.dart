@@ -251,6 +251,51 @@ String formatScrubTimestamp(
   return '$current / ${_formatMmSs(durationSeconds)}';
 }
 
+/// Idle / resident `MM:SS` uses floor (Cap 18.5). Bubble target seconds from
+/// [scrubberSeekSeconds] are already whole seconds (round).
+int scrubberDisplayedFloorSeconds(double seconds) {
+  return seconds.isFinite && seconds > 0 ? seconds.floor() : 0;
+}
+
+/// How the post-release resident freeze ended (Cap 19.8 Bug B probe).
+///
+/// Same observe tick with both [expired] and [settled] counts as [settled] —
+/// that incoming is within ε of the seek target, not a wall-clock fallback.
+enum ScrubResidentUnfreezeVia {
+  settled,
+  holdTimeout,
+}
+
+ScrubResidentUnfreezeVia? scrubberResidentUnfreezeVia({
+  required bool expired,
+  required bool settled,
+}) {
+  if (settled) {
+    return ScrubResidentUnfreezeVia.settled;
+  }
+  if (expired) {
+    return ScrubResidentUnfreezeVia.holdTimeout;
+  }
+  return null;
+}
+
+/// Signed whole-second gap: resident display minus bubble display.
+int scrubberDriftDisplaySeconds({
+  required double bubbleSeconds,
+  required double residentAfterStartSeconds,
+}) {
+  return scrubberDisplayedFloorSeconds(residentAfterStartSeconds) -
+      scrubberDisplayedFloorSeconds(bubbleSeconds);
+}
+
+/// Cap 19.8 Bug B: release commit second — painted bubble label, else live ratio.
+double scrubberReleaseCommitSeconds({
+  required double? paintedBubbleSeekSec,
+  required double liveRatioSeekSec,
+}) {
+  return paintedBubbleSeekSec ?? liveRatioSeekSec;
+}
+
 /// Cap 19.8: whole seconds shown on the resident timestamp above the track.
 ///
 /// Uses the live playhead ([positionSeconds]) unless a post-release seek-hold
@@ -290,7 +335,7 @@ String? scrubberTimestampLabel({
 }
 
 String _formatMmSs(double seconds) {
-  final total = seconds.isFinite && seconds > 0 ? seconds.floor() : 0;
+  final total = scrubberDisplayedFloorSeconds(seconds);
   final minutes = total ~/ 60;
   final secs = total % 60;
   final mm = minutes.toString().padLeft(2, '0');

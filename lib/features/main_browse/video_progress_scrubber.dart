@@ -18,6 +18,8 @@ typedef ScrubPreviewRequest =
 /// release (cancel may still show ~one Host observe tick of catch-up).
 /// Cap 19.8: resident timestamp follows live playhead while dragging and
 /// freezes at the pre-release second during seek-hold (fill still optimistic).
+/// Cap 19.8 Bug B: release seek / fill optimism commit the last **painted**
+/// bubble label second (post-frame), not an unpainted final onUpdate sample.
 ///
 /// Host null / latency gaps show a solid placeholder only — no user-facing
 /// unavailable copy (technical failures are not actionable while scrubbing).
@@ -116,7 +118,12 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
             incomingSeconds: incoming,
             seekHoldSeconds: hold,
           );
-          if (expired || settled) {
+          final via = scrubberResidentUnfreezeVia(
+            expired: expired,
+            settled: settled,
+          );
+          if (via != null) {
+            _logResidentAfterStart(incomingSeconds: incoming, via: via);
             _seekHoldSeconds = null;
             _seekHoldUntilMs = null;
             _residentHoldSeconds = null;
@@ -183,6 +190,17 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
   /// Cap 19.8: last confirmed live second before optimistic seek landing —
   /// resident label stays on this until seek-hold settles.
   double? _residentHoldSeconds;
+  int _seekProbeSeq = 0;
+  double? _seekProbeBubbleSeconds;
+  /// Cap 19.8 Bug B: last bubble label second that completed a paint frame.
+  double? _paintedBubbleSeekSec;
+  bool _paintedBubbleFrameScheduled = false;
+  int _dragSessionGen = 0;
+  /// Cap 19.8 Bug B probe: last two drag-update samples (lift-jitter check).
+  double? _probePrevUpdateLocalX;
+  double? _probeLastUpdateLocalX;
+  double? _probePrevUpdateRatio;
+  double? _probeLastUpdateRatio;
 
   void _onHorizontalDragStart(DragStartDetails details) {
     if (widget.frozen) {
@@ -196,9 +214,23 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
         0;
     setState(() {
       _dragging = true;
+      _dragSessionGen += 1;
+      if (_seekHoldSeconds != null) {
+        _logSeekProbe(
+          'dart afterStart seq=$_seekProbeSeq '
+          'residentUnfrozeVia=abortedNewDrag',
+        );
+      }
       _seekHoldSeconds = null;
       _seekHoldUntilMs = null;
       _residentHoldSeconds = null;
+      _seekProbeBubbleSeconds = null;
+      _paintedBubbleSeekSec = null;
+      _paintedBubbleFrameScheduled = false;
+      _probePrevUpdateLocalX = null;
+      _probeLastUpdateLocalX = null;
+      _probePrevUpdateRatio = null;
+      _probeLastUpdateRatio = null;
       _dragAnchorLocalX = details.localPosition.dx;
       _dragAnchorRatio = anchorRatio;
       _dragRatio = anchorRatio;
@@ -217,6 +249,10 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
     final previousRequest = _previewRequestKeyForRatio(_dragRatio);
     final nextRatio = _dragRatioFromDrag(details.localPosition.dx);
     final nextRequest = _previewRequestKeyForRatio(nextRatio);
+    _probePrevUpdateLocalX = _probeLastUpdateLocalX;
+    _probePrevUpdateRatio = _probeLastUpdateRatio;
+    _probeLastUpdateLocalX = details.localPosition.dx;
+    _probeLastUpdateRatio = nextRatio;
     // Direction sign only on mid-path whole-second keys (skip end-cap ε).
     if (scrubPreviewIsWholeSecondKey(previousRequest) &&
         scrubPreviewIsWholeSecondKey(nextRequest) &&
@@ -265,11 +301,18 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
 
   void _endDrag({required bool commitSeek}) {
     final duration = _effectiveDuration;
-    final seconds = duration != null && duration > 0
+    final liveRatioSeekSec = duration != null && duration > 0
         ? scrubberSeekSeconds(ratio: _dragRatio, durationSeconds: duration)
             .toDouble()
         : _positionSeconds;
+    // Cap 19.8 Bug B: "where we go" = last painted bubble label; fallback when
+    // no frame has painted yet this drag.
+    final commitSec = scrubberReleaseCommitSeconds(
+      paintedBubbleSeekSec: _paintedBubbleSeekSec,
+      liveRatioSeekSec: liveRatioSeekSec,
+    );
     final shouldSeek = commitSeek && _dragCommitted;
+    final preDragSeconds = _positionSeconds;
     setState(() {
       // Cap 19.2d: optimistic playhead + seek-hold before clearing drag so
       // (1) the first non-drag frame paints the landing and (2) stale Host
@@ -277,17 +320,29 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       // flash the fill back. Cancel / uncommitted end does not hold — fill
       // follows latest live; residual ~one Host tick (~250ms) is accepted.
       if (shouldSeek) {
-        // Cap 19.8: snapshot live playhead for resident label before fill
-        // optimism — label must not jump to the seek target until settled.
+        // Cap 19.8 Bug A: snapshot live playhead for resident label before
+        // fill optimism — not commitSec (that is "where we go").
         _residentHoldSeconds = _positionSeconds;
-        _positionSeconds = seconds;
-        _seekHoldSeconds = seconds;
+        _positionSeconds = commitSec;
+        _seekHoldSeconds = commitSec;
         _seekHoldUntilMs =
             DateTime.now().millisecondsSinceEpoch + 1200;
+        _seekProbeSeq += 1;
+        _seekProbeBubbleSeconds = commitSec;
+        _logSeekProbe(
+          'dart release seq=$_seekProbeSeq '
+          'commitSec=${commitSec.toStringAsFixed(0)} '
+          'paintedSec=${_paintedBubbleSeekSec?.toStringAsFixed(0) ?? 'na'} '
+          'liveRatioSec=${liveRatioSeekSec.toStringAsFixed(0)} '
+          'preDragSec=${preDragSeconds.toStringAsFixed(2)}',
+        );
+        _logLiftJitterProbe(releaseSeekSec: commitSec);
       }
       _dragging = false;
       _dragCommitted = false;
       _dragAnchorLocalX = null;
+      _paintedBubbleSeekSec = null;
+      _paintedBubbleFrameScheduled = false;
       _previewBytes = null;
       _previewBucketSeconds = null;
       _previewInFlight = false;
@@ -299,8 +354,120 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
       _driftRejectForbidBorrow = false;
     });
     if (shouldSeek) {
-      widget.onScrubComplete(seconds);
+      widget.onScrubComplete(commitSec);
     }
+  }
+
+  /// Cap 19.8 Bug B: record bubble label only after this build's frame paints.
+  void _schedulePaintedBubbleCapture(double labelSec) {
+    if (_paintedBubbleFrameScheduled) {
+      return;
+    }
+    _paintedBubbleFrameScheduled = true;
+    final captured = labelSec;
+    final session = _dragSessionGen;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _paintedBubbleFrameScheduled = false;
+      if (!mounted || !_dragging || session != _dragSessionGen) {
+        return;
+      }
+      _paintedBubbleSeekSec = captured;
+    });
+  }
+
+  void _logSeekProbe(String message) {
+    debugPrint('WT18.5.scrubPreview seekDiag $message');
+  }
+
+  /// Cap 19.8: last-two-update finger delta vs linear sec/px (lift-jitter).
+  void _logLiftJitterProbe({required double releaseSeekSec}) {
+    final duration = _effectiveDuration;
+    final hitWidth = _hitWidth;
+    final innerWidth = scrubberTrackInnerWidth(hitWidth);
+    final secPerPx = duration != null && duration > 0 && innerWidth > 0
+        ? duration / innerWidth
+        : null;
+    final prevX = _probePrevUpdateLocalX;
+    final lastX = _probeLastUpdateLocalX;
+    final prevRatio = _probePrevUpdateRatio;
+    final lastRatio = _probeLastUpdateRatio;
+    final deltaLocalX =
+        prevX != null && lastX != null ? lastX - prevX : null;
+    final deltaRatio = prevRatio != null && lastRatio != null
+        ? lastRatio - prevRatio
+        : null;
+    int? prevSeekSec;
+    int? lastSeekSec;
+    if (duration != null && duration > 0) {
+      if (prevRatio != null) {
+        prevSeekSec = scrubberSeekSeconds(
+          ratio: prevRatio,
+          durationSeconds: duration,
+        );
+      }
+      if (lastRatio != null) {
+        lastSeekSec = scrubberSeekSeconds(
+          ratio: lastRatio,
+          durationSeconds: duration,
+        );
+      }
+    }
+    final deltaSeekSec = prevSeekSec != null && lastSeekSec != null
+        ? lastSeekSec - prevSeekSec
+        : null;
+    final lastPreviewBucket = _lastSuccessfulPreviewBucket;
+    _logSeekProbe(
+      'dart liftJitter seq=$_seekProbeSeq '
+      'hitWidth=${hitWidth.toStringAsFixed(1)} '
+      'innerWidth=${innerWidth.toStringAsFixed(1)} '
+      'durationSec=${duration?.toStringAsFixed(2) ?? 'na'} '
+      'secPerPx=${secPerPx?.toStringAsFixed(3) ?? 'na'} '
+      'prevUpdateLocalX=${prevX?.toStringAsFixed(2) ?? 'na'} '
+      'lastUpdateLocalX=${lastX?.toStringAsFixed(2) ?? 'na'} '
+      'deltaLocalX=${deltaLocalX?.toStringAsFixed(3) ?? 'na'} '
+      'prevRatio=${prevRatio?.toStringAsFixed(6) ?? 'na'} '
+      'lastRatio=${lastRatio?.toStringAsFixed(6) ?? 'na'} '
+      'deltaRatio=${deltaRatio?.toStringAsFixed(6) ?? 'na'} '
+      'prevSeekSec=${prevSeekSec ?? 'na'} '
+      'lastSeekSec=${lastSeekSec ?? 'na'} '
+      'deltaSeekSec=${deltaSeekSec ?? 'na'} '
+      'releaseSeekSec=${releaseSeekSec.toStringAsFixed(0)} '
+      'lastPreviewBucket=${lastPreviewBucket?.toStringAsFixed(0) ?? 'na'} '
+      'previewInFlight=$_previewInFlight',
+    );
+  }
+
+  void _logResidentAfterStart({
+    required double incomingSeconds,
+    required ScrubResidentUnfreezeVia via,
+  }) {
+    final bubble = _seekProbeBubbleSeconds;
+    final viaLabel = switch (via) {
+      ScrubResidentUnfreezeVia.settled => 'settled',
+      ScrubResidentUnfreezeVia.holdTimeout => 'holdTimeout',
+    };
+    final drift = bubble == null
+        ? null
+        : scrubberDriftDisplaySeconds(
+            bubbleSeconds: bubble,
+            residentAfterStartSeconds: incomingSeconds,
+          );
+    _logSeekProbe(
+      'dart afterStart seq=$_seekProbeSeq '
+      'bubbleSec=${bubble?.toStringAsFixed(0) ?? 'na'} '
+      'residentAfterStartSec=${incomingSeconds.toStringAsFixed(2)} '
+      'residentLabel=${_formatProbeMmSs(incomingSeconds)} '
+      'driftDisplaySec=${drift ?? 'na'} '
+      'residentUnfrozeVia=$viaLabel',
+    );
+    _seekProbeBubbleSeconds = null;
+  }
+
+  String _formatProbeMmSs(double seconds) {
+    final total = scrubberDisplayedFloorSeconds(seconds);
+    final mm = (total ~/ 60).toString().padLeft(2, '0');
+    final ss = (total % 60).toString().padLeft(2, '0');
+    return '$mm:$ss';
   }
 
   void _resetPreviewSession() {
@@ -549,6 +716,10 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
               );
               final nowMs = DateTime.now().millisecondsSinceEpoch;
               final displayBytes = _bubbleDisplayBytes(nowMs);
+              final bubbleLabelSec = _labelSeconds;
+              if (_dragging && _effectiveDuration != null) {
+                _schedulePaintedBubbleCapture(bubbleLabelSec);
+              }
               return Stack(
                 clipBehavior: Clip.none,
                 alignment: Alignment.bottomCenter,
@@ -560,7 +731,7 @@ class _VideoProgressScrubberState extends State<VideoProgressScrubber> {
                       child: _ScrubPreviewBubble(
                         bytes: displayBytes,
                         timestamp: formatScrubTimestamp(
-                          _labelSeconds,
+                          bubbleLabelSec,
                           durationSeconds: _effectiveDuration!,
                         ),
                         placeholderFill: tokens.scrubPreviewPlaceholderFill,

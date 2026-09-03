@@ -13,4 +13,9 @@ enum ScrubPreviewProbe {
     log.info("\(message, privacy: .public)")
     NSLog("WT18.5.scrubPreview %@", message)
   }
+
+  /// Cap 19.8 Bug B seek diagnostics — same Console filter as [info].
+  static func seekDiag(_ message: String) {
+    info("seekDiag \(message)")
+  }
 }
