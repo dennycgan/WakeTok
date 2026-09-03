@@ -52,6 +52,7 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
     }
     unawaited(ref.read(browseSessionProvider.notifier).restartSession());
     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(true);
   }
 }
 
@@ -110,3 +111,23 @@ final mainBrowseCurrentAssetActionableProvider = Provider<bool>((ref) {
   final id = ref.watch(mainBrowseCurrentAssetIdProvider);
   return id != null && id.isNotEmpty;
 });
+
+/// Vertical PageView settle for trailing mutation chrome (ADR-042 Decision 8)
+/// and scrubber peek hide. Written by [VerticalMediaFeed] on scroll-notification
+/// edges only — not every PageController frame.
+final mainBrowseVerticalFeedSettledProvider =
+    NotifierProvider<MainBrowseVerticalFeedSettled, bool>(
+      MainBrowseVerticalFeedSettled.new,
+    );
+
+class MainBrowseVerticalFeedSettled extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  void setSettled(bool settled) {
+    if (state == settled) {
+      return;
+    }
+    state = settled;
+  }
+}

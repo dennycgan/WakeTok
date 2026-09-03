@@ -6,9 +6,14 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/main_browse/cap19_actions_half_sheet.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/main_browse_trailing_chrome_policy.dart';
+import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 19.4 / ADR-040 D15: fixed bottom-trailing entry on Browse media area.
+///
+/// ADR-042 Decision 7: not-actionable → visible + dim (do not hide).
+/// ADR-042 Decision 8: peek / PV covering → fully hidden (same slot family).
 class Cap19EntryIcon extends ConsumerWidget {
   const Cap19EntryIcon({super.key, required this.access});
 
@@ -16,13 +21,29 @@ class Cap19EntryIcon extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final settled = ref.watch(mainBrowseVerticalFeedSettledProvider);
+    final assetId = ref.watch(mainBrowseCurrentAssetIdProvider);
+    final covering =
+        assetId != null &&
+        assetId.isNotEmpty &&
+        ref.watch(pvTransitionGuardProvider).isCovering(assetId);
+    // Decision 8 settle/cover axes: hide completely (not Decision 7 dim).
+    if (!settled || covering) {
+      return const SizedBox.shrink();
+    }
+
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
+    final chromeReady = mainBrowseTrailingMutationChromeVisible(
+      actionable: actionable,
+      verticalFeedSettled: settled,
+      transitionCovering: covering,
+    );
 
     return Semantics(
       button: true,
-      enabled: actionable,
+      enabled: chromeReady,
       label: l10n.cap19EntryIconSemantics,
       child: Opacity(
         opacity: actionable ? 1.0 : kCap19EntryIconDisabledOpacity,
@@ -30,7 +51,7 @@ class Cap19EntryIcon extends ConsumerWidget {
           color: Colors.transparent,
           child: InkWell(
             key: const Key('cap19EntryIcon'),
-            onTap: actionable
+            onTap: chromeReady
                 ? () => showCap19ActionsHalfSheet(context, access: access)
                 : null,
             customBorder: const CircleBorder(),

@@ -133,6 +133,16 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   /// tests that depend on stable pump timing (Cap 18.5 follow-up).
   bool _scrubberVerticalFeedSettled = true;
 
+  void _publishVerticalFeedSettled(bool settled) {
+    if (_scrubberVerticalFeedSettled != settled) {
+      _scrubberVerticalFeedSettled = settled;
+      if (mounted) {
+        setState(() {});
+      }
+    }
+    ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(settled);
+  }
+
   void _maybeSyncScrubberVerticalFeedSettled(int feedIndex) {
     final controller = _pageController;
     var settled = true;
@@ -143,12 +153,11 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       }
     }
     if (_scrubberVerticalFeedSettled == settled) {
+      // Keep provider aligned if leave-Browse reset raced ahead of feed.
+      ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(settled);
       return;
     }
-    _scrubberVerticalFeedSettled = settled;
-    if (mounted) {
-      setState(() {});
-    }
+    _publishVerticalFeedSettled(settled);
   }
 
   bool _handlePvTransitionScroll(ScrollNotification notification) {
@@ -653,7 +662,16 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
           final delayInitialLayer1CenterLabel =
               previousDataSourceId != null && previousDataSourceId != source.id;
           if (previousDataSourceId != null && previousDataSourceId != source.id) {
+            // Build path — mutate local only; publish after frame (no setState).
             _scrubberVerticalFeedSettled = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted) {
+                return;
+              }
+              ref
+                  .read(mainBrowseVerticalFeedSettledProvider.notifier)
+                  .setSettled(true);
+            });
           }
           _lastDataSourceId = source.id;
           _ids = ids;
@@ -736,7 +754,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   itemCount: ids.length,
                   onPageChanged: (i) {
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
-                    _scrubberVerticalFeedSettled = true;
+                    _publishVerticalFeedSettled(true);
                   },
                   itemBuilder: (context, index) {
                     final isCurrent = browseActive && index == feedIndex;
