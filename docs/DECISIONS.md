@@ -4771,6 +4771,18 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       general `setZoom`). Any future Host pinch API requires a **new**
       owner-approved decision after hitting a documented stop-and-re-discuss
       gate. Work `ca3b4ed`.
+      **Decision 13 narrow supplement (2026-09-04, work `282009e`):**
+      Same Host method / no new Pigeon. Transform must **not** apply to
+      the Flutter embedding–owned **outer** `PlaybackSurfaceContainer`
+      (`transform` stays identity). Scale/translation apply only to an
+      **inner** `magnificationContent` UIView; outer `layoutSubviews`
+      syncs that child via `bounds` + `center` (never assign `frame` to
+      a non-identity child). Root cause: `FlutterPlatformViewsController
+      compositeView` `setFrame` while outer transform ≠ identity folds
+      scale into `bounds` → permanent shrink after identity restore.
+      Read the original Chosen phrase “Platform View **container**
+      `UIView.transform`” as the **inner magnification content view**
+      under the Platform View root — **not** the embedding root outer.
   14. **Layer-1 unified transient / Layer-2 still persistent.** All
       Layer-1 surfaces (photo preview, Live static preview, video poster)
       use `MagnificationHostMode.transient`: release→fit, no Reset. L1 is
@@ -4854,3 +4866,16 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     **local downloaded** assets so network latency cannot mask render
     flashes (Cap 20.4 Kafka iCloud blind spot). Automate with Image
     State identity tests (`W-15.5a` + leave demote).
+  - **Still black-flash fix (work `3d29823`):** single
+    `MagnificationHostModeBinder` on the still cover tree. Regression
+    guards: `W-15.5a` (enter) + leave demote in
+    `test/features/main_browse/still_image_element_continuity_test.dart`
+    (and feed `W-15.5a`). Debt **450** Closed.
+  - **Video shrink + release spike (work `282009e`):** Decision 13
+    inner-content transform (mechanism C) + Dart
+    `_silenceReleaseControllerToZero` (mechanism A). Device: Kafka C and
+    A verified **separately**. Regression guard for A:
+    **`T-20.A-1`** in `cap20_video_magnification_test.dart` — after the
+    release peak, once a `setDisplayMagnification` scale is ≤1.02, no
+    later call may exceed 1.02. Notes:
+    `docs/acceptance/cap20-post-20.5-blackflash-shrink-notes.md`.
