@@ -170,7 +170,7 @@ This decision is final; no subtitle track probe implementation required.
 
 - [x] Product boundary recorded (no code)
 - [x] STATE 9.5 marked done
-- [x] ADR-003 Accepted (anchor `fcf7561`, O3=S1)
+- [x] ADR-003 Accepted (anchor `3883b8f`, O3=S1)
 
 ## Phase 9.6 checklist
 

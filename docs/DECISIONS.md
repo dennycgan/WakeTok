@@ -41,7 +41,7 @@
 ## ADR-001: POC-04 Flutter media feed architecture gate — Conditional Pass
 
 - Status: Accepted (2026-07-28)
-- Commit/PR anchor: 3ff7f58
+- Commit/PR anchor: 577b586
 - Plain summary (owner reads this):
   We keep building WakeTok’s feed in Flutter with native iOS video (Platform View),
   after measuring that everyday scrolling feels OK; we tightened the written hitch
@@ -80,7 +80,7 @@
      Severe Hang remains an accepted debt to address in production feed work.
   6. **Data anchors (notes / commits, not this ADR’s Accepted date):**
      - Hand PV / Texture hitch and FF20: `docs/poc/POC-04-notes.md`; spike commits
-       including Texture escape `10bd0c1` and Hitch Probe calibration `e5c4117`.
+       including Texture escape `5cc0b9d` and Hitch Probe calibration `2c9fb59`.
 - Rejected alternatives (why not B):
   - **Keep hitch < 5 ms/s as hard fail → no-go / leave Flutter:** Rejected because
     owner-calibrated everyday PV feel (13–19) is acceptable; < 5 over-penalizes a
@@ -116,7 +116,7 @@
 ## ADR-002: POC-03 lock-screen continuous playback gate — Conditional Pass
 
 - Status: Accepted (2026-07-28)
-- Commit/PR anchor: 9eeb912
+- Commit/PR anchor: 9568f7b
 - Plain summary (owner reads this):
   WakeTok can retain a Swift-owned AVQueuePlayer beyond the lifetime of a
   Flutter route, continue queue playback while locked, and support Now Playing
@@ -148,7 +148,7 @@
      - 3.4 Control Center / AirPods play-pause-next (N1–N3 PASS).
      - 3.5 Force-quit stops audio; cold start offers Restore? without auto-play
        (K1–K3 PASS; P5=A).
-     - Work commits on `spike/poc` include `77d7af8` … `9eeb912` (anchor).
+     - Work commits on `spike/poc` include `8ec6c47` … `9568f7b` (anchor).
   3. **Known debt (does not overturn Conditional Pass):**
      - WeChat/VoIP: no auto-resume on lock screen or iOS home without opening
        the app → Production Background Audio (Q1=B).
@@ -192,7 +192,7 @@
 ## ADR-003: WakeTok subtitle scope — burned-in only; soft tracks out of scope
 
 - Status: Accepted (2026-07-29)
-- Commit/PR anchor: fcf7561
+- Commit/PR anchor: 3883b8f
 - Plain summary (owner reads this):
   WakeTok only cares about burned-in subtitles (text that is already pixels in
   the video picture). Soft subtitle / caption tracks are out of product scope —
@@ -233,7 +233,7 @@
   - Spike diagnostics may still surface incidental `textTrackCount` values;
     production must **not** treat soft-track preservation as a product feature.
   - Future soft-sub retention requests require a **new ADR**.
-  - Anchor note (O3=S1): Accepted against POC-09 work `fcf7561` (same close-out
+  - Anchor note (O3=S1): Accepted against POC-09 work `3883b8f` (same close-out
     packaging as ADR-004); §9.5 body lives in notes in this docs commit.
 
 ---
@@ -241,7 +241,7 @@
 ## ADR-004: POC-09 Current Photos Representation Export Gate — Pass
 
 - Status: Accepted (2026-07-29)
-- Commit/PR anchor: fcf7561
+- Commit/PR anchor: 3883b8f
 - Plain summary (owner reads this):
   WakeTok may build production physical-clip export on Photos’ *current*
   representation: request AVAsset with version=.current and
@@ -260,19 +260,19 @@
      (Q1=A, Q2=A) as the production obtain/export *input path* for clips.
   2. **Phase evidence** (`docs/poc/POC-09-notes.md`; work on `spike/poc`):
      - **9.1** Harness + dual current/original probe + temp export — PASS
-       (unedited smoke). Work: `c98a073`.
+       (unedited smoke). Work: `8fcac6c`.
      - **9.2** Trim: export ≈ current; original obviously longer (>2s notes
-       threshold); no silent original fallback — PASS. Work: `e8e900b`.
+       threshold); no silent original fallback — PASS. Work: `ba72532`.
      - **9.3** HFR/slo-mo: export duration matches Photos-displayed /
-       PHAsset duration (Q4=A) — PASS. Work: `ab86a2b`.
+       PHAsset duration (Q4=A) — PASS. Work: `96e4a23`.
      - **9.4** Default audio: track present + Play-export listen — PASS.
-       Work: `9794449`.
+       Work: `a4f2130`.
      - **9.5** Soft subtitle tracks out of scope; burned-in incidental —
        PASS (docs / ADR-003). No track-probe implementation.
      - **9.6** Explicit failure: iCloud-only + networkAccessAllowed=false
        → `inCloudUnavailable` (incl. PHPhotosError 3164 mapping), no export
        path; same asset with network on → controlGate PASS; N1 local+OFF
-       must not false-positive — PASS. Work: `fcf7561`.
+       must not false-positive — PASS. Work: `3883b8f`.
   3. **Scope boundary:** This spike proved obtain + *temp* export metrics
      and failure shape. The formal **120s** segment state machine, job
      persistence, cancellation, and Photos re-import live in **Physical
@@ -302,7 +302,7 @@
 ## ADR-006: App-scoped PlaybackApi ownership (Platform View is detachable surface)
 
 - Status: Accepted (2026-07-30)
-- Commit/PR anchor: a0b99d2
+- Commit/PR anchor: bb5371a
 - Plain summary (owner reads this):
   WakeTok’s player lives in a Swift app-scoped service, not inside a Flutter
   widget. The feed’s Platform View only attaches/detaches the picture; lock-screen
