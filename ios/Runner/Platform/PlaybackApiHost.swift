@@ -1443,22 +1443,33 @@ final class PlaybackPlatformViewFactory: NSObject, FlutterPlatformViewFactory {
 }
 
 private final class PlaybackSurfaceContainer: UIView {
+  /// Inner leaf that receives display magnification. Flutter embedding may
+  /// `setFrame` on this outer container at any time; keeping outer transform
+  /// identity prevents UIKit from folding scale into `bounds` (Cap 20 shrink).
+  let magnificationContent = UIView()
   var playerLayer: AVPlayerLayer?
 
   override init(frame: CGRect) {
     super.init(frame: frame)
-    // Keep magnified frames from painting outside the Platform View slot.
     clipsToBounds = true
+    magnificationContent.backgroundColor = .clear
+    addSubview(magnificationContent)
   }
 
   required init?(coder: NSCoder) {
     super.init(coder: coder)
     clipsToBounds = true
+    magnificationContent.backgroundColor = .clear
+    addSubview(magnificationContent)
   }
 
   override func layoutSubviews() {
     super.layoutSubviews()
-    playerLayer?.frame = bounds
+    // bounds + center are safe while [magnificationContent] has a non-identity
+    // transform; assigning `frame` would reintroduce the shrink bug.
+    magnificationContent.bounds = CGRect(origin: .zero, size: bounds.size)
+    magnificationContent.center = CGPoint(x: bounds.midX, y: bounds.midY)
+    playerLayer?.frame = magnificationContent.bounds
   }
 }
 
@@ -1481,7 +1492,7 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     container.backgroundColor = .black
     playerLayer.videoGravity = .resizeAspect
     container.playerLayer = playerLayer
-    container.layer.addSublayer(playerLayer)
+    container.magnificationContent.layer.addSublayer(playerLayer)
     super.init()
     host?.bindSurface(self)
     startReadyForDisplayProbe()
@@ -1500,29 +1511,30 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     // New player bind → allow a fresh ready-for-display emit.
     didEmitReadyForDisplay = false
     playerLayer.player = player
-    playerLayer.frame = container.bounds
+    playerLayer.frame = container.magnificationContent.bounds
     noteReadyForDisplayEdge(force: true)
   }
 
-  /// Cap 20.4: apply scale/translation on the container UIView only.
+  /// Cap 20.4 / Decision 13: apply scale/translation on the **inner**
+  /// magnification content view only. The Flutter-owned outer container stays
+  /// at identity so Platform View `setFrame` cannot fold scale into bounds.
   ///
   /// Do **not** mutate [AVPlayerLayer] anchorPoint / bounds / affineTransform
-  /// each pinch frame — [PlaybackSurfaceContainer.layoutSubviews] resets
-  /// `playerLayer.frame = bounds`, which fights those mutations and yields
-  /// no visible zoom + shell jitter (Cap 20 Kafka L2).
+  /// each pinch frame — layout resets `playerLayer.frame = bounds`.
   func applyDisplayMagnification(
     scale: CGFloat,
     translationX: CGFloat,
     translationY: CGFloat
   ) {
+    let content = container.magnificationContent
     let s = max(scale, 0.01)
     if abs(s - 1) < 0.001, abs(translationX) < 0.5, abs(translationY) < 0.5 {
-      container.transform = .identity
+      content.transform = .identity
       return
     }
     // Default layer anchor (0.5, 0.5) → scale about view center, then
     // translate in logical pixels (matches Flutter Transform alignment.center).
-    container.transform = CGAffineTransform(scaleX: s, y: s)
+    content.transform = CGAffineTransform(scaleX: s, y: s)
       .translatedBy(x: translationX / s, y: translationY / s)
   }
 

@@ -268,11 +268,21 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     _publishMatrix();
   }
 
-  void _finishTransientReleaseToFit() {
+  /// Reset the release controller to 0 without notifying [_onReleaseTick].
+  ///
+  /// Assigning `value = 0` while the listener is attached re-publishes
+  /// [_releaseFromScale] (mechanism A spike after release→fit completes).
+  void _silenceReleaseControllerToZero() {
+    _releaseController.removeListener(_onReleaseTick);
     if (_releaseController.isAnimating) {
       _releaseController.stop();
     }
     _releaseController.value = 0;
+    _releaseController.addListener(_onReleaseTick);
+  }
+
+  void _finishTransientReleaseToFit() {
+    _silenceReleaseControllerToZero();
     _resetToFitTransform();
     ref.read(browseMagnificationProvider.notifier).setTransientPinchActive(false);
   }
@@ -384,8 +394,7 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
   /// otherwise the browse listen would wipe the map before re-baseline.
   void _resetLocalTransformState({bool clearPointers = true}) {
     if (_releaseController.isAnimating || _releaseController.value > 0) {
-      _releaseController.stop();
-      _releaseController.value = 0;
+      _silenceReleaseControllerToZero();
     }
     if (clearPointers) {
       _pointers.clear();
@@ -405,8 +414,7 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
   /// there is no baseline to continue, so clearing the pointer map is correct.
   void _handoffModeKeepPointers() {
     if (_releaseController.isAnimating || _releaseController.value > 0) {
-      _releaseController.stop();
-      _releaseController.value = 0;
+      _silenceReleaseControllerToZero();
     }
     _pinchStartSpan = null;
     _panLastLocal = null;
@@ -437,9 +445,8 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     if (_pointers.length < 2) {
       return;
     }
-    if (_releaseController.isAnimating) {
-      _releaseController.stop();
-      _releaseController.value = 0;
+    if (_releaseController.isAnimating || _releaseController.value > 0) {
+      _silenceReleaseControllerToZero();
     }
     final points = _pointers.values.toList(growable: false);
     _pinchStartSpan = (points[0] - points[1]).distance;

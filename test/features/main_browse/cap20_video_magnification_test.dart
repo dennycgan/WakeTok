@@ -44,6 +44,18 @@ ProviderContainer _containerOf(WidgetTester tester, Finder finder) {
   return ProviderScope.containerOf(tester.element(finder));
 }
 
+List<double> _scalesFromCalls(List<String> calls) {
+  final out = <double>[];
+  final re = RegExp(r'^setDisplayMagnification:([^:]+):');
+  for (final c in calls) {
+    final m = re.firstMatch(c);
+    if (m != null) {
+      out.add(double.parse(m.group(1)!));
+    }
+  }
+  return out;
+}
+
 FakeAssetSourceRepository _videosWithWakeTokAlbum(List<String> videoIds) {
   return FakeAssetSourceRepository(
     videosIds: videoIds,
@@ -200,6 +212,66 @@ void main() {
       reason: 'release→fit must end at native identity',
     );
   });
+
+  testWidgets(
+    'T-20.A-1 release→fit must not republish peak scale after reaching fit',
+    (tester) async {
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(_videoHostHarness(playback: playback));
+      await tester.pumpAndSettle();
+
+      final host = find.byKey(const Key('magnificationPointerHost'));
+      final center = tester.getCenter(host);
+      final g1 = await tester.startGesture(center + const Offset(-40, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+      final g2 = await tester.startGesture(center + const Offset(40, 0));
+      await tester.pump();
+      await g1.moveBy(const Offset(-80, 0));
+      await g2.moveBy(const Offset(80, 0));
+      await tester.pump();
+
+      final peak = _scalesFromCalls(playback.calls).fold<double>(
+        1.0,
+        (m, s) => s > m ? s : m,
+      );
+      expect(peak, greaterThan(1.5));
+
+      await g1.up();
+      await g2.up();
+      await tester.pump();
+      await tester.pump(
+        kCap20VideoReleaseToFitDuration + const Duration(milliseconds: 40),
+      );
+      await tester.pumpAndSettle();
+
+      final scales = _scalesFromCalls(playback.calls);
+      expect(scales, isNotEmpty);
+      // Restrict to the descending release tail (after peak) so earlier
+      // identity publishes at arm do not false-trigger the fit→spike check.
+      var peakIdx = 0;
+      for (var i = 1; i < scales.length; i++) {
+        if (scales[i] > scales[peakIdx]) {
+          peakIdx = i;
+        }
+      }
+      expect(scales[peakIdx], greaterThan(1.5));
+      var sawFit = false;
+      for (final s in scales.skip(peakIdx)) {
+        if (s <= 1.02) {
+          sawFit = true;
+          continue;
+        }
+        if (sawFit) {
+          fail(
+            'mechanism A: scale=$s after a prior fit publish in release tail; '
+            'tail=${scales.skip(peakIdx).toList()}',
+          );
+        }
+      }
+      expect(sawFit, isTrue);
+      expect(scales.last, lessThanOrEqualTo(1.02));
+    },
+  );
 
   testWidgets('T-20.4-6 video pinch never shows Reset chrome', (tester) async {
     late ProviderContainer container;
