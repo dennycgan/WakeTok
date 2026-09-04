@@ -55,7 +55,7 @@ void main() {
         shouldForceFitOnLiveMotionRisingEdge(
           previouslyMounted: false,
           currentlyMounted: true,
-          isStillMagnified: true,
+          hasActiveMagnification: true,
         ),
         isTrue,
       );
@@ -66,7 +66,7 @@ void main() {
         shouldForceFitOnLiveMotionRisingEdge(
           previouslyMounted: false,
           currentlyMounted: true,
-          isStillMagnified: false,
+          hasActiveMagnification: false,
         ),
         isFalse,
       );
@@ -77,7 +77,7 @@ void main() {
         shouldForceFitOnLiveMotionRisingEdge(
           previouslyMounted: true,
           currentlyMounted: false,
-          isStillMagnified: true,
+          hasActiveMagnification: true,
         ),
         isFalse,
       );
@@ -88,7 +88,7 @@ void main() {
         shouldForceFitOnLiveMotionRisingEdge(
           previouslyMounted: true,
           currentlyMounted: true,
-          isStillMagnified: true,
+          hasActiveMagnification: true,
         ),
         isFalse,
       );

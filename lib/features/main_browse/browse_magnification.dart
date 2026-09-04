@@ -125,7 +125,7 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     if (shouldForceFitOnLiveMotionRisingEdge(
       previouslyMounted: previous,
       currentlyMounted: mounted,
-      isStillMagnified: state.isStillMagnified,
+      hasActiveMagnification: state.hasActiveMagnification,
     )) {
       forceFit();
     }

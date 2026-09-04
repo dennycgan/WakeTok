@@ -166,8 +166,11 @@ class MagnificationHostModeNotifier extends Notifier<MagnificationHostMode> {
 /// Cap 20.4 reuses this single host for video (non-persistent release→fit);
 /// do **not** stack another parent [Listener].
 ///
-/// Plan A: lock PageView only while ≥2 fingers (still contact / video pinch)
-/// or while still persistently magnified / video release animation runs.
+/// Plan A: lock PageView only while Host is armed ([still]/[transient]) and
+/// (≥2 fingers via contact/pinch flags, or still persistently magnified, or
+/// transient release animation). [MagnificationHostMode.none] does **not**
+/// record finger counts into lock flags — two fingers during Live motion must
+/// not freeze vertical paging (Cap 20.5).
 class MagnificationPointerHost extends ConsumerStatefulWidget {
   const MagnificationPointerHost({super.key, required this.child});
 
@@ -394,6 +397,12 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
 
   /// Same-page host mode switch (transient L1 → persistent L2): fit matrix
   /// without dropping live pointers; re-baseline pinch from current span.
+  ///
+  /// Contrast with [_interruptBecauseHostModeCleared] (Live motion → [none]):
+  /// keep vs kill pointers depends on whether the **destination mode still
+  /// supports magnification**. L1→L2 lands on [still] (pinch continues from a
+  /// new baseline). Live mount lands on [none] (no magnification allowed) —
+  /// there is no baseline to continue, so clearing the pointer map is correct.
   void _handoffModeKeepPointers() {
     if (_releaseController.isAnimating || _releaseController.value > 0) {
       _releaseController.stop();
@@ -415,6 +424,10 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
   }
 
   /// Mode dropped to [none]: clear browse flags once, then locals.
+  ///
+  /// Clears the pointer map (unlike [_handoffModeKeepPointers]). Destination
+  /// [MagnificationHostMode.none] rejects all magnification — residual moves
+  /// from fingers still down must not re-arm contact flags (Cap 20.5).
   void _interruptBecauseHostModeCleared() {
     _resetLocalTransformState();
     ref.read(browseMagnificationProvider.notifier).forceFit();

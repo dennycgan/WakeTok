@@ -14,15 +14,16 @@ bool verticalPageViewScrollLocked({
   return isCurrentStillMagnified || transientPinchActive || stillPinchContact;
 }
 
-/// Any rising edge of Live motion PV mount while magnified → force fit
-/// (ADR-043 D1). Covers auto play-once **and** a future explicit replay
-/// control (ADR-040 Decision 17) without rewriting the guard.
+/// Any rising edge of Live motion PV mount while magnification is active
+/// → force fit (ADR-043 D1). Covers persistent still **and** in-progress
+/// transient pinch flags. Also covers auto play-once **and** a future
+/// explicit replay control (ADR-040 Decision 17) without rewriting the guard.
 bool shouldForceFitOnLiveMotionRisingEdge({
   required bool previouslyMounted,
   required bool currentlyMounted,
-  required bool isStillMagnified,
+  required bool hasActiveMagnification,
 }) {
-  return !previouslyMounted && currentlyMounted && isStillMagnified;
+  return !previouslyMounted && currentlyMounted && hasActiveMagnification;
 }
 
 /// Cap 19 actions half-sheet open rising edge → force fit (ADR-043 D4).

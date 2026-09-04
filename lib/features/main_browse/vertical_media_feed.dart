@@ -2120,8 +2120,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           return;
         }
         setState(() => _liveMotionMounted = true);
-        // Cap 20: L1 uses video (non-persistent) host mode — drop it while
-        // Live PV is mounted (binders no longer clearIf on deactivate).
+        // Cap 20.5 / ADR-043 D1: Live PV window — Host mode none rejects pinch.
+        // Binders already deactivate (active && !_liveMotionMounted); explicit
+        // none covers the gap while deactivate no longer clearIf's.
+        // Contrast L1→L2 handoff (keep pointers): destination none cannot
+        // continue magnification, so mode→none clears the pointer map.
         ref
             .read(magnificationHostModeProvider.notifier)
             .setMode(MagnificationHostMode.none);
