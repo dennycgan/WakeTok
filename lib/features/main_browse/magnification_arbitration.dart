@@ -4,12 +4,14 @@
 /// left-swipe arming consumers, and force-fit clears.
 
 /// Vertical [PageView] must not scroll while a still is persistently
-/// magnified or a video pinch gesture is in progress (ADR-043 D3).
+/// magnified, a video pinch is in progress, or still two-finger contact
+/// is active (ADR-043 D3 + Cap 20.3 Plan A).
 bool verticalPageViewScrollLocked({
   required bool isCurrentStillMagnified,
   required bool videoPinchActive,
+  bool stillPinchContact = false,
 }) {
-  return isCurrentStillMagnified || videoPinchActive;
+  return isCurrentStillMagnified || videoPinchActive || stillPinchContact;
 }
 
 /// Any rising edge of Live motion PV mount while magnified → force fit

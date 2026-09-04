@@ -4,14 +4,12 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/magnification_arbitration.dart';
 
 /// Cap 20 session-scoped magnification runtime state (ADR-043).
-///
-/// Scale/offset and pinch recognizers land in 20.3+; 20.2 owns the bool
-/// signal that Cap 19 left-swipe and PageView physics already consume.
 @immutable
 class BrowseMagnificationState {
   const BrowseMagnificationState({
     this.isStillMagnified = false,
     this.videoPinchActive = false,
+    this.stillPinchContact = false,
   });
 
   /// Persistent still (incl. Live static key frame) scale > fit.
@@ -20,20 +18,28 @@ class BrowseMagnificationState {
   /// Transient video pinch in progress (release → fit clears this).
   final bool videoPinchActive;
 
+  /// Still: two-finger contact in progress (locks PageView). Single-finger
+  /// never sets this — Plan A / Cap 20.3 (no pinch-candidate round-trip).
+  final bool stillPinchContact;
+
   bool get locksVerticalPageView => verticalPageViewScrollLocked(
     isCurrentStillMagnified: isStillMagnified,
     videoPinchActive: videoPinchActive,
+    stillPinchContact: stillPinchContact,
   );
 
-  bool get hasActiveMagnification => isStillMagnified || videoPinchActive;
+  bool get hasActiveMagnification =>
+      isStillMagnified || videoPinchActive || stillPinchContact;
 
   BrowseMagnificationState copyWith({
     bool? isStillMagnified,
     bool? videoPinchActive,
+    bool? stillPinchContact,
   }) {
     return BrowseMagnificationState(
       isStillMagnified: isStillMagnified ?? this.isStillMagnified,
       videoPinchActive: videoPinchActive ?? this.videoPinchActive,
+      stillPinchContact: stillPinchContact ?? this.stillPinchContact,
     );
   }
 
@@ -41,11 +47,13 @@ class BrowseMagnificationState {
   bool operator ==(Object other) {
     return other is BrowseMagnificationState &&
         other.isStillMagnified == isStillMagnified &&
-        other.videoPinchActive == videoPinchActive;
+        other.videoPinchActive == videoPinchActive &&
+        other.stillPinchContact == stillPinchContact;
   }
 
   @override
-  int get hashCode => Object.hash(isStillMagnified, videoPinchActive);
+  int get hashCode =>
+      Object.hash(isStillMagnified, videoPinchActive, stillPinchContact);
 }
 
 final browseMagnificationProvider =
@@ -70,7 +78,6 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     return const BrowseMagnificationState();
   }
 
-  /// Test / future pinch path: mark persistent still magnification.
   void setStillMagnified(bool magnified) {
     if (state.isStillMagnified == magnified) {
       return;
@@ -78,12 +85,19 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     state = state.copyWith(isStillMagnified: magnified);
   }
 
-  /// Video mid-pinch (20.4); unlocks PageView when false after release→fit.
   void setVideoPinchActive(bool active) {
     if (state.videoPinchActive == active) {
       return;
     }
     state = state.copyWith(videoPinchActive: active);
+  }
+
+  /// Two-finger contact — locks PageView without requiring scale > 1 yet.
+  void setStillPinchContact(bool active) {
+    if (state.stillPinchContact == active) {
+      return;
+    }
+    state = state.copyWith(stillPinchContact: active);
   }
 
   void forceFit() {
@@ -93,7 +107,6 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     state = const BrowseMagnificationState();
   }
 
-  /// Leave current feed item or leave Browse (ADR-043 D4).
   void clearBecauseLeftCurrentOrBrowse() {
     _liveMotionMounted = false;
     if (!shouldClearMagnificationOnLeaveCurrent(
@@ -106,7 +119,6 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     forceFit();
   }
 
-  /// Live `_liveMotionMounted` transitions — any rising edge force-fits.
   void onLiveMotionMountedChanged(bool mounted) {
     final previous = _liveMotionMounted;
     _liveMotionMounted = mounted;

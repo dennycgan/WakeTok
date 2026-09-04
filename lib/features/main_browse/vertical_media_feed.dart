@@ -24,6 +24,8 @@ import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
+import 'package:waketok/features/main_browse/magnification_reset_button.dart';
+import 'package:waketok/features/main_browse/still_magnification_surface.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -749,7 +751,8 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   _handlePvTransitionScroll(notification);
                   return false;
                 },
-                child: PageView.builder(
+                child: StillMagnificationPointerHost(
+                  child: PageView.builder(
                   key: ValueKey<String>(
                     'feed-${source.id}-r${view.roundEpoch}',
                   ),
@@ -806,6 +809,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                           : null,
                     );
                   },
+                ),
                 ),
               ),
             ],
@@ -3570,7 +3574,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       FeedPageMediaKind.still => _mediaStack(
         still: _StillPage(
           key: coverKey,
-          display: media.display!,
+          mediaChild: StillMagnificationActiveBinder(
+            active: widget.isCurrent && !_liveMotionMounted,
+            child: StillMagnificationTransform(
+              child: _ReloadableFileImage(
+                path: media.display!.localFilePath,
+                color: tokens.feedBackground,
+                onFileBroken: _onPreviewFileBroken,
+              ),
+            ),
+          ),
+          assetIdentifier: media.display!.assetIdentifier,
+          isLivePhoto:
+              media.display!.mediaKind == PlaybackMediaKind.livePhoto,
           liveLabel: l10n.mainBrowseLiveBadge,
           liveLoadLabel: l10n.mainBrowseFeedLiveLoading,
           layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
@@ -3578,7 +3594,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               widget.isCurrent &&
               (showLayer2WaitSpinner || _showLiveLoadSpinner),
           reassureLabel: cornerReassureLabel,
-          onPreviewFileBroken: _onPreviewFileBroken,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
                   assetIdentifier: widget.assetIdentifier,
@@ -3688,13 +3703,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           poster: media.display != null
               ? _StillPage(
                   key: coverKey,
-                  display: media.display!,
+                  mediaChild: _ReloadableFileImage(
+                    path: media.display!.localFilePath,
+                    color: tokens.feedBackground,
+                    onFileBroken: _onPreviewFileBroken,
+                  ),
+                  assetIdentifier: media.display!.assetIdentifier,
+                  isLivePhoto:
+                      media.display!.mediaKind == PlaybackMediaKind.livePhoto,
                   liveLabel: l10n.mainBrowseLiveBadge,
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
                   showLoadSpinner:
                       showLayer2WaitSpinner && !deferVideoForHandoff,
                   reassureLabel: cornerReassureLabel,
-                  onPreviewFileBroken: _onPreviewFileBroken,
                 )
               : null,
           deferVideoForHandoff: deferVideoForHandoff,
@@ -3885,6 +3906,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           excludeScrubberBand:
               onScrubComplete != null && video != null,
         ),
+        // Cap 20.3 D2-A: last layer (defensive); arming already shrinks swipe.
+        MagnificationResetButton(overlaySnapshot: overlaySnapshot),
       ],
     );
   }
@@ -3977,17 +4000,22 @@ class _UsableRegionCenter extends StatelessWidget {
 class _StillPage extends StatelessWidget {
   const _StillPage({
     super.key,
-    required this.display,
+    required this.mediaChild,
+    required this.assetIdentifier,
+    required this.isLivePhoto,
     required this.liveLabel,
     this.liveLoadLabel,
     this.layer3LoadLabel,
     this.showLoadSpinner = false,
     this.reassureLabel,
     this.liveMotionOverlay,
-    this.onPreviewFileBroken,
   });
 
-  final DisplayAsset display;
+  /// Cover / still visual (may already be wrapped in magnification [Transform]).
+  final Widget mediaChild;
+
+  final String assetIdentifier;
+  final bool isLivePhoto;
   final String liveLabel;
 
   /// VoiceOver while Live Layer 2 / motion prepare spinner is shown.
@@ -4005,37 +4033,30 @@ class _StillPage extends StatelessWidget {
   /// Cap 9.4 F1=A: motion-phase Live PV only (null when idle / after Q7 unload).
   final Widget? liveMotionOverlay;
 
-  final VoidCallback? onPreviewFileBroken;
-
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final isLive = display.mediaKind == PlaybackMediaKind.livePhoto;
     final showChrome =
-        isLive ||
+        isLivePhoto ||
         showLoadSpinner ||
         (reassureLabel != null && reassureLabel!.isNotEmpty);
-    final loadLabel = isLive ? liveLoadLabel : layer3LoadLabel;
+    final loadLabel = isLivePhoto ? liveLoadLabel : layer3LoadLabel;
     return Stack(
-      key: Key('mainBrowseFeedStill_${display.assetIdentifier}'),
+      key: Key('mainBrowseFeedStill_$assetIdentifier'),
       fit: StackFit.expand,
       children: [
-        _ReloadableFileImage(
-          path: display.localFilePath,
-          color: tokens.feedBackground,
-          onFileBroken: onPreviewFileBroken,
-        ),
+        mediaChild,
         if (showChrome)
           _FeedCornerChrome(
             color: tokens.brandGold,
-            badgeLabel: isLive ? liveLabel : null,
+            badgeLabel: isLivePhoto ? liveLabel : null,
             showSpinner: showLoadSpinner,
             reassureLabel: reassureLabel,
-            rowKey: isLive
-                ? Key('mainBrowseFeedLiveChrome_${display.assetIdentifier}')
+            rowKey: isLivePhoto
+                ? Key('mainBrowseFeedLiveChrome_$assetIdentifier')
                 : const Key('mainBrowseFeedLayer3Chrome'),
-            spinnerKey: isLive
-                ? Key('mainBrowseFeedLivePreparing_${display.assetIdentifier}')
+            spinnerKey: isLivePhoto
+                ? Key('mainBrowseFeedLivePreparing_$assetIdentifier')
                 : const Key('mainBrowseFeedLayer3Spinner'),
             semanticsLabel: showLoadSpinner ? loadLabel : null,
           ),

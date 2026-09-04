@@ -31,6 +31,13 @@ class MediaInfoOverlay extends StatelessWidget {
   /// trailing edge; +8 gap from Overlay copy.
   static const double trailingInset = 123;
 
+  /// Column height for Cap 20 Reset placement above this Overlay (ADR-043 D2-A).
+  static double columnHeightFor(PresentationOverlaySnapshot? snapshot) {
+    final location = snapshot?.locationLabel?.trim() ?? '';
+    final rows = baseRowCount + (location.isNotEmpty ? 1 : 0);
+    return rowHeight * rows;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;

@@ -389,6 +389,10 @@
   "@mainBrowseLiveBadge": {
     "description": "Corner badge when display mediaKind is livePhoto (static mark only)"
   },
+  "mainBrowseMagnificationReset": "Reset zoom",
+  "@mainBrowseMagnificationReset": {
+    "description": "Accessibility label for Cap 20 still magnification Reset (welded bottom-left while magnified)"
+  },
   "mainBrowseStubClipsBody": "Clips — coming in a later capability.",
   "@mainBrowseStubClipsBody": {
     "description": "Clips tab stub body copy"

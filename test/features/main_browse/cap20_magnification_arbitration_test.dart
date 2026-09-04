@@ -37,6 +37,17 @@ void main() {
       );
     });
 
+    test('T-20.2-3b still pinch contact alone locks PageView', () {
+      expect(
+        verticalPageViewScrollLocked(
+          isCurrentStillMagnified: false,
+          videoPinchActive: false,
+          stillPinchContact: true,
+        ),
+        isTrue,
+      );
+    });
+
     test('T-20.2-4 live motion rising edge force-fits when magnified', () {
       expect(
         shouldForceFitOnLiveMotionRisingEdge(
@@ -187,6 +198,19 @@ void main() {
       container
           .read(browseMagnificationProvider.notifier)
           .setVideoPinchActive(true);
+      expect(
+        container.read(browseMagnificationProvider).locksVerticalPageView,
+        isTrue,
+      );
+      expect(container.read(browseStillMagnifiedProvider), isFalse);
+    });
+
+    test('T-20.2-16 still pinch contact alone locks PageView flag', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container
+          .read(browseMagnificationProvider.notifier)
+          .setStillPinchContact(true);
       expect(
         container.read(browseMagnificationProvider).locksVerticalPageView,
         isTrue,
