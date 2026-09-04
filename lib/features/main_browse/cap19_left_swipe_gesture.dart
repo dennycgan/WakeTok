@@ -73,6 +73,14 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
       return const SizedBox.shrink();
     }
     final armed = ref.watch(cap19LeftSwipeArmingProvider);
+    ref.listen<bool>(cap19LeftSwipeArmingProvider, (previous, next) {
+      if (previous == true && next == false && _tracking) {
+        // Magnification pinch armed PageView lock — drop in-flight swipe
+        // tracking so two-finger pinch is not classified as left-swipe.
+        _resetPointerTracking();
+        ref.read(cap19LeftSwipeDragProvider.notifier).reset();
+      }
+    });
     if (!armed) {
       return const SizedBox.shrink();
     }

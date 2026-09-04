@@ -43,11 +43,18 @@ bool leftSwipeArmingAllowed({
   required bool isCurrentStillMagnified,
   required bool cap19PanelOpen,
   required bool currentAssetActionable,
+  bool transientPinchActive = false,
+  bool stillPinchContact = false,
 }) {
   if (!leftSwipeAddEnabled) {
     return false;
   }
   if (isCurrentStillMagnified) {
+    return false;
+  }
+  // Mid multi-touch / transient pinch must not compete with Cap19 full-width
+  // translucent Listener (Cap 20.4 device: L2 pinch vs left-swipe conflict).
+  if (transientPinchActive || stillPinchContact) {
     return false;
   }
   if (cap19PanelOpen) {

@@ -4,14 +4,14 @@
 /// left-swipe arming consumers, and force-fit clears.
 
 /// Vertical [PageView] must not scroll while a still is persistently
-/// magnified, a video pinch is in progress, or still two-finger contact
+/// magnified, a transient pinch is in progress, or still two-finger contact
 /// is active (ADR-043 D3 + Cap 20.3 Plan A).
 bool verticalPageViewScrollLocked({
   required bool isCurrentStillMagnified,
-  required bool videoPinchActive,
+  required bool transientPinchActive,
   bool stillPinchContact = false,
 }) {
-  return isCurrentStillMagnified || videoPinchActive || stillPinchContact;
+  return isCurrentStillMagnified || transientPinchActive || stillPinchContact;
 }
 
 /// Any rising edge of Live motion PV mount while magnified → force fit
@@ -26,12 +26,14 @@ bool shouldForceFitOnLiveMotionRisingEdge({
 }
 
 /// Cap 19 actions half-sheet open rising edge → force fit (ADR-043 D4).
+///
+/// Clears persistent still magnification **and** in-progress transient pinch.
 bool shouldForceFitOnActionsPanelOpen({
   required bool previouslyOpen,
   required bool currentlyOpen,
-  required bool isStillMagnified,
+  required bool hasActiveMagnification,
 }) {
-  return !previouslyOpen && currentlyOpen && isStillMagnified;
+  return !previouslyOpen && currentlyOpen && hasActiveMagnification;
 }
 
 /// Leaving the current feed item (or Browse) clears magnification state.

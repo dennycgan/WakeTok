@@ -47,12 +47,17 @@ final cap19LeftSwipeAppendProvider =
 /// Whether the current feed page may arm the left-swipe recognizer.
 final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
   final appendState = ref.watch(cap19LeftSwipeAppendProvider);
+  // Prefer [browseStillMagnifiedProvider] so test harness
+  // `forceStillMagnified` override still applies (W-19.6-9).
   final magnified = ref.watch(browseStillMagnifiedProvider);
+  final mag = ref.watch(browseMagnificationProvider);
   final panelOpen = ref.watch(cap19ActionsPanelOpenProvider);
   final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
   return leftSwipeArmingAllowed(
     leftSwipeAddEnabled: appendState.leftSwipeAddEnabled,
     isCurrentStillMagnified: magnified,
+    transientPinchActive: mag.transientPinchActive,
+    stillPinchContact: mag.stillPinchContact,
     cap19PanelOpen: panelOpen,
     currentAssetActionable: actionable,
   );

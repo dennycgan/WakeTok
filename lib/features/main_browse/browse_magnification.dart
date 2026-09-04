@@ -8,15 +8,15 @@ import 'package:waketok/features/main_browse/magnification_arbitration.dart';
 class BrowseMagnificationState {
   const BrowseMagnificationState({
     this.isStillMagnified = false,
-    this.videoPinchActive = false,
+    this.transientPinchActive = false,
     this.stillPinchContact = false,
   });
 
-  /// Persistent still (incl. Live static key frame) scale > fit.
+  /// Persistent still (photo / Live static L2) scale > fit.
   final bool isStillMagnified;
 
-  /// Transient video pinch in progress (release → fit clears this).
-  final bool videoPinchActive;
+  /// Transient (non-persistent) pinch in progress or releasing → fit.
+  final bool transientPinchActive;
 
   /// Still: two-finger contact in progress (locks PageView). Single-finger
   /// never sets this — Plan A / Cap 20.3 (no pinch-candidate round-trip).
@@ -24,21 +24,21 @@ class BrowseMagnificationState {
 
   bool get locksVerticalPageView => verticalPageViewScrollLocked(
     isCurrentStillMagnified: isStillMagnified,
-    videoPinchActive: videoPinchActive,
+    transientPinchActive: transientPinchActive,
     stillPinchContact: stillPinchContact,
   );
 
   bool get hasActiveMagnification =>
-      isStillMagnified || videoPinchActive || stillPinchContact;
+      isStillMagnified || transientPinchActive || stillPinchContact;
 
   BrowseMagnificationState copyWith({
     bool? isStillMagnified,
-    bool? videoPinchActive,
+    bool? transientPinchActive,
     bool? stillPinchContact,
   }) {
     return BrowseMagnificationState(
       isStillMagnified: isStillMagnified ?? this.isStillMagnified,
-      videoPinchActive: videoPinchActive ?? this.videoPinchActive,
+      transientPinchActive: transientPinchActive ?? this.transientPinchActive,
       stillPinchContact: stillPinchContact ?? this.stillPinchContact,
     );
   }
@@ -47,13 +47,13 @@ class BrowseMagnificationState {
   bool operator ==(Object other) {
     return other is BrowseMagnificationState &&
         other.isStillMagnified == isStillMagnified &&
-        other.videoPinchActive == videoPinchActive &&
+        other.transientPinchActive == transientPinchActive &&
         other.stillPinchContact == stillPinchContact;
   }
 
   @override
   int get hashCode =>
-      Object.hash(isStillMagnified, videoPinchActive, stillPinchContact);
+      Object.hash(isStillMagnified, transientPinchActive, stillPinchContact);
 }
 
 final browseMagnificationProvider =
@@ -85,11 +85,11 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     state = state.copyWith(isStillMagnified: magnified);
   }
 
-  void setVideoPinchActive(bool active) {
-    if (state.videoPinchActive == active) {
+  void setTransientPinchActive(bool active) {
+    if (state.transientPinchActive == active) {
       return;
     }
-    state = state.copyWith(videoPinchActive: active);
+    state = state.copyWith(transientPinchActive: active);
   }
 
   /// Two-finger contact — locks PageView without requiring scale > 1 yet.
@@ -137,7 +137,7 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
     if (shouldForceFitOnActionsPanelOpen(
       previouslyOpen: previous,
       currentlyOpen: open,
-      isStillMagnified: state.isStillMagnified,
+      hasActiveMagnification: state.hasActiveMagnification,
     )) {
       forceFit();
     }

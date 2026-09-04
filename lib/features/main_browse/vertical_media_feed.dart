@@ -25,7 +25,7 @@ import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
 import 'package:waketok/features/main_browse/magnification_reset_button.dart';
-import 'package:waketok/features/main_browse/still_magnification_surface.dart';
+import 'package:waketok/features/main_browse/magnification_surface.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -144,6 +144,45 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       }
     }
     ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(settled);
+  }
+
+  /// Leave current page / source / Browse: clear mag session + host mode so
+  /// neighbours cannot inherit a stale still/video pinch matrix (Cap 20.4).
+  void _clearMagnificationSession() {
+    ref.read(browseMagnificationProvider.notifier).clearBecauseLeftCurrentOrBrowse();
+    ref
+        .read(magnificationHostModeProvider.notifier)
+        .setMode(MagnificationHostMode.none);
+    ref.read(nativeDisplayMagnificationPushProvider.notifier).setEnabled(false);
+    ref.read(magnificationMatrixProvider.notifier).reset();
+    ref.read(magnificationContentSizeProvider.notifier).clear();
+    unawaited(
+      ref.read(playbackRepositoryProvider).setDisplayMagnification(
+        scale: kCap20MinScale,
+        translationX: 0,
+        translationY: 0,
+      ),
+    );
+  }
+
+  /// Two-finger lock rose while PageView was mid-drag: NeverScrollable alone
+  /// does not cancel an in-flight scroll activity — jump back to the current
+  /// index so the neighbour page cannot steal the pinch (Cap 20.4 device).
+  void _snapVerticalFeedToCurrentIfMidScroll() {
+    final controller = _pageController;
+    if (controller == null || !controller.hasClients) {
+      return;
+    }
+    final page = controller.page;
+    if (page == null) {
+      return;
+    }
+    final feedIndex = ref.read(mainBrowseFeedIndexProvider);
+    if ((page - feedIndex).abs() < 0.001) {
+      return;
+    }
+    controller.jumpToPage(feedIndex);
+    _publishVerticalFeedSettled(true);
   }
 
   void _maybeSyncScrubberVerticalFeedSettled(int feedIndex) {
@@ -578,14 +617,22 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     ref.listen(mainBrowseDestinationProvider, (previous, next) {
       if (previous == MainBrowseDestination.browse &&
           next != MainBrowseDestination.browse) {
-        ref
-            .read(browseMagnificationProvider.notifier)
-            .clearBecauseLeftCurrentOrBrowse();
+        _clearMagnificationSession();
         unawaited(
           ref
               .read(pvTransitionGuardProvider.notifier)
               .disarm(reason: 'leave-browse'),
         );
+      }
+    });
+    ref.listen<BrowseMagnificationState>(browseMagnificationProvider, (
+      previous,
+      next,
+    ) {
+      if (previous != null &&
+          !previous.locksVerticalPageView &&
+          next.locksVerticalPageView) {
+        _snapVerticalFeedToCurrentIfMidScroll();
       }
     });
     final browseActive = destination == MainBrowseDestination.browse;
@@ -605,9 +652,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
 
     ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
       if (prev != next) {
-        ref
-            .read(browseMagnificationProvider.notifier)
-            .clearBecauseLeftCurrentOrBrowse();
+        _clearMagnificationSession();
         unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
       }
     });
@@ -751,7 +796,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   _handlePvTransitionScroll(notification);
                   return false;
                 },
-                child: StillMagnificationPointerHost(
+                child: MagnificationPointerHost(
                   child: PageView.builder(
                   key: ValueKey<String>(
                     'feed-${source.id}-r${view.roundEpoch}',
@@ -766,9 +811,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   allowImplicitScrolling: true,
                   itemCount: ids.length,
                   onPageChanged: (i) {
-                    ref
-                        .read(browseMagnificationProvider.notifier)
-                        .clearBecauseLeftCurrentOrBrowse();
+                    _clearMagnificationSession();
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
                     _publishVerticalFeedSettled(true);
                   },
@@ -2077,6 +2120,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           return;
         }
         setState(() => _liveMotionMounted = true);
+        // Cap 20: L1 uses video (non-persistent) host mode — drop it while
+        // Live PV is mounted (binders no longer clearIf on deactivate).
+        ref
+            .read(magnificationHostModeProvider.notifier)
+            .setMode(MagnificationHostMode.none);
         ref
             .read(browseMagnificationProvider.notifier)
             .onLiveMotionMountedChanged(true);
@@ -3574,15 +3622,40 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       FeedPageMediaKind.still => _mediaStack(
         still: _StillPage(
           key: coverKey,
-          mediaChild: StillMagnificationActiveBinder(
-            active: widget.isCurrent && !_liveMotionMounted,
-            child: StillMagnificationTransform(
-              child: _ReloadableFileImage(
+          // Cap 20: L1 = transient; photo / Live-static L2 = persistent.
+          // Cap 20 content-rect: letterbox outside Transform.
+          mediaChild: StillFittedMagnificationShell(
+            active: widget.isCurrent,
+            backgroundColor: tokens.feedBackground,
+            pixelWidth: media.display!.pixelWidth,
+            pixelHeight: media.display!.pixelHeight,
+            child: () {
+              final persistent = usesPersistentMagnification(media);
+              final binderActive =
+                  widget.isCurrent && !_liveMotionMounted;
+              final image = _ReloadableFileImage(
                 path: media.display!.localFilePath,
                 color: tokens.feedBackground,
+                fit: BoxFit.fill,
                 onFileBroken: _onPreviewFileBroken,
-              ),
-            ),
+              );
+              if (persistent) {
+                return StillMagnificationActiveBinder(
+                  active: binderActive,
+                  child: StillMagnificationTransform(
+                    apply: binderActive,
+                    child: image,
+                  ),
+                );
+              }
+              return TransientMagnificationActiveBinder(
+                active: binderActive,
+                child: StillMagnificationTransform(
+                  apply: binderActive,
+                  child: image,
+                ),
+              );
+            }(),
           ),
           assetIdentifier: media.display!.assetIdentifier,
           isLivePhoto:
@@ -3662,33 +3735,60 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             _armPosterHoldOnVideoSlotMount();
           }
           _videoSlotMounted = true;
-          videoChild = _VideoPage(
-            assetIdentifier: media.videoAssetId!,
-            guardCovering: ref
-                .read(pvTransitionGuardProvider)
-                .isCovering(widget.assetIdentifier),
-            hasPoster: media.display != null,
-            onSurfaceReady: () async {
-              if (!mounted) {
-                return;
-              }
-              setState(() {
-                _surfaceReady = true;
-              });
-              if (widget.isCurrent) {
-                widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
-              }
-              await ref
-                  .read(playbackRepositoryProvider)
-                  .notifyDisplaySurfaceReady(media.videoAssetId!);
-              await _syncPlaybackActive();
-            },
-          );
         } else {
           if (_videoSlotMounted) {
             _clearPosterHold(reason: 'video-slot-unmounted');
             _videoSlotMounted = false;
           }
+        }
+        // After poster-hold arming: L2 owns pinch only when the player is
+        // visually showing. Until then poster owns Q5-B non-persistent pinch.
+        final l2VisualOwnsPinch =
+            canMountVideo && !_holdPosterUntilFirstFrame;
+        if (canMountVideo) {
+          // Cap 20.4: video L2 is never persistent (policy helper).
+          assert(!usesPersistentMagnification(media));
+          // Cap 20.4 Q5-B / Q3: L2 arms transient host when visually ready;
+          // scale via setDisplayMagnification — Flutter Transform apply false.
+          videoChild = MagnificationContentSizeReporter(
+            active: widget.isCurrent && l2VisualOwnsPinch,
+            pixelWidth: media.display?.pixelWidth,
+            pixelHeight: media.display?.pixelHeight,
+            child: NativeDisplayMagnificationPushBinder(
+              active: widget.isCurrent && l2VisualOwnsPinch,
+              child: TransientMagnificationActiveBinder(
+                active: widget.isCurrent && l2VisualOwnsPinch,
+                child: VideoMagnificationTransform(
+                  apply: false,
+                  child: _VideoPage(
+                    assetIdentifier: media.videoAssetId!,
+                    guardCovering: ref
+                        .read(pvTransitionGuardProvider)
+                        .isCovering(widget.assetIdentifier),
+                    hasPoster: media.display != null,
+                    onSurfaceReady: () async {
+                      if (!mounted) {
+                        return;
+                      }
+                      setState(() {
+                        _surfaceReady = true;
+                      });
+                      if (widget.isCurrent) {
+                        widget.onCurrentLayer2MediaReady?.call(
+                          widget.assetIdentifier,
+                        );
+                      }
+                      await ref
+                          .read(playbackRepositoryProvider)
+                          .notifyDisplaySurfaceReady(media.videoAssetId!);
+                      await _syncPlaybackActive();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else {
           videoChild = null;
         }
         final covering = ref
@@ -3697,16 +3797,42 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         final coordinator = canMountVideo && videoChild != null
             ? ref.watch(playbackCoordinatorProvider)
             : null;
+        // Poster-only L1, or poster-hold while UiKitView is opacity-0.
+        final posterOwnsPinch =
+            widget.isCurrent &&
+            media.display != null &&
+            !l2VisualOwnsPinch;
+        assert(
+          media.display == null || !usesPersistentMagnification(media),
+          'video page media must not use persistent magnification policy',
+        );
         return _mediaStack(
           still: null,
           video: videoChild,
           poster: media.display != null
               ? _StillPage(
                   key: coverKey,
-                  mediaChild: _ReloadableFileImage(
-                    path: media.display!.localFilePath,
-                    color: tokens.feedBackground,
-                    onFileBroken: _onPreviewFileBroken,
+                  // Keep the same Binder→Transform→Image ancestry as the
+                  // still path so Cap 15.14 STILL→VIDEO promote can reuse
+                  // _ReloadableFileImage State (coverKey alone is not enough
+                  // once Transform wraps the still mediaChild).
+                  mediaChild: StillFittedMagnificationShell(
+                    active: posterOwnsPinch,
+                    backgroundColor: tokens.feedBackground,
+                    pixelWidth: media.display!.pixelWidth,
+                    pixelHeight: media.display!.pixelHeight,
+                    child: TransientMagnificationActiveBinder(
+                      active: posterOwnsPinch,
+                      child: StillMagnificationTransform(
+                        apply: posterOwnsPinch,
+                        child: _ReloadableFileImage(
+                          path: media.display!.localFilePath,
+                          color: tokens.feedBackground,
+                          fit: BoxFit.fill,
+                          onFileBroken: _onPreviewFileBroken,
+                        ),
+                      ),
+                    ),
                   ),
                   assetIdentifier: media.display!.assetIdentifier,
                   isLivePhoto:
@@ -4191,11 +4317,13 @@ class _ReloadableFileImage extends StatefulWidget {
     required this.path,
     required this.color,
     this.onFileBroken,
+    this.fit = BoxFit.contain,
   });
 
   final String path;
   final Color color;
   final VoidCallback? onFileBroken;
+  final BoxFit fit;
 
   @override
   State<_ReloadableFileImage> createState() => _ReloadableFileImageState();
@@ -4240,7 +4368,7 @@ class _ReloadableFileImageState extends State<_ReloadableFileImage> {
             allowUpscaling: false,
           ),
           gaplessPlayback: true,
-          fit: BoxFit.contain,
+          fit: widget.fit,
           errorBuilder: (context, error, stackTrace) {
             if (!_postedBroken) {
               _postedBroken = true;

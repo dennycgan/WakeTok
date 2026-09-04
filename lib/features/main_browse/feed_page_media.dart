@@ -69,6 +69,24 @@ class FeedPageMedia {
   final FeedFailureReason? failureReason;
 }
 
+/// Cap 20: persistent pinch + Reset only for photo / Live-static Layer-2.
+///
+/// False for all Layer-1 (preview / video poster), all video pages, and
+/// still frames whose [DisplayAsset.mediaKind] is [PlaybackMediaKind.video].
+/// Live L2 static (`mediaKind == livePhoto`, `layer == full`) returns true.
+bool usesPersistentMagnification(FeedPageMedia media) {
+  if (media.kind != FeedPageMediaKind.still) {
+    return false;
+  }
+  if (media.displayLayer != FeedDisplayLayer.full) {
+    return false;
+  }
+  if (media.display?.mediaKind == PlaybackMediaKind.video) {
+    return false;
+  }
+  return true;
+}
+
 /// Layer 1: local preview JPEG (still / Live key / video poster).
 ///
 /// Misses (`iCloudDownloadRequired`, cancel, other errors) return null —

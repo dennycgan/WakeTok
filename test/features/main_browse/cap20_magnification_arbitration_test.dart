@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
+import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/magnification_arbitration.dart';
 
 void main() {
@@ -11,27 +13,27 @@ void main() {
       expect(
         verticalPageViewScrollLocked(
           isCurrentStillMagnified: true,
-          videoPinchActive: false,
+          transientPinchActive: false,
         ),
         isTrue,
       );
     });
 
-    test('T-20.2-2 video pinch active locks vertical PageView', () {
+    test('T-20.2-2 transient pinch active locks vertical PageView', () {
       expect(
         verticalPageViewScrollLocked(
           isCurrentStillMagnified: false,
-          videoPinchActive: true,
+          transientPinchActive: true,
         ),
         isTrue,
       );
     });
 
-    test('T-20.2-3 fit + no video pinch does not lock PageView', () {
+    test('T-20.2-3 fit + no transient pinch does not lock PageView', () {
       expect(
         verticalPageViewScrollLocked(
           isCurrentStillMagnified: false,
-          videoPinchActive: false,
+          transientPinchActive: false,
         ),
         isFalse,
       );
@@ -41,7 +43,7 @@ void main() {
       expect(
         verticalPageViewScrollLocked(
           isCurrentStillMagnified: false,
-          videoPinchActive: false,
+          transientPinchActive: false,
           stillPinchContact: true,
         ),
         isTrue,
@@ -97,9 +99,31 @@ void main() {
         shouldForceFitOnActionsPanelOpen(
           previouslyOpen: false,
           currentlyOpen: true,
-          isStillMagnified: true,
+          hasActiveMagnification: true,
         ),
         isTrue,
+      );
+    });
+
+    test('T-20.4-3 panel open rising edge force-fits video pinch', () {
+      expect(
+        shouldForceFitOnActionsPanelOpen(
+          previouslyOpen: false,
+          currentlyOpen: true,
+          hasActiveMagnification: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('T-20.4-3b panel open is no-op when no magnification active', () {
+      expect(
+        shouldForceFitOnActionsPanelOpen(
+          previouslyOpen: false,
+          currentlyOpen: true,
+          hasActiveMagnification: false,
+        ),
+        isFalse,
       );
     });
 
@@ -179,12 +203,65 @@ void main() {
       expect(container.read(browseStillMagnifiedProvider), isFalse);
     });
 
+    test('T-20.4-3c panel open force-fits active video pinch', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final mag = container.read(browseMagnificationProvider.notifier);
+      mag.setTransientPinchActive(true);
+      container.read(browseMagnificationProvider);
+      container.read(cap19ActionsPanelOpenProvider.notifier).state = true;
+      expect(
+        container.read(browseMagnificationProvider).transientPinchActive,
+        isFalse,
+      );
+    });
+
+    test('T-20.4-4 video pinch active blocks left-swipe arming', () {
+      expect(
+        leftSwipeArmingAllowed(
+          leftSwipeAddEnabled: true,
+          isCurrentStillMagnified: false,
+          transientPinchActive: true,
+          cap19PanelOpen: false,
+          currentAssetActionable: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('T-20.4-4b still pinch contact blocks left-swipe arming', () {
+      expect(
+        leftSwipeArmingAllowed(
+          leftSwipeAddEnabled: true,
+          isCurrentStillMagnified: false,
+          stillPinchContact: true,
+          cap19PanelOpen: false,
+          currentAssetActionable: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('T-20.4-4c fit video (no pinch flags) allows left-swipe arming', () {
+      expect(
+        leftSwipeArmingAllowed(
+          leftSwipeAddEnabled: true,
+          isCurrentStillMagnified: false,
+          transientPinchActive: false,
+          stillPinchContact: false,
+          cap19PanelOpen: false,
+          currentAssetActionable: true,
+        ),
+        isTrue,
+      );
+    });
+
     test('T-20.2-14 leave current clears still + video pinch', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final mag = container.read(browseMagnificationProvider.notifier);
       mag.setStillMagnified(true);
-      mag.setVideoPinchActive(true);
+      mag.setTransientPinchActive(true);
       mag.clearBecauseLeftCurrentOrBrowse();
       expect(
         container.read(browseMagnificationProvider),
@@ -197,7 +274,7 @@ void main() {
       addTearDown(container.dispose);
       container
           .read(browseMagnificationProvider.notifier)
-          .setVideoPinchActive(true);
+          .setTransientPinchActive(true);
       expect(
         container.read(browseMagnificationProvider).locksVerticalPageView,
         isTrue,
@@ -216,6 +293,74 @@ void main() {
         isTrue,
       );
       expect(container.read(browseStillMagnifiedProvider), isFalse);
+    });
+  });
+
+  group('usesPersistentMagnification policy', () {
+    DisplayAsset stillAsset(PlaybackMediaKind kind) => DisplayAsset(
+      assetIdentifier: 'x',
+      mediaKind: kind,
+      localFilePath: '/tmp/x.jpg',
+      pixelWidth: 100,
+      pixelHeight: 100,
+    );
+
+    test('T-20.4-policy-1 photo L2 full is persistent', () {
+      expect(
+        usesPersistentMagnification(
+          FeedPageMedia.still(
+            stillAsset(PlaybackMediaKind.image),
+            layer: FeedDisplayLayer.full,
+          ),
+        ),
+        isTrue,
+      );
+    });
+
+    test('T-20.4-policy-2 Live L2 static full is persistent', () {
+      expect(
+        usesPersistentMagnification(
+          FeedPageMedia.still(
+            stillAsset(PlaybackMediaKind.livePhoto),
+            layer: FeedDisplayLayer.full,
+          ),
+        ),
+        isTrue,
+        reason: 'ADR-043: Live static L2 shares persistent still path',
+      );
+    });
+
+    test('T-20.4-policy-3 photo L1 preview is not persistent', () {
+      expect(
+        usesPersistentMagnification(
+          FeedPageMedia.still(
+            stillAsset(PlaybackMediaKind.image),
+            layer: FeedDisplayLayer.preview,
+          ),
+        ),
+        isFalse,
+      );
+    });
+
+    test('T-20.4-policy-4 video poster still-kind is not persistent', () {
+      expect(
+        usesPersistentMagnification(
+          FeedPageMedia.still(
+            stillAsset(PlaybackMediaKind.video),
+            layer: FeedDisplayLayer.full,
+          ),
+        ),
+        isFalse,
+      );
+    });
+
+    test('T-20.4-policy-5 video page media is not persistent', () {
+      expect(
+        usesPersistentMagnification(
+          FeedPageMedia.video('v1', poster: stillAsset(PlaybackMediaKind.video)),
+        ),
+        isFalse,
+      );
     });
   });
 }

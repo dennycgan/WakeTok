@@ -15,7 +15,7 @@ import 'package:waketok/features/main_browse/magnification_reset_button.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
-import 'package:waketok/features/main_browse/still_magnification_surface.dart';
+import 'package:waketok/features/main_browse/magnification_surface.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -76,8 +76,8 @@ void main() {
   });
 
   test('T-20.3-2 max scale constant is provisional 4×', () {
-    expect(kCap20StillMaxScale, 4.0);
-    expect(kCap20StillMinScale, 1.0);
+    expect(kCap20MaxScale, 4.0);
+    expect(kCap20MinScale, 1.0);
   });
 
   testWidgets('T-20.3-3 Reset button appears only while still magnified', (
@@ -244,7 +244,7 @@ void main() {
   );
 
   testWidgets(
-    'T-20.3-7 real two-finger pinch from fit enters magnified and scales',
+    'T-20.3-7 real two-finger pinch scales; photo L2 release stays persistent',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
@@ -258,21 +258,24 @@ void main() {
       final container = _feedContainer(tester);
       expect(container.read(browseStillMagnifiedProvider), isFalse);
       expect(
-        find.byKey(const Key('stillMagnificationSurface')),
+        container.read(magnificationHostModeProvider),
+        MagnificationHostMode.still,
+        reason: 'photo L2 (FeedDisplayLayer.full) arms persistent still mode',
+      );
+      expect(
+        find.byKey(const Key('magnificationPointerHost')),
         findsOneWidget,
       );
 
-      final surface = find.byKey(const Key('stillMagnificationSurface'));
+      final surface = find.byKey(const Key('magnificationPointerHost'));
       final center = tester.getCenter(surface);
 
-      // Staggered downs (realistic): finger 1, then finger 2 a few ms later.
-      // Plan A: single finger must NOT lock PageView.
       final g1 = await tester.startGesture(center + const Offset(-40, 0));
       await tester.pump(const Duration(milliseconds: 16));
       expect(
         container.read(browseMagnificationProvider).stillPinchContact,
         isFalse,
-        reason: 'Plan A: 1st finger alone must not set stillPinchContact',
+        reason: 'Plan A: 1st finger alone must not lock',
       );
 
       final g2 = await tester.startGesture(center + const Offset(40, 0));
@@ -283,15 +286,13 @@ void main() {
         reason: '2nd finger must lock via stillPinchContact',
       );
 
-      // Spread fingers → span 80 → 200 (~2.5× from start scale 1).
       await g1.moveBy(const Offset(-60, 0));
       await g2.moveBy(const Offset(60, 0));
       await tester.pump();
 
       expect(
-        container.read(browseStillMagnifiedProvider),
-        isTrue,
-        reason: 'real multi-touch from fit must enter magnified (not setter)',
+        container.read(magnificationMatrixProvider).scale,
+        greaterThan(1.5),
       );
 
       Transform readTransform() {
@@ -301,28 +302,33 @@ void main() {
       }
 
       final scaleAfterSpread = readTransform().transform.getMaxScaleOnAxis();
-      expect(
-        scaleAfterSpread,
-        greaterThan(1.5),
-        reason: 'scale must track two-finger distance',
-      );
+      expect(scaleAfterSpread, greaterThan(1.5));
 
-      // Pinch in a bit — scale should drop but stay magnified above epsilon.
       await g1.moveBy(const Offset(20, 0));
       await g2.moveBy(const Offset(-20, 0));
       await tester.pump();
       final scaleAfterPinchIn = readTransform().transform.getMaxScaleOnAxis();
       expect(scaleAfterPinchIn, lessThan(scaleAfterSpread));
-      expect(scaleAfterPinchIn, greaterThan(1.0 + kCap20StillMagnifiedEpsilon));
+      expect(scaleAfterPinchIn, greaterThan(1.0 + kCap20MagnifiedEpsilon));
 
       await g1.up();
       await g2.up();
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
       expect(
         container.read(browseStillMagnifiedProvider),
         isTrue,
-        reason: 'still magnification is persistent after release',
+        reason: 'photo L2 must stay magnified after release',
       );
+      expect(
+        container.read(browseMagnificationProvider).stillPinchContact,
+        isFalse,
+      );
+      expect(
+        container.read(magnificationMatrixProvider).scale,
+        greaterThan(1.0 + kCap20MagnifiedEpsilon),
+      );
+      expect(find.byKey(const Key('magnificationResetButton')), findsOneWidget);
     },
   );
 
@@ -341,7 +347,7 @@ void main() {
       final container = _feedContainer(tester);
       expect(container.read(mainBrowseFeedIndexProvider), 0);
 
-      final surface = find.byKey(const Key('stillMagnificationSurface'));
+      final surface = find.byKey(const Key('magnificationPointerHost'));
       final center = tester.getCenter(surface);
 
       // One finger down — must not lock; same finger continues into a page.
@@ -394,7 +400,7 @@ void main() {
       final pageController = feedState.debugPageController;
       expect(pageController, isNotNull);
 
-      final surface = find.byKey(const Key('stillMagnificationSurface'));
+      final surface = find.byKey(const Key('magnificationPointerHost'));
       final center = tester.getCenter(surface);
 
       // Finger 1: past drag slop so PageView is actually tracking, but not
@@ -472,7 +478,7 @@ void main() {
 
       final container = _feedContainer(tester);
       expect(
-        find.byKey(const Key('stillMagnificationSurface')),
+        find.byKey(const Key('magnificationPointerHost')),
         findsOneWidget,
         reason: 'PageView-outer pinch host must be present',
       );
@@ -528,20 +534,20 @@ void main() {
       await _pumpFeed(tester);
 
       final container = _feedContainer(tester);
-      expect(find.byKey(const Key('stillMagnificationSurface')), findsOneWidget);
+      expect(find.byKey(const Key('magnificationPointerHost')), findsOneWidget);
       expect(
-        container.read(stillMagnificationSurfaceActiveProvider),
-        isTrue,
-        reason: 'current still must enable host logic',
+        container.read(magnificationHostModeProvider),
+        MagnificationHostMode.still,
+        reason: 'settled photo L2 arms persistent still host mode',
       );
 
       // Host must be an ancestor of PageView (outside scrollable child tree).
       final hostContext = tester.element(
-        find.byKey(const Key('stillMagnificationSurface')),
+        find.byKey(const Key('magnificationPointerHost')),
       );
       expect(
         find.descendant(
-          of: find.byKey(const Key('stillMagnificationSurface')),
+          of: find.byKey(const Key('magnificationPointerHost')),
           matching: find.byType(PageView),
         ),
         findsOneWidget,

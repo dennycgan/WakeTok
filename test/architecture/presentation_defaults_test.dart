@@ -13,7 +13,10 @@ void main() {
     final source = File(
       '${packageRoot.path}/lib/features/main_browse/vertical_media_feed.dart',
     ).readAsStringSync();
-    expect(source.contains('fit: BoxFit.contain'), isTrue);
+    // Cap 20: letterbox is the fitted content SizedBox (contain vs viewport);
+    // Image fills that box. Default ctor still BoxFit.contain for fallbacks.
+    expect(source.contains('this.fit = BoxFit.contain'), isTrue);
+    expect(source.contains('StillFittedMagnificationShell'), isTrue);
     final coverOccurrences = RegExp(r'fit: BoxFit\.cover').allMatches(source);
     expect(
       coverOccurrences.length,
