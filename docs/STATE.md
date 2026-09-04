@@ -95,11 +95,10 @@
 - [x] Add to Album / Cap 19 entry chrome (Cap 19 /
       ADR-041…042; `docs/acceptance/cap19-*.md`; PHASE_HISTORY)
 - [ ] <-- YOU ARE HERE: Display magnification (pinch to zoom, lightweight)
-      (Cap 20). Still: persistent zoom + Reset (Reset welded
-      visible while magnified; reverse-pinch clamps at fit; no
-      smaller-than-fit); video: non-persistent (release → fit).
-      Magnified still pan overrides vertical PageView until fit —
-      Cap 18 freezes that arbitration exception; Cap 20 implements.
+      (Cap 20). L2 still: persistent zoom + Reset; all L1 + video L2:
+      transient release→fit (ADR-043 Decision 13/14). Magnified still pan
+      overrides vertical PageView until fit — Cap 18 freezes that
+      arbitration exception; Cap 20 implements.
 - [ ] Build a Pool, Ephemeral Pool, and Source ordering
       (**deferred past Cap 14**)
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
@@ -159,10 +158,12 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 > Principle: within Cap 20’s implemented behaviours (pinch in, magnified
-> pan, clamp-to-fit floor, still persistent / video release→fit), match
-> iOS Photos feel for still / animated image / Live **static** key frame.
-> ADR-043: **Known delta** = fixed max scale only; other Photos-only
-> behaviours stay **Out of Cap 20** (not “failed parity”).
+> pan, clamp-to-fit floor), **Layer-2** still (photo / animated / Live
+> static) is persistent + Reset; **all Layer-1** and **video L2** are
+> transient release→fit. Match iOS Photos feel for still / animated /
+> Live static L2. ADR-043: **Known delta** = fixed max scale only; other
+> Photos-only behaviours stay **Out of Cap 20**. Decision 13 =
+> `setDisplayMagnification` (narrow Host API); Decision 14 = L1 unify.
 > Inherits Cap 19 Decision 20 left-swipe magnification guard
 > (`browseStillMagnifiedProvider` replaces Cap 19 stub as of 20.2).
 > Live motion PV window (`_liveMotionMounted`): no new pinch; force fit
@@ -171,7 +172,7 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 - [x] 20.1 Contract freeze
       — D1–D6 locked (D7/D8 Out / no-touch); Live PV scale spike
         **cancelled** (static Live = still path; motion window gated);
-      — ADR-043 Proposed; GLOSSARY §18 Display Magnification / pinch /
+      — ADR-043 Accepted; GLOSSARY §18 Display Magnification / pinch /
         Reset (Fit vs fit disambiguation; file now **local-only /
         gitignored**)
 - [x] 20.2 Magnification signal + arbitration wiring
@@ -182,23 +183,30 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
       includes Live static key frame / animated image as still)
       — work `e6515ea`; PageView-outer host; Plan A (no single-finger
         candidate lock); T-20.3-1…11
-- [ ] 20.4 Video path (non-persistent; release → fit; mid-pinch D3;
-      playback continues)
+- [x] 20.4 Video path (non-persistent; release → fit; mid-pinch D3;
+      playback continues) + L1 unify transient
+      — work `ca3b4ed` (Decision 13 `setDisplayMagnification`) +
+        `32d149f` (transient rename, L1 unify, native push gate,
+        L1→L2 handoff T-20.4-12); Kafka Profile L2 smoke PASS
 - [ ] 20.5 Live motion-window gate
       — While `_liveMotionMounted`: ignore pinch; rising edge → force fit
       (notifier hooks landed in 20.2; pinch ignore while mounted → 20.5)
 - [ ] 20.6 Device acceptance (Kafka + iPhone 17; max-scale pick 3×/4×;
       retest Cap 17.6 **B.1** fast-swipe <300ms / no flyby thrash —
-      still pinch must not regress it; Plan A: no single-finger candidate lock)
+      still pinch must not regress it; Plan A: no single-finger candidate
+      lock; **cover still + video mixed-pool continuous fast-swipe**
+      (same Host on both surfaces); also soak Q2-A: after video pinch,
+      one finger remains → pan while PageView locked — confirm users can
+      still leave the page without a “stuck” feel, else revisit Q2-B)
 - [ ] 20.7 Cap close-out (Cap `[x]`; PHASE_HISTORY; YOU ARE HERE next)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 20.4 — video non-persistent pinch (release → fit)
-- Sub-steps done: 20.1–20.3; still host + transform + Reset on `e6515ea`
-- Next step: design-first for video path (reuse PageView-outer host;
-      do not stack another parent Listener)
-- Related decisions: ADR-043 Proposed; ADR-040 Decision 16 / Decision 20;
-      debt **448** Out of Cap 20
+- Goal (one line): Cap 20.5 — Live motion-window pinch gate
+- Sub-steps done: 20.1–20.4; ADR-043 Accepted + Decision 13/14
+- Next step: ignore pinch while `_liveMotionMounted`; rising-edge
+      force fit already in 20.2 notifier — wire Host ignore path
+- Related decisions: ADR-043 Decision 13 / 14; ADR-040 Decision 16 /
+      Decision 20; debt **448** Out of Cap 20
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):

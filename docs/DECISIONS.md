@@ -4658,17 +4658,20 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-043: Cap 20 Display Magnification (pinch) contract
 
-- Status: Proposed
-- Commit/PR anchor: pending (Cap 20.1 docs; Accepted + date when first
-  implementing work commit exists — two-commit discipline)
+- Status: Accepted (2026-09-04); Decision 11 “no new Pigeon / no Host zoom
+  API” clause narrowly revised by Decision 13 (same date)
+- Commit/PR anchor: `ae9cb7e` (Cap 20.2 first implementing work);
+  Decision 13 work `ca3b4ed`; Decision 14 / Cap 20.4 product `32d149f`
 - Plain summary (owner reads this):
-  Cap 20 ships lightweight pinch magnification on Main Browse. Stills
-  (including animated images and Live **static** key frames) keep zoom
-  until fit; Reset stays welded bottom-left while magnified. Video zoom
-  is temporary and returns to fit on release. Magnification does not use
-  SQLite or new Pigeon APIs. Aligns with iOS Photos **only** for the
-  behaviours Cap 20 actually implements; the sole in-scope Photos
-  difference is a fixed max scale.
+  Cap 20 ships lightweight pinch on Main Browse. **Layer-2** photo /
+  animated image / Live **static** keep zoom until fit, with Reset while
+  magnified. **All Layer-1** surfaces (photo preview, Live static preview,
+  video poster) and **video Layer-2** use **transient** pinch (release→fit,
+  no Reset). Session UI state only (no SQLite). Video L2 visual scale uses
+  one narrow Host method `PlaybackApi.setDisplayMagnification` on the
+  Platform View **container** only when native push is armed (Decision 13)
+  — not a general zoom API. Aligns with iOS Photos only for Cap 20’s
+  implemented set; sole known delta is a fixed max scale.
 - Context / what problem forced this:
   ADR-040 Decision 16 reserved pinch rules; Cap 19 Decision 20 shipped a
   read-only magnification stub and left-swipe arming guard. Cap 20 must
@@ -4692,13 +4695,13 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      Transform on `PHLivePhotoView`; Photos-style long-press Live replay
      (debt **439** / ADR-040 Decision 17 owning Cap TBD); debt **448**
      interactive-pop vs left-swipe.
-  4. **D1 — Live Photo.** Static key frame (`!_liveMotionMounted`,
-     `Image.file`, `PlaybackMediaKind.livePhoto`) uses the **same**
-     persistent still magnification path + Reset. While
-     `_liveMotionMounted == true`: do **not** arm or accept new pinch;
-     on rising edge of `_liveMotionMounted`, **force fit** if currently
-     magnified. No `Transform` on `PHLivePhotoView`. No throwaway PV
-     scale spike.
+  4. **D1 — Live Photo.** Static Live on **Layer-2** (`FeedDisplayLayer.full`,
+     `!_liveMotionMounted`, `Image.file`, `PlaybackMediaKind.livePhoto`)
+     uses the **persistent still** path + Reset. **Layer-1** Live preview
+     is **transient** (Decision 14). While `_liveMotionMounted == true`:
+     do **not** arm or accept new pinch; on rising edge of
+     `_liveMotionMounted`, **force fit** if currently magnified. No
+     `Transform` on `PHLivePhotoView`. No throwaway PV scale spike.
   5. **D2 — Reset chrome (A).** While still magnified, Reset is a small
      control welded bottom-left **above** `MediaInfoOverlay` (Overlay
      stays readable). Independent `Align` + dynamic `bottom` inset
@@ -4707,16 +4710,17 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      `bottom = mainBrowseMediaOverlayBottomInset(tokens) +
      overlayColumnHeight + 8` where
      `overlayColumnHeight = rowHeight × (baseRowCount + (location?1:0))`.
-     Reset mounts only for persistent still magnification (not video).
+     Reset mounts only for persistent still magnification (not transient).
      Stack: place Reset as a late `_mediaStack` child (defensive last
      layer). Functionally, Cap 19 left-swipe already
      `SizedBox.shrink()`s when `!armed`, and arming is false while
      magnified once the real signal replaces the stub — z-order is
      hygiene against edge-frame races, not a hit-test hard requirement.
-  6. **D3 — Video mid-pinch.** While two fingers are down on a
-     non-persistent video pinch, temporarily lock vertical `PageView`;
-     unlock after release→fit. Playback **continues** (no mechanical
-     pause; do not mutate `userIntentWantsPlay`).
+  6. **D3 — Transient mid-pinch.** While ≥2 fingers are down on a
+     **transient** pinch (video L1/L2 or photo/Live L1), temporarily lock
+     vertical `PageView`; unlock after release→fit (or when contact ends).
+     Playback **continues** (no mechanical pause; do not mutate
+     `userIntentWantsPlay`).
   7. **D4 — Clear magnification.** Force fit / discard transform when:
      (a) current item is no longer current; (b) leave Browse / Session
      ends; (c) Reset or reverse-pinch reaches fit; (d) Cap 19 actions
@@ -4732,8 +4736,54 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       `leftSwipeArmingAllowed` / Decision 20. No Cap 18 reopen.
   11. **Persistence / Data Contract.** Session-scoped runtime UI state
       only. No SQLite table, no new Pigeon method, no Host zoom API.
+      **Narrowly revised by Decision 13:** the “no new Pigeon / no Host
+      zoom API” clause no longer forbids the single method named there.
+      SQLite ban and “no general zoom API” remain. Do not read Decision 11
+      as authorizing further Pigeon without a new owner-approved decision.
   12. **Animated images.** No separate feed kind; `FeedPageMediaKind.still`
-      — same persistent still rules.
+      — same persistent still rules (Layer-2; see Decision 14 for L1).
+  13. **`setDisplayMagnification` (Decision 11 narrow revise + Q3 revise).**
+      Cap 20.4 Q3 originally locked MVP video pinch to Flutter `Transform`
+      over UiKitView, with an escape hatch: if Kafka showed the native
+      surface did not follow scale, **stop and re-discuss** (temporary
+      degrade or a **narrow** Host API). On Kafka, UiKitView **did not**
+      follow Flutter `Transform`. An interim **poster overlay** during
+      pinch looked like “L2 became L1” and was rejected. A first native
+      attempt mutated `AVPlayerLayer` anchorPoint / bounds /
+      affineTransform each frame; that fought
+      `PlaybackSurfaceContainer.layoutSubviews`
+      (`playerLayer.frame = bounds`) → **no visible zoom + shell jitter**.
+      Converged to: apply scale/translation only on the Platform View
+      **container** `UIView.transform` (center anchor); identity restores
+      fit. **Process note:** implementing this Host method before an
+      explicit owner Decision-11 revise violated the Q3 “stop and
+      re-discuss” gate; recorded so Cap escape hatches are not
+      self-approved again.
+      **Chosen:** Exactly one new Host method on existing `PlaybackApi`:
+      `setDisplayMagnification(scale, translationX, translationY)`.
+      Applies **only** to the bound video L2 Platform View **container**
+      `UIView.transform`. Does **not** pause playback (D3). No-op with no
+      surface. Identity ≈ `(1, 0, 0)`. **No** new `FlutterApi` callback.
+      Native push is gated independently of
+      `MagnificationHostMode.transient` (photo/Live L1 are also transient
+      but must not drive the player). **Not a precedent** for adding
+      further Pigeon/Host zoom APIs (Live 20.5, other gestures, or a
+      general `setZoom`). Any future Host pinch API requires a **new**
+      owner-approved decision after hitting a documented stop-and-re-discuss
+      gate. Work `ca3b4ed`.
+  14. **Layer-1 unified transient / Layer-2 still persistent.** All
+      Layer-1 surfaces (photo preview, Live static preview, video poster)
+      use `MagnificationHostMode.transient`: release→fit, no Reset. L1 is
+      degraded recall/preview, not detail inspection; persistent L1 zoom
+      adds Reset/PageView-lock cost without product value. **Persistence +
+      Reset** only for photo / Live-static **Layer-2**
+      (`FeedDisplayLayer.full` still via `usesPersistentMagnification`).
+      **Video Layer-2** remains transient (visual scale via Decision 13
+      when native push armed). Policy is keyed by **display layer**, not
+      media kind alone. Same-page L1→L2 promote (`transient`→`still`)
+      forceFits to identity and **re-baselines** pinch from the current
+      finger span **without** clearing the pointer map (T-20.4-12).
+      Work `32d149f`.
 - Rejected alternatives (why not):
   - **Broad Live `PHLivePhotoView` Transform spike before D1:** Rejected —
     static Live already shares the still `Image.file` path; PV is a ~1–2s
@@ -4752,12 +4802,43 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     Cap 18 dual-signal intent.
   - **Clear zoom only on PageView settle to neighbour:** Rejected — too
     narrow vs leave current / leave Browse / sheet / Reset paths.
+  - **Pure Flutter `Transform` on UiKitView for video L2:** Rejected —
+    failed on Kafka (surface ignores Transform).
+  - **Pinch-time poster overlay as L2 visual:** Rejected — looks like L1;
+    hides live playback.
+  - **Per-frame `AVPlayerLayer` anchor/bounds mutation:** Rejected —
+    fights `layoutSubviews`; jitter / no zoom.
+  - **Broad Host zoom API / new Pigeon interface:** Rejected — must stay
+    one method, one surface (Decision 13).
+  - **Persistent pinch on photo Layer-1:** Rejected — recall ≠ detail;
+    fights L1 unify (Decision 14).
+  - **Clearing pointer map on L1→L2 mode handoff:** Rejected — dead
+    gesture until lift.
+  - **Keying native mag push off `MagnificationHostMode.transient` alone:**
+    Rejected — Decision 13 gate.
+  - **Revisit (Transform / embedding):** If Flutter Platform View
+    composition changes materially (e.g. post-Impeller embedding path),
+    **re-verify** whether Flutter `Transform` can drive the video surface
+    before adding any further Host API — do not treat the Transform /
+    playerLayer Rejected block as permanently forbidding a Transform-only
+    revisit.
 - Consequences / constraints accepted:
-  - Cap 20.2+ product code waits on this Proposed freeze; Accepted date
-    and anchor follow the first implementing work commit.
+  - Cap 20.2+ product code waits on this freeze; Accepted date from
+    `git log -1 --format=%cs ae9cb7e` (2026-09-04).
   - ADR-028 Fit (presentation mode) remains the Browse default; Cap 20
     “fit” means magnification scale floor 1×, not Display Mode Fill/Crop.
   - ADR-040 Decision 16 / Decision 20 remain binding; this ADR implements
     them.
   - GLOSSARY adds Display Magnification / pinch / Reset; do not conflate
     with ADR-028 Fit.
+  - Decision 13 is the **only** Cap 20 exception to Decision 11’s Pigeon
+    ban; it is not a template for later Caps.
+  - Escape-hatch “stop and re-discuss” = message owner and wait before
+    code; **project-wide** collaboration rule (mirrored in
+    `.cursor/rules/00-workflow-gates.mdc` Stop conditions).
+  - **`setDisplayMagnification` has no throttle/debounce:** each armed
+    matrix publish crosses the platform channel on pointer moves. Kafka
+    Profile smoke (performance-floor device) showed no material hitch; if
+    the device matrix grows or a regression appears, re-evaluate
+    coalescing/throttling — treat current behavior as a verified choice,
+    not an unexplained bug.
