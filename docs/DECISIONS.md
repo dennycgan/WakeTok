@@ -4653,3 +4653,111 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
   - Implementing Cap 19.8 work commit anchors Accepted (`ff59be9`,
     2026-09-04). Decision 8 work `70db74b` (2026-09-04); Kafka device PASS
     for peek hide / no early show under covering / restore when settled.
+
+---
+
+## ADR-043: Cap 20 Display Magnification (pinch) contract
+
+- Status: Proposed
+- Commit/PR anchor: pending (Cap 20.1 docs; Accepted + date when first
+  implementing work commit exists — two-commit discipline)
+- Plain summary (owner reads this):
+  Cap 20 ships lightweight pinch magnification on Main Browse. Stills
+  (including animated images and Live **static** key frames) keep zoom
+  until fit; Reset stays welded bottom-left while magnified. Video zoom
+  is temporary and returns to fit on release. Magnification does not use
+  SQLite or new Pigeon APIs. Aligns with iOS Photos **only** for the
+  behaviours Cap 20 actually implements; the sole in-scope Photos
+  difference is a fixed max scale.
+- Context / what problem forced this:
+  ADR-040 Decision 16 reserved pinch rules; Cap 19 Decision 20 shipped a
+  read-only magnification stub and left-swipe arming guard. Cap 20 must
+  freeze state machine, chrome layout, Live motion-window policy, and
+  clear triggers before wiring product code. Live static rendering already
+  uses `Image.file` after Q7 unload (`_liveMotionMounted == false`);
+  `PHLivePhotoView` exists only during the short play-once window — so a
+  broad PlatformView scale spike is unnecessary.
+- Decision (what was chosen):
+  1. **Photos alignment scope.** Within Cap 20’s implemented set — pinch
+     zoom-in, magnified pan, clamp-to-fit floor (no smaller-than-fit),
+     still persistent zoom, video release→fit — match Photos feel for
+     still / animated image / Live static key frame. This is not a claim
+     of full Photos viewer parity.
+  2. **Known delta (in-scope behaviour, different rule than Photos).**
+     **Only:** MVP max scale is a **fixed** multiplier (3× or 4× chosen
+     at Cap 20.6 device acceptance). Photos uses a resolution-based cap.
+     Document as known delta — not “incomplete Photos alignment.”
+  3. **Out of Cap 20 (never promised; not known deltas).** Double-tap
+     zoom; smaller-than-fit shrink state; Live native in-view zoom /
+     Transform on `PHLivePhotoView`; Photos-style long-press Live replay
+     (debt **439** / ADR-040 Decision 17 owning Cap TBD); debt **448**
+     interactive-pop vs left-swipe.
+  4. **D1 — Live Photo.** Static key frame (`!_liveMotionMounted`,
+     `Image.file`, `PlaybackMediaKind.livePhoto`) uses the **same**
+     persistent still magnification path + Reset. While
+     `_liveMotionMounted == true`: do **not** arm or accept new pinch;
+     on rising edge of `_liveMotionMounted`, **force fit** if currently
+     magnified. No `Transform` on `PHLivePhotoView`. No throwaway PV
+     scale spike.
+  5. **D2 — Reset chrome (A).** While still magnified, Reset is a small
+     control welded bottom-left **above** `MediaInfoOverlay` (Overlay
+     stays readable). Independent `Align` + dynamic `bottom` inset
+     (option 1 — do not refactor Overlay into a shared Column). Geometry:
+     `left: 16`; trailing inset `MediaInfoOverlay.trailingInset`;
+     `bottom = mainBrowseMediaOverlayBottomInset(tokens) +
+     overlayColumnHeight + 8` where
+     `overlayColumnHeight = rowHeight × (baseRowCount + (location?1:0))`.
+     Reset mounts only for persistent still magnification (not video).
+     Stack: place Reset as a late `_mediaStack` child (defensive last
+     layer). Functionally, Cap 19 left-swipe already
+     `SizedBox.shrink()`s when `!armed`, and arming is false while
+     magnified once the real signal replaces the stub — z-order is
+     hygiene against edge-frame races, not a hit-test hard requirement.
+  6. **D3 — Video mid-pinch.** While two fingers are down on a
+     non-persistent video pinch, temporarily lock vertical `PageView`;
+     unlock after release→fit. Playback **continues** (no mechanical
+     pause; do not mutate `userIntentWantsPlay`).
+  7. **D4 — Clear magnification.** Force fit / discard transform when:
+     (a) current item is no longer current; (b) leave Browse / Session
+     ends; (c) Reset or reverse-pinch reaches fit; (d) Cap 19 actions
+     half-sheet opens (`cap19ActionsPanelOpenProvider` → true). Do **not**
+     bind clearing only to vertical settle on a neighbour page.
+  8. **D5 — Max scale.** Fixed multiplier for MVP; numeric 3× vs 4×
+     deferred to Cap 20.6 soak. Sole Photos known delta (Decision 2).
+  9. **D6 — ADR shape.** New ADR-043; ADR-040 Decision 16 text unchanged;
+     this ADR cites Decision 16 / Decision 20.
+  10. **Cap 19 inheritance.** Replace
+      `cap19StillMagnificationStubProvider` with a real
+      `isCurrentStillMagnified` signal consumed by
+      `leftSwipeArmingAllowed` / Decision 20. No Cap 18 reopen.
+  11. **Persistence / Data Contract.** Session-scoped runtime UI state
+      only. No SQLite table, no new Pigeon method, no Host zoom API.
+  12. **Animated images.** No separate feed kind; `FeedPageMediaKind.still`
+      — same persistent still rules.
+- Rejected alternatives (why not):
+  - **Broad Live `PHLivePhotoView` Transform spike before D1:** Rejected —
+    static Live already shares the still `Image.file` path; PV is a ~1–2s
+    motion window only.
+  - **Keep magnified transform during `_liveMotionMounted` without new
+    pinch:** Rejected — PV replaces the scaled still visually; keeping
+    latent scale under an unscaled PV is inconsistent; force fit on
+    rising edge.
+  - **D2-B hide/dim Overlay while magnified:** Rejected for MVP — inspect
+    mode should keep metadata readable (owner lock A).
+  - **D2-C move Reset off bottom-left:** Rejected — product lock.
+  - **ADR-040 Decision 16 narrow supplement only:** Rejected — state
+    machine + chrome + Live gate + clears need a Cap-owned ADR (same
+    pattern as ADR-041/042).
+  - **Pause video for mid-pinch:** Rejected — inspect should not fight
+    Cap 18 dual-signal intent.
+  - **Clear zoom only on PageView settle to neighbour:** Rejected — too
+    narrow vs leave current / leave Browse / sheet / Reset paths.
+- Consequences / constraints accepted:
+  - Cap 20.2+ product code waits on this Proposed freeze; Accepted date
+    and anchor follow the first implementing work commit.
+  - ADR-028 Fit (presentation mode) remains the Browse default; Cap 20
+    “fit” means magnification scale floor 1×, not Display Mode Fill/Crop.
+  - ADR-040 Decision 16 / Decision 20 remain binding; this ADR implements
+    them.
+  - GLOSSARY adds Display Magnification / pinch / Reset; do not conflate
+    with ADR-028 Fit.

@@ -151,23 +151,50 @@
 ## Phase Roadmap (active capability only)
 Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 
-> Cap 20 internal phases are not yet owner-approved in STATE. Expand
-> this section after kickoff / scope review — do not invent phases here.
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+> Principle: within Cap 20’s implemented behaviours (pinch in, magnified
+> pan, clamp-to-fit floor, still persistent / video release→fit), match
+> iOS Photos feel for still / animated image / Live **static** key frame.
+> ADR-043: **Known delta** = fixed max scale only; other Photos-only
+> behaviours stay **Out of Cap 20** (not “failed parity”).
+> Inherits Cap 19 Decision 20 left-swipe magnification guard
+> (`browseStillMagnifiedProvider` replaces Cap 19 stub as of 20.2).
+> Live motion PV window (`_liveMotionMounted`): no new pinch; force fit
+> on rising edge — **no** PHLivePhotoView Transform spike (cancelled).
+
+- [x] 20.1 Contract freeze
+      — D1–D6 locked (D7/D8 Out / no-touch); Live PV scale spike
+        **cancelled** (static Live = still path; motion window gated);
+      — ADR-043 Proposed; GLOSSARY §18 Display Magnification / pinch /
+        Reset (Fit vs fit disambiguation; file now **local-only /
+        gitignored**)
+- [x] 20.2 Magnification signal + arbitration wiring
+      — work `45d6064`; stub → `browseStillMagnifiedProvider`;
+        PageView lock + left-swipe guard; arena unit tests
+        (T-20.2-12a/12b Live rising-edge auto + remount/replay)
+- [~] 20.3 Still path (persistent pinch + pan + clamp-to-fit + Reset;
+      includes Live static key frame / animated image as still)
+- [ ] 20.4 Video path (non-persistent; release → fit; mid-pinch D3;
+      playback continues)
+- [ ] 20.5 Live motion-window gate
+      — While `_liveMotionMounted`: ignore pinch; rising edge → force fit
+      (notifier hooks landed in 20.2; pinch ignore while mounted → 20.5)
+- [ ] 20.6 Device acceptance (Kafka + iPhone 17; max-scale pick 3×/4×)
+- [ ] 20.7 Cap close-out (Cap `[x]`; PHASE_HISTORY; YOU ARE HERE next)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 20 scope gate — owner-approved Phase Roadmap TBD
-- Sub-steps done: Cap 19 complete (`docs/PHASE_HISTORY.md`; acceptance
-      `docs/acceptance/cap19-*.md`; ADR-041 / ADR-042)
-- Next step: owner kickoff / scope review for Cap 20 phases before coding
-- Related decisions: ADR-040 Decision 16 / Decision 20 (magnification
-      arbitration + Cap 19 stub); debt **447** / **446** / **445** Cap 19
-      residual Accepted; debt **448** interactive-pop vs left-swipe
-      Accepted (phase); debt **444** → Build a Pool Cap; debt **421**
-      Settings Limited picker
+- Goal (one line): Cap 20.3 — still persistent pinch + pan + Reset chrome
+- Sub-steps done: 20.1 freeze; 20.2 work `45d6064` (signal + PageView
+      lock + clear triggers + Live rising-edge hooks)
+- Next step: still InteractiveViewer / scale+pan + D2-A Reset; clamp
+      to fit; wire `setStillMagnified`
+- Related decisions: ADR-043 Proposed; ADR-040 Decision 16 / Decision 20;
+      debt **448** Out of Cap 20
 
 ## Contract pointers (don't memorize, go read the source)
-- Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
+- Domain terms (bilingual, **local only / gitignored**):
+  docs/GLOSSARY.en-zh.md — not published; Cap-frozen terms also in
+  DECISIONS.md (e.g. ADR-043 Display Magnification)
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
