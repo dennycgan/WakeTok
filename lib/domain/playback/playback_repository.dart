@@ -62,4 +62,12 @@ abstract class PlaybackRepository {
 
   /// Cap 18.5 / ADR-040 Decision 13: preview JPEG + Host actual time, or null.
   Future<ScrubPreviewFrame?> requestScrubPreviewFrame(double positionSeconds);
+
+  /// Cap 20.4: non-persistent video Platform View magnification.
+  /// Identity: scale=1, translationX/Y=0. No-op without a bound surface.
+  Future<void> setDisplayMagnification({
+    required double scale,
+    required double translationX,
+    required double translationY,
+  });
 }

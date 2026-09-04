@@ -667,6 +667,15 @@ abstract class PlaybackApi {
   /// |requested − actual| drift as equivalent failure.
   @async
   ScrubPreviewFrameDto? requestScrubPreviewFrame(double positionSeconds);
+
+  /// Cap 20.4: apply non-persistent display magnification to the bound
+  /// video Platform View container. Identity is scale=1, translation=0.
+  /// No-op when no surface is bound. Does not pause playback (D3).
+  void setDisplayMagnification(
+    double scale,
+    double translationX,
+    double translationY,
+  );
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).

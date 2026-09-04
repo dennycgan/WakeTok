@@ -140,6 +140,15 @@ class PlaybackGateway
   Future<void> setMute(bool muted) => _api.setMute(muted);
 
   @override
+  Future<void> setDisplayMagnification({
+    required double scale,
+    required double translationX,
+    required double translationY,
+  }) {
+    return _api.setDisplayMagnification(scale, translationX, translationY);
+  }
+
+  @override
   Future<void> setPlaybackPlan(PlaybackPlan plan) {
     return _api.setPlaybackPlan(
       pigeon.PlaybackPlanDto(

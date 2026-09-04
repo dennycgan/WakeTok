@@ -29,6 +29,7 @@ void main() {
       'seek',
       'setRate',
       'setMute',
+      'setDisplayMagnification',
       'setPlaybackPlan',
       'syncPlanPosition',
       'notifyDisplaySurfaceReady',

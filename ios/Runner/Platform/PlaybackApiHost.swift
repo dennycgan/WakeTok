@@ -408,6 +408,22 @@ final class PlaybackApiHost: PlaybackApi {
     }
   }
 
+  /// Cap 20.4: Flutter pinch matrix → bound Platform View container.
+  /// Identity (1,0,0) restores fit. No-op without a surface. Does not pause.
+  func setDisplayMagnification(
+    scale: Double,
+    translationX: Double,
+    translationY: Double
+  ) throws {
+    runOnMain { [weak self] in
+      self?.surfaceView?.applyDisplayMagnification(
+        scale: CGFloat(scale),
+        translationX: CGFloat(translationX),
+        translationY: CGFloat(translationY)
+      )
+    }
+  }
+
   func setTransitionAudioSuppressed(suppressed: Bool) throws {
     transitionAudioSuppressed = suppressed
         DispatchQueue.main.async { [weak self] in
@@ -605,6 +621,7 @@ final class PlaybackApiHost: PlaybackApi {
 
   func unbindSurface(_ view: PlaybackSurfaceView) {
     if surfaceView === view {
+      view.applyDisplayMagnification(scale: 1, translationX: 0, translationY: 0)
       view.attach(player: nil)
       surfaceView = nil
     }
@@ -1428,6 +1445,17 @@ final class PlaybackPlatformViewFactory: NSObject, FlutterPlatformViewFactory {
 private final class PlaybackSurfaceContainer: UIView {
   var playerLayer: AVPlayerLayer?
 
+  override init(frame: CGRect) {
+    super.init(frame: frame)
+    // Keep magnified frames from painting outside the Platform View slot.
+    clipsToBounds = true
+  }
+
+  required init?(coder: NSCoder) {
+    super.init(coder: coder)
+    clipsToBounds = true
+  }
+
   override func layoutSubviews() {
     super.layoutSubviews()
     playerLayer?.frame = bounds
@@ -1474,6 +1502,28 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     playerLayer.player = player
     playerLayer.frame = container.bounds
     noteReadyForDisplayEdge(force: true)
+  }
+
+  /// Cap 20.4: apply scale/translation on the container UIView only.
+  ///
+  /// Do **not** mutate [AVPlayerLayer] anchorPoint / bounds / affineTransform
+  /// each pinch frame — [PlaybackSurfaceContainer.layoutSubviews] resets
+  /// `playerLayer.frame = bounds`, which fights those mutations and yields
+  /// no visible zoom + shell jitter (Cap 20 Kafka L2).
+  func applyDisplayMagnification(
+    scale: CGFloat,
+    translationX: CGFloat,
+    translationY: CGFloat
+  ) {
+    let s = max(scale, 0.01)
+    if abs(s - 1) < 0.001, abs(translationX) < 0.5, abs(translationY) < 0.5 {
+      container.transform = .identity
+      return
+    }
+    // Default layer anchor (0.5, 0.5) → scale about view center, then
+    // translate in logical pixels (matches Flutter Transform alignment.center).
+    container.transform = CGAffineTransform(scaleX: s, y: s)
+      .translatedBy(x: translationX / s, y: translationY / s)
   }
 
   private func startReadyForDisplayProbe() {

@@ -2091,6 +2091,10 @@ protocol PlaybackApi {
   /// [ScrubPreviewFrameDto.actualSeconds]; Dart rejects oversized
   /// |requested − actual| drift as equivalent failure.
   func requestScrubPreviewFrame(positionSeconds: Double, completion: @escaping (Result<ScrubPreviewFrameDto?, Error>) -> Void)
+  /// Cap 20.4: apply non-persistent display magnification to the bound
+  /// video Platform View container. Identity is scale=1, translation=0.
+  /// No-op when no surface is bound. Does not pause playback (D3).
+  func setDisplayMagnification(scale: Double, translationX: Double, translationY: Double) throws
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -2387,6 +2391,26 @@ class PlaybackApiSetup {
       }
     } else {
       requestScrubPreviewFrameChannel.setMessageHandler(nil)
+    }
+    /// Cap 20.4: apply non-persistent display magnification to the bound
+    /// video Platform View container. Identity is scale=1, translation=0.
+    /// No-op when no surface is bound. Does not pause playback (D3).
+    let setDisplayMagnificationChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PlaybackApi.setDisplayMagnification\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      setDisplayMagnificationChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let scaleArg = args[0] as! Double
+        let translationXArg = args[1] as! Double
+        let translationYArg = args[2] as! Double
+        do {
+          try api.setDisplayMagnification(scale: scaleArg, translationX: translationXArg, translationY: translationYArg)
+          reply(wrapResult(nil))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      setDisplayMagnificationChannel.setMessageHandler(nil)
     }
   }
 }

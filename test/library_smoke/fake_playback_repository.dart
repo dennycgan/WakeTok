@@ -158,6 +158,15 @@ class FakePlaybackRepository implements PlaybackRepository {
   }
 
   @override
+  Future<void> setDisplayMagnification({
+    required double scale,
+    required double translationX,
+    required double translationY,
+  }) async {
+    _record('setDisplayMagnification:$scale:$translationX:$translationY');
+  }
+
+  @override
   Future<void> setPlaybackPlan(PlaybackPlan plan) async {
     _record('setPlaybackPlan:${plan.planId}');
   }

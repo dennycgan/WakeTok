@@ -2380,6 +2380,27 @@ class PlaybackApi {
     ;
     return pigeonVar_replyValue as ScrubPreviewFrameDto?;
   }
+
+  /// Cap 20.4: apply non-persistent display magnification to the bound
+  /// video Platform View container. Identity is scale=1, translation=0.
+  /// No-op when no surface is bound. Does not pause playback (D3).
+  Future<void> setDisplayMagnification(double scale, double translationX, double translationY) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PlaybackApi.setDisplayMagnification$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[scale, translationX, translationY]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
 }
 
 /// Native → Dart playback events (ADR-006 restore / plan end + runtime observe).
