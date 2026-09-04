@@ -86,15 +86,9 @@
       `docs/acceptance/cap17-17.*.md`; PHASE_HISTORY)
 - [x] Main Browse playback controls and gesture arbitration (Cap 18 /
       ADR-040; `docs/acceptance/cap18-18.*.md`; PHASE_HISTORY)
-- [ ] <-- YOU ARE HERE: Add to Album / Cap 19 entry chrome (Cap 19).
-      Owner 2026-08-24 advanced before Build a Pool; no longer
-      the pre-authorized downgrade-to-1.1 exit. Entry is a fixed
-      bottom-trailing icon → half-sheet (not long-press); slot
-      frozen in Cap 18 gesture contract. Also owns left-swipe
-      append-to-WakeTok-album (Limited feasibility TBD). Panel
-      Add-to-Album row stays ADR-K-bound (Full Access list;
-      Limited must not open empty/error album UI).
-- [ ] Display magnification (pinch to zoom, lightweight)
+- [x] Add to Album / Cap 19 entry chrome (Cap 19 /
+      ADR-041…042; `docs/acceptance/cap19-*.md`; PHASE_HISTORY)
+- [ ] <-- YOU ARE HERE: Display magnification (pinch to zoom, lightweight)
       (Cap 20). Still: persistent zoom + Reset (Reset welded
       visible while magnified; reverse-pinch clamps at fit; no
       smaller-than-fit); video: non-persistent (release → fit).
@@ -155,172 +149,22 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Add to Album / Cap 19 entry chrome (Cap 19)
+Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 
-> Owner-approved 2026-09-01 (§5 full): D1 + D2 + D3 + D4 locked.
-> ADR-041 + ADR-040 Decision 20 supplement in `docs/DECISIONS.md`
-> (same docs batch). Legend: [x] done  [~] in progress  [ ] todo
-> (blocked) noted inline
-
-### Owner-locked product decisions (§5 — complete)
-
-**D1 — WakeTok album bootstrap (Full Access path)**
-- Photos album title: fixed English `"WakeTok"` (all locales; same string
-  for `createAlbum` and find-by-name).
-- Full Access bootstrap order: KV hit → use cached `albumIdentifier`;
-  KV miss → `listAssetSources` exact-name find → on miss
-  `createAlbum("WakeTok")` → persist KV.
-- Limited bootstrap: **must not** use list find (ADR-021 / ADR-K); KV-only
-  or create-only — outcomes in `docs/acceptance/cap19-19.2a-notes.md`
-  (SPIKE COMPLETE). Uniqueness = KV + `localIdentifier` (debt **445**).
-  List-find tie-break (no KV): min `localIdentifier` among exact-title user
-  albums. **Implemented Cap 19.3, work `7df4862`.**
-
-**D2 — Left-swipe trigger range = B (full media width)**
-- Recognizer arms across the media area (not a left-edge strip only).
-- Edge-hold (future 2×) vs left-swipe arbitration: Cap 18 / ADR-040
-  Decision 2 early-motion threshold (early horizontal displacement →
-  swipe; stationary hold → edge-hold). No new rule.
-- System interactive-pop / back-gesture conflict remains an **unverified
-  device risk** for 19.6 / 19.8 — D2=B does **not** claim it is solved.
-
-**D3 — Limited left-swipe = B (supersede ADR-K for this line only)**
-- Left-swipe append to the fixed WakeTok album is enabled under **Full
-  and Limited** (same product behaviour). Path uses known album id
-  (KV) or Limited create-only — **no** list find / User Album enumerate
-  (ADR-021 red line unchanged). Spike evidence: L-BOOT + L-APPEND PASS
-  (`b22c07e` notes).
-- **Does not** change D4. Panel Add-to-Album under Limited stays the
-  non-interactive Full Access row; intentional asymmetry vs left-swipe
-  is accepted.
-- Debt **445** (duplicate same-title albums) more visible under Limited
-  create-only — accepted cost of D3=B, not a blocker.
-- Formal record: ADR-041 (supersedes ADR-040 Decision 18 Limited
-  deferral only).
-
-**D4 — Limited half-sheet (Add to Album row)**
-- Under Limited: show one **non-interactive** Full Access requirement row
-  (upgrade-guidance copy); **do not** open album picker; **do not** list
-  User Albums. Independent of D3 left-swipe outcome — **unchanged** by
-  2026-09-01 D2/D3 lock.
-
-### Gesture guard (ADR-040 Decision 20)
-
-While current **still** is **non-fit magnified**, Cap 19 left-swipe
-**does not arm / does not fire** (pan owns single-finger drag). Video
-non-persistent pinch (ADR-040 D16) does not arm this guard. Cap 19 ships
-guard + read-only magnification stub; Cap 20 wires real pinch state.
-Formal text: `docs/DECISIONS.md` ADR-040 Decision 20 supplement.
-
-### Phase list
-
-- [x] 19.1 Contract freeze — §5 complete (D1–D4); ADR-041 + Decision 20
-      docs batch
-- [x] 19.2a Limited album spike — work `b22c07e`; notes
-      `docs/acceptance/cap19-19.2a-notes.md` (SPIKE COMPLETE; L-BOOT /
-      L-APPEND / L-BOOT-KV + Full D1 all PASS on Kafka Debug)
-- [x] 19.2b Scrub drag playback fix — work `82d828a` (**release-blocking**;
-      Cap 18.5 misread of Video-App-B–class keep-playing UX — not deferred
-      debt). Removed drag-begin mechanical pause (`onUserScrubBegin` + feed
-      wiring; scheme A; no no-op stub). Main picture during scrub drag
-      follows `userIntentWantsPlay` / `effectiveShouldPlay`. Release path
-      unchanged. Preview bubble / Host preview pipeline unchanged at this
-      phase. ADR-040 Decision 13 narrow supplement (supersedes 18.5
-      supplement item 3 «mechanical pause during drag» only). Device smoke
-      PASS i17 Green Profile. **Does not** reopen Cap 18 PHASE_HISTORY.
-- [x] 19.2c Scrub preview/seek quantizer align — work `ca3dae6`. Mid-path
-      preview request keys align to `scrubberSeekSeconds` (round); end-cap
-      + integer-duration EOS-safe stay `duration − ε`; direction detect
-      follows request keys; deleted dead `scrubPreviewBucketSeconds`. Cap
-      18.5 floor/round seam made visible by 19.2b keep-playing — **not** a
-      19.2b regression. ADR-040 Decision 13 narrow supplement. Device smoke
-      PASS i17 Green Profile.
-- [x] 19.2d Scrub seek-hold + live playhead ghost — work `a95dd1f`.
-      Optimistic landing on release + seek-hold against stale Host observe
-      (no fill flash); drag paints live ghost under primary fill
-      (`scrubProgressLiveGhost`). Cancel path may retain ~one observe-tick
-      catch-up (~250ms) — accepted, not zero-jump. ADR-040 Decision 13
-      narrow supplement. Device smoke PASS i17 Green Profile.
-- [x] 19.2 Native album write path hardening — work `9977119`. User album
-      `canAddContent` from `canPerform(.addContent)`; smart/built-in
-      `false`; nil change request → `albumNotWritable`; best-effort
-      `notEnoughSpace` → `insufficientStorage`. ADR-013 narrow supplement.
-      Device smoke PASS i17 Green (`docs/acceptance/cap19-19.2-notes.md`).
-- [x] 19.3 WakeTok album bootstrap — work `7df4862`. `bootstrapWakeTokAlbum`
-      + product KV (`lib/data/`); Full list-find min `localIdentifier`
-      tie-break (debt **445**); Limited create-only; lazy API (19.6 wires).
-      Device smoke PASS i17 Green Debug
-      (`docs/acceptance/cap19-19.3-notes.md`).
-- [x] 19.4 Entry chrome + half-sheet — work `b3ea867`. Browse-only
-      bottom-trailing icon (ADR-040 D15 slot; shell-fixed Y inset);
-      half-sheet shell; Limited D4 row + Full placeholder. Icon:
-      Cupertino `rectangle_stack_badge_plus` on `onMedia` white.
-      Device smoke PASS i17 Green Debug
-      (`docs/acceptance/cap19-19.4-notes.md`).
-- [x] 19.5 Panel Add-to-Album picker — work `95abd12`. Full Access
-      writable User Album list + native cover thumbnails; append +
-      SnackBar; frosted translucent panel; session zero-touch; Limited D4
-      unchanged. Device smoke PASS i17 Green Debug
-      (`docs/acceptance/cap19-19.5-notes.md`).
-- [x] 19.5b Panel Add-to-Favorites — work `399e43b`. Synthetic first
-      row (Full only); toggle `isFavorite`; Pigeon read/write + Favorites
-      smart-album cover thumbnail; root-overlay browse toasts (top chrome,
-      1.5s replace-on-show); D4 copy generalization (Favorites /
-      personal-collection wording). Device smoke PASS i17 Green Debug (`docs/acceptance/cap19-19.5b-notes.md`)
-- [x] 19.6 Left-swipe append — work `7b3d22a`. Full-width horizontal
-      recognizer (D2=B); Decision 20 magnification guard + stub; ADR-040
-      D2/D18 arbitration tests; Limited same as Full (D3=B); **lands**
-      `leftSwipeAddEnabled` + `leftSwipeGuideEnabled` KV read/write
-      (both default on; derived AND guide; no parent→guide KV write-back);
-      PicTok-class one-shot guide; left-edge drop-target chip; Host
-      `createAlbum` title reuse. Device smoke PASS i17 Green Debug
-      (`docs/acceptance/cap19-19.6-notes.md`). interactive-pop / system-back
-      vs left-swipe → **19.8** (P-19.6-POP deferred).
-- [x] 19.7 Preference + polish — work `b6f1223`. Settings Gestures toggles
-      for `leftSwipeAddEnabled` / `leftSwipeGuideEnabled` (KV from 19.6);
-      master→tip sync on Settings flip; B1 `albumContainsAsset` left-swipe
-      duplicate toast only (panel excluded by frequency asymmetry); half-sheet
-      tint 0.78 (Media Info crush); title stays Add to Album. Device smoke
-      PASS i17 Green Debug (`docs/acceptance/cap19-19.7-notes.md`).
-- [ ] 19.8 Device acceptance + close-out — Full dual-entry smoke; Limited
-      matrix replay; Cap 19 `[x]` → PHASE_HISTORY; debt rows unchanged
-      unless verified closed; interactive-pop note (from 19.6)
-
-### 19.2a acceptance matrix (Limited — record each row PASS/FAIL)
-
-| ID | Precondition | Action | Records |
-|----|--------------|--------|---------|
-| **L-BOOT** | Limited; **no** KV | `createAlbum("WakeTok")` only (no list find) | Album created? id cached? |
-| **L-BOOT-KV** | Limited; KV holds id from prior Full session | Skip list/create; optional id validity check | Bootstrap skipped? append still possible? |
-| **L-APPEND** | Limited; known `albumIdentifier` | `addAssetToAlbum(currentAssetId, albumId)` | Membership change in Photos? error code? |
-
-Spike recorded **PhotoKit capability only**. **D3 = B** locked 2026-09-01
-(ADR-041): Limited left-swipe enabled after L-BOOT + L-APPEND PASS —
-technical PASS was necessary input, not automatic product enablement.
-
-Full Access control (optional same notes file): one row confirming D1
-KV → list find → create on clean install.
+> Cap 20 internal phases are not yet owner-approved in STATE. Expand
+> this section after kickoff / scope review — do not invent phases here.
+> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 19.8 Device acceptance + Cap 19 close-out
-- Sub-steps done: 19.2a SPIKE COMPLETE (`b22c07e`); §5 D1–D4 locked;
-      ADR-041 + Decision 20 Accepted (`49d580b`); 19.2b `82d828a`; 19.2c
-      `ca3dae6`; 19.2d `a95dd1f`; 19.2 `9977119`; 19.3 `7df4862`; 19.4
-      `b3ea867`; 19.5 `95abd12`; 19.5b `399e43b`; 19.6 `7b3d22a`;
-      19.7 `b6f1223`; Cap 19.8 actionable gate + scrub gold ghost work
-      `ff59be9` (ADR-042 Decisions 1–7; debt **447** half-sheet enter
-      Accepted (phase)); Cap 19.8 trailing chrome peek/cover hide work
-      `70db74b` (ADR-042 Decision 8; Kafka PASS)
-- Next step: 19.8 device matrix + Cap 19 `[x]` / PHASE_HISTORY; P-19.6-POP
-      interactive-pop note
-- Blocked on owner: OK start coding / scope for remaining 19.8 close-out
-- Related decisions: ADR-042 (actionable + Decision 8 settle/cover); ADR-041
-      (D2=B / D3=B); ADR-040 D15 / D18 / Decision 20; ADR-040 D13 Cap
-      19.2b/c/d supplements; ADR-021 Limited list omission; debt **421**
-      (Settings Limited picker — out of Cap 19); debt **444** → Build a Pool
-      Cap; debt **445** (WakeTok album uniqueness); debt **446** (panel
-      single-album append — phase accept); debt **447** (half-sheet enter
-      flash / tap hitch — phase accept)
+- Goal (one line): Cap 20 scope gate — owner-approved Phase Roadmap TBD
+- Sub-steps done: Cap 19 complete (`docs/PHASE_HISTORY.md`; acceptance
+      `docs/acceptance/cap19-*.md`; ADR-041 / ADR-042)
+- Next step: owner kickoff / scope review for Cap 20 phases before coding
+- Related decisions: ADR-040 Decision 16 / Decision 20 (magnification
+      arbitration + Cap 19 stub); debt **447** / **446** / **445** Cap 19
+      residual Accepted; debt **448** interactive-pop vs left-swipe
+      Accepted (phase); debt **444** → Build a Pool Cap; debt **421**
+      Settings Limited picker
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (canonical, bilingual): docs/GLOSSARY.en-zh.md
@@ -616,6 +460,7 @@ KV → list find → create on clean install.
 | 445 | Accepted (permanent) | Add to Album / Cap 19 | Cap 19-19.2a | WakeTok User Album uniqueness must use KV + `localIdentifier`, not title string — duplicate same-title albums possible | **Device confirmed (19.2a Kafka Debug, `cap19-19.2a-notes.md`):** iOS Photos allows multiple User Albums named `"WakeTok"`; each Limited create-only bootstrap (or KV clear + recreate) adds another album. Limited path forbids list find (ADR-021). **D1 bootstrap must treat persisted `albumIdentifier` as canonical identity** — not display-name dedup. KV loss under Limited may create a second album even when one already exists in Photos. Accepted cost of no-list-find rule; not a 19.2a blocker. | Cap 19.3 (D1 bootstrap) / D3 follow-up | ADR-021 / ADR-K; `docs/acceptance/cap19-19.2a-notes.md` |
 | 446 | Accepted (phase) | Add to Album / Cap 19 | Cap 19-19.5b | Panel add-to-album is single-select only — one album per sheet open; sheet dismisses on success | MVP scope: append the same asset to multiple albums requires reopening the panel each time. A fuller product may add multi-album multi-select + confirm (sheet stays open). PhotoKit has no single public “add to N albums” call — domain primitive `AlbumMutationRepository.addAssetToAlbum` is correctly one asset+album pair; upgrade is UI orchestration (N sequential calls) or optional Host batch in one `performChanges`. Distinct from Cap 19.7 **duplicate-append** row (re-append to the **same** album). | Unassigned | ADR-040 |
 | 447 | Accepted (phase) | Add to Album / Cap 19 | Cap 19.8 | Cap 19 actions half-sheet: (1) enter has no visible bottom-up slide; (2) occasional tap→open hitch — after tapping the bottom-trailing icon, the UI sometimes does not react immediately (brief blank / light stutter) before the sheet appears | **Profile-confirmed (Kafka, Cap 19.8).** **Root cause (both limbs):** on tap the main isolate must cold-build the full half-sheet (Favorites + album picker + frost) while the playing feed still contends for frame budget; when that first paint overruns the ~250ms wall-clock enter, the slide is skipped (exit still animates — warm tree); when the thread is only intermittently busy, the same cost shows as post-tap hitch then pop-in. Empty fixed shell slides (isolates content cost). Two mounting strategies tried (defer-one-frame; defer-to-completed) both rejected — neither achieves single-phase visible slide. Profile full-content with `BackdropFilter` removed still flashed (Experiment 1 / Profile full control) — first-paint content cost alone can skip enter, so deferring only frost while keeping Favorites/album sync is unlikely to restore the slide. **Not exhaustively ruled out:** reducing the loading-skeleton build cost of Favorites/Album rows themselves (near-zero-cost static placeholders before real `ConsumerWidget` loading), and/or Host pre-warm (may only marginally cut hitch frequency). Future revisit should try those before assuming architecture-level rework. Reverted defer/frost staging; keep stock sheet. Distinct from ADR-042 (current-asset actionable gating). | Unassigned | ADR-040; Cap 19.8 Profile A/B |
+| 448 | Accepted (phase) | Add to Album / Cap 19 | Cap 19.8 | System interactive-pop / back-gesture vs Cap 19 full-width left-swipe (D2=B) | **P-19.6-POP note at Cap 19 close-out.** D2=B does **not** claim interactive-pop is solved (ADR-041 / Cap 19 §5). 19.8 owner acceptance did not treat this as a Cap 19 blocker; residual conflict risk remains if iOS edge-back competes with left-swipe near the screen edge. Not a product-visible Cap 19 regression — accepted residual until a later gesture Cap revisits. | Unassigned | ADR-040 Decision 2; ADR-041; Cap 19.6 notes |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

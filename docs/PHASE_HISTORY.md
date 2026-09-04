@@ -924,3 +924,48 @@ Known debt at close: **395 closed** (intentional design); **434 closed**;
 **444** Open → **Build a Pool, Ephemeral Pool, and Source ordering**;
 **439** Open Unassigned (Live explicit replay). Do not close **442**, **443**,
 **441**, or **444** in this close-out.
+
+## Add to Album / Cap 19 entry chrome (Cap 19) — 2026-09-04
+
+- [x] 19.1 Contract freeze — §5 complete (D1–D4); ADR-041 + Decision 20
+      docs batch
+- [x] 19.2a Limited album spike — work `b22c07e`; notes
+      `docs/acceptance/cap19-19.2a-notes.md`
+- [x] 19.2b Scrub drag playback fix — work `82d828a`; ADR-040 Decision 13
+      narrow supplement; device PASS i17 Green Profile
+- [x] 19.2c Scrub preview/seek quantizer align — work `ca3dae6`; ADR-040
+      Decision 13 narrow supplement; device PASS i17 Green Profile
+- [x] 19.2d Scrub seek-hold + live playhead ghost — work `a95dd1f`;
+      ADR-040 Decision 13 narrow supplement; device PASS i17 Green Profile
+- [x] 19.2 Native album write path hardening — work `9977119`; ADR-013
+      narrow supplement; notes `docs/acceptance/cap19-19.2-notes.md`
+- [x] 19.3 WakeTok album bootstrap — work `7df4862`; notes
+      `docs/acceptance/cap19-19.3-notes.md`
+- [x] 19.4 Entry chrome + half-sheet — work `b3ea867`; notes
+      `docs/acceptance/cap19-19.4-notes.md`
+- [x] 19.5 Panel Add-to-Album picker — work `95abd12`; notes
+      `docs/acceptance/cap19-19.5-notes.md`
+- [x] 19.5b Panel Add-to-Favorites — work `399e43b`; notes
+      `docs/acceptance/cap19-19.5b-notes.md`
+- [x] 19.6 Left-swipe append — work `7b3d22a`; notes
+      `docs/acceptance/cap19-19.6-notes.md`; P-19.6-POP → 19.8
+- [x] 19.7 Preference + polish — work `b6f1223`; notes
+      `docs/acceptance/cap19-19.7-notes.md`
+- [x] 19.8 Device acceptance + close-out — work `ff59be9` (ADR-042
+      Decisions 1–7 actionable + scrub gold ghost) + `70db74b` (Decision 8
+      trailing chrome peek/cover hide) + `728fc58` (left-swipe drag copy /
+      icons); docs ADR `29e15c8` / `4140d40`; owner Kafka + dual-entry /
+      Limited matrix PASS; Cap 19 `[x]`; YOU ARE HERE → Cap 20 placeholder;
+      PHASE_HISTORY this snapshot; debt **447** unchanged Accepted (phase);
+      debt **448** opened (interactive-pop residual, P-19.6-POP note)
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-041 (`49d580b`); ADR-042 (`ff59be9` / Decision 8
+`70db74b`); ADR-040 D13 / D15 / D18 / Decision 20 supplements; ADR-013
+narrow (`9977119`).
+Known debt at close: **445** Accepted (permanent); **446** / **447** /
+**448** Accepted (phase); **421** Open (Settings Limited — out of Cap 19);
+**444** Open → Build a Pool Cap. Do not close **447** or **448** in this
+close-out.
