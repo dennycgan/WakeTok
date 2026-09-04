@@ -15,7 +15,6 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
-import 'package:waketok/features/main_browse/cap19_still_magnification_stub.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -316,7 +315,7 @@ void main() {
         assetSources: _assetSourcesForLeftSwipe(allIds: const ['a1']),
         albumMutations: mutations,
         wakeTokAlbumStore: albumStore,
-        cap19MagnificationStub: true,
+        forceStillMagnified: true,
       ),
     );
     await tester.pumpAndSettle();

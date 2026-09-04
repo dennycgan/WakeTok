@@ -22,7 +22,7 @@ import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
-import 'package:waketok/features/main_browse/cap19_still_magnification_stub.dart';
+import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../domain/library/fake_waketok_album_store.dart';
@@ -105,8 +105,8 @@ Widget permissionUiHarness({
   /// Cap 15.12: default zero so existing feed tests do not wait N_local.
   Duration browseLocalFirstVisitDwell = Duration.zero,
 
-  /// Cap 19.6: force Decision 20 magnification stub true for widget tests.
-  bool cap19MagnificationStub = false,
+  /// Cap 20.2: force still-magnified signal true for widget tests.
+  bool forceStillMagnified = false,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -151,8 +151,8 @@ Widget permissionUiHarness({
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)
         sharedMuteProvider.overrideWith(_HarnessMutedTrueSharedMute.new),
-      if (cap19MagnificationStub)
-        cap19StillMagnificationStubProvider.overrideWith((ref) => true),
+      if (forceStillMagnified)
+        browseStillMagnifiedProvider.overrideWith((ref) => true),
     ],
     child: MaterialApp(
       locale: locale,

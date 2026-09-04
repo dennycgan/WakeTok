@@ -9,7 +9,7 @@ import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
-import 'package:waketok/features/main_browse/cap19_still_magnification_stub.dart';
+import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
 enum Cap19LeftSwipeAppendOutcome {
@@ -47,7 +47,7 @@ final cap19LeftSwipeAppendProvider =
 /// Whether the current feed page may arm the left-swipe recognizer.
 final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
   final appendState = ref.watch(cap19LeftSwipeAppendProvider);
-  final magnified = ref.watch(cap19StillMagnificationStubProvider);
+  final magnified = ref.watch(browseStillMagnifiedProvider);
   final panelOpen = ref.watch(cap19ActionsPanelOpenProvider);
   final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
   return leftSwipeArmingAllowed(

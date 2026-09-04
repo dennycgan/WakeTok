@@ -22,6 +22,7 @@ import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
+import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
@@ -575,6 +576,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     ref.listen(mainBrowseDestinationProvider, (previous, next) {
       if (previous == MainBrowseDestination.browse &&
           next != MainBrowseDestination.browse) {
+        ref
+            .read(browseMagnificationProvider.notifier)
+            .clearBecauseLeftCurrentOrBrowse();
         unawaited(
           ref
               .read(pvTransitionGuardProvider.notifier)
@@ -599,6 +603,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
 
     ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
       if (prev != next) {
+        ref
+            .read(browseMagnificationProvider.notifier)
+            .clearBecauseLeftCurrentOrBrowse();
         unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
       }
     });
@@ -748,11 +755,17 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   ),
                   controller: _pageController,
                   scrollDirection: Axis.vertical,
+                  physics: ref.watch(browseMagnificationProvider).locksVerticalPageView
+                      ? const NeverScrollableScrollPhysics()
+                      : null,
                   // This SDK's PageView.builder has no cacheExtent; true sets
                   // Viewport cacheExtent to 1.0 viewport (±1 pages).
                   allowImplicitScrolling: true,
                   itemCount: ids.length,
                   onPageChanged: (i) {
+                    ref
+                        .read(browseMagnificationProvider.notifier)
+                        .clearBecauseLeftCurrentOrBrowse();
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
                     _publishVerticalFeedSettled(true);
                   },
@@ -1809,6 +1822,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _liveStartIssued = false;
       if (_liveMotionMounted) {
         setState(() => _liveMotionMounted = false);
+        ref
+            .read(browseMagnificationProvider.notifier)
+            .onLiveMotionMountedChanged(false);
       }
       _setLivePreparing(leaveGeneration, false);
       if (shouldCancelHost) {
@@ -2057,11 +2073,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           return;
         }
         setState(() => _liveMotionMounted = true);
+        ref
+            .read(browseMagnificationProvider.notifier)
+            .onLiveMotionMountedChanged(true);
       } catch (_) {
         // Sync failure → keep still; no skip (Cap 9.5 static fallback).
         _setLivePreparing(generation, false);
         if (mounted && _liveMotionGate.isCurrent(generation)) {
           setState(() => _liveMotionMounted = false);
+          ref
+              .read(browseMagnificationProvider.notifier)
+              .onLiveMotionMountedChanged(false);
         }
       }
     });
@@ -2135,12 +2157,18 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _livePhotoReady ||
         _liveSurfaceReady ||
         _liveStartIssued) {
+      final wasMounted = _liveMotionMounted;
       setState(() {
         _liveMotionMounted = false;
         _livePhotoReady = false;
         _liveSurfaceReady = false;
         _liveStartIssued = false;
       });
+      if (wasMounted && widget.isCurrent) {
+        ref
+            .read(browseMagnificationProvider.notifier)
+            .onLiveMotionMountedChanged(false);
+      }
     }
     _setLivePreparing(generation, false);
   }
