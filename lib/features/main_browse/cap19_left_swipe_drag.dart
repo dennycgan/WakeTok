@@ -19,8 +19,9 @@ const Duration kCap19LeftSwipeCancelDuration = Duration(milliseconds: 200);
 /// Drop-target chip opacity at drag start (before threshold).
 const double kCap19LeftSwipeChipMinOpacity = 0.3;
 
-/// Drop-target chip scale at drag start.
-const double kCap19LeftSwipeChipMinScale = 0.85;
+/// Drop-target chip scale at drag start (keep near full size — short copy
+/// previously made 0.85 feel too small vs Cap 19.6).
+const double kCap19LeftSwipeChipMinScale = 1.0;
 
 /// Drop-target chip scale when armed (past commit threshold).
 const double kCap19LeftSwipeChipArmedScale = 1.05;
@@ -164,15 +165,17 @@ class Cap19LeftSwipeAlbumReveal extends ConsumerWidget {
                         Icon(
                           armed
                               ? CupertinoIcons.folder_fill
-                              : CupertinoIcons.folder,
+                              : CupertinoIcons.folder_badge_plus,
                           color: armed ? tokens.brandGold : tokens.onMedia,
                           size: 22,
                         ),
                         const SizedBox(width: 8),
                         ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 148),
+                          constraints: const BoxConstraints(maxWidth: 168),
                           child: Text(
-                            l10n.cap19LeftSwipeDragHint,
+                            armed
+                                ? l10n.cap19LeftSwipeDragHintArmed
+                                : l10n.cap19LeftSwipeDragHintContinue,
                             key: const Key('cap19LeftSwipeDragHint'),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,

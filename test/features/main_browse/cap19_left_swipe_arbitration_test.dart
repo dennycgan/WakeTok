@@ -79,7 +79,7 @@ void main() {
     expect(cap19LeftSwipeChipOpacity(0), kCap19LeftSwipeChipMinOpacity);
     expect(cap19LeftSwipeChipOpacity(1), 1.0);
     expect(cap19LeftSwipeChipScale(0), kCap19LeftSwipeChipMinScale);
-    expect(cap19LeftSwipeChipScale(0.5), closeTo(0.925, 0.001));
+    expect(cap19LeftSwipeChipScale(0.5), 1.0);
     expect(cap19LeftSwipeChipScale(1.0), kCap19LeftSwipeChipArmedScale);
     expect(cap19LeftSwipeDragIsArmed(-kCap19LeftSwipeDistanceThreshold), isTrue);
   });

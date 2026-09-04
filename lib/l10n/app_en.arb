@@ -646,9 +646,9 @@
   "@cap19LeftSwipeGuideTitle": {
     "description": "Cap 19.6 one-shot coach mark title"
   },
-  "cap19LeftSwipeGuideSubtitle": "Adds it to your WakeTok album — nothing is moved or deleted",
+  "cap19LeftSwipeGuideSubtitle": "Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted",
   "@cap19LeftSwipeGuideSubtitle": {
-    "description": "Cap 19.6 one-shot coach mark subtitle"
+    "description": "Cap 19.6 one-shot coach mark subtitle (why + safety)"
   },
   "cap19LeftSwipeAppendSuccess": "Added to WakeTok",
   "@cap19LeftSwipeAppendSuccess": {
@@ -658,9 +658,13 @@
   "@cap19LeftSwipeAppendError": {
     "description": "Cap 19.6 left-swipe append failure toast"
   },
-  "cap19LeftSwipeDragHint": "Add to your WakeTok album",
-  "@cap19LeftSwipeDragHint": {
-    "description": "Cap 19.6 drop-target chip while left-dragging"
+  "cap19LeftSwipeDragHintContinue": "Keep swiping left · Add to your WakeTok album as a mark",
+  "@cap19LeftSwipeDragHintContinue": {
+    "description": "Cap 19 left-swipe chip before commit threshold (motion + album mark)"
+  },
+  "cap19LeftSwipeDragHintArmed": "Add to your WakeTok album · for later",
+  "@cap19LeftSwipeDragHintArmed": {
+    "description": "Cap 19 left-swipe chip past commit threshold (album destination; no release verb)"
   },
   "cap19LeftSwipeAlreadyInAlbum": "Already in your WakeTok album",
   "@cap19LeftSwipeAlreadyInAlbum": {

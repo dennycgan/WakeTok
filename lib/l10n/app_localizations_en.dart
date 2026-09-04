@@ -505,7 +505,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19LeftSwipeGuideSubtitle =>
-      'Adds it to your WakeTok album — nothing is moved or deleted';
+      'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
 
   @override
   String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
@@ -515,7 +515,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Couldn\'t add to WakeTok. Try again.';
 
   @override
-  String get cap19LeftSwipeDragHint => 'Add to your WakeTok album';
+  String get cap19LeftSwipeDragHintContinue =>
+      'Keep swiping left · Add to your WakeTok album as a mark';
+
+  @override
+  String get cap19LeftSwipeDragHintArmed =>
+      'Add to your WakeTok album · for later';
 
   @override
   String get cap19LeftSwipeAlreadyInAlbum => 'Already in your WakeTok album';

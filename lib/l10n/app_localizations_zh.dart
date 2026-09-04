@@ -502,7 +502,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19LeftSwipeGuideSubtitle =>
-      'Adds it to your WakeTok album — nothing is moved or deleted';
+      'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
 
   @override
   String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
@@ -512,7 +512,12 @@ class AppLocalizationsZh extends AppLocalizations {
       'Couldn\'t add to WakeTok. Try again.';
 
   @override
-  String get cap19LeftSwipeDragHint => 'Add to your WakeTok album';
+  String get cap19LeftSwipeDragHintContinue =>
+      'Keep swiping left · Add to your WakeTok album as a mark';
+
+  @override
+  String get cap19LeftSwipeDragHintArmed =>
+      'Add to your WakeTok album · for later';
 
   @override
   String get cap19LeftSwipeAlreadyInAlbum => 'Already in your WakeTok album';
@@ -1017,7 +1022,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19LeftSwipeGuideTitle => '左滑添加到 WakeTok';
 
   @override
-  String get cap19LeftSwipeGuideSubtitle => '将它添加到你的 WakeTok 相册 — 不会移动或删除原文件';
+  String get cap19LeftSwipeGuideSubtitle =>
+      '保存到 WakeTok 相册，当作稍后在「照片」里查找的标记 — 不会移动或删除原文件';
 
   @override
   String get cap19LeftSwipeAppendSuccess => '已添加到 WakeTok';
@@ -1026,7 +1032,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19LeftSwipeAppendError => '无法添加到 WakeTok，请重试。';
 
   @override
-  String get cap19LeftSwipeDragHint => '添加到你的 WakeTok 相册';
+  String get cap19LeftSwipeDragHintContinue => '继续向左滑 · 添加到你的 WakeTok 相册作标记';
+
+  @override
+  String get cap19LeftSwipeDragHintArmed => '添加到你的 WakeTok 相册 · 方便以后查看';
 
   @override
   String get cap19LeftSwipeAlreadyInAlbum => '已在你的 WakeTok 相册中';

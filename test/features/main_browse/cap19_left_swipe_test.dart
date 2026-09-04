@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/library/waketok_album_constants.dart';
@@ -10,6 +11,8 @@ import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/cap19_still_magnification_stub.dart';
@@ -322,5 +325,43 @@ void main() {
     await _simulateLeftSwipeOnPageView(tester);
     await tester.pumpAndSettle();
     expect(mutations.addCalls, 0);
+  });
+
+  testWidgets('W-19.8-drag chip copy switches at 72px threshold', (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: waketokTheme(Brightness.dark),
+          home: const Scaffold(
+            body: Stack(
+              children: [
+                Cap19LeftSwipeAlbumReveal(isCurrent: true),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    container
+        .read(cap19LeftSwipeDragProvider.notifier)
+        .updateOffset(-(kCap19LeftSwipeDistanceThreshold - 1));
+    await tester.pump();
+    expect(find.text(l10n.cap19LeftSwipeDragHintContinue), findsOneWidget);
+    expect(find.text(l10n.cap19LeftSwipeDragHintArmed), findsNothing);
+
+    container
+        .read(cap19LeftSwipeDragProvider.notifier)
+        .updateOffset(-kCap19LeftSwipeDistanceThreshold);
+    await tester.pump();
+    expect(find.text(l10n.cap19LeftSwipeDragHintArmed), findsOneWidget);
+    expect(find.text(l10n.cap19LeftSwipeDragHintContinue), findsNothing);
   });
 }

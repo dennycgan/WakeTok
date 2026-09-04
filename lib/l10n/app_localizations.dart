@@ -945,10 +945,10 @@ abstract class AppLocalizations {
   /// **'Swipe left to add to WakeTok'**
   String get cap19LeftSwipeGuideTitle;
 
-  /// Cap 19.6 one-shot coach mark subtitle
+  /// Cap 19.6 one-shot coach mark subtitle (why + safety)
   ///
   /// In en, this message translates to:
-  /// **'Adds it to your WakeTok album — nothing is moved or deleted'**
+  /// **'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted'**
   String get cap19LeftSwipeGuideSubtitle;
 
   /// Cap 19.6 left-swipe append success toast
@@ -963,11 +963,17 @@ abstract class AppLocalizations {
   /// **'Couldn\'t add to WakeTok. Try again.'**
   String get cap19LeftSwipeAppendError;
 
-  /// Cap 19.6 drop-target chip while left-dragging
+  /// Cap 19 left-swipe chip before commit threshold (motion + album mark)
   ///
   /// In en, this message translates to:
-  /// **'Add to your WakeTok album'**
-  String get cap19LeftSwipeDragHint;
+  /// **'Keep swiping left · Add to your WakeTok album as a mark'**
+  String get cap19LeftSwipeDragHintContinue;
+
+  /// Cap 19 left-swipe chip past commit threshold (album destination; no release verb)
+  ///
+  /// In en, this message translates to:
+  /// **'Add to your WakeTok album · for later'**
+  String get cap19LeftSwipeDragHintArmed;
 
   /// Cap 19.7 left-swipe when asset is already a member
   ///
