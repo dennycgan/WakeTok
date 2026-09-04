@@ -31,7 +31,7 @@ Widget _stillHostHarness({FakePlaybackRepository? playback}) {
       theme: waketokTheme(Brightness.dark),
       home: Scaffold(
         body: MagnificationPointerHost(
-          child: StillMagnificationActiveBinder(
+          child: MagnificationHostModeBinder(persistent: true, 
             active: true,
             child: StillMagnificationTransform(
               apply: true,
@@ -290,7 +290,7 @@ void main() {
       expect(
         container.read(magnificationHostModeProvider),
         MagnificationHostMode.still,
-        reason: 'falling edge must re-arm StillMagnificationActiveBinder',
+        reason: 'falling edge must re-arm MagnificationHostModeBinder',
       );
     },
   );
@@ -336,7 +336,7 @@ class _LiveWindowBinderProbeState extends ConsumerState<_LiveWindowBinderProbe> 
 
   @override
   Widget build(BuildContext context) {
-    return StillMagnificationActiveBinder(
+    return MagnificationHostModeBinder(persistent: true, 
       active: !_liveMounted,
       child: const SizedBox.expand(),
     );

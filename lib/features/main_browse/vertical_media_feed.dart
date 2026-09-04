@@ -3633,7 +3633,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             pixelWidth: media.display!.pixelWidth,
             pixelHeight: media.display!.pixelHeight,
             child: () {
-              final persistent = usesPersistentMagnification(media);
               final binderActive =
                   widget.isCurrent && !_liveMotionMounted;
               final image = _ReloadableFileImage(
@@ -3642,17 +3641,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 fit: BoxFit.fill,
                 onFileBroken: _onPreviewFileBroken,
               );
-              if (persistent) {
-                return StillMagnificationActiveBinder(
-                  active: binderActive,
-                  child: StillMagnificationTransform(
-                    apply: binderActive,
-                    child: image,
-                  ),
-                );
-              }
-              return TransientMagnificationActiveBinder(
+              // Always the same binder runtimeType — only [persistent] flips
+              // on L1↔L2 (Cap 20 black-flash / debt 450).
+              return MagnificationHostModeBinder(
                 active: binderActive,
+                persistent: usesPersistentMagnification(media),
                 child: StillMagnificationTransform(
                   apply: binderActive,
                   child: image,
@@ -3759,8 +3752,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             pixelHeight: media.display?.pixelHeight,
             child: NativeDisplayMagnificationPushBinder(
               active: widget.isCurrent && l2VisualOwnsPinch,
-              child: TransientMagnificationActiveBinder(
+              child: MagnificationHostModeBinder(
                 active: widget.isCurrent && l2VisualOwnsPinch,
+                persistent: false,
                 child: VideoMagnificationTransform(
                   apply: false,
                   child: _VideoPage(
@@ -3824,8 +3818,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                     backgroundColor: tokens.feedBackground,
                     pixelWidth: media.display!.pixelWidth,
                     pixelHeight: media.display!.pixelHeight,
-                    child: TransientMagnificationActiveBinder(
+                    child: MagnificationHostModeBinder(
                       active: posterOwnsPinch,
+                      persistent: false,
                       child: StillMagnificationTransform(
                         apply: posterOwnsPinch,
                         child: _ReloadableFileImage(

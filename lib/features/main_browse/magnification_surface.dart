@@ -679,122 +679,82 @@ class VideoMagnificationTransform extends ConsumerWidget {
   }
 }
 
-/// Binds current still → [MagnificationHostMode.still] (persistent path).
+/// Arms [MagnificationHostMode.still] or [transient] for the current page.
 ///
-/// Cap 20 L1 unify: photo / Live static browse images use
-/// [TransientMagnificationActiveBinder] (non-persistent) instead. This binder
-/// remains for any future persistent-only surface.
-class StillMagnificationActiveBinder extends ConsumerStatefulWidget {
-  const StillMagnificationActiveBinder({
+/// **Single widget type** for all still / video cover trees that need a Host
+/// mode (Cap 20 black-flash fix): L1↔L2 must only flip [persistent], never
+/// swap binder runtimeTypes (that rebuilt `Image` Elements after 20.4).
+/// Always mount this widget in the cover slot; [active] only gates setMode —
+/// never omit this widget from the tree based on layer / current.
+class MagnificationHostModeBinder extends ConsumerStatefulWidget {
+  const MagnificationHostModeBinder({
     super.key,
     required this.active,
+    required this.persistent,
     required this.child,
   });
 
+  /// When true and current, post-frame [setMode] to still or transient.
+  /// Deactivate must **not** clearIf — neighbour races leave Host [none].
   final bool active;
+
+  /// `true` → [MagnificationHostMode.still] (photo / Live-static L2).
+  /// `false` → [MagnificationHostMode.transient] (all L1 + video).
+  final bool persistent;
+
   final Widget child;
 
   @override
-  ConsumerState<StillMagnificationActiveBinder> createState() =>
-      _StillMagnificationActiveBinderState();
+  ConsumerState<MagnificationHostModeBinder> createState() =>
+      _MagnificationHostModeBinderState();
 }
 
-class _StillMagnificationActiveBinderState
-    extends ConsumerState<StillMagnificationActiveBinder> {
+class _MagnificationHostModeBinderState
+    extends ConsumerState<MagnificationHostModeBinder> {
   bool? _lastSyncedActive;
+  bool? _lastSyncedPersistent;
 
-  void _sync(bool active) {
-    if (_lastSyncedActive == active) {
+  MagnificationHostMode get _targetMode => widget.persistent
+      ? MagnificationHostMode.still
+      : MagnificationHostMode.transient;
+
+  void _sync({required bool force}) {
+    final active = widget.active;
+    final persistent = widget.persistent;
+    if (!force &&
+        _lastSyncedActive == active &&
+        _lastSyncedPersistent == persistent) {
       return;
     }
     _lastSyncedActive = active;
+    _lastSyncedPersistent = persistent;
     if (!active) {
-      // Never clearIf here — neighbour deactivate racing the new current's
-      // setMode left Host mode [none] and dead pinch until revisit (Kafka).
       return;
     }
+    final mode = _targetMode;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !widget.active) {
         return;
       }
-      ref
-          .read(magnificationHostModeProvider.notifier)
-          .setMode(MagnificationHostMode.still);
+      if (widget.persistent != persistent) {
+        return;
+      }
+      ref.read(magnificationHostModeProvider.notifier).setMode(mode);
     });
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _sync(widget.active);
+    _sync(force: false);
   }
 
   @override
-  void didUpdateWidget(StillMagnificationActiveBinder oldWidget) {
+  void didUpdateWidget(MagnificationHostModeBinder oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.active != widget.active) {
-      _sync(widget.active);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => widget.child;
-}
-
-/// Binds current page → [MagnificationHostMode.transient] (non-persistent).
-///
-/// Cap 20: video L1/L2 and photo / Live-static **L1 (preview)** use this mode —
-/// release→fit, no Reset. Photo L2 uses [StillMagnificationActiveBinder].
-/// Binders only [setMode]; page leave clears mode.
-class TransientMagnificationActiveBinder extends ConsumerStatefulWidget {
-  const TransientMagnificationActiveBinder({
-    super.key,
-    required this.active,
-    required this.child,
-  });
-
-  final bool active;
-  final Widget child;
-
-  @override
-  ConsumerState<TransientMagnificationActiveBinder> createState() =>
-      _TransientMagnificationActiveBinderState();
-}
-
-class _TransientMagnificationActiveBinderState
-    extends ConsumerState<TransientMagnificationActiveBinder> {
-  bool? _lastSyncedActive;
-
-  void _sync(bool active) {
-    if (_lastSyncedActive == active) {
-      return;
-    }
-    _lastSyncedActive = active;
-    if (!active) {
-      // See StillMagnificationActiveBinder — no clearIf on deactivate.
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !widget.active) {
-        return;
-      }
-      ref
-          .read(magnificationHostModeProvider.notifier)
-          .setMode(MagnificationHostMode.transient);
-    });
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _sync(widget.active);
-  }
-
-  @override
-  void didUpdateWidget(TransientMagnificationActiveBinder oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.active != widget.active) {
-      _sync(widget.active);
+    if (oldWidget.active != widget.active ||
+        oldWidget.persistent != widget.persistent) {
+      _sync(force: true);
     }
   }
 

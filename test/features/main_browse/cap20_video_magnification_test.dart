@@ -91,7 +91,7 @@ Widget _videoHostHarness({FakePlaybackRepository? playback}) {
         body: MagnificationPointerHost(
           child: NativeDisplayMagnificationPushBinder(
             active: true,
-            child: TransientMagnificationActiveBinder(
+            child: MagnificationHostModeBinder(persistent: false, 
               active: true,
               child: VideoMagnificationTransform(
                 apply: false,
@@ -728,11 +728,11 @@ void main() {
                 home: Scaffold(
                   body: Column(
                     children: [
-                      TransientMagnificationActiveBinder(
+                      MagnificationHostModeBinder(persistent: false, 
                         active: true,
                         child: SizedBox(height: 10),
                       ),
-                      TransientMagnificationActiveBinder(
+                      MagnificationHostModeBinder(persistent: false, 
                         active: false,
                         child: SizedBox(height: 10),
                       ),
@@ -763,7 +763,7 @@ void main() {
               container = ProviderScope.containerOf(context);
               return const MaterialApp(
                 home: Scaffold(
-                  body: TransientMagnificationActiveBinder(
+                  body: MagnificationHostModeBinder(persistent: false, 
                     active: true,
                     child: SizedBox(height: 10),
                   ),
