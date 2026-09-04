@@ -188,24 +188,28 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
       — work `ca3b4ed` (Decision 13 `setDisplayMagnification`) +
         `32d149f` (transient rename, L1 unify, native push gate,
         L1→L2 handoff T-20.4-12); Kafka Profile L2 smoke PASS
-- [ ] 20.5 Live motion-window gate
-      — While `_liveMotionMounted`: ignore pinch; rising edge → force fit
-      (notifier hooks landed in 20.2; pinch ignore while mounted → 20.5)
+- [x] 20.5 Live motion-window gate
+      — work `114f393`; main D1 path already in 20.2–20.4; this phase
+        nails Host mode-none ignore + T-20.5-* and rising-edge
+        `hasActiveMagnification` coverage (not a new motion gate).
+        i17 Live static→motion→static smoke PASS (local Live assets)
 - [ ] 20.6 Device acceptance (Kafka + iPhone 17; max-scale pick 3×/4×;
       retest Cap 17.6 **B.1** fast-swipe <300ms / no flyby thrash —
       still pinch must not regress it; Plan A: no single-finger candidate
       lock; **cover still + video mixed-pool continuous fast-swipe**
       (same Host on both surfaces); also soak Q2-A: after video pinch,
       one finger remains → pan while PageView locked — confirm users can
-      still leave the page without a “stuck” feel, else revisit Q2-B)
+      still leave the page without a “stuck” feel, else revisit Q2-B;
+      **block:** still L1↔L2 black-flash regression (debt **450**) must
+      be fixed + Element-continuity tests green before 20.6)
 - [ ] 20.7 Cap close-out (Cap `[x]`; PHASE_HISTORY; YOU ARE HERE next)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 20.5 — Live motion-window pinch gate
-- Sub-steps done: 20.1–20.4; ADR-043 Accepted + Decision 13/14
-- Next step: ignore pinch while `_liveMotionMounted`; rising-edge
-      force fit already in 20.2 notifier — wire Host ignore path
-- Related decisions: ADR-043 Decision 13 / 14; ADR-040 Decision 16 /
+- Goal (one line): Cap 20.6 prep — fix still L1↔L2 black-flash (debt 450)
+- Sub-steps done: 20.1–20.5; ADR-043 + Decision 13/14
+- Next step: unify still-page mag binder (no Widget-type fork); restore
+      W-15.5a + leave Image State identity; then 20.6 device acceptance
+- Related decisions: ADR-043; debts **449** / **450**; ADR-040 Decision 16 /
       Decision 20; debt **448** Out of Cap 20
 
 ## Contract pointers (don't memorize, go read the source)
@@ -505,6 +509,8 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 | 446 | Accepted (phase) | Add to Album / Cap 19 | Cap 19-19.5b | Panel add-to-album is single-select only — one album per sheet open; sheet dismisses on success | MVP scope: append the same asset to multiple albums requires reopening the panel each time. A fuller product may add multi-album multi-select + confirm (sheet stays open). PhotoKit has no single public “add to N albums” call — domain primitive `AlbumMutationRepository.addAssetToAlbum` is correctly one asset+album pair; upgrade is UI orchestration (N sequential calls) or optional Host batch in one `performChanges`. Distinct from Cap 19.7 **duplicate-append** row (re-append to the **same** album). | Unassigned | ADR-040 |
 | 447 | Accepted (phase) | Add to Album / Cap 19 | Cap 19.8 | Cap 19 actions half-sheet: (1) enter has no visible bottom-up slide; (2) occasional tap→open hitch — after tapping the bottom-trailing icon, the UI sometimes does not react immediately (brief blank / light stutter) before the sheet appears | **Profile-confirmed (Kafka, Cap 19.8).** **Root cause (both limbs):** on tap the main isolate must cold-build the full half-sheet (Favorites + album picker + frost) while the playing feed still contends for frame budget; when that first paint overruns the ~250ms wall-clock enter, the slide is skipped (exit still animates — warm tree); when the thread is only intermittently busy, the same cost shows as post-tap hitch then pop-in. Empty fixed shell slides (isolates content cost). Two mounting strategies tried (defer-one-frame; defer-to-completed) both rejected — neither achieves single-phase visible slide. Profile full-content with `BackdropFilter` removed still flashed (Experiment 1 / Profile full control) — first-paint content cost alone can skip enter, so deferring only frost while keeping Favorites/album sync is unlikely to restore the slide. **Not exhaustively ruled out:** reducing the loading-skeleton build cost of Favorites/Album rows themselves (near-zero-cost static placeholders before real `ConsumerWidget` loading), and/or Host pre-warm (may only marginally cut hitch frequency). Future revisit should try those before assuming architecture-level rework. Reverted defer/frost staging; keep stock sheet. Distinct from ADR-042 (current-asset actionable gating). | Unassigned | ADR-040; Cap 19.8 Profile A/B |
 | 448 | Accepted (phase) | Add to Album / Cap 19 | Cap 19.8 | System interactive-pop / back-gesture vs Cap 19 full-width left-swipe (D2=B) | **P-19.6-POP note at Cap 19 close-out.** D2=B does **not** claim interactive-pop is solved (ADR-041 / Cap 19 §5). 19.8 owner acceptance did not treat this as a Cap 19 blocker; residual conflict risk remains if iOS edge-back competes with left-swipe near the screen edge. Not a product-visible Cap 19 regression — accepted residual until a later gesture Cap revisits. | Unassigned | ADR-040 Decision 2; ADR-041; Cap 19.6 notes |
+| 449 | Open | App Foundation | Cap 20.5 | No machine CI that runs `flutter test` on push (agent-only architecture / scoped Cap gates) | Cap 20.4 L1 unify broke Cap 15.5 `W-15.5a` Image State identity; agent Cap20 tasks ran architecture + Cap20 files only — no GitHub Actions / other CI forces full suite. Rule docs alone re-create the same miss class. Need a real push CI job (at least full `flutter test` or continuity + architecture). | Later (tooling) — do **not** block black-flash fix | — |
+| 450 | Open | Main Browse Screen / Cap 20 | Cap 20.5 | Still photo L1↔L2 doom-scroll black flash (peek / promote) after Cap 20.4 L1 unify | **Confirmed:** binder type fork (`Transient*`↔`Still*`) rebuilds `Image` Element; `ca3b4ed` clean / HEAD flash; `W-15.5a` red. Fix before 20.6: single `MagnificationHostModeBinder` on still cover tree. | Before Cap 20.6 | ADR-043 Decision 14; Cap 15.5 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

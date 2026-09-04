@@ -4842,3 +4842,15 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     the device matrix grows or a regression appears, re-evaluate
     coalescing/throttling — treat current behavior as a verified choice,
     not an unexplained bug.
+  - **Cap 20.5 (work `114f393`):** Live motion Host `mode == none` ignore
+    + rising-edge forceFit via `hasActiveMagnification` are **coverage /
+    Host harness**, not a new product gate (D1 path already 20.2–20.4).
+    Feed mounts motion with `setMode(none)` then
+    `onLiveMotionMountedChanged(true)` in one try block — **convention,
+    not a generation-gated invariant**. Rising-edge notifier forceFit is
+    the safety net if that order is later broken; T-20.5-4 guards it.
+  - **L1/L2 still cover continuity (acceptance):** any Cap that changes
+    Layer-1/Layer-2 handoff or still cover tree must device-verify on
+    **local downloaded** assets so network latency cannot mask render
+    flashes (Cap 20.4 Kafka iCloud blind spot). Automate with Image
+    State identity tests (`W-15.5a` + leave demote).
