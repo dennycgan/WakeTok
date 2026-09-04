@@ -1,7 +1,7 @@
 # Cap 15.11 — Shared PV transition guard (393 settle + peek)
 
 > **Status: CLOSED (2026-08-23).** Device PASS Kafka + i17 —
-> `cap15-15.11-notes.md`. Debt **393** closed in STATE. Work `c8a59b3` /
+> `cap15-15.11-notes.md`. Debt **393** closed in STATE. Work `9d546f2` /
 > ADR-032. Cap 15 continues → **15.12** (local first-visit skip L1,
 > design pending) → **15.9** close-out.
 >

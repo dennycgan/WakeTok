@@ -30,8 +30,8 @@ clearing pre-existing Known debt table rows.
 - Run mode: Flutter **Profile** (lifecycle / Q7 / Style / stress / iCloud);
   **Debug** (library_smoke Shared mute — `kDebugMode` only)
 - Photos access: Full
-- Host under test: Cap 9.6 `8c0f4ca` / docs `f276ee5`; mute host persist
-  **`4aa93b0`** (2026-08-11) during 9.7 after M3 FAIL on Videos
+- Host under test: Cap 9.6 `8fcd875` / docs `f7935b9`; mute host persist
+  **`474fb6a`** (2026-08-11) during 9.7 after M3 FAIL on Videos
 - Style matrix: `docs/acceptance/cap9-9.6-playback-style-matrix.md`
 
 ---
@@ -43,7 +43,7 @@ clearing pre-existing Known debt table rows.
 | 1 | photoLive identity (badge / Overlay) | **PASS** | 13 Pro + 17 (P1–P4) |
 | 2 | PHLivePhoto + full auto play-once | **PASS** | Both devices |
 | 3 | Enter / leave / re-enter lifecycle | **PASS** | Both; stress 3–5× rapid leave/return **PASS** (no hang/crash/wrong audio/stuck PV) |
-| 4 | Live audio ↔ global Mute | **PASS** | M1–M3 after `4aa93b0`; see Style matrix Mute table |
+| 4 | Live audio ↔ global Mute | **PASS** | M1–M3 after `474fb6a`; see Style matrix Mute table |
 | 5 | iCloud static-first + download/prepare observe | **PASS** (13 Pro) / **N/A** (17) | 13: offline uncached Live → still + badge, no skip/crash; spinner often invisible (fail too fast) — **UX-1** debt. 17: no iCloud storage / no iCloud library photos |
 | 6 | Offline / fail → static fallback, no skip | **PASS** (13 Pro) / **N/A** (17) | Same offline session as #5 on 13 |
 | 7 | Loop / Bounce / Long Exposure / edited Live | **PASS** (13 Pro S1–S5) / **N/A** (17) | 17 lacks Live edit samples for P5–P7. Loop/Bounce silent in Photos current representation — WakeTok matches (not mute bug) |
@@ -64,7 +64,7 @@ clearing pre-existing Known debt table rows.
 | Rapid leave/return stress | PASS | PASS |
 | P5–P6 iCloud / offline | PASS (observe) | **N/A** (no iCloud photos) |
 | P7 Style matrix | S1–S5 PASS | **N/A** (insufficient Live materials) |
-| Mute M1–M3 | PASS (post-`4aa93b0`) | Covered via shared host; 17 focused P1–P4 |
+| Mute M1–M3 | PASS (post-`474fb6a`) | Covered via shared host; 17 focused P1–P4 |
 
 ---
 
@@ -82,7 +82,7 @@ clearing pre-existing Known debt table rows.
 **PASS** for Cap 9.7 / POC-08 on available samples.
 
 - iPhone 17 P5–P7 / Style **N/A** by sample absence (G3 / #5), not deferred work.
-- Mid-gate fix: video mute host persist `4aa93b0` (M3).
+- Mid-gate fix: video mute host persist `474fb6a` (M3).
 - Q7 jump OK — no new debt.
 - ADR-019: POC-08 Result appended (Status remains Accepted).
 

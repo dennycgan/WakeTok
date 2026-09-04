@@ -44,7 +44,7 @@ All = sum. Same Cap 5.5 / ADR-011 inclusion (Hidden / Recently Deleted out).
 | Device | iPhone 13 Pro |
 | Device name | (owner device; same Cap 5.5 floor unit) |
 | Note vs STATE project facts | STATE lists “iPhone 13 (performance floor)”; this gate used **iPhone 13 Pro** — notes are authoritative for the run |
-| Git HEAD (tested) | `6091b5d` (includes 6.4 work `cbdc317`) |
+| Git HEAD (tested) | `c47f77d` (includes 6.4 work `6be43d4`) |
 | Date (local) | 2026-08-02 |
 | N (year-span) | 3 |
 | Span formula | `maxYear − minYear` |

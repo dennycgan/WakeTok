@@ -13,7 +13,7 @@
   (compat) — P1–P4 + stress only; Style P5–P7 **N/A** (no iCloud library /
   insufficient Live edit materials)
 - Run mode: **Profile** (Style / Q7); **Debug** (Mute M1–M3 via library_smoke)
-- Host: Cap 9.6 work `8c0f4ca` / docs `f276ee5`; mute persist **`4aa93b0`**
+- Host: Cap 9.6 work `8fcd875` / docs `f7935b9`; mute persist **`474fb6a`**
 - Mute: shared preference (library_smoke debug switch); default unmuted
 - Q7 (play-once → unload PV → key still): **功能 PASS，jump OK** — returns to
   opening still; feels natural vs iOS Photos
@@ -34,7 +34,7 @@
 |---|-------|----------|--------|
 | M1 | Default unmuted + Live play | Motion has audio | **PASS** | Ordinary Live has audio when unmuted |
 | M2 | library_smoke Mute on → return to Live / re-enter | Motion silent | **PASS** | Debug shared-mute switch |
-| M3 | Mute on → Live → video | Video silent after clear/play | **PASS** (after `4aa93b0`) | Initially FAIL on Videos (host `setMute` lost on pendingPlay / new AVPlayer). Fixed by host-persisted `muted` + re-apply; owner retest **PASS**. Loop/Bounce silent assets are unrelated (see S2/S3) |
+| M3 | Mute on → Live → video | Video silent after clear/play | **PASS** (after `474fb6a`) | Initially FAIL on Videos (host `setMute` lost on pendingPlay / new AVPlayer). Fixed by host-persisted `muted` + re-apply; owner retest **PASS**. Loop/Bounce silent assets are unrelated (see S2/S3) |
 
 ## Out of scope here
 

@@ -51,7 +51,7 @@
 - Status: Accepted (2026-07-28); hitch **hard-gate reading** (mean
   hitch < 25 ms/s AND no Severe Hang) and the hang-triggered SwiftUI /
   all-native re-eval fail path are superseded by ADR-030 (2026-08-19)
-- Commit/PR anchor: 3ff7f58
+- Commit/PR anchor: 577b586
 - Plain summary (owner reads this):
   We keep building WakeTok’s feed in Flutter with native iOS video (Platform View),
   after measuring that everyday scrolling feels OK; we tightened the written hitch
@@ -90,7 +90,7 @@
      Severe Hang remains an accepted debt to address in production feed work.
   6. **Data anchors (notes / commits, not this ADR’s Accepted date):**
      - Hand PV / Texture hitch and FF20: `docs/poc/POC-04-notes.md`; spike commits
-       including Texture escape `10bd0c1` and Hitch Probe calibration `e5c4117`.
+       including Texture escape `5cc0b9d` and Hitch Probe calibration `2c9fb59`.
 - Rejected alternatives (why not B):
   - **Keep hitch < 5 ms/s as hard fail → no-go / leave Flutter:** Rejected because
     owner-calibrated everyday PV feel (13–19) is acceptable; < 5 over-penalizes a
@@ -126,7 +126,7 @@
 ## ADR-002: POC-03 lock-screen continuous playback gate — Conditional Pass
 
 - Status: Accepted (2026-07-28)
-- Commit/PR anchor: 9eeb912
+- Commit/PR anchor: 9568f7b
 - Plain summary (owner reads this):
   WakeTok can retain a Swift-owned AVQueuePlayer beyond the lifetime of a
   Flutter route, continue queue playback while locked, and support Now Playing
@@ -158,7 +158,7 @@
      - 3.4 Control Center / AirPods play-pause-next (N1–N3 PASS).
      - 3.5 Force-quit stops audio; cold start offers Restore? without auto-play
        (K1–K3 PASS; P5=A).
-     - Work commits on `spike/poc` include `77d7af8` … `9eeb912` (anchor).
+     - Work commits on `spike/poc` include `8ec6c47` … `9568f7b` (anchor).
   3. **Known debt (does not overturn Conditional Pass):**
      - WeChat/VoIP: no auto-resume on lock screen or iOS home without opening
        the app → Production Background Audio (Q1=B).
@@ -202,7 +202,7 @@
 ## ADR-003: WakeTok subtitle scope — burned-in only; soft tracks out of scope
 
 - Status: Accepted (2026-07-29)
-- Commit/PR anchor: fcf7561
+- Commit/PR anchor: 3883b8f
 - Plain summary (owner reads this):
   WakeTok only cares about burned-in subtitles (text that is already pixels in
   the video picture). Soft subtitle / caption tracks are out of product scope —
@@ -243,7 +243,7 @@
   - Spike diagnostics may still surface incidental `textTrackCount` values;
     production must **not** treat soft-track preservation as a product feature.
   - Future soft-sub retention requests require a **new ADR**.
-  - Anchor note (O3=S1): Accepted against POC-09 work `fcf7561` (same close-out
+  - Anchor note (O3=S1): Accepted against POC-09 work `3883b8f` (same close-out
     packaging as ADR-004); §9.5 body lives in notes in this docs commit.
 
 ---
@@ -251,7 +251,7 @@
 ## ADR-004: POC-09 Current Photos Representation Export Gate — Pass
 
 - Status: Accepted (2026-07-29)
-- Commit/PR anchor: fcf7561
+- Commit/PR anchor: 3883b8f
 - Plain summary (owner reads this):
   WakeTok may build production physical-clip export on Photos’ *current*
   representation: request AVAsset with version=.current and
@@ -270,19 +270,19 @@
      (Q1=A, Q2=A) as the production obtain/export *input path* for clips.
   2. **Phase evidence** (`docs/poc/POC-09-notes.md`; work on `spike/poc`):
      - **9.1** Harness + dual current/original probe + temp export — PASS
-       (unedited smoke). Work: `c98a073`.
+       (unedited smoke). Work: `8fcac6c`.
      - **9.2** Trim: export ≈ current; original obviously longer (>2s notes
-       threshold); no silent original fallback — PASS. Work: `e8e900b`.
+       threshold); no silent original fallback — PASS. Work: `ba72532`.
      - **9.3** HFR/slo-mo: export duration matches Photos-displayed /
-       PHAsset duration (Q4=A) — PASS. Work: `ab86a2b`.
+       PHAsset duration (Q4=A) — PASS. Work: `96e4a23`.
      - **9.4** Default audio: track present + Play-export listen — PASS.
-       Work: `9794449`.
+       Work: `a4f2130`.
      - **9.5** Soft subtitle tracks out of scope; burned-in incidental —
        PASS (docs / ADR-003). No track-probe implementation.
      - **9.6** Explicit failure: iCloud-only + networkAccessAllowed=false
        → `inCloudUnavailable` (incl. PHPhotosError 3164 mapping), no export
        path; same asset with network on → controlGate PASS; N1 local+OFF
-       must not false-positive — PASS. Work: `fcf7561`.
+       must not false-positive — PASS. Work: `3883b8f`.
   3. **Scope boundary:** This spike proved obtain + *temp* export metrics
      and failure shape. The formal **120s** segment state machine, job
      persistence, cancellation, and Photos re-import live in **Physical
@@ -314,7 +314,7 @@
 ## ADR-005: iOS Deployment Target = iOS 16.0
 
 - Status: Superseded by ADR-007 (2026-07-30)
-- Commit/PR anchor: 0738c88
+- Commit/PR anchor: 0be5397
 - Plain summary (owner reads this):
   WakeTok’s minimum supported iOS version is 16.0.
 - Context / what problem forced this:
@@ -350,12 +350,12 @@
   current-item `requestDisplayAsset` / `requestPlayableVideo` (and
   foreground player prepare) must use `isNetworkAccessAllowed = false`
   and fail immediately with `iCloudDownloadRequired` is narrowly
-  superseded by ADR-025 (2026-08-15; Cap 14.3 work `ce8807f`) for
+  superseded by ADR-025 (2026-08-15; Cap 14.3 work `92c3a60`) for
   **current-item Layer 2 only**. Still binding: Layer 1 preview, ±1
   preheat, POC-10 / Overlay file-size fetches, Live motion, and any
   other path not named in ADR-025 D7; PlaybackApi ownership, detachable
   surface, 1+1 pool, and the rest of this ADR remain binding
-- Commit/PR anchor: a0b99d2
+- Commit/PR anchor: bb5371a
 - Plain summary (owner reads this):
   WakeTok’s player lives in a Swift app-scoped service, not inside a Flutter
   widget. The feed’s Platform View only attaches/detaches the picture; lock-screen
@@ -416,7 +416,7 @@
     `jumpToPage` + adopt cannot race a second `attach`/`release` path — that
     race SIGABRT'd the probe. Separately, probe mode disables warming promotion
     so a display-pool promote cannot replace AVQueuePlayer and clear lookahead.
-  - **Cap 7.3 fill-in (work `29fcf2d`, 2026-08-04):** production image path
+  - **Cap 7.3 fill-in (work `07d10d6`, 2026-08-04):** production image path
     extends `DisplayAssetDto` with `localFilePath` (host JPEG temp → Flutter
     `Image.file`). Display temps share the display-pool **≤1+1** eviction
     discipline (POC-04 `tmpMax=2`): a new temp must clean up an unused prior
@@ -428,7 +428,7 @@
     foreground lifecycle: detach layer + **pause** on background; re-adopt
     existing player on foreground / play (no recreate). Keep-audio + queue
     advance + Now Playing remain Production Background Audio (ADR-002).
-  - **Cap 7.5 restore wiring (work `fb82bf6`, 2026-08-06):** restore contract
+  - **Cap 7.5 restore wiring (work `a4388ad`, 2026-08-06):** restore contract
     is wired — `PlaybackGateway.onPlaybackRestoreRequired` → domain
     `PlaybackRepository.restoreRequests` → `main_browse` listens and syncs
     feed index / `PageController` (empty queue ignored; index clamped).
@@ -438,7 +438,7 @@
 ## ADR-007: iOS Deployment Target = iOS 18.0
 
 - Status: Accepted (2026-07-30)
-- Commit/PR anchor: c2f5924
+- Commit/PR anchor: 67c9884
 - Plain summary (owner reads this):
   WakeTok’s minimum supported iOS version is 18.0. This replaces the earlier
   iOS 16.0 floor (ADR-005).
@@ -497,8 +497,8 @@
 ## ADR-008: Production error contract (AppError + Result + native mapping spec)
 
 - Status: Accepted (2026-07-30)
-- Commit/PR anchor: 9a405df (Dart half: AppError, Result, mapping spec);
-  8fed245 (wire half: Pigeon ErrorCode + ErrorCode→AppError mapping)
+- Commit/PR anchor: 6c1eed3 (Dart half: AppError, Result, mapping spec);
+  e23a94b (wire half: Pigeon ErrorCode + ErrorCode→AppError mapping)
 - Plain summary (owner reads this):
   WakeTok uses one shared list of error names in Dart (plus “unknown”),
   a small Ok/Err Result type, and a written native mapping table. Spike
@@ -562,7 +562,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-009: Production layered architecture lock
 
 - Status: Accepted (2026-07-31)
-- Commit/PR anchor: 95f11f6
+- Commit/PR anchor: 79459e0
 - Plain summary (owner reads this):
   Kickoff’s layered architecture is now a repo constraint. The App Foundation
   tree is the canonical layout. Dart import boundaries are enforced by
@@ -632,7 +632,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Dart boundaries = guard tests; Swift product-rule discipline = review +
     ADR-006 (not claimed by Dart scanners).
   - Guard tests are a release gate for tasks that touch `lib/`.
-  - **Cap 7.8 accent freeze (work `0e3eec2`, 2026-08-06):**
+  - **Cap 7.8 accent freeze (work `009f804`, 2026-08-06):**
     Renamed `accentProvisional` → `accent`. Frozen hex: Light `#FC2555`,
     Dark `#FF6B8A`. New token `brandGold` `#E0C590` (Light == Dark).
     Loading `CircularProgressIndicator` uses `brandGold`; CTA / selected
@@ -645,7 +645,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-010: Riverpod as production state management
 
 - Status: Accepted (2026-08-01)
-- Commit/PR anchor: 5ad1357
+- Commit/PR anchor: a9443ae
 - Plain summary (owner reads this):
   WakeTok uses Riverpod for UI/feature state. Domain code stays free of
   Riverpod types so business rules are not tied to one UI framework.
@@ -690,7 +690,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-011: Library catalog API vs source resolution; shared fetch options; nullable createdAt
 
 - Status: Accepted (2026-08-01)
-- Commit/PR anchor: 690aa0d
+- Commit/PR anchor: a7cb28a
 - Plain summary (owner reads this):
   The app reads the Photos library as a flat list of assets with shared
   counting rules, and keeps creation dates honest when PhotoKit leaves them
@@ -746,7 +746,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     helper; changing inclusion/sort requires updating that one site.
   - List-time local-vs-iCloud uses undocumented KVC
     `PHAssetResource.locallyAvailable` (no public Swift property);
-    tracked as STATE known debt; fix `7d8f022`. Prefer a public API if
+    tracked as STATE known debt; fix `ff2d610`. Prefer a public API if
     Apple ships one.
   - Opaque page cursors are index-based; library mutations mid-pagination
     can stale a cursor (acceptable for Cap 5.4 debug catalog).
@@ -756,7 +756,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-012: Localization guard lock (ADR-U enforcement)
 
 - Status: Accepted (2026-08-01)
-- Commit/PR anchor: 64456b4
+- Commit/PR anchor: b718e36
 - Plain summary (owner reads this):
   Product UI copy must go through ARB/AppLocalizations. A machine test
   blocks hardcoded user-facing strings and missing zh-Hans keys, so Cap 6
@@ -811,7 +811,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 ## ADR-013: Built-in All / Photos / Videos source resolution
 
 - Status: Accepted (2026-08-02)
-- Commit/PR anchor: 6e3714d
+- Commit/PR anchor: ce7b850
 - Plain summary (owner reads this):
   WakeTok resolves the three built-in library sources (All, Photos, Videos)
   as real Asset Sources over `listAssetSources` / `resolveSource`. Resolve
@@ -910,7 +910,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Alternate iCloud list-time detection in Cap 6 — rejected (reuse
     ADR-011 KVC debt as-is).
 - Consequences / constraints accepted:
-  - Cap 6.2 work commit (`6e3714d`) owns the Pigeon regen and Swift host
+  - Cap 6.2 work commit (`ce7b850`) owns the Pigeon regen and Swift host
     implementation; this ADR’s Accepted date is that commit’s author date.
   - Domain gateway / smoke UI / ~40k device acceptance remain 6.3–6.5.
   - ~40k full-list resolve cost is accepted until a future ADR says
@@ -918,7 +918,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - Kickoff Item Ordering Open Question is closed for Entire Library +
     Media Type only.
 
-**Cap 19.2 narrow supplement (2026-09-01; work `9977119`):**
+**Cap 19.2 narrow supplement (2026-09-01; work `81e4b93`):**
 `listAssetSources` user albums wire `AssetSourceDto.canAddContent` from
 `PHAssetCollection.canPerform(.addContent)`; smart albums and built-ins
 remain `false`. Kickoff Data Contract field no longer placeholder-only.
@@ -929,7 +929,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-03); Decisions 2–3 (Sequential product
   default / deferred Shuffle for Browse Mixed) are superseded by
-  ADR-023 (2026-08-13; Cap 13.4 work `10a5735`) — Main Browse Mixed
+  ADR-023 (2026-08-13; Cap 13.4 work `aa03be8`) — Main Browse Mixed
   tabs use Shuffle + Manual + Repeat All via derive + Session Queue;
   Decision 4 outcome (tab switch → feed index 0) remains binding, with
   rationale re-grounded by ADR-023 D8 (tab = new Consumption Session)
@@ -938,7 +938,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   `resolveSource` per All / Photos / Videos per session, reuse on
   revisit)”, as detailed in the Cap 7.6 Consequences bullet — is
   narrowly superseded by ADR-024 (2026-08-15; Cap 13.8 work
-  `1f8a240`): a **successful but empty** resolve is no longer cached,
+  `1a4f316`): a **successful but empty** resolve is no longer cached,
   so an empty source may issue more than one `resolveSource` per
   session; the rest of Decision 5 remains binding (independent Host
   predicates per built-in, no Dart derivation of Photos / Videos from
@@ -949,7 +949,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   **shipping gate for later Caps** are superseded by ADR-030
   (2026-08-19); Cap 7.7a Profile PASS and the Release hang Known debt
   remain binding
-- Commit/PR anchor: 5ef2e8a
+- Commit/PR anchor: 66d8c96
 - Plain summary (owner reads this):
   Cap 7 Main Browse drives a vertical feed from Cap 6 built-in
   `resolveSource` id lists only. Order is Sequential (creation-date
@@ -1065,11 +1065,11 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     that implements part of this contract exists; Accepted date =
     that commit’s author date (`git log -1 --format=%cs <sha>`). Do not
     anchor on a docs-only 7.1 `[x]` commit.
-  - This ADR’s Accepted anchor (`5ef2e8a`) marks the **start** of Cap 7
+  - This ADR’s Accepted anchor (`66d8c96`) marks the **start** of Cap 7
     implementation (Decision 8 typography / scrim tokens only).
     Decisions 1–2 / 4–7 land progressively across 7.3–7.7 — see
     PHASE_HISTORY for the full per-phase trail.
-  - **Cap 7.6 session-scoped resolve cache (work `79f8c12`, 2026-08-06):**
+  - **Cap 7.6 session-scoped resolve cache (work `14f28d7`, 2026-08-06):**
     Decision 5 detail — successful `resolve` results for All / Photos /
     Videos are kept in-memory for the `ProviderContainer` / process
     lifetime and reused on tab revisit; failures are never stored. This
@@ -1078,7 +1078,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     that source’s cached (or freshly resolved) id list and resets to
     queue head (Decision 4).
   - **Cap 7.8 accent freeze:** frozen accent / `brandGold` values are
-    recorded in ADR-009 Consequences (work `0e3eec2`); this ADR does not
+    recorded in ADR-009 Consequences (work `009f804`); this ADR does not
     duplicate hex.
 
 ---
@@ -1094,7 +1094,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   ADR-018 (2026-08-10; still-only Tier 4 / `currentImageRepresentation`) —
   other Decision 5 multi-resource rules (edited / RAW+JPEG / no misleading
   sum) remain binding
-- Commit/PR anchor: a721bdc
+- Commit/PR anchor: e058e32
 - Plain summary (owner reads this):
   Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell;
   the bottom bar stays dark even on Settings. The Settings pane still follows
@@ -1155,7 +1155,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
      sibling of IndexedStack). Settings follows Appearance, including the bar
      while Settings is selected. Top source chrome becomes translucent/scrim
      so media shows through (pays Cap 7 Known debts in phase 8.2).
-     Implementation (work `a721bdc`): Theme+Builder so Scaffold.backgroundColor
+     Implementation (work `e058e32`): Theme+Builder so Scaffold.backgroundColor
      resolves after the dark override; Browse pane is a Stack with full-bleed
      feed and Positioned top chrome using `mediaScrim` + on-media label tokens.
   8. **Out of Cap 8:** Location reverse-geocode UI; Waiting for Media product
@@ -1184,7 +1184,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Location Known debt remains until Owner schedules a later Cap; current-Item
     geocode discipline stays binding then.
   - Accepted date/anchor = first Cap 8 work commit that implements any Decision
-    above (`a721bdc`, phase 8.2). Decisions 1–6 land progressively across
+    above (`e058e32`, phase 8.2). Decisions 1–6 land progressively across
     8.3–8.6; phase 8.4 confirms Tier 3/4 on device and must not invent a
     second ADR for the same freeze.
   - Clips/Auto share the immersive dark shell while stubs; a future Cap may
@@ -1198,7 +1198,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-016: Cap 8.2 revision — transparent top chrome + compact bottom bar
 
 - Status: Accepted (2026-08-08)
-- Commit/PR anchor: 5fb93de
+- Commit/PR anchor: 3c7aa1d
 - Plain summary (owner reads this):
   Browse top tabs no longer sit on a grey translucent band — labels float on
   the media with a light text shadow. The bottom bar stays opaque dark but uses
@@ -1206,7 +1206,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   SafeArea no longer inflates the grey block; height feels closer to
   Video-App-B’s compact bar while keeping destination labels.
 - Context / what problem forced this:
-  Cap 8.2 work `a721bdc` (ADR-015 Decision 7) paid the “opaque top bar eating
+  Cap 8.2 work `e058e32` (ADR-015 Decision 7) paid the “opaque top bar eating
   media” debt with a Stack overlay and `mediaScrim` fill. Owner real-device
   comparison against Video-App-B showed the scrim still reads as a grey color
   band over media; the reference UI floats tab labels with no background block,
@@ -1261,7 +1261,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     forced-dark text in Decision 7 stays historically accurate and binding.
   - `mediaScrim` token remains available for other on-media chrome (e.g. future
     Overlay); it is no longer used as the top source switcher background.
-  - Accepted anchor is Cap 8.2 revision work `5fb93de` (2026-08-08).
+  - Accepted anchor is Cap 8.2 revision work `3c7aa1d` (2026-08-08).
   - Cap 8 continues at phase 8.3 (Presentation Metadata); this revision does not
     open 8.3 scope.
 
@@ -1270,14 +1270,14 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-017: Main Browse bottom bar always dark (Settings pane still follows Appearance)
 
 - Status: Accepted (2026-08-08)
-- Commit/PR anchor: 60f3283
+- Commit/PR anchor: 9c05462
 - Plain summary (owner reads this):
   The Main Browse bottom bar stays dark even when Settings is open under a Light
   system Appearance, so all four destination icons stay visible. Only the
   Settings content area follows Light/Dark Appearance.
 - Context / what problem forced this:
   ADR-015 Decision 7 said Settings follows Appearance, including the shared
-  bottom bar while Settings is selected. After Cap 8.2 revision (`5fb93de`),
+  bottom bar while Settings is selected. After Cap 8.2 revision (`3c7aa1d`),
   unselected destinations use on-media muted foreground colors intended for a
   dark bar. Under Light Appearance those labels/icons painted nearly invisible
   on a light bar (Browse/Clips/Auto appeared missing; only the selected Settings
@@ -1304,14 +1304,14 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Widget tests W-8 / T4 assert: bar surface stays dark on Settings under Light
     ambient; Settings pane tokens stay light; all four destination labels remain
     findable.
-  - Accepted anchor is fix work `60f3283` (2026-08-08).
+  - Accepted anchor is fix work `9c05462` (2026-08-08).
 
 ---
 
 ## ADR-018: Live Photo file size — still-only Tier 4 (supersedes ADR-015 Live dual-nil)
 
 - Status: Accepted (2026-08-10)
-- Commit/PR anchor: 4f4c825
+- Commit/PR anchor: f33c99e
 - Plain summary (owner reads this):
   Live Photos show file size for the still image only (same Tier 4 path and
   `currentImageRepresentation` semantics as ordinary stills). WakeTok does not
@@ -1379,11 +1379,11 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     size are present (existing join copy).
   - Cap 8.4 notes M3 records the original dual-nil PASS and points here; M2
     records the Tier 3 numeric Photos Info cross-check.
-  - Overlay device acceptance (with work `4f4c825`): Live/video Overlay sizes
+  - Overlay device acceptance (with work `f33c99e`): Live/video Overlay sizes
     match iOS Photos Info and Mac Finder when using decimal SI display
     formatting — do not use third-party gallery UIs as size ground truth.
   - ADR-015 Status line records this narrow Decision 5 supersession.
-  - Accepted date/anchor = implementing work `4f4c825` (2026-08-10).
+  - Accepted date/anchor = implementing work `f33c99e` (2026-08-10).
 
 ---
 
@@ -1498,7 +1498,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   rapid leave/return stress PASS). iPhone 17: P1–P4 + stress PASS; P5–P7 /
   Style **N/A** (no iCloud library photos / insufficient Live edit materials).
   Mid-gate: Mute ON → Videos lost mute until host-persisted `muted` + re-apply
-  on `pendingPlay` / new AVPlayer — work `4aa93b0` (extends Cap 9.6 Dart
+  on `pendingPlay` / new AVPlayer — work `474fb6a` (extends Cap 9.6 Dart
   re-apply; Dart-only was insufficient). New Known debt UX-1 (visible
   spin-then-fail on offline iCloud prepare) and UX-2 (badge+spinner →
   bottom-right). No Q7 jump debt. Status remains **Accepted**; POC-08 closed
@@ -1509,7 +1509,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-020: Cap 10 Asset Source + Source Pool Definition domain models
 
 - Status: Accepted (2026-08-11)
-- Commit/PR anchor: 8c99d46
+- Commit/PR anchor: 00b52ad
 - Plain summary (owner reads this):
   Cap 10 adds Dart-only domain types for Source Pool recipes (ordered Asset
   Source references, ephemeral/saved persistence policy, capacity constants)
@@ -1604,7 +1604,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     truth; Cap 10 only refuses to freeze implementation fields early.
   - Architecture guards must stay green on any `lib/` touch
     (ADR-009/010/012).
-  - Accepted date/anchor = first Cap 10.2 work `8c99d46` (2026-08-11),
+  - Accepted date/anchor = first Cap 10.2 work `00b52ad` (2026-08-11),
     per F1=A (not Cap 10 close-out; not inside the work commit).
 
 ---
@@ -1612,7 +1612,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-021: Cap 11 Live Resolution, Availability, Identity Coalescing, Snapshot
 
 - Status: Accepted (2026-08-11)
-- Commit/PR anchor: `95779ef` (Cap 11.2 work — first Cap 11 implementing
+- Commit/PR anchor: `5179ac1` (Cap 11.2 work — first Cap 11 implementing
   commit; list albums + open album/smartAlbum gateway mapping)
 - Plain summary (owner reads this):
   Cap 11 resolves a Source Pool Definition into a runtime Resolved Pool
@@ -1637,7 +1637,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
      does not open a separate collection-order PoC because the chosen
      mechanism is the same already-proven pipeline, applied to album /
      smartAlbum fetches. **Implementation status:** Cap 11.3 work
-     `2cf26a6` updates `ItemOrderingPolicy.forKind` so album/smartAlbum
+     `d1d01f0` updates `ItemOrderingPolicy.forKind` so album/smartAlbum
      map to `creationDateDescending` (Host fetch uses the same sort).
   2. **`listAssetSources` includes User Albums + Smart Albums + the three
      built-ins (D2=A).** Utilities UI sections are not sources. Approximate
@@ -1695,9 +1695,9 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
       collection-order PoC.
   11. **Docs workflow:** Cap 11.1 docs commit appended this entry as
       **Proposed**. This docs commit flips Status to **Accepted** with
-      Cap 11.2 work sha `95779ef` as anchor (F1=A / E2; not inside the
+      Cap 11.2 work sha `5179ac1` as anchor (F1=A / E2; not inside the
       work commit). Accepted date from
-      `git log -1 --format=%cs 95779ef` → 2026-08-11.
+      `git log -1 --format=%cs 5179ac1` → 2026-08-11.
 - Rejected alternatives (why not B):
   - Album ordering via Photos collection order / ascending — not chosen
     for Cap 11; Cap 11 reuses the already-verified creationDateDescending
@@ -1722,13 +1722,13 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - ~40k id lists remain an accepted cost per source (ADR-013); Snapshot
     may approach union size after coalescing.
   - Cap 12+ consumes Snapshot; Cap 14 builds Pool UI on listAssetSources.
-  - Cap 11.2 landed list + mapper (`95779ef`); Cap 11.3 landed
-    album/smartAlbum resolve (`2cf26a6`); Cap 11.4 landed sequential
-    `resolvePool` + coalesced Snapshot (`44b783e`); Cap 11.5 landed
-    composition / smoke-debug (`8e37b64`); Cap 11.6 device coalesce
+  - Cap 11.2 landed list + mapper (`5179ac1`); Cap 11.3 landed
+    album/smartAlbum resolve (`d1d01f0`); Cap 11.4 landed sequential
+    `resolvePool` + coalesced Snapshot (`fd22ece`); Cap 11.5 landed
+    composition / smoke-debug (`d76dbe3`); Cap 11.6 device coalesce
     PASS (`cap11-11.6-notes.md`). Cap 11 Capability Roadmap closed in
     the 11.7 docs commit (PHASE_HISTORY snapshot).
-  - Accepted date/anchor = Cap 11.2 work `95779ef` (2026-08-11), per F1=A
+  - Accepted date/anchor = Cap 11.2 work `5179ac1` (2026-08-11), per F1=A
     (unchanged; 11.3–11.7 are later implementing / acceptance / close-out
     commits, not a new ADR).
 
@@ -1737,7 +1737,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-022: Cap 12 Session Queue + Default Profile + Sequential Item Ordering lock
 
 - Status: Accepted (2026-08-12)
-- Commit/PR anchor: f53d455
+- Commit/PR anchor: 87d7dce
 - Plain summary (owner reads this):
   Cap 12 adds Dart-only Session Configuration and a Sequential Session
   Queue builder on top of Cap 11's Snapshot. Default Profile derivation
@@ -1882,7 +1882,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Architecture guards must stay green on any `lib/` touch
     (ADR-009/010/012). The `main_browse` ↛ `build_session_queue`
     guard lands when that file exists (12.4/12.5).
-  - Accepted date/anchor = first Cap 12.2 work `f53d455` (2026-08-12),
+  - Accepted date/anchor = first Cap 12.2 work `87d7dce` (2026-08-12),
     per F1=A (not Cap 12 close-out; not inside the work commit).
 
 ---
@@ -1892,7 +1892,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 - Status: Accepted (2026-08-13); D10’s 13.6 must-pass Instruments
   V-hard (mean hitch < 25 ms/s AND zero Severe Hang) is superseded
   for close-out by ADR-030 (2026-08-19)
-- Commit/PR anchor: f0187b4
+- Commit/PR anchor: 1d15caf
 - Plain summary (owner reads this):
   Cap 13 makes kickoff General/Mixed default Shuffle the real Main Browse
   experience (Endless Shuffle rounds), adds in-session Queue Stability /
@@ -2046,7 +2046,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     D8=A; readers must not treat Cap 13 as having “fixed” All↔Videos
     playhead sharing.
   - Cap 12 SQ-4 / SQ-7 tests that expected shuffle `UnsupportedError`
-    were rewritten as SHUF-1…7 in Cap 13.2 work `f0187b4`.
+    were rewritten as SHUF-1…7 in Cap 13.2 work `1d15caf`.
   - Architecture suite must stay green; guard tests update with D9 seam
     in 13.4.
   - 13.6 Profile V-hard is **must-pass** to close Cap 13 when D1=A;
@@ -2054,7 +2054,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Release hang Known debt stays on Final performance Cap.
   - No Cap 13 Known debt **adds**; playhead row is **reclassified** in
     13.5 (not deleted without replacement wording).
-  - Accepted date/anchor = Cap 13.2 work `f0187b4` (2026-08-13), per
+  - Accepted date/anchor = Cap 13.2 work `1d15caf` (2026-08-13), per
     docs workflow (not Cap 13.1 docs and not Cap close-out).
 
 ---
@@ -2062,7 +2062,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-024: Cap 13.8 Browse Snapshot cache — never cache an empty resolve; a mapped failure is not “empty”
 
 - Status: Accepted (2026-08-15)
-- Commit/PR anchor: 1f8a240
+- Commit/PR anchor: 1a4f316
 - Plain summary (owner reads this):
   When a Browse tab resolves to zero items, WakeTok no longer remembers
   that emptiness for the rest of the process. A user who grants Limited
@@ -2081,7 +2081,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   Snapshot, including one whose coalesced id list is length 0 — a
   **pre-13.4** behaviour inherited from ADR-014 Decision 5 / the Cap 7.6
   cache bullet, so one unlucky first resolve poisoned the whole process;
-  (b) Cap 13.4 (`10a5735`) routes per-source failures through ADR-021
+  (b) Cap 13.4 (`aa03be8`) routes per-source failures through ADR-021
   `resolvePool`, which records `unauthorized` / `albumUnavailable` in
   `sourceStatuses` instead of throwing, so the feed saw “resolved,
   zero ids” and rendered the empty-state copy with no Retry — a 13.4
@@ -2160,7 +2160,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Cap 13.6 remains FAIL / blocked on gate-foundation grounds; 13.8
     neither lowers nor splits that bar, and 13.7 close-out stays
     unavailable.
-  - Accepted date/anchor = Cap 13.8 work `1f8a240` (2026-08-15) —
+  - Accepted date/anchor = Cap 13.8 work `1a4f316` (2026-08-15) —
     13.8b and 13.8c shipped in that single work commit; this docs
     commit is separate per two-commit discipline.
 
@@ -2170,17 +2170,17 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-15); the Decision 2 clause that
   current-item Layer 2 starts with **no dwell** is narrowly
-  superseded by ADR-029 (2026-08-19; Cap 16.4 work `6ca736f`) for
+  superseded by ADR-029 (2026-08-19; Cap 16.4 work `26294f5`) for
   **timing only**; the Decision 2 clause that the current item
   **shows Layer 1 when available** before Layer 2 is narrowly
-  superseded by Cap **15.10** (2026-08-22; work `750ddd6`) when
+  superseded by Cap **15.10** (2026-08-22; work `62a5a2b`) when
   **Session L2-ready** proof exists — **revisit only** (skip L1
   preview + dwell; video keeps poster until surface ready). First
   visit, iCloud miss, and no-proof paths unchanged. Still binding:
   `isNetworkAccessAllowed = true` including cellular (D1=A); Layer 1
   local-only policy, ±1 preheat, Overlay file-size, Live motion stay
   local-only; three-layer model and D2=B ±1 preheat unchanged
-- Commit/PR anchor: 393ebc9
+- Commit/PR anchor: a980506
 - Plain summary (owner reads this):
   When you stop on a photo or video that lives in iCloud, WakeTok should
   still show a recognisable preview immediately in most cases, then load
@@ -2196,7 +2196,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   `docs/acceptance/cap13-13.6b-hang-diagnosis-notes.md`): iCloud-only
   pages render as copy whose Retry is a no-op, and Shuffle scatters
   those pages, so Instruments is unreadable. That copy exists because
-  ADR-006’s Cap 7.3 fill-in (`29fcf2d`) sets
+  ADR-006’s Cap 7.3 fill-in (`07d10d6`) sets
   `isNetworkAccessAllowed = false` on `requestDisplayAsset` /
   `requestPlayableVideo` and treats `PHImageResultIsInCloudKey` as a
   hard `iCloudDownloadRequired` — without falling back to the
@@ -2384,7 +2384,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-16); Decision 3’s mid-play re-enter
   `playOnly` branch is narrowly superseded by ADR-040 Decision 9
-  (2026-08-27; Cap 18.3 work `11c5202`) when
+  (2026-08-27; Cap 18.3 work `84ef30c`) when
   `trustedStartsNewNavigationActivation == true` → always
   `seekZeroAndPlay`; non-navigation technical re-entry retains
   Decision 3 (mid-play `playOnly`; at-end still seek 0). Decision 1’s
@@ -2392,10 +2392,10 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   Decision 10 (same date/anchor): loop only when
   `trustedUserIntentWantsPlay == true`. ADR-006 D4 and non-navigation
   mid-play playhead preserve remain binding.
-  <!-- Accepted date from `git log -1 --format=%cs 8189543` → 2026-08-16;
-       narrow-supersede date from `git log -1 --format=%cs 11c5202` →
+  <!-- Accepted date from `git log -1 --format=%cs 24dbb88` → 2026-08-16;
+       narrow-supersede date from `git log -1 --format=%cs 84ef30c` →
        2026-08-27 -->
-- Commit/PR anchor: 8189543
+- Commit/PR anchor: 24dbb88
 - Plain summary (owner reads this):
   On Manual Browse, an ordinary video on the current page loops from the
   start when it finishes. If you swipe away and come back, it restarts
@@ -2447,7 +2447,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Auto-advance to the next feed item at item end — violates Manual /
     ADR-014 D2.
 - Consequences / constraints accepted:
-  - Cap 14.4d work commit `8189543`; device Kafka: in-item loop,
+  - Cap 14.4d work commit `24dbb88`; device Kafka: in-item loop,
     return-to-ended replay, mid-play seek preserve, Live plays once.
   - `backgroundPlanAdvanceActive` defaults to false until a background
     Cap wires the real flag; that Cap **must** feed the true value or
@@ -2462,8 +2462,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-027: Cap 14.4e leave Browse ends Consumption Session
 
 - Status: Accepted (2026-08-17)
-  <!-- Accepted date from `git log -1 --format=%cs fe660dd` → 2026-08-17 -->
-- Commit/PR anchor: fe660dd
+  <!-- Accepted date from `git log -1 --format=%cs 5658cf2` → 2026-08-17 -->
+- Commit/PR anchor: 5658cf2
 - Plain summary (owner reads this):
   Leaving the Browse tab for Settings, Clips, or Auto ends the current
   browse queue and starts a fresh shuffled session at the first item.
@@ -2517,8 +2517,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-028: Default Fit presentation + portrait-only
 
 - Status: Accepted (2026-08-18)
-  <!-- Accepted date from `git log -1 --format=%cs 24debf4` → 2026-08-18 -->
-- Commit/PR anchor: 24debf4
+  <!-- Accepted date from `git log -1 --format=%cs d70fddf` → 2026-08-18 -->
+- Commit/PR anchor: d70fddf
 - Plain summary (owner reads this):
   Browse always shows the whole picture (Fit), like opening an item in
   iOS Photos — not a cropped fill. The app stays portrait even if the
@@ -2578,8 +2578,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   production dwell N numeric value (initial 500 ms) is superseded by
   ADR-035 (2026-08-26)** — leave-cancel / single-prepare mechanism
   unchanged
-  <!-- Accepted date from `git log -1 --format=%cs d273358` → 2026-08-19 -->
-- Commit/PR anchor: d273358
+  <!-- Accepted date from `git log -1 --format=%cs 255656d` → 2026-08-19 -->
+- Commit/PR anchor: 255656d
 - Plain summary (owner reads this):
   Stopping on a photo or video should not start an iCloud download
   until you have stayed there briefly. Leaving the item (including
@@ -2588,7 +2588,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   download less and cancel sooner. The hitch pass bar does not change.
 - Context / what problem forced this:
   Cap 13.6 Profile retest after Cap 14
-  (`docs/acceptance/cap13-13.6-retest-notes.md`, HEAD `8505379`) is
+  (`docs/acceptance/cap13-13.6-retest-notes.md`, HEAD `80ed0b9`) is
   **FAIL** at the unchanged V-hard bar. All 3/3 failed by mean hitch
   (~68.9 / 64.4 / 65.1 ms/s) **with disk headroom**. Videos filled
   the device. Replication: ~75 s Videos V1, wait only first+last
@@ -2718,8 +2718,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-030: Retire Instruments numeric hitch/hang gates; close SwiftUI fail path
 
 - Status: Accepted (2026-08-19)
-  <!-- Accepted date from `git log -1 --format=%cs 740bd99` → 2026-08-19 -->
-- Commit/PR anchor: 740bd99
+  <!-- Accepted date from `git log -1 --format=%cs 162ed8e` → 2026-08-19 -->
+- Commit/PR anchor: 162ed8e
 - Plain summary (owner reads this):
   WakeTok no longer uses any Instruments hitch or hang **number** as a
   Pass/Fail shipping gate. Mean hitch and Severe Hang from Animation
@@ -2844,8 +2844,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-031: Cap 15 feed Layer 1→2 handoff polish
 
 - Status: Accepted (2026-08-20)
-  <!-- Accepted date from `git log -1 --format=%cs 4767ec4` → 2026-08-20 -->
-- Commit/PR anchor: 4767ec4
+  <!-- Accepted date from `git log -1 --format=%cs 962b6d1` → 2026-08-20 -->
+- Commit/PR anchor: 962b6d1
 - Plain summary (owner reads this):
   Swiping the feed should keep a recognisable still or video cover, put
   the wait spinner with the other item chrome (bottom-right), and not
@@ -2978,7 +2978,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
       15.3 sha; `git log -1 --format=%cs`). 15.9 close-out does
       **not** flip Accepted.
   15. **Non-goals.** Remount Limited Access product chrome on
-      Main Browse (`eb4473f` / `816816b`). Layer 1 network.
+      Main Browse (`01a7611` / `a2b54f9`). Layer 1 network.
       Two-tier preview Host contract (A2). Session playhead /
       mid-play resume across 1+1 slot occupancy (395). Changing
       dwell N. Instruments hitch/hang numeric Pass.
@@ -3010,8 +3010,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   an opaque transition mask, not presented feed media, and must fill the
   viewport without letterbox gaps. Feed still/video/Live defaults remain
   Fit; no product display-mode decision changed.
-  <!-- Accepted date from `git log -1 --format=%cs c8a59b3` → 2026-08-23 -->
-- Commit/PR anchor: c8a59b3
+  <!-- Accepted date from `git log -1 --format=%cs 9d546f2` → 2026-08-23 -->
+- Commit/PR anchor: 9d546f2
 - Plain summary (owner reads this):
   When you swipe between two local videos, WakeTok now keeps a poster cover
   and mutes sound until the **new** video’s picture is actually ready to
@@ -3035,7 +3035,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   **before** pixels switched; audio could unmute while the layer still showed
   the previous item.
   **Device evidence (Kafka Profile, Cap 15.11 diagnosis — TEMP logs removed
-  before work commit `c8a59b3`):**
+  before work commit `9d546f2`):**
   - On every qualifying attach, Host logged `ready-display-edge` with
     **`layerReady=false`** at attach time (`reason=attach-sample`;
     `to=false`). KVO later raised `layerReady=true` (`reason=kvo`;
@@ -3104,7 +3104,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   6. **Scope / non-goals.** ADR-006 1+1 pool + single Platform View
      unchanged (no Q3=B). Debt **400** (no Layer 1 poster) unchanged.
      Cap **15.12** (local first-visit skip L1) is out of scope. TEMP
-     `[WT15.11]` device logs were **not** shipped in `c8a59b3`.
+     `[WT15.11]` device logs were **not** shipped in `9d546f2`.
 - Rejected alternatives (why not B):
   - **Unwrap on attach-ack only (15.11a first ship)** — rejected by
     device evidence: attach always observed `layerReady=false`; unwrap
@@ -3139,8 +3139,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-033: Cap 15.15 — resolveSource omits availabilities; on-demand probe
 
 - Status: Accepted (2026-08-24)
-  <!-- git log -1 --format=%cs 8b5802d → 2026-08-24 -->
-- Commit/PR anchor: 8b5802d
+  <!-- git log -1 --format=%cs b8071a1 → 2026-08-24 -->
+- Commit/PR anchor: b8071a1
 - Plain summary (owner reads this):
   Listing a large Photos library no longer asks “is every item on this
   phone?” up front. WakeTok only asks that for the item you are looking
@@ -3179,13 +3179,13 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-25); Decision 2 **F1 (+D)** Live-prepare
   suppress-below-T has a **narrow handoff continuity exception** in
-  **ADR-037** (Accepted 2026-08-26, anchor `c8bc56a`) — when Layer-2
+  **ADR-037** (Accepted 2026-08-26, anchor `a42abcd`) — when Layer-2
   wait chrome already painted this inFlight, motion prepare skips F1
   &lt;T; short / unlatched F1 evidence and intent are unchanged.
   **17.4 center coverless `Layer2Waiting` copy** superseded by **ADR-039**
-  (Accepted 2026-08-27, anchor `5643e3f`); debt 400 residual black and
+  (Accepted 2026-08-27, anchor `f1ffadf`); debt 400 residual black and
   corner chrome contract here remain binding.
-- Commit/PR anchor: `00b7264` (Cap 17.3 work; first Cap 17 implementing commit)
+- Commit/PR anchor: `65ea272` (Cap 17.3 work; first Cap 17 implementing commit)
 - Plain summary (owner reads this):
   Waiting in Main Browse should match how long the wait usually is: a quick
   local revisit should not flash a spinner for nothing, but a long iCloud
@@ -3222,8 +3222,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   never committed) locked the paint-layer extensions below.
 - Process note:
   17.2 appended this entry as **Proposed**. Cap **17.3** work commit
-  `00b7264` is the Accepted anchor (Accepted date from
-  `git log -1 --format=%cs 00b7264`). Cap close-out does **not** re-flip
+  `65ea272` is the Accepted anchor (Accepted date from
+  `git log -1 --format=%cs 65ea272`). Cap close-out does **not** re-flip
   Accepted.
 - Decision (what was chosen):
   1. **Capability identity.** Title: Main Browse Layer 1→2 chrome and
@@ -3372,7 +3372,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
        wiring); remove a4 min-show per Decision 2 timeline; tear Cap 17.3
        diagnostic chrome tee before work commit. Local peek residue in
        STATE/ADR phase language is satisfied by G (+ a4 band), not by
-       claiming E was empirically required. **Landed** `00b7264`.
+       claiming E was empirically required. **Landed** `65ea272`.
      - **17.4:** debt 400 wait presentation per Decision 3.
      - **17.5:** iCloud fetch-path work under Decisions 4–5.
      - **17.6:** device acceptance + residual triage (Main Browse
@@ -3453,7 +3453,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - D5=B mandatory async Track C before 17.4 — rejected; non-blocking
     follow-up per 17.1.
 - Consequences:
-  Cap 17.3 work commit `00b7264` implements Decision 2 extensions
+  Cap 17.3 work commit `65ea272` implements Decision 2 extensions
   (G/B/F1), keeps E and C/F2 with the disclaimers above, removes
   min-show and Cap 17.3 throwaway chrome tee / contrast dart-define
   scaffolding, and lands unit/widget tests accordingly. Docs commit
@@ -3467,8 +3467,8 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-035: Cap 17.5 production Layer-2 dwell N = 300 ms
 
 - Status: Accepted (2026-08-26)
-  <!-- Accepted date from `git log -1 --format=%cs 9ffb513` → 2026-08-26 -->
-- Commit/PR anchor: 9ffb513
+  <!-- Accepted date from `git log -1 --format=%cs 15edc91` → 2026-08-26 -->
+- Commit/PR anchor: 15edc91
 - Plain summary (owner reads this):
   Production current-item Layer 2 dwell is **300 ms** (was the Cap 16
   initial 500 ms). Leave-cancel and the single networked prepare path
@@ -3523,7 +3523,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Edit ADR-029 Decision 2 body in place — rejected; loses Accepted
     history of the initial 500 ms choice.
 - Consequences:
-  Work commit `9ffb513` lands production 300 ms + W-16.4 / related test
+  Work commit `15edc91` lands production 300 ms + W-16.4 / related test
   expectation sync + `cap17-17.5-notes.md`. Docs commit accepts this
   ADR and updates STATE Cap 17.5 / 17.5b / F1 Unassigned. Further
   fetch-path work, if ever scheduled, still uses ADR-034 Decision 4
@@ -3536,9 +3536,9 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-26); center coverless **`Layer2Waiting` dual
   copy** with corner reassure (Decision 3 coexistence limb) superseded
-  by **ADR-039** (Accepted 2026-08-27, anchor `5643e3f`). Corner
+  by **ADR-039** (Accepted 2026-08-27, anchor `f1ffadf`). Corner
   reassure AND gates, G1, Retry, and LIVE layout remain binding.
-- Commit/PR anchor: 649e22f
+- Commit/PR anchor: 527baeb
 - Plain summary (owner reads this):
   Peek must not show a leftover full-page Fail+Retry after leave.
   On long Layer-2 waits (spinner visible), a short “Still loading” line
@@ -3612,7 +3612,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Accept peek Fail+Retry as Known debt — rejected; violates leave
     cancel product narrative; cheap `isCurrent` gate.
 - Consequences:
-  Cap 17.5b work `649e22f` implements G1 + corner reassure + LIVE
+  Cap 17.5b work `527baeb` implements G1 + corner reassure + LIVE
   trailing layout + translucent accent Retry + l10n + cancel-before-
   retry + Host Layer2 fail Console probe + tests named in
   `docs/acceptance/cap17-17.5b-notes.md`. This docs commit accepts
@@ -3624,7 +3624,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-037: Live L2→motion prepare chrome continuity (F1 handoff latch)
 
 - Status: Accepted (2026-08-26)
-- Commit/PR anchor: c8bc56a
+- Commit/PR anchor: a42abcd
 - Plain summary (owner reads this):
   On long iCloud Live waits, if the bottom-right gold spinner already
   showed during Layer-2 still download, it must not blink off and on
@@ -3670,7 +3670,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - Edit ADR-034 F1 Decision 2 body in place — rejected; same
     append-only pattern as ADR-035 / ADR-036.
 - Consequences:
-  Work `c8bc56a` + tests `W-17.6-*` / updated `W-14.6b-L2`; notes
+  Work `a42abcd` + tests `W-17.6-*` / updated `W-14.6b-L2`; notes
   `docs/acceptance/cap17-17.6-notes.md`. Kafka + i17 Profile PASS.
   Cap 17.6 docs mark phase `[x]`; next **17.7** Overlay capture-time.
   Long-press Live replay remains future work on the play-only path.
@@ -3680,7 +3680,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-038: Cap 17.7 Overlay capture-time honest presentation
 
 - Status: Accepted (2026-08-27)
-- Commit/PR anchor: affd948
+- Commit/PR anchor: d9db8c7
 - Plain summary (owner reads this):
   Overlay capture time no longer tries to match iOS Photos to the minute.
   Row 2 shows an approximate calendar date (`~ Y-M-D`); row 1 uses coarse
@@ -3691,12 +3691,12 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 - Context / what problem forced this:
   Cap 17.7 opened when Overlay showed whole-hour offsets vs Photos (e.g.
   `2019-11-09 05:00` vs `2019-11-08 19:00`). An implementing pass
-  (`fc6a154`) pursued minute-level alignment via Host EXIF/TIFF and video
+  (`bf14f95`) pursued minute-level alignment via Host EXIF/TIFF and video
   creation strings; device evidence showed local-only limits, iCloud gaps,
   and import-timezone cases where `creationDate` reinterpreted in device
   local time still disagreed with Photos (e.g. cross-region saved video:
   correct day in Photos, wrong hour when forced through device TZ). Owner
-  reverted that path (`7c2c0e6`) and **changed the product goal**:
+  reverted that path (`2c0a090`) and **changed the product goal**:
   prefer fuzzy correctness over precise wrongness. Cap 19 may later show
   richer info on long-press with disclaimer; Overlay remains lightweight.
 - Decision (what was chosen):
@@ -3732,7 +3732,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
      reference live in gitignored
      `docs/private/cap17-7-minute-wall-clock-archive/` (not product path).
 - Rejected alternatives (why not B):
-  - **Minute-level Photos match** (`fc6a154`) — reverted (`7c2c0e6`):
+  - **Minute-level Photos match** (`bf14f95`) — reverted (`2c0a090`):
     precise wrong on import TZ / missing local bytes; local-only cannot
     match Photos private import timezone for all assets.
   - **Relative R2** (`Around 1 day ago` / “昨天左右”, Around on 8–30) —
@@ -3746,7 +3746,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
     “Around Today” awkward; owner chose interval copy without extra hedge
     words on row 1.
 - Consequences / constraints accepted:
-  Work `affd948` + tests `cap17_7_exact_date_approx_test.dart` (U1–U4,
+  Work `d9db8c7` + tests `cap17_7_exact_date_approx_test.dart` (U1–U4,
   R-A…R-future). Device smoke PASS iPhone13pro Kafka. STATE marks 17.7
   `[x]`; Known debt Overlay capture-time row **Closed** with goal-change
   note. Cap 17 YOU ARE HERE → **17.8** close-out. Cap 19 may add
@@ -3758,7 +3758,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 ## ADR-039: Cap 17.9 — delete center Layer2Waiting; source-switch Layer1 label delay
 
 - Status: Accepted (2026-08-27)
-- Commit/PR anchor: 5643e3f
+- Commit/PR anchor: f1ffadf
 - Plain summary (owner reads this):
   Remove the redundant center “Loading…” on coverless Layer-2 waits —
   corner spinner and “Still loading” reassure are enough. Fix a
@@ -3816,7 +3816,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   - **Suppress feed-shell library loading on tab switch** — deferred;
     owner retained one-frame shell flash over empty feed color.
 - Consequences / constraints accepted:
-  Work `5643e3f` + tests (`main_browse_wait_copy_cleanup_widget_test.dart`,
+  Work `f1ffadf` + tests (`main_browse_wait_copy_cleanup_widget_test.dart`,
   updated cap17_3/4/5b). Kafka Profile 4-step device验收 PASS.
   STATE marks 17.9 `[x]`; Known debt Layer2Waiting + source-switch
   Layer1 center flash **Closed**; feed-shell library tab-switch flash
@@ -3831,20 +3831,20 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-28); Decision 13 is narrowly supplemented by
   Cap 18.5 (2026-08-29 — corrected from an earlier docs-commit-date
-  attribution; work `a87fd7f`, docs `34e59eb`; 2026-08-31; work `7b4a0ff`);
+  attribution; work `3d115a4`, docs `04ef327`; 2026-08-31; work `b2ceabd`);
   Decision 13 Cap 19.2b scrub-drag keep-playing supplement (2026-09-01;
-  work `82d828a`); Decision 13 Cap 19.2c preview/seek quantizer align
-  (2026-09-01; work `ca3dae6`); Decision 13 Cap 19.2d seek-hold + live
-  ghost (2026-09-01; work `a95dd1f`); Decision 18 Limited deferral
+  work `96d5ead`); Decision 13 Cap 19.2c preview/seek quantizer align
+  (2026-09-01; work `0ef9ef2`); Decision 13 Cap 19.2d seek-hold + live
+  ghost (2026-09-01; work `7637812`); Decision 18 Limited deferral
   superseded by ADR-041 (2026-09-01); Decision 20 supplement added
-  (2026-09-01; docs `49d580b`)
-- Commit/PR anchor: `d4a3bb6` (Cap 18.4 work — tap, center affordance,
+  (2026-09-01; docs `372175c`)
+- Commit/PR anchor: `0df9ceb` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
-  `11c5202`); Cap 18.5 supplement anchor `34e59eb`; Cap 18.5 preview
-  tolerance / drift-gate supplement anchor `7b4a0ff`; Cap 19.2b Decision 13
-  supplement anchor `82d828a`; Cap 19.2c Decision 13 supplement anchor
-  `ca3dae6`; Cap 19.2d Decision 13 supplement anchor `a95dd1f`; Cap 19
-  Decision 20 supplement anchor `49d580b`
+  `84ef30c`); Cap 18.5 supplement anchor `04ef327`; Cap 18.5 preview
+  tolerance / drift-gate supplement anchor `b2ceabd`; Cap 19.2b Decision 13
+  supplement anchor `96d5ead`; Cap 19.2c Decision 13 supplement anchor
+  `0ef9ef2`; Cap 19.2d Decision 13 supplement anchor `7637812`; Cap 19
+  Decision 20 supplement anchor `372175c`
 - Plain summary (owner reads this):
   Cap 18 freezes Main Browse’s gesture-arbitration inventory once, then
   implements vertical swipe arbitration, video media-area tap
@@ -4287,7 +4287,7 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   Cap 18.
 
 **Cap 18.5 Decision 13 narrow supplement (2026-08-29 — corrected from an
-earlier docs-commit-date attribution; work `a87fd7f`, docs `34e59eb`; device
+earlier docs-commit-date attribution; work `3d115a4`, docs `04ef327`; device
 i17 Green + Kafka Profile PASS —
 `docs/acceptance/cap18-18.5-notes.md`):**
 
@@ -4319,7 +4319,7 @@ i17 Green + Kafka Profile PASS —
    peek-hide during mid-swipe via vertical-feed settle gate.
 
 **Cap 18.5 Decision 13 narrow supplement — preview end-cap, drift gate, and
-mid-path zero tolerance (2026-08-31; work `7b4a0ff`; device i17 Green +
+mid-path zero tolerance (2026-08-31; work `b2ceabd`; device i17 Green +
 iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
 
 1. **Mid-path preview bucket unchanged.** Scrub preview requests remain on the
@@ -4361,7 +4361,7 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    sparse-GOP local videos snapped `actualSeconds` to distant I-frames; with
    Option B (item 7) this produced high-frequency `driftReject` and solid
    placeholder that never cleared while holding the same second. Device
-   DiagnosticBenchmark (removed before `7b4a0ff` commit) on five assets (22
+   DiagnosticBenchmark (removed before `b2ceabd` commit) on five assets (22
    zero-tolerance probe shots): **0 failures**; `actual` aligned to requested
    second; Host isolated latency mostly 14–388 ms (see acceptance notes).
    Past-duration requests remain infinite (item 2).
@@ -4383,10 +4383,10 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    the correct JPEG once Host completes — **not** permanent black while
    holding. Kafka Profile hold test (2026-08-31): zero-tolerance build,
    `driftReject = 0`; user confirmed real frame appears after brief wait.
-   This is distinct from the pre-`7b4a0ff` drift-reject stall class.
+   This is distinct from the pre-`b2ceabd` drift-reject stall class.
 
 **Cap 19.2b Decision 13 narrow supplement — scrub drag keep-playing
-(2026-09-01; work `82d828a`; device i17 Green Profile PASS):**
+(2026-09-01; work `96d5ead`; device i17 Green Profile PASS):**
 
 1. **Drag-begin mechanical pause removed.** Cap 18.5 Decision 13 supplement
    item 3 required a mechanical pause for the duration of scrub drag. Cap
@@ -4410,7 +4410,7 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
    the mismatch.)
 
 **Cap 19.2c Decision 13 narrow supplement — scrub preview/seek quantizer
-align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
+align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 1. **Discovery path.** Cap 18.5 shipped mid-path preview request keys via
    floor buckets while label + release seek used `scrubberSeekSeconds`
@@ -4432,7 +4432,7 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
    Dead `scrubPreviewBucketSeconds` was removed.
 
 **Cap 19.2d Decision 13 narrow supplement — seek-hold + live playhead ghost
-(2026-09-01; work `a95dd1f`; device i17 Green Profile PASS):**
+(2026-09-01; work `7637812`; device i17 Green Profile PASS):**
 
 1. **Optimistic landing + seek-hold.** On committed scrub release, Dart writes
    the seek second into `_positionSeconds` in the same `setState` that clears
@@ -4456,7 +4456,7 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
    not reopen Cap 18 PHASE_HISTORY.
 
 **Cap 19 Decision 20 supplement — magnified still vs left-swipe
-(2026-09-01; docs `49d580b`; with ADR-041):**
+(2026-09-01; docs `372175c`; with ADR-041):**
 
 1. **Gap closed.** ADR-040 Decision 2 / 16 freeze magnified-still
    single-finger drag as **pan only** (no vertical PageView). Decision 18
@@ -4483,7 +4483,7 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
 ## ADR-041: Cap 19 §5 product lock — left-swipe range (D2) and Limited policy (D3)
 
 - Status: Accepted (2026-09-01)
-- Commit/PR anchor: `49d580b`
+- Commit/PR anchor: `372175c`
 - Plain summary (owner reads this): Cap 19 locks full-width left-swipe to
   the fixed WakeTok album under both Full and Limited access; Limited
   panel Add-to-Album stays Full-Access-only. Does not claim system
@@ -4492,7 +4492,7 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
   Cap 19 §5 had D1 (WakeTok album bootstrap) and D4 (Limited half-sheet
   row) locked 2026-08-31. D2 (swipe hit region) and D3 (Limited
   left-swipe vs kickoff ADR-K) waited on the 19.2a PhotoKit spike. Spike
-  SPIKE COMPLETE on Kafka (`b22c07e`,
+  SPIKE COMPLETE on Kafka (`3f7a8e4`,
   `docs/acceptance/cap19-19.2a-notes.md`): L-BOOT, L-APPEND, L-BOOT-KV,
   and optional Full D1 all PASS. Owner locked D2=B and D3=B on
   2026-09-01.
@@ -4548,8 +4548,8 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
 ## ADR-042: Cap 19 current-asset actionable signal (Browse mutation entries)
 
 - Status: Accepted (2026-09-04); Decision 8 narrow supplement Accepted
-  (2026-09-04, work `70db74b`)
-- Commit/PR anchor: `ff59be9` (Decisions 1–7); Decision 8 work `70db74b`
+  (2026-09-04, work `17ec5a1`)
+- Commit/PR anchor: `a13adfa` (Decisions 1–7); Decision 8 work `17ec5a1`
 - Plain summary (owner reads this): Browse actions that need a real current
   photo/video (add to album, Favorites, left-swipe, and later share) all ask
   one shared “is the current item determined?” flag — they must not invent
@@ -4650,8 +4650,8 @@ align (2026-09-01; work `ca3dae6`; device i17 Green Profile PASS):**
   - Vertical page changes do not null the id between valid indices; brief
     not-actionable windows are expected on session loading / empty / error
     (and rare clamp races), showing as disabled opacity — accepted.
-  - Implementing Cap 19.8 work commit anchors Accepted (`ff59be9`,
-    2026-09-04). Decision 8 work `70db74b` (2026-09-04); Kafka device PASS
+  - Implementing Cap 19.8 work commit anchors Accepted (`a13adfa`,
+    2026-09-04). Decision 8 work `17ec5a1` (2026-09-04); Kafka device PASS
     for peek hide / no early show under covering / restore when settled.
 
 ---

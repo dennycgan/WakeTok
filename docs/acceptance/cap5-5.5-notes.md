@@ -50,7 +50,7 @@ PASS. Do not FAIL solely because the debug session died.
 | Device | iPhone 13 Pro |
 | Device name | Kafka |
 | iOS version | (owner device; not recorded) |
-| Git HEAD (tested) | `05c6218` + fix `8d8c873` (picker dismiss / resume refresh) |
+| Git HEAD (tested) | `9027a42` + fix `be74226` (picker dismiss / resume refresh) |
 | Date (local) | 2026-08-01 |
 
 ### Pre-gate (automated)
@@ -99,5 +99,5 @@ Exact match? **YES** (owner confirmed; numeric values not transcribed)
 
 | # | Symptom | Suspected area | Fix |
 |---|---------|----------------|-----|
-| 1 | M3 totals stale after Manage selection | picker completed at present-time; no totals invalidate | `8d8c873` |
+| 1 | M3 totals stale after Manage selection | picker completed at present-time; no totals invalidate | `be74226` |
 | 2 | M2 debugger stop when leaving for Settings | iOS SIGKILL on privacy change | accepted OS behavior; documented above |

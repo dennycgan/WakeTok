@@ -30,8 +30,8 @@
 | Device | iPhone 13 Pro (Kafka) |
 | UDID | `00008110-001114420AEA801E` |
 | Build mode | **Profile** |
-| Git HEAD (first campaign) | `edd5e75` (pre-fix Overlay / size / hitch matrix) |
-| Git HEAD (A1 retest) | `df83633` (`fix(app): pause playback when leaving video for non-video`) |
+| Git HEAD (first campaign) | `02d9789` (pre-fix Overlay / size / hitch matrix) |
+| Git HEAD (A1 retest) | `9b0dc46` (`fix(app): pause playback when leaving video for non-video`) |
 | Photos access | Full |
 | Date (local) | 2026-08-10 |
 | Install | `flutter build ios --profile` then `flutter install --profile -d 00008110-001114420AEA801E` |

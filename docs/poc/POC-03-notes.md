@@ -144,7 +144,7 @@ Force-quit silent; cold relaunch Restore? without auto-play; Restore/Dismiss OK.
 ## Phase 3.6 checklist
 
 - [x] Draft ADR-002 Conditional Pass in chat; owner approved (1A/2A/3 + edits)
-- [x] Append ADR-002 to `docs/DECISIONS.md` (anchor `9eeb912`, Accepted 2026-07-28)
+- [x] Append ADR-002 to `docs/DECISIONS.md` (anchor `9568f7b`, Accepted 2026-07-28)
 - [x] Close-out STATE + PHASE_HISTORY; YOU ARE HERE → POC-09
 
 ## Acceptance map
@@ -164,4 +164,4 @@ Force-quit silent; cold relaunch Restore? without auto-play; Restore/Dismiss OK.
 - 3.3: **PASS (Q1=B)** — auto resume via poll/foreground; WeChat lock/home = debt
 - 3.4: **PASS** — owner 2026-07-28; HUD `remote=next` + clip_b; N1/N2 owner OK
 - 3.5: **PASS** — owner 2026-07-28; K1–K3 (P5=A Restore?)
-- 3.6: **PASS** — ADR-002 Conditional Pass Accepted (anchor `9eeb912`)
+- 3.6: **PASS** — ADR-002 Conditional Pass Accepted (anchor `9568f7b`)

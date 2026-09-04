@@ -40,7 +40,7 @@ then fling / mid-run reverse). On PASS, record credibility below.
 | OS under test | iOS 26.6 (23G71) |
 | OS at ADR-001 baseline | iOS 26.5.2 (23F84) — different |
 | Build mode | **Profile** |
-| Git HEAD (tested) | `2481d49` (errata / 7.7a notes template on tree) |
+| Git HEAD (tested) | `104d59d` (errata / 7.7a notes template on tree) |
 | Date (local) | 2026-08-06 |
 | Related invalidated campaign | `cap7-7.7-notes.md` (Release forensic) |
 | Install commands used | `flutter build ios --profile` then `flutter install --profile -d 00008110-001114420AEA801E` |

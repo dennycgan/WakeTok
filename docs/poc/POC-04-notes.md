@@ -262,6 +262,6 @@ Locks:
 
 Evidence session (2026-07-29, iPhone 13 Pro): Console filter `Poc04LockAudio` —
 `prime(enable) done queueItems=2`, background `planIndex=1 queueItems=2`,
-`itemEnd queueItems=2 playing=true`. Work anchor: `a0b99d2`.
+`itemEnd queueItems=2 playing=true`. Work anchor: `bb5371a`.
 
 Do not run POC-03 Play while this probe is on.

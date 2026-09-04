@@ -68,7 +68,7 @@ Do **not** use Avg Duration of individual hitches as the gate number.
 | **Build mode (actual)** | **Release** — see Errata (**not** Profile) |
 | Build mode (claimed at fill time — wrong) | Profile |
 | Surface | Full production chrome: top All / Photos / Videos + disabled Pools + bottom bar |
-| Git HEAD (tested) | `dd40f53` (Cap 7.6 docs on `main`; includes resolve cache `79f8c12`) |
+| Git HEAD (tested) | `42f46e8` (Cap 7.6 docs on `main`; includes resolve cache `14f28d7`) |
 | Date (local) | 2026-08-06 |
 | Approx. time since iOS 26.6 upgrade completed | Overnight upgrade prior to gate day; exact hours not recorded |
 | Background activity note | Unknown / not specially verified quiet before campaign |
@@ -81,7 +81,7 @@ Do **not** use Avg Duration of individual hitches as the gate number.
 
 | Check | Result |
 |-------|--------|
-| `flutter analyze` | Not re-run at Instruments session start (tree = `dd40f53`; Cap 7.6 suite was green at merge) |
+| `flutter analyze` | Not re-run at Instruments session start (tree = `42f46e8`; Cap 7.6 suite was green at merge) |
 | `flutter test` (incl. `test/architecture/`) | Same — not re-stamped at session start |
 
 ---
