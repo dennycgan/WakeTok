@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
-import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/browse_top_chrome.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
@@ -99,8 +99,6 @@ class _BrowsePane extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selected = ref.watch(mainBrowseSelectedSourceProvider);
-
     // Stack overlay: feed full-bleed; top chrome floats with transparent
     // Material + on-media text shadows (ADR-016; Column sibling cannot).
     return Stack(
@@ -108,165 +106,14 @@ class _BrowsePane extends ConsumerWidget {
       fit: StackFit.expand,
       children: [
         const VerticalMediaFeed(),
-        Positioned(
+        const Positioned(
           top: 0,
           left: 0,
           right: 0,
-          child: _TopSourceChrome(
-            selected: selected,
-            onSelect: (next) =>
-                ref.read(mainBrowseSelectedSourceProvider.notifier).select(next),
-          ),
+          child: BrowseTopChrome(),
         ),
         const Cap19LeftSwipeGuideHost(),
       ],
-    );
-  }
-}
-
-/// Custom four-cell top chrome — avoids Material SegmentedButton defaults
-/// (secondaryContainer). Selected uses [WakeTokTokens.accent]; unselected
-/// uses on-media tokens; both use [WakeTokTokens.onMediaLabelShadows].
-class _TopSourceChrome extends StatelessWidget {
-  const _TopSourceChrome({
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final SourceReference selected;
-  final ValueChanged<SourceReference> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return Material(
-      key: const Key('mainBrowseTopSourceChrome'),
-      color: Colors.transparent,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: _SourceCell(
-                  key: const Key('mainBrowseSourceAll'),
-                  label: l10n.libraryRowAll,
-                  selected: selected == SourceReference.all,
-                  onTap: () => onSelect(SourceReference.all),
-                ),
-              ),
-              Expanded(
-                child: _SourceCell(
-                  key: const Key('mainBrowseSourcePhotos'),
-                  label: l10n.libraryRowPhotos,
-                  selected: selected == SourceReference.photos,
-                  onTap: () => onSelect(SourceReference.photos),
-                ),
-              ),
-              Expanded(
-                child: _SourceCell(
-                  key: const Key('mainBrowseSourceVideos'),
-                  label: l10n.libraryRowVideos,
-                  selected: selected == SourceReference.videos,
-                  onTap: () => onSelect(SourceReference.videos),
-                ),
-              ),
-              Expanded(
-                child: _PoolsCell(
-                  key: const Key('mainBrowseSourcePools'),
-                  title: l10n.mainBrowsePoolsTab,
-                  subtitle: l10n.mainBrowsePoolsComingSoon,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SourceCell extends StatelessWidget {
-  const _SourceCell({
-    super.key,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final color = selected ? tokens.accent : tokens.onMediaMuted;
-    final style = tokens.labelOnMedia.copyWith(
-      color: color,
-      shadows: tokens.onMediaLabelShadows,
-    );
-
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: style,
-        ),
-      ),
-    );
-  }
-}
-
-/// Visible + disabled Pools tab with on-cell "Coming soon" ARB (no SnackBar).
-class _PoolsCell extends StatelessWidget {
-  const _PoolsCell({
-    super.key,
-    required this.title,
-    required this.subtitle,
-  });
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final muted = tokens.onMediaMuted.withValues(alpha: 0.55);
-    final shadows = tokens.onMediaLabelShadows;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: tokens.labelOnMedia.copyWith(
-              color: muted,
-              shadows: shadows,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: tokens.bodyOnMedia.copyWith(
-              color: muted,
-              fontSize: 11,
-              height: 1.1,
-              shadows: shadows,
-            ),
-            key: const Key('mainBrowsePoolsComingSoon'),
-          ),
-        ],
-      ),
     );
   }
 }

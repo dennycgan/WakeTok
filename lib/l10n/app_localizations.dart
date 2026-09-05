@@ -525,11 +525,77 @@ abstract class AppLocalizations {
   /// **'Pools'**
   String get mainBrowsePoolsTab;
 
-  /// Visible subtitle on disabled Pools tab (not a SnackBar)
+  /// Visible subtitle on disabled Pools tab (not a SnackBar). Cap 21.3 removes the tab from UI; key kept for stability.
   ///
   /// In en, this message translates to:
   /// **'Coming soon'**
   String get mainBrowsePoolsComingSoon;
+
+  /// Cap 21.3 fixed short label for parked ephemeral Pool chip (ADR-044 D7)
+  ///
+  /// In en, this message translates to:
+  /// **'Temp Pool'**
+  String get mainBrowseTempPoolChip;
+
+  /// Cap 21.3 Built-in dropdown affordance when no specific source name is shown
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get mainBrowseBuiltInMenu;
+
+  /// Cap 21.3 Saved pools dropdown control label
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get mainBrowseSavedPoolsMenu;
+
+  /// Cap 21.3 Create control — opens Build a Pool scaffold
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get mainBrowseCreatePool;
+
+  /// Cap 21.3 gray Saved-menu row; Cap 22 wires persist (ADR-044 D1)
+  ///
+  /// In en, this message translates to:
+  /// **'Save current pool — Coming soon'**
+  String get mainBrowseSavedPlaceholderSave;
+
+  /// Cap 21.3 gray Saved-menu row; Cap 22 wires manage (ADR-044 D1)
+  ///
+  /// In en, this message translates to:
+  /// **'Manage pools — Coming soon'**
+  String get mainBrowseSavedPlaceholderManage;
+
+  /// Cap 21.3 gray empty Saved list placeholder
+  ///
+  /// In en, this message translates to:
+  /// **'No saved pools yet'**
+  String get mainBrowseSavedPlaceholderEmpty;
+
+  /// Cap 21.3 read-only composition peek title when Temp chip is already active
+  ///
+  /// In en, this message translates to:
+  /// **'Sources in this pool'**
+  String get mainBrowseCompositionPeekTitle;
+
+  /// Suffix/mark for a parked source that is empty or unavailable in composition peek
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get mainBrowseCompositionPeekUnavailable;
+
+  /// Cap 21.3 Build scaffold AppBar title (full Build UI in 21.4)
+  ///
+  /// In en, this message translates to:
+  /// **'Build a Pool'**
+  String get mainBrowseBuildPoolScaffoldTitle;
+
+  /// Cap 21.3 Build scaffold explanatory body (D1=A)
+  ///
+  /// In en, this message translates to:
+  /// **'Pick albums and sources here in a later step. For now, go back to Browse.'**
+  String get mainBrowseBuildPoolScaffoldBody;
 
   /// Bottom navigation Browse destination
   ///

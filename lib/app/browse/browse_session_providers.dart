@@ -88,6 +88,37 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     );
   }
 
+  /// Cap 21.3 D7: resume parked ephemeral as [activeOrigin] (new Session).
+  ///
+  /// No-op when [parkedEphemeralPool] is null or already the active ephemeral.
+  /// Callers that need composition peek must detect the already-active case
+  /// before calling this.
+  void resumeParkedEphemeral() {
+    final parked = state.parkedEphemeralPool;
+    if (parked == null) {
+      return;
+    }
+    final current = state.activeOrigin;
+    if (current is BrowseOriginEphemeralPool &&
+        current.definition == parked) {
+      return;
+    }
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginEphemeralPool(parked),
+      parkedEphemeralPool: parked,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+    );
+  }
+
+  /// Whether [activeOrigin] is the parked ephemeral Definition (chip peek path).
+  bool get isParkedEphemeralActive {
+    final parked = state.parkedEphemeralPool;
+    final current = state.activeOrigin;
+    return parked != null &&
+        current is BrowseOriginEphemeralPool &&
+        current.definition == parked;
+  }
+
   /// Test injection: set parked without changing [activeOrigin].
   @visibleForTesting
   void debugSetParkedEphemeralPool(SourcePoolDefinition? parked) {

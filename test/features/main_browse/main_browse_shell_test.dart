@@ -24,26 +24,20 @@ void main() {
     expect(find.byType(LibraryTotalsShellPage), findsNothing);
   });
 
-  testWidgets('W-2 top chrome shows All/Photos/Videos and disabled Pools',
+  testWidgets('W-2 top chrome shows Built-in/Saved/Create; no Pools Coming soon',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.byKey(const Key('mainBrowseSourceAll')), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseSourcePhotos')), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseSourceVideos')), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseSourcePools')), findsOneWidget);
-    expect(find.text(l10n.mainBrowsePoolsComingSoon), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const Key('mainBrowseSourcePools')),
-      warnIfMissed: false,
-    );
-    await tester.pumpAndSettle();
-    // Still on browse feed — Pools does not become a selected source.
-    expect(find.byKey(const Key('mainBrowseFeed')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseBuiltInMenu')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseSavedPoolsMenu')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseCreatePool')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsNothing);
+    expect(find.byKey(const Key('mainBrowseSourcePools')), findsNothing);
+    expect(find.text(l10n.mainBrowsePoolsComingSoon), findsNothing);
+    expect(find.byKey(const Key('mainBrowseChromeCenterPair')), findsOneWidget);
   });
 
   testWidgets('W-3 bottom nav stubs switch destinations', (tester) async {
@@ -95,7 +89,7 @@ void main() {
     await expectNoBannerOn(l10n.mainBrowseNavBrowse);
   });
 
-  testWidgets('W-5 top selected source uses dark accent (immersive)',
+  testWidgets('W-5 top selected built-in uses dark accent (immersive)',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
@@ -105,20 +99,24 @@ void main() {
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
-    TextStyle styleOf(String label) {
-      return tester.widget<Text>(find.text(label)).style!;
+    TextStyle styleOf(Finder finder) {
+      return tester.widget<Text>(finder).style!;
     }
 
-    // Browse is forced-dark — compare against dark accent, not light.
-    expect(styleOf(l10n.libraryRowAll).color, darkTokens.accent);
-
-    await tester.tap(find.byKey(const Key('mainBrowseSourcePhotos')));
-    await tester.pumpAndSettle();
-    expect(styleOf(l10n.libraryRowPhotos).color, darkTokens.accent);
-    expect(
-      styleOf(l10n.libraryRowAll).color,
-      isNot(darkTokens.accent),
+    final builtInLabel = find.descendant(
+      of: find.byKey(const Key('mainBrowseBuiltInMenu')),
+      matching: find.byType(Text),
     );
+    // Browse is forced-dark — compare against dark accent, not light.
+    expect(styleOf(builtInLabel).color, darkTokens.accent);
+    expect(styleOf(builtInLabel).color, isNot(lightTokens.accent));
+
+    await tester.tap(find.byKey(const Key('mainBrowseBuiltInMenu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mainBrowseBuiltInOptionPhotos')));
+    await tester.pumpAndSettle();
+    expect(styleOf(builtInLabel).color, darkTokens.accent);
+    expect(find.text(l10n.libraryRowPhotos), findsWidgets);
   });
 
   testWidgets('W-7 selected bottom destination uses accent indicator tint',
@@ -223,7 +221,7 @@ void main() {
     );
     expect(find.byKey(const Key('mainBrowseFeed')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseTopSourceChrome')), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseSourceAll')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseBuiltInMenu')), findsOneWidget);
   });
 
   testWidgets('W-6 debug Settings opens library_smoke', (tester) async {

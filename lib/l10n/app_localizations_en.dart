@@ -263,6 +263,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowsePoolsComingSoon => 'Coming soon';
 
   @override
+  String get mainBrowseTempPoolChip => 'Temp Pool';
+
+  @override
+  String get mainBrowseBuiltInMenu => 'Built-in';
+
+  @override
+  String get mainBrowseSavedPoolsMenu => 'Saved';
+
+  @override
+  String get mainBrowseCreatePool => 'Create';
+
+  @override
+  String get mainBrowseSavedPlaceholderSave =>
+      'Save current pool — Coming soon';
+
+  @override
+  String get mainBrowseSavedPlaceholderManage => 'Manage pools — Coming soon';
+
+  @override
+  String get mainBrowseSavedPlaceholderEmpty => 'No saved pools yet';
+
+  @override
+  String get mainBrowseCompositionPeekTitle => 'Sources in this pool';
+
+  @override
+  String get mainBrowseCompositionPeekUnavailable => 'Unavailable';
+
+  @override
+  String get mainBrowseBuildPoolScaffoldTitle => 'Build a Pool';
+
+  @override
+  String get mainBrowseBuildPoolScaffoldBody =>
+      'Pick albums and sources here in a later step. For now, go back to Browse.';
+
+  @override
   String get mainBrowseNavBrowse => 'Browse';
 
   @override

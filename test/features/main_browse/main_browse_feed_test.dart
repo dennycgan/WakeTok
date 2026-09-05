@@ -90,6 +90,27 @@ Future<void> pumpPastLivePreparingSuppress(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// Cap 21.3: Built-in sources live in a dropdown — open menu then pick.
+Future<void> selectBuiltInSource(
+  WidgetTester tester,
+  SourceReference source,
+) async {
+  final Key optionKey;
+  if (source == SourceReference.all) {
+    optionKey = const Key('mainBrowseBuiltInOptionAll');
+  } else if (source == SourceReference.photos) {
+    optionKey = const Key('mainBrowseBuiltInOptionPhotos');
+  } else if (source == SourceReference.videos) {
+    optionKey = const Key('mainBrowseBuiltInOptionVideos');
+  } else {
+    throw ArgumentError('not a built-in: $source');
+  }
+  await tester.tap(find.byKey(const Key('mainBrowseBuiltInMenu')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(optionKey));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('W-F1 full lands on VerticalMediaFeed not placeholder', (
     tester,
@@ -524,7 +545,7 @@ void main() {
 
     final callsBefore = sources.resolveCalls;
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await selectBuiltInSource(tester, SourceReference.photos);
     await tester.pumpAndSettle();
 
     expect(sources.resolveCalls, greaterThan(callsBefore));
@@ -550,9 +571,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await selectBuiltInSource(tester, SourceReference.photos);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.libraryRowAll));
+    await selectBuiltInSource(tester, SourceReference.all);
     await tester.pumpAndSettle();
 
     expect(
@@ -584,9 +605,9 @@ void main() {
       expect(find.byKey(const Key('mainBrowseFeedEmpty')), findsOneWidget);
 
       sources.allIds = const ['all-1'];
-      await tester.tap(find.text(l10n.libraryRowPhotos));
+      await selectBuiltInSource(tester, SourceReference.photos);
       await tester.pumpAndSettle();
-      await tester.tap(find.text(l10n.libraryRowAll));
+      await selectBuiltInSource(tester, SourceReference.all);
       await tester.pumpAndSettle();
 
       expect(
@@ -621,11 +642,11 @@ void main() {
     expect(container.read(mainBrowseFeedIndexProvider), 2);
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await selectBuiltInSource(tester, SourceReference.photos);
     await tester.pumpAndSettle();
     expect(container.read(mainBrowseFeedIndexProvider), 0);
 
-    await tester.tap(find.text(l10n.libraryRowAll));
+    await selectBuiltInSource(tester, SourceReference.all);
     await tester.pumpAndSettle();
     expect(container.read(mainBrowseFeedIndexProvider), 0);
     // New Session on revisit; Random(0) again → head is still 'c'.
@@ -650,7 +671,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await selectBuiltInSource(tester, SourceReference.photos);
     await tester.pumpAndSettle();
 
     expect(sources.lastResolve, SourceReference.photos);
@@ -685,9 +706,9 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
     expect(sources.resolveCalls, 2);
 
-    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await selectBuiltInSource(tester, SourceReference.photos);
     await tester.pumpAndSettle();
-    await tester.tap(find.text(l10n.libraryRowAll));
+    await selectBuiltInSource(tester, SourceReference.all);
     await tester.pumpAndSettle();
 
     // All success was cached — no third resolve for All.
@@ -771,7 +792,7 @@ void main() {
 
     playback.calls.clear();
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    await tester.tap(find.text(l10n.libraryRowPhotos));
+    await selectBuiltInSource(tester, SourceReference.photos);
     await tester.pumpAndSettle();
 
     expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);

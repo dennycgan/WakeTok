@@ -319,7 +319,51 @@
   },
   "mainBrowsePoolsComingSoon": "Coming soon",
   "@mainBrowsePoolsComingSoon": {
-    "description": "Visible subtitle on disabled Pools tab (not a SnackBar)"
+    "description": "Visible subtitle on disabled Pools tab (not a SnackBar). Cap 21.3 removes the tab from UI; key kept for stability."
+  },
+  "mainBrowseTempPoolChip": "Temp Pool",
+  "@mainBrowseTempPoolChip": {
+    "description": "Cap 21.3 fixed short label for parked ephemeral Pool chip (ADR-044 D7)"
+  },
+  "mainBrowseBuiltInMenu": "Built-in",
+  "@mainBrowseBuiltInMenu": {
+    "description": "Cap 21.3 Built-in dropdown affordance when no specific source name is shown"
+  },
+  "mainBrowseSavedPoolsMenu": "Saved",
+  "@mainBrowseSavedPoolsMenu": {
+    "description": "Cap 21.3 Saved pools dropdown control label"
+  },
+  "mainBrowseCreatePool": "Create",
+  "@mainBrowseCreatePool": {
+    "description": "Cap 21.3 Create control — opens Build a Pool scaffold"
+  },
+  "mainBrowseSavedPlaceholderSave": "Save current pool — Coming soon",
+  "@mainBrowseSavedPlaceholderSave": {
+    "description": "Cap 21.3 gray Saved-menu row; Cap 22 wires persist (ADR-044 D1)"
+  },
+  "mainBrowseSavedPlaceholderManage": "Manage pools — Coming soon",
+  "@mainBrowseSavedPlaceholderManage": {
+    "description": "Cap 21.3 gray Saved-menu row; Cap 22 wires manage (ADR-044 D1)"
+  },
+  "mainBrowseSavedPlaceholderEmpty": "No saved pools yet",
+  "@mainBrowseSavedPlaceholderEmpty": {
+    "description": "Cap 21.3 gray empty Saved list placeholder"
+  },
+  "mainBrowseCompositionPeekTitle": "Sources in this pool",
+  "@mainBrowseCompositionPeekTitle": {
+    "description": "Cap 21.3 read-only composition peek title when Temp chip is already active"
+  },
+  "mainBrowseCompositionPeekUnavailable": "Unavailable",
+  "@mainBrowseCompositionPeekUnavailable": {
+    "description": "Suffix/mark for a parked source that is empty or unavailable in composition peek"
+  },
+  "mainBrowseBuildPoolScaffoldTitle": "Build a Pool",
+  "@mainBrowseBuildPoolScaffoldTitle": {
+    "description": "Cap 21.3 Build scaffold AppBar title (full Build UI in 21.4)"
+  },
+  "mainBrowseBuildPoolScaffoldBody": "Pick albums and sources here in a later step. For now, go back to Browse.",
+  "@mainBrowseBuildPoolScaffoldBody": {
+    "description": "Cap 21.3 Build scaffold explanatory body (D1=A)"
   },
   "mainBrowseNavBrowse": "Browse",
   "@mainBrowseNavBrowse": {
