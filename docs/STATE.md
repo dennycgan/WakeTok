@@ -201,31 +201,31 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
         Inserted between 20.5 and 20.6 (19.5b precedent; 20.6/20.7
         numbers unchanged). Kafka Profile still/Reset/video smoke PASS;
         notes `docs/acceptance/cap20-20.5b-notes.md`
-- [ ] 20.6 Device acceptance (Kafka + iPhone 17; max-scale pick 3×/4×;
-      retest Cap 17.6 **B.1** fast-swipe <300ms / no flyby thrash —
-      still pinch must not regress it; Plan A: no single-finger candidate
-      lock; **cover still + video mixed-pool continuous fast-swipe**
-      (same Host on both surfaces); also soak Q2-A: after video pinch,
-      one finger remains → pan while PageView locked — confirm users can
-      still leave the page without a “stuck” feel, else revisit Q2-B;
-      still keep Image Element continuity green — `W-15.5a` /
-      leave `W-15.5c` + video release no-spike `T-20.A-1`)
+- [x] 20.6 Device acceptance (Kafka + iPhone 17; max-scale **4×** lock;
+      Cap 17.6 **B.1** mixed-pool fast-swipe PASS; Q2-A soak PASS keep
+      Q2-A; continuity green-by-gate + soak observation)
+      — D5 / letterbox assert / Q2 lock work `bc15517`; notes
+        `docs/acceptance/cap20-20.6-notes.md`; debt **451** Closed /
+        **452** Open; Live lifecycle **453** Closed earlier (`7f43863`)
 - [ ] 20.7 Cap close-out (Cap `[x]`; PHASE_HISTORY; YOU ARE HERE next)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 20.6 device acceptance (Kafka + i17; max-scale
-      3×/4×; B.1 / Q2-A soak)
-- Sub-steps done: 20.1–20.5b; still L1↔L2 black-flash fix `3d29823`
+- Goal (one line): Cap 20.7 Cap close-out (Capability `[x]` +
+      PHASE_HISTORY; YOU ARE HERE → next Cap)
+- Sub-steps done: 20.1–20.6; still L1↔L2 black-flash fix `3d29823`
       (debt **450**); video shrink C + release spike A `282009e`;
       double-tap exit `66fc463` (ADR-043 Decision 3/D7 supplement);
       media chrome layout `81904e1` (notes
       `docs/acceptance/media-chrome-layout-notes.md`); Live lifecycle
-      leave/resume unload `7f43863` (debt **453** Closed)
-- Next step: 20.6 soak / max-scale pick on Kafka + i17
+      leave/resume unload `7f43863` (debt **453** Closed); 20.6 soak /
+      D5=4× `bc15517` (notes `docs/acceptance/cap20-20.6-notes.md`)
+- Next step: 20.7 docs close-out — full Cap 20 PHASE_HISTORY snapshot +
+      Capability Roadmap `[x]` (separate from 20.6 device acceptance)
 - Related decisions: ADR-043 (Decision 13 inner-content `282009e`;
-      Decision 3/D7 exit double-tap `66fc463`); debts **449** Open /
-      **450** Closed / **451** Open (W-14.6c BoxFit) / **453** Closed
-      (Live lifecycle; Cap 9 legacy); ADR-040 Decision
+      Decision 3/D7 exit double-tap `66fc463`; Decision 5 **4×**
+      `bc15517`); debts **449** Open / **450** Closed / **451** Closed
+      (letterbox `W-14.6c`) / **452** Open (degenerate pixel dims) /
+      **453** Closed (Live lifecycle; Cap 9 legacy); ADR-040 Decision
       16 / Decision 20; debt **448** Out of Cap 20
 
 ## Contract pointers (don't memorize, go read the source)
@@ -455,6 +455,9 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 - Media chrome layout (Reset / LIVE / actions / MVP 3-row meta;
   shared browse chrome, not Cap 20–only; not ADR-043):
   docs/acceptance/media-chrome-layout-notes.md — work `81904e1`
+- Acceptance notes (Cap 20.6 device acceptance — D5=4× / B.1 / Q2-A;
+  debt **451** Closed / **452** Open):
+  docs/acceptance/cap20-20.6-notes.md — work `bc15517`
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
@@ -533,7 +536,8 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 | 448 | Accepted (phase) | Add to Album / Cap 19 | Cap 19.8 | System interactive-pop / back-gesture vs Cap 19 full-width left-swipe (D2=B) | **P-19.6-POP note at Cap 19 close-out.** D2=B does **not** claim interactive-pop is solved (ADR-041 / Cap 19 §5). 19.8 owner acceptance did not treat this as a Cap 19 blocker; residual conflict risk remains if iOS edge-back competes with left-swipe near the screen edge. Not a product-visible Cap 19 regression — accepted residual until a later gesture Cap revisits. | Unassigned | ADR-040 Decision 2; ADR-041; Cap 19.6 notes |
 | 449 | Open | App Foundation | Cap 20.5 | No machine CI that runs `flutter test` on push (agent-only architecture / scoped Cap gates) | Cap 20.4 L1 unify broke Cap 15.5 `W-15.5a` Image State identity; agent Cap20 tasks ran architecture + Cap20 files only — no GitHub Actions / other CI forces full suite. Rule docs alone re-create the same miss class. Need a real push CI job (at least full `flutter test` or continuity + architecture). | Later (tooling) | — |
 | 450 | Closed | Main Browse Screen / Cap 20 | Cap 20.5 | Still photo L1↔L2 doom-scroll black flash (peek / promote) after Cap 20.4 L1 unify | **Closed by post-20.5 work `3d29823`:** single `MagnificationHostModeBinder` on still cover (no Transient/Still type fork); `W-15.5a` enter + leave continuity in `still_image_element_continuity_test.dart`; Kafka/i17 local-asset doom-scroll PASS. Video shrink (mechanism C) and release scale spike (mechanism A) fixed separately in `282009e` — see `docs/acceptance/cap20-post-20.5-blackflash-shrink-notes.md`. | Closed by post-20.5 (`3d29823`) | ADR-043 Decision 14; Cap 15.5 |
-| 451 | Open | Main Browse Screen | Cap 20 | `W-14.6c` still `Image.file` uses `BoxFit.fill` but test expects `BoxFit.contain` | Pre-existing on `main` after binder unify (`3d29823` era); unrelated to black-flash / shrink C / spike A. Architecture `presentation_defaults_test` still claims contain default; feed path at still cover uses `BoxFit.fill`. Not fixed in `282009e`. | Cap 20.6 prep or separate chore before claiming 14.6c green | ADR-028; Cap 14.6c |
+| 451 | Closed | Main Browse Screen | Cap 20 | `W-14.6c` still `Image.file` uses `BoxFit.fill` but test expected `BoxFit.contain` | **Closed by Cap 20.6** (`bc15517`): assert rewritten for Cap 20 letterbox shell — `StillFittedMagnificationShell` sizes a contain-formula box from positive pixel dims; `Image` uses `BoxFit.fill` **only inside that box** (not viewport stretch). Architecture `presentation_defaults_test` still documents ctor default `BoxFit.contain` for fallbacks. Degenerate / missing pixel dims → viewport-sized fill stretch is debt **452** (Open). | Closed by Cap 20.6 (`bc15517`) | ADR-028; Cap 14.6c; Cap 20 letterbox |
+| 452 | Open | Main Browse Screen | Cap 20.6 | Missing or ≤0 `pixelWidth`/`pixelHeight` on display still → letterbox shell falls back to viewport size → `BoxFit.fill` stretches | Production Host normally writes PHAsset / decoded dims. Dart fields stay nullable (Pigeon optional). Shell treats null OR ≤0 as fitted=viewport — then fill WOULD stretch. PHAsset can report 0 / wrong dims (iCloud / incomplete metadata). Healthy-path guard is `W-14.6c` (`bc15517`); this Open row tracks the degenerate-dims residual. | Unassigned | ADR-028; Cap 20 letterbox; `cap20-20.6-notes.md` |
 | 453 | Closed | Live Photo (Cap 9) | Cap 20.6 | App leave / lock mid Live motion left a mid-frame PV; pinch dead | **Lifecycle gap itself is Cap 9 legacy** (no AppLifecycle → Live unload from Cap 9 landing). **Became user-visible only after Cap 20.5** wired `_liveMotionMounted` to `MagnificationHostMode.none` (stuck mid-motion frame + pinch failure = same root cause, two faces). Pinch recovery **depends on** Live unload — not a separate debt. **Not an ADR-043 product decision** (lifecycle fix under Cap 9 / ADR-019 shape; Host-mode gate only made the gap visible). Discovered during Cap 20.6 soak; does **not** block 20.6 close-out. **Closed by** `7f43863` (2026-09-05): leave `inactive`/`paused`/`hidden` + resume heal → same unload as `playbackEnded`, then best-effort `stopPlayback`; unload claims dirty before Host stop (stacked leave idempotent). i17 Profile PASS: static cover + pinch. | Closed by Cap 20.6 soak (`7f43863`) | ADR-019 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:

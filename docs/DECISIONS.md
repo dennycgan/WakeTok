@@ -4662,11 +4662,12 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   API” clause narrowly revised by Decision 13 (same date); Decision 13
   further narrowly supplemented by inner-content transform (`282009e`,
   2026-09-04); Decision 3 / D7 narrowly supplemented by double-tap-to-exit
-  (`66fc463`, 2026-09-05)
+  (`66fc463`, 2026-09-05); Decision 5 max-scale numeric lock **4×**
+  (`bc15517`, 2026-09-05)
 - Commit/PR anchor: `ae9cb7e` (Cap 20.2 first implementing work);
   Decision 13 work `ca3b4ed`; Decision 14 / Cap 20.4 product `32d149f`;
   Decision 13 inner-content supplement `282009e`; Decision 3 / D7 exit
-  double-tap `66fc463`
+  double-tap `66fc463`; Decision 5 **4×** lock `bc15517`
 - Plain summary (owner reads this):
   Cap 20 ships lightweight pinch on Main Browse. **Layer-2** photo /
   animated image / Live **static** keep zoom until fit, with Reset while
@@ -4695,8 +4696,9 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      still / animated image / Live static key frame. This is not a claim
      of full Photos viewer parity.
   2. **Known delta (in-scope behaviour, different rule than Photos).**
-     **Only:** MVP max scale is a **fixed** multiplier (3× or 4× chosen
-     at Cap 20.6 device acceptance). Photos uses a resolution-based cap.
+     **Only:** MVP max scale is a **fixed** multiplier. **Cap 20.6
+     (work `bc15517`, 2026-09-05) locked the numeric value at 4×**
+     (`kCap20MaxScale = 4.0`). Photos uses a resolution-based cap.
      Document as known delta — not “incomplete Photos alignment.”
   3. **Out of Cap 20 (never promised; not known deltas).** Double-tap
      **to enter** zoom; smaller-than-fit shrink state; Live native
@@ -4764,8 +4766,23 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      ends; (c) Reset or reverse-pinch reaches fit; (d) Cap 19 actions
      half-sheet opens (`cap19ActionsPanelOpenProvider` → true). Do **not**
      bind clearing only to vertical settle on a neighbour page.
-  8. **D5 — Max scale.** Fixed multiplier for MVP; numeric 3× vs 4×
-     deferred to Cap 20.6 soak. Sole Photos known delta (Decision 2).
+  8. **D5 — Max scale.** Fixed multiplier for MVP. **Cap 20.6 lock
+     (work `bc15517`, Accepted date 2026-09-05 from
+     `git log -1 --format=%cs bc15517`):** numeric value is **4×**
+     (`kCap20MaxScale = 4.0`; regression `T-20.6-1`). Sole Photos known
+     delta (Decision 2) — **4× remains the sole known delta vs iOS
+     Photos** (fixed multiplier vs Photos’ resolution-based cap). The
+     prior “3× vs 4× deferred to soak” clause is closed by this lock —
+     do not re-open that binary pick without a new owner pass.
+     **Future optimization (recorded, not scheduled):** Owner judges
+     fixed 4× less “satisfying” than Photos’ resolution-floating upper
+     bound, but **acceptable for Cap 20**. A one-time cross-check against
+     **Photo-App-A** (peer product with a similar fixed ~4× ceiling)
+     supported reasonableness only — **not** an ongoing competitor-parity
+     commitment. If product later needs to raise the ceiling or switch to
+     a resolution-related cap (closer to native Photos), that requires a
+     **new owner pass** and is **out of Cap 20** — distinct from re-opening
+     the closed 3×-vs-4× soak pick.
   9. **D6 — ADR shape.** New ADR-043; ADR-040 Decision 16 text unchanged;
      this ADR cites Decision 16 / Decision 20.
   10. **Cap 19 inheritance.** Replace
@@ -4924,3 +4941,12 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     Widget: `T-20.5b-1…8` in `cap20_still_magnification_test.dart`
     (incl. candidate clear on forceFit with fake clock still inside
     the 350ms window — `T-20.5b-8`).
+  - **Cap 20.6 (work `bc15517` + soak docs):** Decision 5 numeric lock
+    **4×**; Q2-A soak PASS (keep Q2-A, no Q2-B); Cap 17.6 **B.1**
+    mixed-pool fast-swipe PASS (Kafka primary, i17 short retest);
+    continuity gates treated green on current `main` without a ritual
+    re-run. Notes: `docs/acceptance/cap20-20.6-notes.md`. Debt **451**
+    Closed (letterbox-shell `W-14.6c` assert); debt **452** Open
+    (missing/degenerate pixel dims → viewport-sized fill stretch).
+    Live AppLifecycle unload (debt **453**) is Cap 9 / ADR-019 — not
+    an ADR-043 decision; recorded in STATE only.
