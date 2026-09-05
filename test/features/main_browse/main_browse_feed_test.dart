@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/errors/app_error.dart';
+import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
@@ -20,10 +21,12 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
+import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
@@ -2812,6 +2815,9 @@ void main() {
         find.byKey(const Key('mainBrowseFeedLayer3Chrome')),
       );
       final feed = tester.getRect(find.byKey(const Key('mainBrowseFeed')));
+      final tokens = Theme.of(
+        tester.element(find.byKey(const Key('mainBrowseFeed'))),
+      ).extension<WakeTokTokens>()!;
       expect(
         spinner.center.dx,
         greaterThan(feed.center.dx),
@@ -2822,8 +2828,16 @@ void main() {
         greaterThan(feed.center.dy),
         reason: 'Layer 2 spinner must be below feed center, not centered',
       );
-      expect(feed.right - chrome.right, closeTo(12, 1));
-      expect(feed.bottom - chrome.bottom, closeTo(12, 1));
+      // Debt 454: trailing stays kMediaChromeTrailingInset; bottom follows
+      // mainBrowseLiveStatusBottomInset since 81904e1 (was hardcoded 12).
+      expect(
+        feed.right - chrome.right,
+        closeTo(kMediaChromeTrailingInset, 1),
+      );
+      expect(
+        feed.bottom - chrome.bottom,
+        closeTo(mainBrowseLiveStatusBottomInset(tokens), 1),
+      );
       expect(
         spinner.center.dy,
         closeTo(chrome.center.dy, 1),
@@ -2883,6 +2897,9 @@ void main() {
         find.byKey(const Key('mainBrowseFeedPageLoadingChrome')),
       );
       final feed = tester.getRect(find.byKey(const Key('mainBrowseFeed')));
+      final tokens = Theme.of(
+        tester.element(find.byKey(const Key('mainBrowseFeed'))),
+      ).extension<WakeTokTokens>()!;
       expect(
         spinner.center.dx,
         greaterThan(feed.center.dx),
@@ -2893,8 +2910,16 @@ void main() {
         greaterThan(feed.center.dy),
         reason: 'Layer 1 miss spinner must be below feed center, not centered',
       );
-      expect(feed.right - chrome.right, closeTo(12, 1));
-      expect(feed.bottom - chrome.bottom, closeTo(12, 1));
+      // Debt 454: trailing stays kMediaChromeTrailingInset; bottom follows
+      // mainBrowseLiveStatusBottomInset since 81904e1 (was hardcoded 12).
+      expect(
+        feed.right - chrome.right,
+        closeTo(kMediaChromeTrailingInset, 1),
+      );
+      expect(
+        feed.bottom - chrome.bottom,
+        closeTo(mainBrowseLiveStatusBottomInset(tokens), 1),
+      );
       expect(
         spinner.center.dy,
         closeTo(chrome.center.dy, 1),
