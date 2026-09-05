@@ -168,15 +168,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       built-in-only equivalent. ADR-044 Accepted (same docs commit).
       Debt **454** Closed (test assert aligned to `81904e1`; not 21.2).
       ADR: D4, D6.1–D6.3.
-- [ ] 21.3 Four-control top chrome (shell + layout + chip + peek)
-      Replace 3 tabs + disabled Pools with Temp chip (F1) · Built-in ▾ ·
-      Saved ▾ · Create. Center-anchor Built-in+Saved (no translate on
-      chip show/hide). Chip fixed short label; visibility =
-      `parked != null`; tap three-way (D7). Active chip → composition
-      peek via live `listAssetSources()`. Saved = empty shell + visible
-      gray placeholders (D1). Create → Build **scaffold** route (full
-      Build = 21.4). Tokens / immersive dark; frosted glass not a gate
-      (debt **447**). Rewrite W-2+. ADR: D6.4, D7, D1 placeholders.
+- [x] 21.3 Four-control top chrome (shell + layout + chip + peek)
+      Work `67f31b0`: Temp chip · Built-in ▾ · Saved ▾ · Create;
+      center-anchored pair; peek via `assetSourcesProvider`; Build
+      scaffold; W-2′ + U-21.3-*. zh product copy **片库** (Cap 7
+      `mainBrowsePoolsTab`); kickoff/GLOSSARY「组合」concept-only.
+      ADR: D6.4, D7, D1 placeholders.
 - [ ] 21.4 Build a Pool Screen (multi-select / reorder / ≤30 / Start)
       Albums/smart/built-ins; no Generated Clip; Limited = built-ins
       only (D2). UI cap at 30; zero sources cannot Start; Build cancel
@@ -208,16 +205,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       ADR-044 Accepted (from post-21.2 docs) or flip if missed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 21.3 Four-control top chrome (shell + layout +
-      chip + peek)
-- Sub-steps done: 21.1 ADR-044 Proposed `2b7ab4d`; 21.2 work
-      `a695d2f` + ADR-044 Accepted; debt **454** Closed (test align)
-- Next step: 21.3 design / implement four-control chrome (Temp chip ·
-      Built-in ▾ · Saved ▾ · Create); product path still no ephemeral
-      Start until 21.4
-- Related decisions: ADR-044 Accepted; debt **444** → 21.6; **454**
-      Closed (chrome bottom inset assert aligned); Cap 20 residuals
-      **449** / **452** Open; **448** Accepted (phase)
+- Goal (one line): 21.4 Build a Pool Screen (multi-select / reorder /
+      ≤30 / Start)
+- Sub-steps done: 21.1–21.3; chrome work `67f31b0`; ADR-044 Accepted
+- Next step: 21.4 design / implement Build multi-select + Start →
+      park + ephemeral Origin (product path for Temp chip)
+- Related decisions: ADR-044; debt **444** → 21.6; zh product copy
+      **片库** (not kickoff「组合」/ EN Pool in ARB); Cap 20 residuals
+      **449** / **452** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -226,6 +221,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
+- **zh Pool product copy:** user-facing Simplified Chinese uses **片库**
+  (Cap 7 `mainBrowsePoolsTab`; Cap 21.3 chrome/scaffold same). Kickoff /
+  GLOSSARY「组合」and English **Pool** are concept / EN-ARB / identifier
+  vocabulary only — do not put EN “Pool” or kickoff「组合」into
+  `app_zh_Hans.arb` product strings (21.4 / Cap 22 Saved copy too).
+  Debug `library_smoke` probe strings may still say Pool.
 - Localization guard: ADR-012 + test/architecture/localization_test.dart
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
