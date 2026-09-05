@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
@@ -13,6 +15,8 @@ import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/source_resolve_attempt_mapping.dart';
+
+export 'package:waketok/app/browse/browse_chrome_state.dart';
 
 /// Creates Shuffle entropy (ADR-023 D5).
 ///
@@ -51,10 +55,61 @@ final browseLocalFirstVisitDwellProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 80),
 );
 
-/// Selected built-in source for Main Browse (All / Photos / Videos).
+/// Cap 21 / ADR-044: Browse chrome authority (`activeOrigin` + parked).
 ///
-/// Lives at the composition root so session wiring can watch it without a
-/// circular `features` ↔ `app` import (Cap 13.4 / ADR-023 D9).
+/// Composition root (ADR-010 / ADR-023 D9). Session wiring watches this —
+/// not a parallel feature-owned store.
+final browseChromeStateProvider =
+    NotifierProvider<BrowseChromeStateNotifier, BrowseChromeState>(
+      BrowseChromeStateNotifier.new,
+    );
+
+class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
+  @override
+  BrowseChromeState build() {
+    return const BrowseChromeState(
+      activeOrigin: BrowseOriginBuiltIn(SourceReference.all),
+      parkedEphemeralPool: null,
+      lastRememberedBuiltIn: SourceReference.all,
+    );
+  }
+
+  /// Select a built-in tab. Preserves [BrowseChromeState.parkedEphemeralPool].
+  void selectBuiltIn(SourceReference next) {
+    // Pools is not a SourceReference — callers must not pass it.
+    final current = state.activeOrigin;
+    if (current is BrowseOriginBuiltIn && current.source == next) {
+      return;
+    }
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginBuiltIn(next),
+      parkedEphemeralPool: state.parkedEphemeralPool,
+      lastRememberedBuiltIn: next,
+    );
+  }
+
+  /// Test injection: set parked without changing [activeOrigin].
+  @visibleForTesting
+  void debugSetParkedEphemeralPool(SourcePoolDefinition? parked) {
+    state = state.copyWithParked(parked);
+  }
+
+  /// Test injection: activate an ephemeral Definition (also parks it).
+  @visibleForTesting
+  void debugActivateEphemeralPool(SourcePoolDefinition definition) {
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginEphemeralPool(definition),
+      parkedEphemeralPool: definition,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+    );
+  }
+}
+
+/// Built-in projection for Main Browse tabs (All / Photos / Videos).
+///
+/// Cap 21.2: [build] derives from [browseChromeStateProvider] (owner B);
+/// [select] writes chrome only. Not session authority — that is
+/// [browseChromeStateProvider].activeOrigin.
 final mainBrowseSelectedSourceProvider =
     NotifierProvider<MainBrowseSelectedSource, SourceReference>(
       MainBrowseSelectedSource.new,
@@ -62,14 +117,12 @@ final mainBrowseSelectedSourceProvider =
 
 class MainBrowseSelectedSource extends Notifier<SourceReference> {
   @override
-  SourceReference build() => SourceReference.all;
+  SourceReference build() {
+    return ref.watch(browseChromeStateProvider).projectedBuiltIn;
+  }
 
   void select(SourceReference next) {
-    if (next.kind == state.kind && next.id == state.id) {
-      return;
-    }
-    // Pools is not a SourceReference — callers must not pass it.
-    state = next;
+    ref.read(browseChromeStateProvider.notifier).selectBuiltIn(next);
   }
 }
 
@@ -84,18 +137,47 @@ class BrowseSnapshotCache extends Notifier<Map<String, ResolvedPoolSnapshot>> {
   @override
   Map<String, ResolvedPoolSnapshot> build() => const {};
 
-  static String keyFor(SourceReference source) =>
-      '${source.kind.name}:${source.id}';
+  /// Ordered Reference fingerprint (ADR-044 D6.2). Duplicates participate.
+  static String keyForRefs(List<SourceReference> ordered) {
+    if (ordered.isEmpty) {
+      return '';
+    }
+    final buffer = StringBuffer();
+    for (var i = 0; i < ordered.length; i++) {
+      if (i > 0) {
+        buffer.write('|');
+      }
+      final ref = ordered[i];
+      buffer
+        ..write(ref.kind.name)
+        ..write(':')
+        ..write(ref.id);
+    }
+    return buffer.toString();
+  }
 
-  ResolvedPoolSnapshot? get(SourceReference source) => state[keyFor(source)];
+  /// Single-source key — compatible with Cap 13 callers / tests.
+  static String keyFor(SourceReference source) => keyForRefs([source]);
+
+  ResolvedPoolSnapshot? get(SourceReference source) =>
+      getForRefs([source]);
+
+  ResolvedPoolSnapshot? getForRefs(List<SourceReference> ordered) =>
+      state[keyForRefs(ordered)];
 
   void put(SourceReference source, ResolvedPoolSnapshot snapshot) {
-    state = {...state, keyFor(source): snapshot};
+    putForRefs([source], snapshot);
+  }
+
+  void putForRefs(
+    List<SourceReference> ordered,
+    ResolvedPoolSnapshot snapshot,
+  ) {
+    state = {...state, keyForRefs(ordered): snapshot};
   }
 
   void clear() => state = const {};
 }
-
 /// Ephemeral single-source SPD id for a Browse tab (not a Saved Pool).
 String browsePoolDefinitionId(SourceReference source) =>
     'browse-${source.kind.name}-${source.id}';
@@ -120,9 +202,10 @@ class BrowseSessionView {
 
 /// Main Browse Consumption Session: Snapshot cache + Shuffle Queue (ADR-023).
 ///
-/// Watches [mainBrowseSelectedSourceProvider]. Each distinct source selection
-/// (including revisit after another tab) starts a **new** Session on the
-/// cached Snapshot (D8). [advanceToNextRound] reshuffles in-place for Endless.
+/// Watches [browseChromeStateProvider].activeOrigin (ADR-044 D6.1). Each
+/// distinct Origin (including built-in revisit) starts a **new** Session on
+/// the cached Snapshot (D8). [advanceToNextRound] reshuffles in-place for
+/// Endless.
 final browseSessionProvider =
     AsyncNotifierProvider<BrowseSessionNotifier, BrowseSessionView>(
       BrowseSessionNotifier.new,
@@ -138,15 +221,21 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
 
   bool _isCurrentLoad(int gen) => gen == _loadGen && ref.mounted;
 
+  SourcePoolDefinition _definitionFor(BrowseChromeState chrome) {
+    return chrome.activeDefinition(forBuiltIn: browsePoolDefinition);
+  }
+
   @override
   Future<BrowseSessionView> build() async {
     final gen = ++_loadGen;
-    final source = ref.watch(mainBrowseSelectedSourceProvider);
-    final snapshot = await _snapshotFor(source, gen: gen);
+    // Watch Origin only — parked-only updates must not rebuild Session.
+    ref.watch(browseChromeStateProvider.select((s) => s.activeOrigin));
+    final chrome = ref.read(browseChromeStateProvider);
+    final definition = _definitionFor(chrome);
+    final snapshot = await _snapshotFor(definition, gen: gen);
     if (!_isCurrentLoad(gen)) {
       return _parkStaleBuild();
     }
-    final definition = browsePoolDefinition(source);
     final configuration = deriveDefaultSessionProfile(
       definition: definition,
       snapshot: snapshot,
@@ -180,7 +269,7 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   }
 
   /// Cap 14.4e / ADR-027 strength C: new Consumption Session on the current
-  /// source (re-Shuffle), bumping [BrowseSessionView.roundEpoch].
+  /// Origin (re-Shuffle), bumping [BrowseSessionView.roundEpoch].
   ///
   /// Prefer this over [Ref.invalidate] of [browseSessionProvider]: invalidate
   /// disposes this notifier and resets [_roundEpoch], so the feed PageView
@@ -193,14 +282,14 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   Future<void> restartSession() async {
     ref.read(browseL2ReadySessionProvider.notifier).clear();
     final gen = ++_loadGen;
-    final source = ref.read(mainBrowseSelectedSourceProvider);
+    final chrome = ref.read(browseChromeStateProvider);
+    final definition = _definitionFor(chrome);
     state = const AsyncLoading();
     try {
-      final snapshot = await _snapshotFor(source, gen: gen);
+      final snapshot = await _snapshotFor(definition, gen: gen);
       if (!_isCurrentLoad(gen)) {
         return;
       }
-      final definition = browsePoolDefinition(source);
       final configuration = deriveDefaultSessionProfile(
         definition: definition,
         snapshot: snapshot,
@@ -249,18 +338,18 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   }
 
   Future<ResolvedPoolSnapshot> _snapshotFor(
-    SourceReference source, {
+    SourcePoolDefinition definition, {
     required int gen,
   }) async {
     final cache = ref.read(browseSnapshotCacheProvider.notifier);
-    final hit = cache.get(source);
+    final refs = definition.orderedSourceReferences;
+    final hit = cache.getForRefs(refs);
     if (hit != null) {
       return hit;
     }
 
     Future<ResolvedPoolSnapshot> resolveOnce() {
       final repo = ref.read(assetSourceRepositoryProvider);
-      final definition = browsePoolDefinition(source);
       return resolvePool(
         definition: definition,
         resolveOne: (reference) => resolveOneFromRepository(repo, reference),
@@ -268,7 +357,7 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     }
 
     var snapshot = await resolveOnce();
-    _cacheSuccessfulNonEmpty(cache, source, snapshot);
+    _cacheSuccessfulNonEmpty(cache, refs, snapshot);
     if (!_isCurrentLoad(gen) || !_shouldRetryEmpty(snapshot)) {
       return snapshot;
     }
@@ -280,7 +369,7 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         return snapshot;
       }
       snapshot = await resolveOnce();
-      _cacheSuccessfulNonEmpty(cache, source, snapshot);
+      _cacheSuccessfulNonEmpty(cache, refs, snapshot);
       if (!_isCurrentLoad(gen) || !_shouldRetryEmpty(snapshot)) {
         return snapshot;
       }
@@ -290,13 +379,13 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
 
   void _cacheSuccessfulNonEmpty(
     BrowseSnapshotCache cache,
-    SourceReference source,
+    List<SourceReference> orderedRefs,
     ResolvedPoolSnapshot snapshot,
   ) {
     // ADR-014 D5: cache successes only. Cap 13.8 / ADR-024: do not cache
     // empty coalesced lists or mapped Failed.
     if (!_hasHardFailure(snapshot) && snapshot.coalescedAssetIds.isNotEmpty) {
-      cache.put(source, snapshot);
+      cache.putForRefs(orderedRefs, snapshot);
     }
   }
 

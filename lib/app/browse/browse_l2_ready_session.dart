@@ -2,9 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart'
-    show mainBrowseSelectedSourceProvider;
+    show BrowseOrigin, browseChromeStateProvider;
 import 'package:waketok/domain/playback/playback_models.dart';
-import 'package:waketok/domain/source/source_reference.dart';
 
 /// Cap 15.10: proof that Layer 2 completed for an asset in the current Browse
 /// Session. Survives leave-current; cleared on Session end (leave Browse / tab).
@@ -38,8 +37,8 @@ class FeedL2ReadyEntry {
 class BrowseL2ReadySession extends Notifier<Map<String, FeedL2ReadyEntry>> {
   @override
   Map<String, FeedL2ReadyEntry> build() {
-    ref.listen<SourceReference>(
-      mainBrowseSelectedSourceProvider,
+    ref.listen<BrowseOrigin>(
+      browseChromeStateProvider.select((s) => s.activeOrigin),
       (previous, next) {
         if (previous != null && previous != next) {
           state = const {};

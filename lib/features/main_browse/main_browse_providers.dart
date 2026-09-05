@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
-import 'package:waketok/domain/source/source_reference.dart';
 
 export 'package:waketok/app/browse/browse_l2_ready_session.dart'
     show
@@ -12,8 +11,14 @@ export 'package:waketok/app/browse/browse_l2_ready_session.dart'
         browseL2ReadySessionProvider;
 export 'package:waketok/app/browse/browse_session_providers.dart'
     show
+        BrowseChromeState,
+        BrowseChromeStateNotifier,
+        BrowseOrigin,
+        BrowseOriginBuiltIn,
+        BrowseOriginEphemeralPool,
         BrowseSessionNotifier,
         BrowseSessionView,
+        browseChromeStateProvider,
         browseEmptyRetryDelaysProvider,
         browseLayer2DwellProvider,
         browseLocalFirstVisitDwellProvider,
@@ -65,11 +70,14 @@ final mainBrowseFeedIndexProvider = NotifierProvider<MainBrowseFeedIndex, int>(
 class MainBrowseFeedIndex extends Notifier<int> {
   @override
   int build() {
-    ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
-      if (prev != next) {
-        state = 0;
-      }
-    });
+    ref.listen<BrowseOrigin>(
+      browseChromeStateProvider.select((s) => s.activeOrigin),
+      (prev, next) {
+        if (prev != next) {
+          state = 0;
+        }
+      },
+    );
     return 0;
   }
 

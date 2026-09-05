@@ -16,7 +16,6 @@ import 'package:waketok/domain/playback/playback_repository.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
-import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
@@ -607,7 +606,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final asyncSession = ref.watch(browseSessionProvider);
-    final source = ref.watch(mainBrowseSelectedSourceProvider);
+    final chrome = ref.watch(browseChromeStateProvider);
+    final feedDataSourceId = chrome.feedDataSourceId;
+    final feedSourceKind = chrome.feedSourceKind;
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
     ref.listen(mainBrowseFeedIndexProvider, (previous, next) {
@@ -651,12 +652,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       unawaited(ref.read(playbackRepositoryProvider).setMute(next));
     });
 
-    ref.listen<SourceReference>(mainBrowseSelectedSourceProvider, (prev, next) {
-      if (prev != next) {
-        _clearMagnificationSession();
-        unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
-      }
-    });
+    ref.listen<BrowseOrigin>(
+      browseChromeStateProvider.select((s) => s.activeOrigin),
+      (prev, next) {
+        if (prev != next) {
+          _clearMagnificationSession();
+          unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
+        }
+      },
+    );
 
     ref.listen<int>(mainBrowseFeedIndexProvider, (prev, next) {
       final controller = _pageController;
@@ -715,8 +719,10 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
           final ids = view.orderedAssetIds;
           final previousDataSourceId = _lastDataSourceId;
           final delayInitialLayer1CenterLabel =
-              previousDataSourceId != null && previousDataSourceId != source.id;
-          if (previousDataSourceId != null && previousDataSourceId != source.id) {
+              previousDataSourceId != null &&
+              previousDataSourceId != feedDataSourceId;
+          if (previousDataSourceId != null &&
+              previousDataSourceId != feedDataSourceId) {
             // Build path — mutate local only; publish after frame (no setState).
             _scrubberVerticalFeedSettled = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -728,7 +734,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   .setSettled(true);
             });
           }
-          _lastDataSourceId = source.id;
+          _lastDataSourceId = feedDataSourceId;
           _ids = ids;
           _notePreheatInputs(
             browseActive: browseActive,
@@ -800,7 +806,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                 child: MagnificationPointerHost(
                   child: PageView.builder(
                   key: ValueKey<String>(
-                    'feed-${source.id}-r${view.roundEpoch}',
+                    'feed-$feedDataSourceId-r${view.roundEpoch}',
                   ),
                   controller: _pageController,
                   scrollDirection: Axis.vertical,
@@ -829,7 +835,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                       ),
                       assetIdentifier: ids[index],
                       feedIndex: index,
-                      sourceKind: source.kind,
+                      sourceKind: feedSourceKind,
                       listTimeAvailability: snapshot.availabilityFor(
                         ids[index],
                       ),
