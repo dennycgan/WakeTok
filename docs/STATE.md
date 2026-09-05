@@ -217,11 +217,15 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
       3×/4×; B.1 / Q2-A soak)
 - Sub-steps done: 20.1–20.5b; still L1↔L2 black-flash fix `3d29823`
       (debt **450**); video shrink C + release spike A `282009e`;
-      double-tap exit `66fc463` (ADR-043 Decision 3/D7 supplement)
+      double-tap exit `66fc463` (ADR-043 Decision 3/D7 supplement);
+      media chrome layout `81904e1` (notes
+      `docs/acceptance/media-chrome-layout-notes.md`); Live lifecycle
+      leave/resume unload `7f43863` (debt **453** Closed)
 - Next step: 20.6 soak / max-scale pick on Kafka + i17
 - Related decisions: ADR-043 (Decision 13 inner-content `282009e`;
       Decision 3/D7 exit double-tap `66fc463`); debts **449** Open /
-      **450** Closed / **451** Open (W-14.6c BoxFit); ADR-040 Decision
+      **450** Closed / **451** Open (W-14.6c BoxFit) / **453** Closed
+      (Live lifecycle; Cap 9 legacy); ADR-040 Decision
       16 / Decision 20; debt **448** Out of Cap 20
 
 ## Contract pointers (don't memorize, go read the source)
@@ -241,7 +245,10 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
   Cap 14.4c IndexedStack always wrapped in immersive Theme (`9eecc7e`)
   so Settings cannot dispose VerticalMediaFeed;
   Cap 13.4 Shuffle Session wiring: `lib/app/browse/browse_session_providers.dart`
-  (`aa03be8` / ADR-023)
+  (`aa03be8` / ADR-023);
+  media-area chrome layout (Reset / LIVE / actions / MVP 3-row meta):
+  `media_chrome_layout.dart` + work `81904e1`; notes
+  `docs/acceptance/media-chrome-layout-notes.md` (not Cap 20–only; not ADR-043)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Cap 11.2 list albums: Host `listAssetSources` Full = built-ins +
   albumRegular + smart (Hidden/RD excluded); Limited = built-ins only;
@@ -445,6 +452,9 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
   docs/acceptance/cap18-18.5-notes.md
 - Acceptance notes (Cap 18.6 device acceptance + residuals):
   docs/acceptance/cap18-18.6-notes.md
+- Media chrome layout (Reset / LIVE / actions / MVP 3-row meta;
+  shared browse chrome, not Cap 20–only; not ADR-043):
+  docs/acceptance/media-chrome-layout-notes.md — work `81904e1`
 - 13.6 measurement-gate re-evaluation protocol (campaign done;
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
