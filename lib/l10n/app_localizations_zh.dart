@@ -1059,5 +1059,5 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19SettingsLeftSwipeGuideTitle => '显示左滑提示';
 
   @override
-  String get cap19SettingsLeftSwipeGuideSubtitle => '每次启动在 Browse 就绪时显示一次';
+  String get cap19SettingsLeftSwipeGuideSubtitle => '每次启动在浏览就绪时显示一次';
 }

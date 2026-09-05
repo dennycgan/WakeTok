@@ -75,7 +75,7 @@ void main() {
     );
   });
 
-  test('T-20.3-2 max scale constant is provisional 4×', () {
+  test('T-20.6-1 kCap20MaxScale is owner-locked 4×', () {
     expect(kCap20MaxScale, 4.0);
     expect(kCap20MinScale, 1.0);
   });

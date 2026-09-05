@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show Offset, Size;
 
-/// Provisional MVP max scale (ADR-043 D5). Cap 20.6 may pick 3× vs 4×.
+/// Cap 20 max scale — owner-locked **4×** (ADR-043 Decision 5; Cap 20.6).
 const double kCap20MaxScale = 4.0;
 
 /// Magnification floor — clamp-to-fit; no smaller-than-fit (ADR-043).

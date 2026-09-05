@@ -119,28 +119,76 @@ void main() {
     expect(find.byKey(const Key('mainBrowseFeedStill_c')), findsOneWidget);
   });
 
-  testWidgets('W-14.6c still Image.file uses BoxFit.contain', (tester) async {
-    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-    await tester.pumpWidget(
-      permissionUiHarness(
-        repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'W-14.6c still letterbox shell + Image.fill fitted box (not viewport stretch)',
+    (tester) async {
+      // Cap 20: StillFittedMagnificationShell sizes a contain-formula box from
+      // DisplayAsset pixel dims; Image uses BoxFit.fill only to fill that box.
+      // Asserting Image.fit==contain alone is the wrong layer (debt 451).
+      //
+      // Production Host always writes pixelWidth/Height on DisplayAssetDto
+      // (PHAsset dims on L2; decoded UIImage on preview). Dart fields stay
+      // nullable (Pigeon optional). Shell treats null OR <=0 as
+      // fitted=viewport — then fill WOULD stretch. PHAsset can report 0 /
+      // wrong dims (iCloud / incomplete metadata); that path is debt **452**
+      // (Open at Cap 20.6 docs) — not “impossible”. This test pins the
+      // healthy path (positive dims → letterbox aspect) so removing the
+      // shell or feeding viewport-sized fill fails red.
+      const assetW = 200;
+      const assetH = 100;
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      display.displaysById['a1'] = const DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: '/tmp/waketok_14_6c.jpg',
+        pixelWidth: assetW,
+        pixelHeight: assetH,
+      );
+      display.previewsById['a1'] = display.displaysById['a1']!;
 
-    final images = tester.widgetList<Image>(find.byType(Image));
-    final fileImages = images.where((image) {
-      final provider = image.image;
-      if (provider is FileImage) return true;
-      if (provider is ResizeImage) return provider.imageProvider is FileImage;
-      return false;
-    });
-    expect(fileImages, isNotEmpty);
-    for (final image in fileImages) {
-      expect(image.fit, BoxFit.contain);
-    }
-  });
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          mediaDisplay: display,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final boxFinder = find.byKey(const Key('stillMagnificationContentBox'));
+      expect(boxFinder, findsOneWidget);
+      final boxSize = tester.getSize(boxFinder);
+      expect(boxSize.width, greaterThan(0));
+      expect(boxSize.height, greaterThan(0));
+      expect(
+        boxSize.width / boxSize.height,
+        closeTo(assetW / assetH, 0.02),
+        reason: 'content box must match asset aspect (outer contain math)',
+      );
+
+      final viewport = tester.getSize(find.byType(PageView));
+      expect(
+        boxSize.width < viewport.width - 1 ||
+            boxSize.height < viewport.height - 1,
+        isTrue,
+        reason: 'letterbox: fitted box must be smaller than viewport on an axis',
+      );
+
+      final images = tester.widgetList<Image>(find.descendant(
+        of: boxFinder,
+        matching: find.byType(Image),
+      ));
+      expect(images, isNotEmpty);
+      for (final image in images) {
+        expect(
+          image.fit,
+          BoxFit.fill,
+          reason: 'Image fills the already-letterboxed SizedBox only',
+        );
+      }
+    },
+  );
 
   testWidgets(
     'W-15.5a L1→L2 reuses Image State with gaplessPlayback and no path key',

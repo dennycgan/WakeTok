@@ -214,6 +214,58 @@ void main() {
   });
 
   testWidgets(
+    'T-20.6-Q2 after pinch lift one finger: PageView stays locked (Q2-A contract)',
+    (tester) async {
+      final playback = FakePlaybackRepository();
+      await tester.pumpWidget(_videoHostHarness(playback: playback));
+      await tester.pumpAndSettle();
+
+      final container = _containerOf(
+        tester,
+        find.byKey(const Key('magnificationPointerHost')),
+      );
+      final host = find.byKey(const Key('magnificationPointerHost'));
+      final center = tester.getCenter(host);
+      final g1 = await tester.startGesture(center + const Offset(-40, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+      final g2 = await tester.startGesture(center + const Offset(40, 0));
+      await tester.pump();
+      await g1.moveBy(const Offset(-60, 0));
+      await g2.moveBy(const Offset(60, 0));
+      await tester.pump();
+      expect(container.read(browseMagnificationProvider).transientPinchActive, isTrue);
+      expect(
+        container.read(browseMagnificationProvider).locksVerticalPageView,
+        isTrue,
+      );
+
+      // Lift one finger — Q2-A keeps single-finger pan + PageView lock.
+      await g2.up();
+      await tester.pump();
+      expect(
+        container.read(browseMagnificationProvider).transientPinchActive,
+        isTrue,
+        reason: 'one finger remaining must not clear transient pinch',
+      );
+      expect(
+        container.read(browseMagnificationProvider).locksVerticalPageView,
+        isTrue,
+        reason: 'PageView must stay locked while a finger remains (Q2-A)',
+      );
+      expect(container.read(magnificationMatrixProvider).scale, greaterThan(1.5));
+
+      await g1.up();
+      await tester.pump(kCap20VideoReleaseToFitDuration + const Duration(milliseconds: 20));
+      await tester.pumpAndSettle();
+      expect(container.read(browseMagnificationProvider).transientPinchActive, isFalse);
+      expect(
+        container.read(browseMagnificationProvider).locksVerticalPageView,
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
     'T-20.A-1 release→fit must not republish peak scale after reaching fit',
     (tester) async {
       final playback = FakePlaybackRepository();
