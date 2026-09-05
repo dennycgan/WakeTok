@@ -18,6 +18,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.brandGold,
     required this.feedBackground,
     required this.mediaScrim,
+    required this.onMediaPillFill,
     required this.onMedia,
     required this.onMediaMuted,
     required this.onMediaLabelShadows,
@@ -55,6 +56,10 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   /// Not used for Browse top source chrome after ADR-016 (transparent +
   /// [onMediaLabelShadows]); retained for other on-media surfaces.
   final Color mediaScrim;
+
+  /// Solid mid-gray fill for on-media pills (Reset). Video-App-B class —
+  /// readable on black feed (unlike black [mediaScrim]). L/D same.
+  final Color onMediaPillFill;
 
   /// High-contrast foreground on media (L/D same).
   final Color onMedia;
@@ -126,6 +131,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
     mediaScrim: Color(0x99000000),
+    // Video-App-B Reset-class mid gray (~80%): visible on black feed.
+    onMediaPillFill: Color(0xCC6E6E6E),
     onMedia: Color(0xFFFFFFFF),
     onMediaMuted: Color(0xB3FFFFFF),
     onMediaLabelShadows: _onMediaLabelShadows,
@@ -176,6 +183,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
     mediaScrim: Color(0x99000000),
+    // Video-App-B Reset-class mid gray (~80%): visible on black feed.
+    onMediaPillFill: Color(0xCC6E6E6E),
     onMedia: Color(0xFFFFFFFF),
     onMediaMuted: Color(0xB3FFFFFF),
     onMediaLabelShadows: _onMediaLabelShadows,
@@ -227,6 +236,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? brandGold,
     Color? feedBackground,
     Color? mediaScrim,
+    Color? onMediaPillFill,
     Color? onMedia,
     Color? onMediaMuted,
     List<Shadow>? onMediaLabelShadows,
@@ -249,6 +259,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       brandGold: brandGold ?? this.brandGold,
       feedBackground: feedBackground ?? this.feedBackground,
       mediaScrim: mediaScrim ?? this.mediaScrim,
+      onMediaPillFill: onMediaPillFill ?? this.onMediaPillFill,
       onMedia: onMedia ?? this.onMedia,
       onMediaMuted: onMediaMuted ?? this.onMediaMuted,
       onMediaLabelShadows: onMediaLabelShadows ?? this.onMediaLabelShadows,
@@ -281,6 +292,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       brandGold: Color.lerp(brandGold, other.brandGold, t)!,
       feedBackground: Color.lerp(feedBackground, other.feedBackground, t)!,
       mediaScrim: Color.lerp(mediaScrim, other.mediaScrim, t)!,
+      onMediaPillFill: Color.lerp(onMediaPillFill, other.onMediaPillFill, t)!,
       onMedia: Color.lerp(onMedia, other.onMedia, t)!,
       onMediaMuted: Color.lerp(onMediaMuted, other.onMediaMuted, t)!,
       onMediaLabelShadows:

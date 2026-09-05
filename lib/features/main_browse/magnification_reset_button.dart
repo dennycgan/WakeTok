@@ -1,26 +1,26 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Gap between Reset chrome and the top of [MediaInfoOverlay] (ADR-043 D2-A).
-const double kCap20ResetAboveOverlayGap = 8;
-
-/// Touch target edge for the welded Reset control.
-const double kCap20ResetHitSize = 40;
-
-/// D2-A Reset: independent bottom-left [Align] above Overlay (ADR-043).
+/// D2-A Reset: compact pill (glyph + label) above Overlay; Video-App-B proportions.
 class MagnificationResetButton extends ConsumerWidget {
   const MagnificationResetButton({
     super.key,
     required this.overlaySnapshot,
+    this.aboveMetaGap = kResetAboveMetaGap,
   });
 
   final PresentationOverlaySnapshot? overlaySnapshot;
+
+  /// Reset bottom → Overlay row-1 top.
+  final double aboveMetaGap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -34,43 +34,117 @@ class MagnificationResetButton extends ConsumerWidget {
     final bottom =
         mainBrowseMediaOverlayBottomInset(tokens) +
         MediaInfoOverlay.columnHeightFor(overlaySnapshot) +
-        kCap20ResetAboveOverlayGap;
+        aboveMetaGap;
+    final labelStyle = tokens.labelOnMedia.copyWith(
+      shadows: tokens.onMediaLabelShadows,
+    );
+    final fontSize = labelStyle.fontSize ?? 12;
+    final lineBox = fontSize * (labelStyle.height ?? 1.0);
+    // Slightly larger than label; Cupertino hairline reads thin at 1×.
+    final iconSize = fontSize + 2;
+    final radius = BorderRadius.circular(kResetMinHitEdge);
 
     return Align(
       alignment: Alignment.bottomLeft,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          16,
+          kMediaChromeLeadingInset,
           0,
-          MediaInfoOverlay.trailingInset,
+          kMediaChromeOverlayTrailingInset,
           bottom,
         ),
         child: Material(
-          color: tokens.feedBackground.withValues(alpha: 0.55),
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
+          color: Colors.transparent,
           child: InkWell(
             key: const Key('magnificationResetButton'),
             onTap: () {
               ref.read(browseMagnificationProvider.notifier).forceFit();
             },
-            customBorder: const CircleBorder(),
-            child: SizedBox(
-              width: kCap20ResetHitSize,
-              height: kCap20ResetHitSize,
-              child: Semantics(
-                button: true,
-                label: l10n.mainBrowseMagnificationReset,
-                child: Icon(
-                  Icons.fullscreen_exit,
-                  color: tokens.onMedia,
-                  size: 22,
+            borderRadius: radius,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minWidth: kResetMinHitEdge,
+                minHeight: kResetMinHitEdge,
+              ),
+              child: IntrinsicWidth(
+                child: IntrinsicHeight(
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Material(
+                      color: tokens.onMediaPillFill,
+                      borderRadius: radius,
+                      clipBehavior: Clip.antiAlias,
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: kResetPillHorizontalPad,
+                          vertical: kResetPillVerticalPad,
+                        ),
+                        child: Semantics(
+                          button: true,
+                          label: l10n.mainBrowseMagnificationReset,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: iconSize,
+                                height: lineBox,
+                                child: Center(
+                                  child: _BoldCupertinoIcon(
+                                    CupertinoIcons.arrow_clockwise,
+                                    size: iconSize,
+                                    color: tokens.onMedia,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: kResetIconLabelGap),
+                              Text(
+                                l10n.mainBrowseMagnificationReset,
+                                style: labelStyle,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Cupertino glyphs are hairline; stack micro-offsets to read heavier.
+class _BoldCupertinoIcon extends StatelessWidget {
+  const _BoldCupertinoIcon(
+    this.icon, {
+    required this.size,
+    required this.color,
+  });
+
+  final IconData icon;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    const d = 0.35;
+    Widget layer(Offset o) => Transform.translate(
+      offset: o,
+      child: Icon(icon, size: size, color: color),
+    );
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        layer(const Offset(-d, 0)),
+        layer(const Offset(d, 0)),
+        layer(const Offset(0, -d)),
+        layer(Offset.zero),
+      ],
     );
   }
 }

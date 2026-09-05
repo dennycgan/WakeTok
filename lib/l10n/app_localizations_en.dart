@@ -315,7 +315,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseLiveBadge => 'LIVE';
 
   @override
-  String get mainBrowseMagnificationReset => 'Reset zoom';
+  String get mainBrowseMagnificationReset => 'Reset';
 
   @override
   String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';

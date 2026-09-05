@@ -1,4 +1,6 @@
+import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 
 /// Horizontal inset for Cap 19 entry icon (aligns with feed corner chrome).
 const double kCap19EntryIconTrailingInset = 12;
@@ -21,7 +23,7 @@ const double kCap19ActionsHalfSheetBarrierOpacity = 0.28;
 /// Gaussian blur sigma for the sheet frosted glass (device-tunable in notes).
 const double kCap19ActionsHalfSheetBlurSigma = 22;
 
-/// Cap 19 panel max height as a fraction of screen (TikTok-class half-sheet).
+/// Cap 19 panel max height as a fraction of screen (Video-App-B–class half-sheet).
 const double kCap19ActionsHalfSheetMaxHeightFactor = 0.5;
 
 /// Album / Favorites picker row thumbnail edge length.
@@ -43,6 +45,7 @@ const double kCap19BrowseToastBelowTopChromeGap = 8;
 const Duration kCap19BrowseToastDuration = Duration(milliseconds: 1500);
 
 /// Bottom inset for [Cap19EntryIcon] on the Browse pane Stack.
-double cap19EntryIconBottomInset() {
-  return kMainBrowseScrubberReserveHeight + kCap19EntryIconAboveScrubberGap;
-}
+///
+/// Aligns action-column lowest slot bottom with Reset visual bottom.
+double cap19EntryIconBottomInset(WakeTokTokens tokens) =>
+    mainBrowseActionColumnLowestBottomInset(tokens);

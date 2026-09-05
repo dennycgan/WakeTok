@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/scrubber_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -39,6 +40,30 @@ double mainBrowseScrubberTimestampCenterFromFeedBottom(WakeTokTokens tokens) {
 double mainBrowseMediaOverlayBottomInset(WakeTokTokens tokens) {
   return mainBrowseScrubberTimestampCenterFromFeedBottom(tokens) -
       MediaInfoOverlay.rowHeight / 2;
+}
+
+/// LIVE / status chrome bottom — same feed-bottom edge as Overlay column.
+///
+/// Overlay last-row glyphs are bottom-aligned in their row box, so this inset
+/// matches the **text bottom** of row 3 (not a guessed mid-row pad).
+double mainBrowseLiveStatusBottomInset(WakeTokTokens tokens) {
+  return mainBrowseMediaOverlayBottomInset(tokens);
+}
+
+/// Lowest action-column **icon** bottom — aligns with Reset visual bottom.
+///
+/// [Cap19EntryIcon] uses a [kActionColumnHitSize] box with a centered
+/// [kActionColumnIconSize] glyph; the Positioned `bottom` is therefore this
+/// value minus the vertical centering inset so the **icon** (not the hit box)
+/// shares Reset’s bottom edge. That edge sits [kResetAboveMetaGap] above
+/// Overlay row-1 top.
+double mainBrowseActionColumnLowestBottomInset(WakeTokTokens tokens) {
+  final resetBottom = mainBrowseMediaOverlayBottomInset(tokens) +
+      MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount +
+      kResetAboveMetaGap;
+  final iconCenterInset =
+      (kActionColumnHitSize - kActionColumnIconSize) / 2;
+  return resetBottom - iconCenterInset;
 }
 
 /// Cap 17.4 usable-region reserve above overlay rows 1–3 (all asset sources).

@@ -13,6 +13,7 @@ import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_append_controller.dart';
 import 'package:waketok/features/main_browse/magnification_reset_button.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/features/main_browse/magnification_surface.dart';
@@ -59,7 +60,7 @@ FakeAssetSourceRepository _sourcesWithWakeTokAlbum(List<String> allIds) {
 }
 
 void main() {
-  test('T-20.3-1 Overlay columnHeightFor base vs location', () {
+  test('T-20.3-1 Overlay columnHeightFor is fixed MVP three rows', () {
     expect(
       MediaInfoOverlay.columnHeightFor(null),
       MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount,
@@ -71,7 +72,8 @@ void main() {
           locationLabel: 'Auckland',
         ),
       ),
-      MediaInfoOverlay.rowHeight * (MediaInfoOverlay.baseRowCount + 1),
+      MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount,
+      reason: 'MVP overlay ignores locationLabel (half-sheet later)',
     );
   });
 
@@ -107,6 +109,17 @@ void main() {
     container.read(browseMagnificationProvider.notifier).setStillMagnified(true);
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('magnificationResetButton')), findsOneWidget);
+    final resetSize = tester.getSize(find.byKey(const Key('magnificationResetButton')));
+    expect(
+      resetSize.height,
+      greaterThanOrEqualTo(kResetMinHitEdge),
+      reason: 'Reset pill hit height must meet iOS 44pt minimum',
+    );
+    expect(
+      resetSize.width,
+      greaterThanOrEqualTo(kResetMinHitEdge),
+      reason: 'Reset pill hit width must meet iOS 44pt minimum',
+    );
 
     await tester.tap(find.byKey(const Key('magnificationResetButton')));
     await tester.pumpAndSettle();

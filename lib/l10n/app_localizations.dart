@@ -633,10 +633,10 @@ abstract class AppLocalizations {
   /// **'LIVE'**
   String get mainBrowseLiveBadge;
 
-  /// Accessibility label for Cap 20 still magnification Reset (welded bottom-left while magnified)
+  /// Cap 20 Reset pill visible label + semantics (short; Video-App-B class)
   ///
   /// In en, this message translates to:
-  /// **'Reset zoom'**
+  /// **'Reset'**
   String get mainBrowseMagnificationReset;
 
   /// Clips tab stub body copy

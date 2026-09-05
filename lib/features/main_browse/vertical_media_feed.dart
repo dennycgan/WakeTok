@@ -23,6 +23,7 @@ import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
 import 'package:waketok/features/main_browse/magnification_reset_button.dart';
 import 'package:waketok/features/main_browse/magnification_surface.dart';
@@ -4210,9 +4211,7 @@ class _FeedCornerChrome extends StatelessWidget {
     this.semanticsLabel,
   });
 
-  static const double inset = 12;
   static const double _spinnerSize = 16;
-  static const double _badgeAboveSpinnerGap = 8;
 
   final Color color;
   final String? badgeLabel;
@@ -4233,22 +4232,25 @@ class _FeedCornerChrome extends StatelessWidget {
     }
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final hasSpinnerRow = showReassure || showSpinner;
-    final badgeBottom =
-        inset + (hasSpinnerRow ? _badgeAboveSpinnerGap + _spinnerSize : 0);
+    final statusBottom = mainBrowseLiveStatusBottomInset(tokens);
+    final badgeBottom = statusBottom +
+        (hasSpinnerRow
+            ? kStatusChromeBadgeAboveSpinnerGap + _spinnerSize
+            : 0);
     return Positioned.fill(
       child: IgnorePointer(
         child: Stack(
           children: [
             if (showBadge)
               Positioned(
-                right: inset,
+                right: kMediaChromeTrailingInset,
                 bottom: badgeBottom,
                 child: _LiveBadge(label: badgeLabel!),
               ),
             if (hasSpinnerRow)
               Positioned(
-                right: inset,
-                bottom: inset,
+                right: kMediaChromeTrailingInset,
+                bottom: statusBottom,
                 child: Semantics(
                   container: true,
                   excludeSemantics: showSpinner,
@@ -4441,28 +4443,42 @@ class _LiveBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final labelStyle = tokens.labelOnMedia.copyWith(
+      height: 1.0,
+      shadows: tokens.onMediaLabelShadows,
+    );
+    final fontSize = labelStyle.fontSize ?? 12;
     return Container(
       key: const Key('mainBrowseLiveBadge'),
-      // Trailing pad 0: [inset] on Positioned is the screen-edge safety
-      // gap for the “E”; extra right pad made LIVE look inset/off-edge.
-      padding: const EdgeInsets.fromLTRB(8, 4, 0, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: tokens.mediaScrim.withValues(alpha: 0.55),
+        color: tokens.mediaScrim.withValues(alpha: kStatusChromeScrimOpacity),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: tokens.onMedia.withValues(alpha: kStatusChromeBorderOpacity),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: tokens.onMedia, width: 1.5),
+          SizedBox(
+            width: fontSize,
+            height: fontSize,
+            child: Center(
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: tokens.onMedia, width: 1.5),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 6),
-          Text(label, style: tokens.labelOnMedia),
+          Text(label, style: labelStyle),
         ],
       ),
     );

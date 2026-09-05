@@ -27,7 +27,7 @@ void main() {
     );
   }
 
-  testWidgets('W-O1 rows 1–3 keep height; row 4 collapses without location', (
+  testWidgets('W-O1 rows 1–3 keep height; locationLabel ignored on MVP Overlay', (
     tester,
   ) async {
     await tester.pumpWidget(harness(null));
@@ -67,10 +67,11 @@ void main() {
         .height;
     expect(
       withLocH,
-      MediaInfoOverlay.rowHeight * (MediaInfoOverlay.baseRowCount + 1),
+      MediaInfoOverlay.rowHeight * MediaInfoOverlay.baseRowCount,
+      reason: 'MVP: locationLabel does not grow Overlay column',
     );
-    expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsOneWidget);
-    expect(find.text('Auckland'), findsOneWidget);
+    expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+    expect(find.text('Auckland'), findsNothing);
   });
 
   testWidgets(
@@ -115,7 +116,7 @@ void main() {
     },
   );
 
-  testWidgets('W-Loc1 whitespace-only locationLabel collapses row 4', (
+  testWidgets('W-Loc1 locationLabel is ignored on MVP Overlay', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -123,11 +124,12 @@ void main() {
         const PresentationOverlaySnapshot(
           assetIdentifier: 'a',
           mediaKind: PresentationMediaKind.image,
-          locationLabel: '   ',
+          locationLabel: 'Auckland',
         ),
       ),
     );
     expect(find.byKey(const Key('mediaInfoOverlayRow4')), findsNothing);
+    expect(find.text('Auckland'), findsNothing);
   });
 
   testWidgets('W-O4 live photo copy joins size on row 3 when both present', (

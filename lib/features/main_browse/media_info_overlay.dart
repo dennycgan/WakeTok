@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/presentation/presentation_media_kind.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Media Info Overlay (Cap 8.5 / kickoff + Photo-App-A-aligned Location row).
+/// Media Info Overlay (Cap 8.5 / kickoff).
 ///
-/// Rows 1–3 keep fixed per-row height (empty still occupies so progressive
-/// metadata does not jump). Row 4 (Location) is dynamic: present only when
-/// [PresentationOverlaySnapshot.locationLabel] is non-empty — Cap 8 omits
-/// Location content (Q1=B), so the row collapses.
+/// MVP: fixed three rows (Relative / Exact / Characteristics). Location and
+/// richer meta move to a future long-press half-sheet — do not grow this
+/// column for [PresentationOverlaySnapshot.locationLabel].
 class MediaInfoOverlay extends StatelessWidget {
   const MediaInfoOverlay({super.key, required this.snapshot, this.now});
 
@@ -22,20 +22,20 @@ class MediaInfoOverlay extends StatelessWidget {
   /// Logical height reserved per Overlay row when the row is shown.
   static const double rowHeight = 20;
 
-  /// Always-rendered rows (Relative / Exact / Characteristics).
+  /// Always-rendered MVP rows (Relative / Exact / Characteristics).
   static const int baseRowCount = 3;
 
-  /// Trailing inset so Overlay copy stays left of bottom-right Live chrome.
+  /// Trailing inset so Overlay copy stays left of action column + LIVE.
   ///
-  /// W-14.6b measured Live chrome width 103 + `right: 12` pad = 115 from the
-  /// trailing edge; +8 gap from Overlay copy.
-  static const double trailingInset = 123;
+  /// Derived from [kMediaChromeOverlayTrailingInset] (action hit / LIVE
+  /// reserve + clearance) — do not hard-code a stale measured width.
+  static double get trailingInset => kMediaChromeOverlayTrailingInset;
 
   /// Column height for Cap 20 Reset placement above this Overlay (ADR-043 D2-A).
-  static double columnHeightFor(PresentationOverlaySnapshot? snapshot) {
-    final location = snapshot?.locationLabel?.trim() ?? '';
-    final rows = baseRowCount + (location.isNotEmpty ? 1 : 0);
-    return rowHeight * rows;
+  ///
+  /// MVP is always [baseRowCount] rows (location ignored on this surface).
+  static double columnHeightFor(PresentationOverlaySnapshot? _) {
+    return rowHeight * baseRowCount;
   }
 
   @override
@@ -55,7 +55,6 @@ class MediaInfoOverlay extends StatelessWidget {
       createdAt: snap?.createdAt,
     );
     final characteristics = _row3(l10n: l10n, snap: snap);
-    final location = snap?.locationLabel?.trim() ?? '';
 
     final style = tokens.labelOnMedia.copyWith(
       shadows: tokens.onMediaLabelShadows,
@@ -66,7 +65,7 @@ class MediaInfoOverlay extends StatelessWidget {
         alignment: Alignment.bottomLeft,
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            16,
+            kMediaChromeLeadingInset,
             0,
             trailingInset,
             mainBrowseMediaOverlayBottomInset(tokens),
@@ -91,12 +90,6 @@ class MediaInfoOverlay extends StatelessWidget {
                 text: characteristics,
                 style: style,
               ),
-              if (location.isNotEmpty)
-                _OverlayRow(
-                  key: const Key('mediaInfoOverlayRow4'),
-                  text: location,
-                  style: style,
-                ),
             ],
           ),
         ),
@@ -139,7 +132,9 @@ class _OverlayRow extends StatelessWidget {
     return SizedBox(
       height: MediaInfoOverlay.rowHeight,
       child: Align(
-        alignment: Alignment.centerLeft,
+        // Bottom-align so row-3 text bottom == Overlay column bottom == LIVE
+        // capsule bottom ([mainBrowseLiveStatusBottomInset]).
+        alignment: Alignment.bottomLeft,
         child: Text(
           text,
           maxLines: 1,

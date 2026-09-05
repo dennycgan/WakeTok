@@ -113,6 +113,10 @@ void main() {
     expect(light.mediaScrim, dark.mediaScrim);
     expect(light.onMedia, dark.onMedia);
     expect(light.onMediaMuted, dark.onMediaMuted);
+    expect(light.onMediaPillFill, dark.onMediaPillFill);
+    expect(light.onMediaPillFill.a, greaterThan(0));
+    // Mid gray (not black) so Reset reads on black feed.
+    expect(light.onMediaPillFill.r, greaterThan(0.2));
   });
 
   test('T-adr016 onMediaLabelShadows and bar height (L==D)', () {

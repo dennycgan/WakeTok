@@ -7,6 +7,7 @@ import 'package:waketok/features/main_browse/cap19_actions_half_sheet.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_trailing_chrome_policy.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -55,13 +56,16 @@ class Cap19EntryIcon extends ConsumerWidget {
                 ? () => showCap19ActionsHalfSheet(context, access: access)
                 : null,
             customBorder: const CircleBorder(),
-            child: Padding(
-              padding: const EdgeInsets.all(8),
-              child: Icon(
-                CupertinoIcons.rectangle_stack_badge_plus,
-                size: 28,
-                color: tokens.onMedia,
-                shadows: tokens.onMediaLabelShadows,
+            child: SizedBox(
+              width: kActionColumnHitSize,
+              height: kActionColumnHitSize,
+              child: Center(
+                child: Icon(
+                  CupertinoIcons.rectangle_stack_badge_plus,
+                  size: kActionColumnIconSize,
+                  color: tokens.onMedia,
+                  shadows: tokens.onMediaLabelShadows,
+                ),
               ),
             ),
           ),
@@ -72,7 +76,7 @@ class Cap19EntryIcon extends ConsumerWidget {
 }
 
 /// Positions [Cap19EntryIcon] on the Browse pane with a shell-fixed bottom
-/// inset (see [cap19EntryIconBottomInset]).
+/// inset (see [cap19EntryIconBottomInset] / action-column Reset align).
 class Cap19EntryIconSlot extends StatelessWidget {
   const Cap19EntryIconSlot({super.key, required this.access});
 
@@ -80,9 +84,10 @@ class Cap19EntryIconSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     return Positioned(
-      right: kCap19EntryIconTrailingInset,
-      bottom: cap19EntryIconBottomInset(),
+      right: kMediaChromeTrailingInset,
+      bottom: cap19EntryIconBottomInset(tokens),
       child: Cap19EntryIcon(access: access),
     );
   }
