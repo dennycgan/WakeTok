@@ -193,6 +193,14 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
         nails Host mode-none ignore + T-20.5-* and rising-edge
         `hasActiveMagnification` coverage (not a new motion gate).
         i17 Live static→motion→static smoke PASS (local Live assets)
+- [x] 20.5b Double-tap to exit persistent magnification
+      — work `66fc463`; still / Live-static L2 only
+        (`MagnificationHostMode.still` + magnified); hand-written
+        Listener double-tap → same `forceFit` as Reset; **not** D7
+        double-tap-to-enter (still Out). Video / transient untouched.
+        Inserted between 20.5 and 20.6 (19.5b precedent; 20.6/20.7
+        numbers unchanged). Kafka Profile still/Reset/video smoke PASS;
+        notes `docs/acceptance/cap20-20.5b-notes.md`
 - [ ] 20.6 Device acceptance (Kafka + iPhone 17; max-scale pick 3×/4×;
       retest Cap 17.6 **B.1** fast-swipe <300ms / no flyby thrash —
       still pinch must not regress it; Plan A: no single-finger candidate
@@ -207,14 +215,14 @@ Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 20.6 device acceptance (Kafka + i17; max-scale
       3×/4×; B.1 / Q2-A soak)
-- Sub-steps done: 20.1–20.5; still L1↔L2 black-flash fix `3d29823`
-      (debt **450**); video shrink C + release spike A `282009e`
-      (Kafka C/A verified separately — PASS)
+- Sub-steps done: 20.1–20.5b; still L1↔L2 black-flash fix `3d29823`
+      (debt **450**); video shrink C + release spike A `282009e`;
+      double-tap exit `66fc463` (ADR-043 Decision 3/D7 supplement)
 - Next step: 20.6 soak / max-scale pick on Kafka + i17
-- Related decisions: ADR-043 (Decision 13 inner-content supplement
-      `282009e`); debts **449** Open / **450** Closed / **451** Open
-      (W-14.6c BoxFit); ADR-040 Decision 16 / Decision 20; debt **448**
-      Out of Cap 20
+- Related decisions: ADR-043 (Decision 13 inner-content `282009e`;
+      Decision 3/D7 exit double-tap `66fc463`); debts **449** Open /
+      **450** Closed / **451** Open (W-14.6c BoxFit); ADR-040 Decision
+      16 / Decision 20; debt **448** Out of Cap 20
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):

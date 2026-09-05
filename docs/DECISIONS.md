@@ -4659,19 +4659,27 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 ## ADR-043: Cap 20 Display Magnification (pinch) contract
 
 - Status: Accepted (2026-09-04); Decision 11 “no new Pigeon / no Host zoom
-  API” clause narrowly revised by Decision 13 (same date)
+  API” clause narrowly revised by Decision 13 (same date); Decision 13
+  further narrowly supplemented by inner-content transform (`282009e`,
+  2026-09-04); Decision 3 / D7 narrowly supplemented by double-tap-to-exit
+  (`66fc463`, 2026-09-05)
 - Commit/PR anchor: `ae9cb7e` (Cap 20.2 first implementing work);
-  Decision 13 work `ca3b4ed`; Decision 14 / Cap 20.4 product `32d149f`
+  Decision 13 work `ca3b4ed`; Decision 14 / Cap 20.4 product `32d149f`;
+  Decision 13 inner-content supplement `282009e`; Decision 3 / D7 exit
+  double-tap `66fc463`
 - Plain summary (owner reads this):
   Cap 20 ships lightweight pinch on Main Browse. **Layer-2** photo /
   animated image / Live **static** keep zoom until fit, with Reset while
-  magnified. **All Layer-1** surfaces (photo preview, Live static preview,
-  video poster) and **video Layer-2** use **transient** pinch (release→fit,
-  no Reset). Session UI state only (no SQLite). Video L2 visual scale uses
-  one narrow Host method `PlaybackApi.setDisplayMagnification` on the
-  Platform View **container** only when native push is armed (Decision 13)
-  — not a general zoom API. Aligns with iOS Photos only for Cap 20’s
-  implemented set; sole known delta is a fixed max scale.
+  magnified; Cap 20.5b also exits that persistent still via double-tap
+  (enter-by-double-tap stays Out). **All Layer-1** surfaces (photo
+  preview, Live static preview, video poster) and **video Layer-2** use
+  **transient** pinch (release→fit, no Reset). Session UI state only (no
+  SQLite). Video L2 visual scale uses one narrow Host method
+  `PlaybackApi.setDisplayMagnification` on the Platform View **inner
+  magnification content** (outer embedding root stays identity —
+  Decision 13 / `282009e`) only when native push is armed — not a general
+  zoom API. Aligns with iOS Photos only for Cap 20’s implemented set;
+  sole known delta is a fixed max scale.
 - Context / what problem forced this:
   ADR-040 Decision 16 reserved pinch rules; Cap 19 Decision 20 shipped a
   read-only magnification stub and left-swipe arming guard. Cap 20 must
@@ -4691,10 +4699,40 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      at Cap 20.6 device acceptance). Photos uses a resolution-based cap.
      Document as known delta — not “incomplete Photos alignment.”
   3. **Out of Cap 20 (never promised; not known deltas).** Double-tap
-     zoom; smaller-than-fit shrink state; Live native in-view zoom /
-     Transform on `PHLivePhotoView`; Photos-style long-press Live replay
-     (debt **439** / ADR-040 Decision 17 owning Cap TBD); debt **448**
-     interactive-pop vs left-swipe.
+     **to enter** zoom; smaller-than-fit shrink state; Live native
+     in-view zoom / Transform on `PHLivePhotoView`; Photos-style
+     long-press Live replay (debt **439** / ADR-040 Decision 17 owning
+     Cap TBD); debt **448** interactive-pop vs left-swipe.
+     **Decision 3 / D7 narrow supplement (2026-09-05, work `66fc463`):**
+     Cap 20.5b adds double-tap **to exit** persistent still /
+     Live-static Layer-2 magnification only
+     (`MagnificationHostMode.still` + magnified). Action is the same
+     `forceFit()` path as Reset (no separate animation). Video /
+     transient Host modes are untouched. Fit-state double-tap remains a
+     no-op (does **not** enter magnification — D7 enter stays Out).
+     Implementation is a hand-written pointer state machine on the
+     existing `MagnificationPointerHost` `Listener` — **no**
+     `GestureDetector.onDoubleTap` / `DoubleTapGestureRecognizer`
+     (avoids ~300ms tap disambiguation delaying single-finger pan).
+     Timing / geometry: first tap-up → second tap-down ≤350ms; two
+     downs within ≤24px; max press ≤500ms; move beyond ~18px or ≥2
+     fingers cancels the candidate. Pending first-tap candidate also
+     clears on `browseMagnificationProvider` `hasActiveMagnification`
+     falling edge (covers Reset / leave-current / Cap 19 panel /
+     Live rising-edge forceFit — one clear point, not per-trigger
+     forks). Reset vs Host double-tap relies on hit-test layering
+     (Reset chrome above Host); Host does not re-filter Reset bounds.
+     **Kickoff long-press album entry is not a live conflict:** MVP
+     kickoff “long-press media (non-chrome) → album panel” was
+     **replaced** by Cap 19 / ADR-040 Decision 15 (fixed bottom-trailing
+     icon → half-sheet via `cap19_entry_icon` /
+     `cap19_actions_half_sheet`). Verification for Cap 20.5b: `lib/`
+     has **zero** `onLongPress` / `LongPressGestureRecognizer` usages;
+     album entry does not share this Host pointer stream. ADR-040
+     Decision 17 keeps Photos-style Live long-press replay Out (gesture
+     slot unused). Therefore Cap 20.5b does **not** add a long-press
+     exclusion branch in the double-tap state machine — do not re-derive
+     “live long-press” from kickoff text alone.
   4. **D1 — Live Photo.** Static Live on **Layer-2** (`FeedDisplayLayer.full`,
      `!_liveMotionMounted`, `Image.file`, `PlaybackMediaKind.livePhoto`)
      uses the **persistent still** path + Reset. **Layer-1** Live preview
@@ -4879,3 +4917,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     release peak, once a `setDisplayMagnification` scale is ≤1.02, no
     later call may exceed 1.02. Notes:
     `docs/acceptance/cap20-post-20.5-blackflash-shrink-notes.md`.
+  - **Cap 20.5b (work `66fc463`):** Decision 3 / D7 narrow supplement —
+    double-tap **exit** for persistent still only; enter stays Out.
+    Device: Kafka Profile still double-tap exit + Reset + video
+    unchanged PASS. Notes: `docs/acceptance/cap20-20.5b-notes.md`.
+    Widget: `T-20.5b-1…8` in `cap20_still_magnification_test.dart`
+    (incl. candidate clear on forceFit with fake clock still inside
+    the 350ms window — `T-20.5b-8`).
