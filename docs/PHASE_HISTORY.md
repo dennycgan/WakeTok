@@ -969,3 +969,102 @@ Known debt at close: **445** Accepted (permanent); **446** / **447** /
 **448** Accepted (phase); **421** Open (Settings Limited — out of Cap 19);
 **444** Open → Build a Pool Cap. Do not close **447** or **448** in this
 close-out.
+
+## Display magnification (pinch to zoom, lightweight) (Cap 20) — 2026-09-05
+
+### Landmark constraints (long-lived Cap 20 boundaries)
+
+1. **Decision 13 / no-precedent Host API.** Cap 20 shipped with **zero
+   SQLite** and **no new general Pigeon / Host zoom surface**. The **only**
+   Cap 20 exception to Decision 11’s “no new Pigeon / no Host zoom API”
+   rule is Decision 13: one narrow method
+   `PlaybackApi.setDisplayMagnification(scale, translationX, translationY)`
+   that drives the Platform View **inner** magnification content while the
+   Flutter embedding–owned **outer** root stays identity (Decision 13
+   supplement `282009e` / `ca3b4ed`). This revise is **not a precedent**
+   for later Caps to add Host zoom APIs without a fresh owner pass and
+   ADR (stop-and-re-discuss gate stands).
+
+2. **D5 max scale = 4× — empirical lock, not a derived optimum.** Cap 20.6
+   locked `kCap20MaxScale = 4.0` after Kafka + i17 soak PASS, with a
+   one-time reasonableness check against **Photo-App-A** (peer ~fixed 4×
+   ceiling) — **not** an ongoing competitor-parity promise, and **not** a
+   math optimum from pixel density or a measured performance cliff.
+   4× remains the sole Photos known delta (fixed multiplier vs Photos’
+   resolution-based cap). Raising the ceiling later is **out of Cap 20**
+   and needs a **new owner pass**, including re-validation of scopes
+   **this 4× lock did not cover**:
+   (a) **Low-resolution still clarity** under a higher fixed multiplier —
+       WakeTok does not float the cap by resolution the way Photos does;
+       soft/pixelated stills may look obviously soft well before a new
+       numeric ceiling;
+   (b) **Kafka (performance-floor) hand-feel / hitch** at the new ceiling —
+       4× PASS does not imply higher multipliers’ render/sample cost;
+   (c) **Video L2 Decision 13 native path stability** at higher scale —
+       armed `setDisplayMagnification` on **inner** magnification content
+       (outer identity); watch for Platform View composition / frame-set
+       edge cases of the class that previously surfaced as the “shrink /
+       outer-transform” failure mode (`282009e`);
+   (d) **Reset / pan feel** — larger max scale amplifies on-screen
+       displacement for the same finger travel; chrome and clamp feel may
+       need retuning.
+
+### Phase snapshot
+
+- [x] 20.1 Contract freeze
+      — D1–D6 locked (D7/D8 Out / no-touch); Live PV scale spike
+        **cancelled**; ADR-043 Accepted; GLOSSARY §18 adds Display
+        Magnification / pinch / Reset (Fit vs fit disambiguation)
+- [x] 20.2 Magnification signal + arbitration wiring
+      — work `ae9cb7e`; stub → `browseStillMagnifiedProvider`;
+        PageView lock + left-swipe guard; T-20.2-12a/12b
+- [x] 20.3 Still path (persistent pinch + pan + clamp-to-fit + Reset;
+      Live static / animated as still)
+      — work `e6515ea`; PageView-outer host; Plan A; T-20.3-1…11
+- [x] 20.4 Video path (transient; release → fit; D3) + L1 unify
+      — work `ca3b4ed` (Decision 13) + `32d149f` (L1 unify / native push
+        gate / T-20.4-12); Kafka Profile L2 smoke PASS
+- [x] 20.5 Live motion-window gate
+      — work `114f393`; Host mode-none + rising-edge coverage;
+        i17 Live smoke PASS
+- [x] 20.5b Double-tap to exit persistent magnification
+      — work `66fc463`; still / Live-static L2 only; enter stays Out;
+        notes `cap20-20.5b-notes.md`
+- [x] 20.6 Device acceptance
+      — work `bc15517` (D5=4× / letterbox `W-14.6c` / Q2 lock); docs
+        `e49377d`; notes `cap20-20.6-notes.md`; Kafka primary + i17
+        short retest; Q2-A keep; B.1 PASS; debts **451** Closed /
+        **452** Open; **453** Closed earlier (not ADR-043)
+- [x] 20.7 Cap close-out: Cap 20 `[x]`; YOU ARE HERE → Build a Pool…;
+      PHASE_HISTORY this snapshot
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-043 (`ae9cb7e`; Decision 13 `ca3b4ed` / inner
+`282009e`; Decision 14 `32d149f`; D7 exit `66fc463`; D5=4× `bc15517` /
+docs `e49377d`); ADR-040 Decision 16 / Decision 20.
+
+Known debt at close (unchanged Status in 20.7): **449** Open (no push
+CI); **452** Open (degenerate pixel dims); **448** Accepted (phase) Out
+of Cap 20; **450** / **451** / **453** Closed. Do not flip these in
+this close-out.
+
+### Related work during Cap 20 (footer — not phases)
+
+- **GLOSSARY history purge (privacy; Cap 20.2 window, 2026-09-04) —
+  not a 20.1 deliverable.** Distinct from the 20.1 §18 term add.
+  Trigger: remove personal / privacy-sensitive content that had lived
+  in published `docs/GLOSSARY.en-zh.md`. Method: `git filter-repo`
+  rewrite of **`main` and `spike/poc`**. Impact: nearly all historical
+  commit SHAs changed; docs anchors batch-remapped (`93e34eb` on main,
+  `292511c` on poc notes); pre-purge SHAs obsolete. Offline backup
+  (owner machine only): `WakeTok-pre-purge-backup-20260904.git`. After
+  purge the file stays **local-only / gitignored** (not published).
+  Heaviest repo operation in Cap 20 — do not collapse into the 20.1
+  phase line.
+- `3d29823` — still L1↔L2 black-flash / debt **450** Closed
+- `282009e` — video shrink C + release spike A (Decision 13 inner)
+- `81904e1` — media chrome layout (shared browse; **not** ADR-043)
+- `7f43863` — Live AppLifecycle unload / debt **453** Closed (Cap 9 /
+  ADR-019; Cap 20.5 Host gate made gap visible)

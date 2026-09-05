@@ -94,17 +94,12 @@
       ADR-040; `docs/acceptance/cap18-18.*.md`; PHASE_HISTORY)
 - [x] Add to Album / Cap 19 entry chrome (Cap 19 /
       ADR-041…042; `docs/acceptance/cap19-*.md`; PHASE_HISTORY)
-- [ ] <-- YOU ARE HERE: Display magnification (pinch to zoom, lightweight)
-      (Cap 20). L2 still: persistent zoom + Reset; all L1 + video L2:
-      transient release→fit (ADR-043 Decision 13/14). Magnified still pan
-      overrides vertical PageView until fit — Cap 18 freezes that
-      arbitration exception; Cap 20 implements.
-- [ ] Build a Pool, Ephemeral Pool, and Source ordering
-      (**deferred past Cap 14**)
+- [x] Display magnification (pinch to zoom, lightweight) (Cap 20 /
+      ADR-043; L2 still persistent + Reset; L1 + video L2 transient;
+      D5=4×; `docs/acceptance/cap20-*.md`; PHASE_HISTORY)
+- [ ] Build a Pool, Ephemeral Pool, and Source ordering <-- YOU ARE HERE
 - [ ] Saved Pool persistence, reopen, management, and capacity limits
-      (**deferred past Cap 14**)
 - [ ] Auto-play Presets and Mode Eligibility Rule
-      (**deferred past Cap 14**)
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
       (renamed so “iCloud Fallback” is Auto-play / ADR-O, not Cap 14)
@@ -154,79 +149,22 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Display magnification (pinch to zoom, lightweight) (Cap 20)
+Active capability: Build a Pool, Ephemeral Pool, and Source ordering
 
+> Cap internal phases are not yet owner-approved in STATE. Expand this
+> section after kickoff / scope review — do not invent phases here.
 > Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
-> Principle: within Cap 20’s implemented behaviours (pinch in, magnified
-> pan, clamp-to-fit floor), **Layer-2** still (photo / animated / Live
-> static) is persistent + Reset; **all Layer-1** and **video L2** are
-> transient release→fit. Match iOS Photos feel for still / animated /
-> Live static L2. ADR-043: **Known delta** = fixed max scale only; other
-> Photos-only behaviours stay **Out of Cap 20**. Decision 13 =
-> `setDisplayMagnification` (narrow Host API); Decision 14 = L1 unify.
-> Inherits Cap 19 Decision 20 left-swipe magnification guard
-> (`browseStillMagnifiedProvider` replaces Cap 19 stub as of 20.2).
-> Live motion PV window (`_liveMotionMounted`): no new pinch; force fit
-> on rising edge — **no** PHLivePhotoView Transform spike (cancelled).
-
-- [x] 20.1 Contract freeze
-      — D1–D6 locked (D7/D8 Out / no-touch); Live PV scale spike
-        **cancelled** (static Live = still path; motion window gated);
-      — ADR-043 Accepted; GLOSSARY §18 Display Magnification / pinch /
-        Reset (Fit vs fit disambiguation; file now **local-only /
-        gitignored**)
-- [x] 20.2 Magnification signal + arbitration wiring
-      — work `ae9cb7e`; stub → `browseStillMagnifiedProvider`;
-        PageView lock + left-swipe guard; arena unit tests
-        (T-20.2-12a/12b Live rising-edge auto + remount/replay)
-- [x] 20.3 Still path (persistent pinch + pan + clamp-to-fit + Reset;
-      includes Live static key frame / animated image as still)
-      — work `e6515ea`; PageView-outer host; Plan A (no single-finger
-        candidate lock); T-20.3-1…11
-- [x] 20.4 Video path (non-persistent; release → fit; mid-pinch D3;
-      playback continues) + L1 unify transient
-      — work `ca3b4ed` (Decision 13 `setDisplayMagnification`) +
-        `32d149f` (transient rename, L1 unify, native push gate,
-        L1→L2 handoff T-20.4-12); Kafka Profile L2 smoke PASS
-- [x] 20.5 Live motion-window gate
-      — work `114f393`; main D1 path already in 20.2–20.4; this phase
-        nails Host mode-none ignore + T-20.5-* and rising-edge
-        `hasActiveMagnification` coverage (not a new motion gate).
-        i17 Live static→motion→static smoke PASS (local Live assets)
-- [x] 20.5b Double-tap to exit persistent magnification
-      — work `66fc463`; still / Live-static L2 only
-        (`MagnificationHostMode.still` + magnified); hand-written
-        Listener double-tap → same `forceFit` as Reset; **not** D7
-        double-tap-to-enter (still Out). Video / transient untouched.
-        Inserted between 20.5 and 20.6 (19.5b precedent; 20.6/20.7
-        numbers unchanged). Kafka Profile still/Reset/video smoke PASS;
-        notes `docs/acceptance/cap20-20.5b-notes.md`
-- [x] 20.6 Device acceptance (Kafka + iPhone 17; max-scale **4×** lock;
-      Cap 17.6 **B.1** mixed-pool fast-swipe PASS; Q2-A soak PASS keep
-      Q2-A; continuity green-by-gate + soak observation)
-      — D5 / letterbox assert / Q2 lock work `bc15517`; notes
-        `docs/acceptance/cap20-20.6-notes.md`; debt **451** Closed /
-        **452** Open; Live lifecycle **453** Closed earlier (`7f43863`)
-- [ ] 20.7 Cap close-out (Cap `[x]`; PHASE_HISTORY; YOU ARE HERE next)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 20.7 Cap close-out (Capability `[x]` +
-      PHASE_HISTORY; YOU ARE HERE → next Cap)
-- Sub-steps done: 20.1–20.6; still L1↔L2 black-flash fix `3d29823`
-      (debt **450**); video shrink C + release spike A `282009e`;
-      double-tap exit `66fc463` (ADR-043 Decision 3/D7 supplement);
-      media chrome layout `81904e1` (notes
-      `docs/acceptance/media-chrome-layout-notes.md`); Live lifecycle
-      leave/resume unload `7f43863` (debt **453** Closed); 20.6 soak /
-      D5=4× `bc15517` (notes `docs/acceptance/cap20-20.6-notes.md`)
-- Next step: 20.7 docs close-out — full Cap 20 PHASE_HISTORY snapshot +
-      Capability Roadmap `[x]` (separate from 20.6 device acceptance)
-- Related decisions: ADR-043 (Decision 13 inner-content `282009e`;
-      Decision 3/D7 exit double-tap `66fc463`; Decision 5 **4×**
-      `bc15517`); debts **449** Open / **450** Closed / **451** Closed
-      (letterbox `W-14.6c`) / **452** Open (degenerate pixel dims) /
-      **453** Closed (Live lifecycle; Cap 9 legacy); ADR-040 Decision
-      16 / Decision 20; debt **448** Out of Cap 20
+- Goal (one line): Build a Pool scope gate — owner-approved Phase
+      Roadmap TBD
+- Sub-steps done: Cap 20 complete (`docs/PHASE_HISTORY.md`; acceptance
+      `docs/acceptance/cap20-*.md`; ADR-043; D5=4×)
+- Next step: owner kickoff / scope review for Build a Pool phases
+      before coding
+- Related decisions: Cap 20 close debts unchanged — **449** Open /
+      **452** Open / **448** Accepted (phase); **450** / **451** /
+      **453** Closed; debt **444** → this Cap; ADR-043 (Cap 20 closed)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
