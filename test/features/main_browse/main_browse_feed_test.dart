@@ -28,6 +28,7 @@ import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
+import 'package:waketok/features/main_browse/magnification_surface.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -1880,6 +1881,180 @@ void main() {
     expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
     expect(live.calls.where((c) => c == 'startPlayback').length, 1);
   });
+
+  testWidgets(
+    'L-lifecycle leave inactive unloads Live PV + restores Host still',
+    (tester) async {
+      final live = FakeLivePhotoRepository(autoReady: true);
+      final display = FakeMediaDisplayRepository();
+      display.displaysById['live-1'] = const DisplayAsset(
+        assetIdentifier: 'live-1',
+        mediaKind: PlaybackMediaKind.livePhoto,
+        localFilePath: '/tmp/live-1.jpg',
+      );
+      display.previewsById['live-1'] = display.displaysById['live-1']!;
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          mediaDisplay: display,
+          livePhoto: live,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsOneWidget,
+      );
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(
+        container.read(magnificationHostModeProvider),
+        MagnificationHostMode.none,
+      );
+
+      live.calls.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await pumpAsyncWork(tester);
+
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedStill_live-1')),
+        findsOneWidget,
+      );
+      expect(live.calls.where((c) => c == 'stopPlayback').length, 1);
+      expect(
+        _mediaFeedPageState(tester, 'live-1').debugLiveMotionMounted,
+        isFalse,
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(
+        container.read(magnificationHostModeProvider),
+        MagnificationHostMode.still,
+      );
+    },
+  );
+
+  testWidgets(
+    'L-lifecycle inactive→hidden→paused is idempotent (one stopPlayback)',
+    (tester) async {
+      final live = FakeLivePhotoRepository(autoReady: true);
+      final display = FakeMediaDisplayRepository();
+      display.displaysById['live-1'] = const DisplayAsset(
+        assetIdentifier: 'live-1',
+        mediaKind: PlaybackMediaKind.livePhoto,
+        localFilePath: '/tmp/live-1.jpg',
+      );
+      display.previewsById['live-1'] = display.displaysById['live-1']!;
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          mediaDisplay: display,
+          livePhoto: live,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsOneWidget,
+      );
+
+      live.calls.clear();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await pumpAsyncWork(tester);
+
+      expect(live.calls.where((c) => c == 'stopPlayback').length, 1);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsNothing,
+      );
+      expect(
+        _mediaFeedPageState(tester, 'live-1').debugLiveMotionMounted,
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'L-lifecycle resume heal unloads remounted Live after missed leave',
+    (tester) async {
+      final live = FakeLivePhotoRepository(autoReady: true);
+      final display = FakeMediaDisplayRepository();
+      display.displaysById['live-1'] = const DisplayAsset(
+        assetIdentifier: 'live-1',
+        mediaKind: PlaybackMediaKind.livePhoto,
+        localFilePath: '/tmp/live-1.jpg',
+      );
+      display.previewsById['live-1'] = display.displaysById['live-1']!;
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          mediaDisplay: display,
+          livePhoto: live,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsOneWidget,
+      );
+
+      // Leave to inactive only (frames stay enabled — paused/hidden disable
+      // scheduler frames and block remount painting in widget tests).
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await pumpAsyncWork(tester);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsNothing,
+      );
+
+      // Remount while still inactive (simulates leave never owning the final
+      // motion window — resume must heal).
+      live.calls.clear();
+      await _mediaFeedPageState(tester, 'live-1').debugPrepareLiveMotion();
+      await pumpAsyncWork(tester);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsOneWidget,
+      );
+      expect(
+        _mediaFeedPageState(tester, 'live-1').debugLiveMotionMounted,
+        isTrue,
+      );
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await pumpAsyncWork(tester);
+
+      expect(
+        find.byKey(const Key('mainBrowseFeedLiveMotion_live-1')),
+        findsNothing,
+      );
+      expect(live.calls.where((c) => c == 'stopPlayback').length, 1);
+      expect(
+        _mediaFeedPageState(tester, 'live-1').debugLiveMotionMounted,
+        isFalse,
+      );
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        container.read(magnificationHostModeProvider),
+        MagnificationHostMode.still,
+      );
+    },
+  );
 
   testWidgets('L-F4 sync request failure keeps still + badge (no skip)', (
     tester,

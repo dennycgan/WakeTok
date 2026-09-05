@@ -1147,6 +1147,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   int debugBeginLiveMotionGate() => _liveMotionGate.begin();
 
+  /// Test seam: re-enter prepare (e.g. remount while binding still backgrounded
+  /// so resume-heal can be exercised without a missed-leave flake).
+  @visibleForTesting
+  Future<void> debugPrepareLiveMotion() => _prepareLiveMotion();
+
+  @visibleForTesting
+  bool get debugLiveMotionMounted => _liveMotionMounted;
+
   /// Test seam: force in-flight + path for widget chrome tests (W-17.3*).
   ///
   /// [mediaKind] overrides [_media] so G (still-only) vs video a2 can be locked.
@@ -1449,6 +1457,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _livePhotoReady = false;
   bool _liveSurfaceReady = false;
   bool _liveStartIssued = false;
+  /// Serializes lifecycle leave/heal so inactive→hidden→paused cannot stack
+  /// duplicate [stopPlayback] before the first unload clears dirty flags.
+  bool _liveLifecycleInterruptInFlight = false;
 
   /// Cap 9.5 Q4=A: motion **prepare** spinner (generation-gated writes).
   ///
@@ -1725,9 +1736,26 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final previous = _lastLifecycle;
     _lastLifecycle = state;
+
+    // Cap 9 lifecycle gap (debt 453): leave foreground is an authoritative
+    // Live-motion interrupt — do not wait for PHLivePhotoView didEndPlayback.
+    // Matches video onLeaveForeground timing (inactive | paused | hidden).
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      unawaited(_interruptLiveMotionForAppLifecycle());
+      return;
+    }
+
     if (state != AppLifecycleState.resumed) {
       return;
     }
+
+    // Resume heal: same cleanup if leave never finished (engine suspended,
+    // serial lag, etc.). Trigger is dirty state — not the L2-retry previous
+    // gate (inactive/paused only), so a missed leave cannot slip through.
+    unawaited(_interruptLiveMotionForAppLifecycle());
+
     // China-SKU wireless-data alert: typically inactive→resumed (app never
     // backgrounds). True background uses paused→resumed. Listen for both.
     if (previous != AppLifecycleState.inactive &&
@@ -1735,6 +1763,45 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     _retryFailedLayer2AfterResume();
+  }
+
+  /// True when Live motion / prepare still owns the page (needs lifecycle end).
+  bool get _liveMotionLifecycleDirty =>
+      _liveMotionMounted || _livePreparing || _liveStartIssued;
+
+  /// Shared leave + resume-heal path: same Dart unload as [playbackEndedEvents]
+  /// (Q7=A), plus best-effort [stopPlayback]. Idempotent under triple
+  /// inactive→hidden→paused and under resume-when-already-clean.
+  ///
+  /// Unload runs **before** awaiting Host stop so stacked leave callbacks that
+  /// arrive while stop is queued already see !dirty (inFlight alone is not
+  /// enough if the first Future has yielded at enqueue).
+  Future<void> _interruptLiveMotionForAppLifecycle() async {
+    if (!mounted ||
+        !widget.isCurrent ||
+        !_liveMotionLifecycleDirty ||
+        _liveLifecycleInterruptInFlight) {
+      return;
+    }
+    _liveLifecycleInterruptInFlight = true;
+    try {
+      final LivePhotoRepository live =
+          _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+      _liveRepo = live;
+      await _unloadLiveMotionSurface();
+      if (!mounted) {
+        return;
+      }
+      await _enqueueLiveOp(() async {
+        try {
+          await live.stopPlayback();
+        } catch (_) {
+          // Best-effort — Host may already have stopped / surface gone.
+        }
+      });
+    } finally {
+      _liveLifecycleInterruptInFlight = false;
+    }
   }
 
   /// Auto-retry only when this current page is already in a fail state.
