@@ -4950,3 +4950,227 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     (missing/degenerate pixel dims → viewport-sized fill stretch).
     Live AppLifecycle unload (debt **453**) is Cap 9 / ADR-019 — not
     an ADR-043 decision; recorded in STATE only.
+
+---
+
+## ADR-044: Cap 21 Build a Pool — BrowseChromeState, ephemeral park, four-control chrome
+
+- Status: Proposed
+- Commit/PR anchor: (none until first Cap 21 implementing work commit)
+- Plain summary (owner reads this):
+  Cap 21 lets you build a temporary multi-source Pool and browse it from a
+  four-control top bar: a “Temp Pool” chip when one is parked, built-in
+  All/Photos/Videos, a Saved-pools control (empty shell this Cap), and
+  Create. The app remembers at most one parked temp Pool so you can leave
+  it for All and tap back. Saving named Pools to disk is the next
+  capability. Deleted Photos items get honest load-fail copy, not a fake
+  “allow wireless data” message.
+- Context / what problem forced this:
+  Cap 10–13 delivered Source Pool Definition, resolvePool, Identity
+  Coalescing, Session Queue, and Endless Shuffle, but Main Browse still
+  drives sessions from a single `SourceReference`
+  (`mainBrowseSelectedSourceProvider`) and explicitly rejects Pools as a
+  `SourceReference`. Kickoff’s product path uses a fourth “Pools” cell
+  opening a Pool Picker Sheet; Cap 7–20 ship that cell as disabled Coming
+  soon. Cap 21 must: (1) wire ephemeral multi-source Definitions into
+  Browse without Saved SQLite (next Capability Roadmap row); (2) replace
+  the Sheet-centric entry with a chrome that separates “parked temp
+  composition” from “Saved preset library”; (3) preserve ADR-027 Leave
+  Browse semantics (restart on current selection, not fall back to All);
+  (4) pay debt **444** without violating ADR-023 D7 / kickoff ADR-I Queue
+  Stability. A single `activeOrigin` value cannot express “browsing All
+  while a temp Pool chip remains tappable,” so chrome state needs a
+  parked Definition field.
+- Decision (what was chosen):
+  1. **D1 — Save UI boundary.** Cap 21 implements only kickoff “create
+     pool” flow A’s **No** branch: select sources → reorder → **Start
+     Browsing** as ephemeral. Naming + persist Saved Pool Preset is Cap
+     22. Cap 21 may show **visible disabled gray rows** in the Saved
+     dropdown (“Save current pool”, “Manage pools”, empty Saved) matching
+     Cap 7 `_PoolsCell` / Coming soon language — no save dialog, no disk
+     write. No Drift/SQLite/`LocalRepository.savePool` in this Cap.
+  2. **D2 — Limited Access (confirm ADR-K / ADR-021 Decision 3).** Under
+     Limited, `listAssetSources` returns only built-ins; Build a Pool may
+     run with All/Photos/Videos only. Do not list Album/Smart rows as
+     Unauthorized.
+  3. **D3 — debt 444.** On the Main Browse feed Layer-2 failure path
+     (`feedFailureReasonFromPlatformCode` and equivalent feed mapping):
+     Host/Pigeon `assetUnavailable` must **not** map to wireless/network
+     copy; introduce a distinct `FeedFailureReason` + ARB; disable or hide
+     useless Retry for that reason. The Session Queue may still retain the
+     id (no mid-session Snapshot/Queue rebuild). Soft-skip/tombstone of
+     the current item (D3-B) is optional and does not violate ADR-I.
+     Installing `PHPhotoLibraryChangeObserver` to mutate the Queue (D3-C)
+     is forbidden. **Implementation bound:** remap only the feed display
+     failure chain — do **not** globally reinterpret
+     `ErrorCode.assetUnavailable` for favorite / add-to-album / empty-id
+     guards that reuse the same wire code.
+  4. **D4 — Origin identity vs built-in tabs.** A Session started via
+     Build→Start is always `activeOrigin = ephemeralPool(...)`, even when
+     the Definition holds a single built-in reference. Choosing
+     All/Photos/Videos sets `activeOrigin = builtIn(...)` and starts a
+     **new** Session (same class of boundary as ADR-023 D8).
+  5. **D5 — Partial source failure (confirm ADR-021 Decision 7 /
+     Glossary §16).** If the coalesced Snapshot has ≥1 Media Item,
+     browsing may start; Empty/Unavailable/Unauthorized sources get
+     non-blocking hints. Not a new Cap 21 product fork.
+  6. **D6.1 — `BrowseChromeState` (two fields).**
+     ```
+     BrowseChromeState
+     ├── activeOrigin:
+     │     builtIn(SourceReference) | ephemeralPool(SourcePoolDefinition)
+     │     // drives Consumption Session; changing activeOrigin ⇒ new Session
+     └── parkedEphemeralPool: SourcePoolDefinition?
+           // remembered temp pool for the left chip; independent of activeOrigin
+     ```
+     **Invariants:** at most one parked ephemeral; if `activeOrigin` is
+     `ephemeralPool(D)` then `parkedEphemeralPool` is non-null and
+     identity-equal to that same Definition; `parked` is cleared or
+     replaced **only** on process death or successful **Start Browsing**
+     of a new ephemeral (replace); switching `activeOrigin` to `builtIn`
+     does **not** clear `parked`; opening Build and canceling **without
+     Start** leaves `parked` and `activeOrigin` unchanged.
+     **Wiring:** `browseSessionProvider` / `restartSession` / feed-index
+     reset / L2-ready clear / magnification leave hooks key off
+     **`activeOrigin` only**. Chip visibility keys off
+     **`parkedEphemeralPool != null`**. `mainBrowseSelectedSourceProvider`
+     becomes built-in memory/projection only. Cap 21 does not add
+     `savedPool` to `activeOrigin` (Cap 22 may extend via new ADR text).
+     **21.2 hard gate — migrate all consumers** (owner-verified complete
+     set): (1) `browse_session_providers.dart` `build()` watch +
+     `restartSession()` read; (2) `main_browse_providers.dart`
+     `MainBrowseFeedIndex` listen; (3) `vertical_media_feed.dart` watch
+     (Layer-1 label delay) + listen (magnification clear / leave current);
+     (4) `browse_l2_ready_session.dart` listen clears L2-ready map.
+  7. **D6.2 — Snapshot cache.** Ephemeral multi-source Snapshots enter
+     `browseSnapshotCacheProvider`. Cache key = ordered `SourceReference`
+     fingerprint (`kind`+`id` sequence; duplicate refs participate). Do
+     **not** key by throwaway `SourcePoolDefinition.id`. Equivalent
+     single-ref fingerprints may share entries with built-in tabs.
+     Cache only successful non-empty results; empty/hard-fail uncached
+     (ADR-024). Leave Browse does not clear the cache (ADR-027).
+  8. **D6.3 — Leave Browse.** Preserve full `BrowseChromeState`
+     (`activeOrigin` + `parkedEphemeralPool`). `restartSession` opens a
+     new Session on the same `activeOrigin` Definition (reshuffle + index
+     0). Do **not** fall back to All. Process death drops in-memory chrome
+     state (Accepted boundary until SessionCheckpoint Cap).
+  9. **D6.4 — Four-control top chrome (supersedes kickoff Sheet path).**
+     Product path supersedes kickoff §1.2 / §3.1 “fourth Pools cell →
+     Pool Picker Sheet as sole custom entry” (kickoff file remains
+     read-only). Layout:
+     ```
+     [Temp Pool chip]   [Built-in ▾]   [Saved pools ▾]   [Create]
+      (if parked≠null)   (screen-centered pair)            (always)
+     ```
+     - Temp Pool chip: dynamic; fixed short label; tap per Decision 10.
+     - Built-in dropdown: All / Photos / Videos only.
+     - Saved pools dropdown: Cap 21 empty shell + visible gray
+       placeholder rows; Cap 22 wires real Saved data.
+     - Create: always; opens Build a Pool Screen.
+     **Rationale for four controls:** parked/current temporary
+     composition and the Saved preset library are different product
+     objects and must not share one control that is both status and
+     library. (Rejected non-rationale: “prevent infinite temp tabs” —
+     a single `parkedEphemeralPool` already bounds count.)
+  10. **D7 — Temp chip, honesty, layout, composition peek.**
+      **Chip copy:** fixed short label (e.g. “临时 Pool” / EN ARB in
+      21.3). **No** source-name join on the chip. Join-as-default-name
+      remains valid **only** for Cap 22 “Save current pool” full-width
+      name suggestions (kickoff examples such as `E02 + E03`), not for
+      this narrow chip. Multi-source join truncation for that Cap 22
+      field may use “first N names + M more” (N chosen in that Cap).
+      **Visibility (F1):** show chip iff `parkedEphemeralPool != null`;
+      hide when null (no permanent gray empty chip). Runtime absence ≠
+      Cap 7 Coming-soon unfinished-feature gray.
+      **Tap behavior:**
+      1. `parked != null` and `activeOrigin` is built-in → set
+         `activeOrigin = ephemeralPool(parked)`, **new Session**.
+      2. `parked != null` and `activeOrigin` is already that ephemeral →
+         **do not** reshuffle; open a lightweight **read-only
+         composition peek** listing display names for parked
+         `SourceReference`s via live `listAssetSources()` (Snapshot /
+         `SourceResolveStatus` has no `displayName`). Mark unavailable
+         sources. Form factor is 21.3; **contract requires the peek**.
+         Live list is read-only enumeration — not ADR-023 D7 Queue
+         rebuild.
+      3. Create → **Start Browsing** success → replace `parked` with the
+         new Definition, set `activeOrigin = ephemeralPool(new)`.
+      **Built-in collapsed honesty:** when `activeOrigin` is ephemeral,
+      the built-in control must not present as the selected browsing
+      source (no solid “All selected” lie). Remembering last built-in for
+      menu highlight is OK; a11y must match `activeOrigin`.
+      **Layout:** (1) Built-in + Saved dropdowns are screen-center
+      anchored (notch/Dynamic Island geometric center) and must **not**
+      translate when the temp chip appears/disappears — independent
+      layers (e.g. `Stack`); chip and Create float separately.
+      (2) Chip visibility tracks `parkedEphemeralPool != null`, including
+      while `activeOrigin` is built-in.
+      **Surfaces:** `WakeTokTokens` + immersive dark (ADR-016 direction);
+      no default light `PopupMenu`. Frosted `BackdropFilter` is **not**
+      an acceptance gate (debt **447**); prefer opaque/high-opacity
+      scrim. Expanded menus absorb taps and block vertical feed drag
+      (ADR-040).
+  11. **Build a Pool Screen (Cap 21 scope).** Multi-select User Album /
+      Smart Album / All / Photos / Videos (Limited: built-ins only). Do
+      **not** list Generated Clip Source (types not landed). Reorder =
+      Definition reference order (kickoff ADR-M §1). Within-source item
+      ordering remains creationDateDescending (ADR-021/022); no new
+      Ordering PoC. UI disables further adds at
+      `PoolCapacity.maxSourcesPerPool` (30) before factory `ArgumentError`.
+      Zero sources ⇒ cannot Start. Start → chrome updates per D6.1/D7 →
+      `resolvePool` → existing Default Profile path (no Generated Clip ⇒
+      all Mixed ⇒ Shuffle).
+  12. **Out of scope.** Saved CRUD / SQLite / enforcing max 10 Saved
+      presets; Generated Clip Source / Pure Sequential product path;
+      SessionCheckpoint / process-death restore of ephemeral; Query
+      Source (POC-02); real Manage / mid-browse Save flows; Photos
+      collection-order PoC; Auto-play / Background Audio; observer-driven
+      Queue rebuild; Cap 22 rules for `parked` when selecting a Saved
+      preset.
+  13. **Docs workflow.** This entry is appended **Proposed** (no Accepted
+      date, no fake anchor). After the first Cap 21 implementing work
+      commit exists, a later docs commit flips Status to Accepted with
+      that work sha as anchor and Accepted date from
+      `git log -1 --format=%cs <sha>` (two-commit discipline).
+- Rejected alternatives (why not B):
+  - Cap 21 ships Saved + SQLite (merge Cap 22) — rejected; next roadmap
+    row owns persistence; no Drift baseline yet.
+  - D3-C Photos observer mutates Queue mid-session — rejected; conflicts
+    with ADR-023 D7 / kickoff ADR-I.
+  - Three-control chrome with temp status inside the Saved dropdown
+    (prior D7(c)) — rejected; conflates parked temp composition with
+    Saved library.
+  - Chip shows joined source titles — rejected; narrow chrome overflow;
+    temp Pool is short-lived; composition peek covers recall.
+  - Always-visible disabled temp slot (F2) — rejected; wrong absence
+    metaphor; wastes space.
+  - Leave Browse clears parked — rejected; breaks D6.3 / return-to-temp.
+  - Non-tappable chip — rejected; forces re-Create to return.
+  - Single `activeOrigin` without `parkedEphemeralPool` — rejected;
+    cannot show chip while browsing All.
+  - Tap always starts a new Session while already on that ephemeral —
+    rejected; pointless reshuffle; conflicts with composition peek.
+  - Cap 21 wires real Saved dropdown data — rejected; breaks D1.
+  - Frosted glass as Cap 21.3 acceptance gate — rejected; debt **447**.
+  - “Prevent infinite temp tabs” as rationale for four controls —
+    rejected as invalid; single parked value already bounds count
+    (discussion residue; not a decision basis).
+  - Encode Pool as a fake `SourceReference` — rejected; existing code
+    forbids it; multi-source Definitions need Origin/chrome state.
+  - Cache key = `SourcePoolDefinition.id` — rejected; throwaway ids miss
+    forever and grow the map unboundedly.
+  - Leave Browse falls back to All — rejected; contradicts ADR-027
+    restart-on-current-selection.
+- Consequences / constraints accepted:
+  - Main Browse session authority moves from `SourceReference`-only to
+    **`BrowseChromeState`** (`activeOrigin` + `parkedEphemeralPool`).
+  - Kickoff Pool Picker Sheet is superseded as the MVP **primary** custom
+    entry path; Saved/Manage/Save-current land via the Saved control in
+    Cap 22.
+  - Cap 22 may use source-name join only as save-default suggestions in a
+    full-width name field — not on the Cap 21 temp chip.
+  - Debt **444** is paid on the feed failure-mapping limb in this Cap.
+  - Narrow-width chip vs center-anchored dropdown overlap is a **21.3
+    layout** risk, not an open Cap 21.1 product fork.
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009/010/012).
