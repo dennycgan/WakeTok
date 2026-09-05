@@ -150,7 +150,7 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Build a Pool, Ephemeral Pool, and Source ordering
-Contract: ADR-044 Proposed (`2b7ab4d`); Accepted after first 21.2 work
+Contract: ADR-044 Accepted (`a695d2f`; Proposed docs `2b7ab4d`)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 21.1 Contract freeze — ADR-044 Proposed
@@ -160,20 +160,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       cache key = ordered SourceReference fingerprint, debt **444**
       feed-path remap only, 4 files / **6** call-site migration targets
       for 21.2 (not migrated in 21.1). Docs `2b7ab4d`.
-- [ ] 21.2 BrowseChromeState + 6 call-site migration + fingerprint cache
-      Land BrowseChromeState; Session/restartSession key off
-      `activeOrigin` only; demote `mainBrowseSelectedSourceProvider` to
-      built-in memory/projection. Migrate all 6 sites:
-      (1–2) `browse_session_providers.dart` build watch +
-      restartSession read; (3) `main_browse_providers.dart`
-      MainBrowseFeedIndex listen; (4–5) `vertical_media_feed.dart`
-      watch (Layer1 label delay) + listen (magnification clear /
-      leave current); (6) `browse_l2_ready_session.dart` listen.
-      Fingerprint cache; empty/hard-fail uncached (ADR-024); Leave
-      Browse keeps chrome state + cache (ADR-027 / D6.3). Product-
-      visible path stays built-in-only equivalent. After first **work**
-      commit: separate **docs** commit flips ADR-044 → Accepted + real
-      anchor (two-commit discipline). ADR: D4, D6.1–D6.3.
+- [x] 21.2 BrowseChromeState + 6 call-site migration + fingerprint cache
+      Work `a695d2f`: BrowseChromeState + Origin equality; Session /
+      restartSession / feed-index / L2-ready / feed keys on
+      `activeOrigin`; `mainBrowseSelectedSourceProvider` watches
+      chrome projection; fingerprint `keyForRefs`. Product path
+      built-in-only equivalent. ADR-044 Accepted (same docs commit).
+      Debt **454** logged (pre-existing inset assert; not 21.2).
+      ADR: D4, D6.1–D6.3.
 - [ ] 21.3 Four-control top chrome (shell + layout + chip + peek)
       Replace 3 tabs + disabled Pools with Temp chip (F1) · Built-in ▾ ·
       Saved ▾ · Create. Center-anchor Built-in+Saved (no translate on
@@ -214,15 +208,16 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       ADR-044 Accepted (from post-21.2 docs) or flip if missed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 21.2 BrowseChromeState + 6 call-site migration +
-      fingerprint cache (built-in path behavior-equivalent)
-- Sub-steps done: 21.1 Contract freeze — ADR-044 Proposed `2b7ab4d`;
-      Cap 20 complete (`docs/PHASE_HISTORY.md`; ADR-043; D5=4×)
-- Next step: 21.2 work commit (no Accepted flip in the work commit);
-      then separate docs commit for ADR-044 Accepted
-- Related decisions: ADR-044 Proposed; debt **444** → 21.6; Cap 20
-      residuals **449** Open / **452** Open / **448** Accepted (phase);
-      **450** / **451** / **453** Closed
+- Goal (one line): 21.3 Four-control top chrome (shell + layout +
+      chip + peek)
+- Sub-steps done: 21.1 ADR-044 Proposed `2b7ab4d`; 21.2 work
+      `a695d2f` + ADR-044 Accepted + debt **454** Open
+- Next step: 21.3 design / implement four-control chrome (Temp chip ·
+      Built-in ▾ · Saved ▾ · Create); product path still no ephemeral
+      Start until 21.4
+- Related decisions: ADR-044 Accepted; debt **444** → 21.6; **454**
+      Open (chrome bottom inset assert); Cap 20 residuals **449** /
+      **452** Open; **448** Accepted (phase)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -535,6 +530,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 451 | Closed | Main Browse Screen | Cap 20 | `W-14.6c` still `Image.file` uses `BoxFit.fill` but test expected `BoxFit.contain` | **Closed by Cap 20.6** (`bc15517`): assert rewritten for Cap 20 letterbox shell — `StillFittedMagnificationShell` sizes a contain-formula box from positive pixel dims; `Image` uses `BoxFit.fill` **only inside that box** (not viewport stretch). Architecture `presentation_defaults_test` still documents ctor default `BoxFit.contain` for fallbacks. Degenerate / missing pixel dims → viewport-sized fill stretch is debt **452** (Open). | Closed by Cap 20.6 (`bc15517`) | ADR-028; Cap 14.6c; Cap 20 letterbox |
 | 452 | Open | Main Browse Screen | Cap 20.6 | Missing or ≤0 `pixelWidth`/`pixelHeight` on display still → letterbox shell falls back to viewport size → `BoxFit.fill` stretches | Production Host normally writes PHAsset / decoded dims. Dart fields stay nullable (Pigeon optional). Shell treats null OR ≤0 as fitted=viewport — then fill WOULD stretch. PHAsset can report 0 / wrong dims (iCloud / incomplete metadata). Healthy-path guard is `W-14.6c` (`bc15517`); this Open row tracks the degenerate-dims residual. | Unassigned | ADR-028; Cap 20 letterbox; `cap20-20.6-notes.md` |
 | 453 | Closed | Live Photo (Cap 9) | Cap 20.6 | App leave / lock mid Live motion left a mid-frame PV; pinch dead | **Lifecycle gap itself is Cap 9 legacy** (no AppLifecycle → Live unload from Cap 9 landing). **Became user-visible only after Cap 20.5** wired `_liveMotionMounted` to `MagnificationHostMode.none` (stuck mid-motion frame + pinch failure = same root cause, two faces). Pinch recovery **depends on** Live unload — not a separate debt. **Not an ADR-043 product decision** (lifecycle fix under Cap 9 / ADR-019 shape; Host-mode gate only made the gap visible). Discovered during Cap 20.6 soak; does **not** block 20.6 close-out. **Closed by** `7f43863` (2026-09-05): leave `inactive`/`paused`/`hidden` + resume heal → same unload as `playbackEnded`, then best-effort `stopPlayback`; unload claims dirty before Host stop (stacked leave idempotent). i17 Profile PASS: static cover + pinch. | Closed by Cap 20.6 soak (`7f43863`) | ADR-019 |
+| 454 | Open | Main Browse Screen | Cap 21.2 | `W-14.6b-L4` / `W-15.3` corner-chrome bottom inset assert expects ~12; product bottom is ~7.2 since media chrome layout | **Discovered during Cap 21.2; not introduced by 21.2.** Stash of all Cap 21.2 Origin/ChromeState work still fails identically on clean HEAD. Root cause: `81904e1` (2026-09-05) changed `_FeedCornerChrome` bottom from fixed inset 12 to `mainBrowseLiveStatusBottomInset` (≈7.2, aligned with Overlay; see `media-chrome-layout-notes.md`); widget asserts still use `closeTo(12, 1)` on `feed.bottom - chrome.bottom` (trailing inset 12 remains correct). Distinct from closed debt **440** (timing/strut reds, fixed `6682582`). Do not treat as Cap 21.2 regression. Fix = update bottom expect to live-status inset (or shared constant); no product change required. | Unassigned | —; `81904e1`; `docs/acceptance/media-chrome-layout-notes.md` |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

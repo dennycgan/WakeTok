@@ -4955,8 +4955,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-044: Cap 21 Build a Pool — BrowseChromeState, ephemeral park, four-control chrome
 
-- Status: Proposed
-- Commit/PR anchor: (none until first Cap 21 implementing work commit)
+- Status: Accepted (2026-09-05)
+- Commit/PR anchor: a695d2f
 - Plain summary (owner reads this):
   Cap 21 lets you build a temporary multi-source Pool and browse it from a
   four-control top bar: a “Temp Pool” chip when one is parked, built-in
