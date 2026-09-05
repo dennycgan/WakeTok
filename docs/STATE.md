@@ -150,21 +150,79 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Build a Pool, Ephemeral Pool, and Source ordering
+Contract: ADR-044 Proposed (`2b7ab4d`); Accepted after first 21.2 work
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-> Cap internal phases are not yet owner-approved in STATE. Expand this
-> section after kickoff / scope review — do not invent phases here.
-> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+- [x] 21.1 Contract freeze — ADR-044 Proposed
+      D1–D7 + D6.1–D6.4 locked: BrowseChromeState
+      (`activeOrigin` + `parkedEphemeralPool`), four-control chrome
+      (supersedes kickoff Pool Picker Sheet primary entry), Snapshot
+      cache key = ordered SourceReference fingerprint, debt **444**
+      feed-path remap only, 4 files / **6** call-site migration targets
+      for 21.2 (not migrated in 21.1). Docs `2b7ab4d`.
+- [ ] 21.2 BrowseChromeState + 6 call-site migration + fingerprint cache
+      Land BrowseChromeState; Session/restartSession key off
+      `activeOrigin` only; demote `mainBrowseSelectedSourceProvider` to
+      built-in memory/projection. Migrate all 6 sites:
+      (1–2) `browse_session_providers.dart` build watch +
+      restartSession read; (3) `main_browse_providers.dart`
+      MainBrowseFeedIndex listen; (4–5) `vertical_media_feed.dart`
+      watch (Layer1 label delay) + listen (magnification clear /
+      leave current); (6) `browse_l2_ready_session.dart` listen.
+      Fingerprint cache; empty/hard-fail uncached (ADR-024); Leave
+      Browse keeps chrome state + cache (ADR-027 / D6.3). Product-
+      visible path stays built-in-only equivalent. After first **work**
+      commit: separate **docs** commit flips ADR-044 → Accepted + real
+      anchor (two-commit discipline). ADR: D4, D6.1–D6.3.
+- [ ] 21.3 Four-control top chrome (shell + layout + chip + peek)
+      Replace 3 tabs + disabled Pools with Temp chip (F1) · Built-in ▾ ·
+      Saved ▾ · Create. Center-anchor Built-in+Saved (no translate on
+      chip show/hide). Chip fixed short label; visibility =
+      `parked != null`; tap three-way (D7). Active chip → composition
+      peek via live `listAssetSources()`. Saved = empty shell + visible
+      gray placeholders (D1). Create → Build **scaffold** route (full
+      Build = 21.4). Tokens / immersive dark; frosted glass not a gate
+      (debt **447**). Rewrite W-2+. ADR: D6.4, D7, D1 placeholders.
+- [ ] 21.4 Build a Pool Screen (multi-select / reorder / ≤30 / Start)
+      Albums/smart/built-ins; no Generated Clip; Limited = built-ins
+      only (D2). UI cap at 30; zero sources cannot Start; Build cancel
+      leaves parked/active unchanged. Start success: replace parked,
+      `activeOrigin = ephemeralPool(new)`, resolvePool → Mixed→Shuffle.
+      Partial failure ≥1 item may browse (D5). ADR: D1 No-branch, D2,
+      D4, D5, D6.1, Build Screen clause.
+- [ ] 21.5 Pool-path polish (honesty / a11y / dead routes)
+      Empty/all-fail/partial-fail copy + Retry bounds (ADR-024).
+      Built-in collapsed honesty + a11y when Origin=ephemeral (D7).
+      Create / chip / Built-in / Saved gray: no dead routes. ADR: D5,
+      D7, D6.4 closure.
+- [ ] 21.6 debt 444 — honest feed failure
+      Distinct FeedFailureReason + ARB; remap only feed
+      `feedFailureReasonFromPlatformCode` chain (not favorite /
+      add-to-album `assetUnavailable`). Disable useless Retry. No
+      observer Queue rebuild. D3-B soft-skip default Out. ADR: D3.
+- [ ] 21.7 Device acceptance
+      Matrix: (A) Full multi-album Build→Start; (B) All then chip
+      resume; (C) Leave Browse preserves Origin+park; (D) Build cancel
+      preserves park; (E) new Start replaces park; (F) Limited
+      built-ins only; (G) external delete → 444 copy not wireless;
+      (H) active chip peek; (I) force-quit → reopen: chip gone,
+      activeOrigin default All, no residual ephemeral. Notes under
+      `docs/acceptance/cap21-*`. ADR: D2, D3, D6.1–D6.3, D6.4, D7.
+- [ ] 21.8 Cap close-out
+      Cap `[x]`; YOU ARE HERE → Saved Pool persistence…; PHASE_HISTORY
+      snapshot; debt **444** Closed (or residual noted); confirm
+      ADR-044 Accepted (from post-21.2 docs) or flip if missed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Build a Pool scope gate — owner-approved Phase
-      Roadmap TBD
-- Sub-steps done: Cap 20 complete (`docs/PHASE_HISTORY.md`; acceptance
-      `docs/acceptance/cap20-*.md`; ADR-043; D5=4×)
-- Next step: owner kickoff / scope review for Build a Pool phases
-      before coding
-- Related decisions: Cap 20 close debts unchanged — **449** Open /
-      **452** Open / **448** Accepted (phase); **450** / **451** /
-      **453** Closed; debt **444** → this Cap; ADR-043 (Cap 20 closed)
+- Goal (one line): 21.2 BrowseChromeState + 6 call-site migration +
+      fingerprint cache (built-in path behavior-equivalent)
+- Sub-steps done: 21.1 Contract freeze — ADR-044 Proposed `2b7ab4d`;
+      Cap 20 complete (`docs/PHASE_HISTORY.md`; ADR-043; D5=4×)
+- Next step: 21.2 work commit (no Accepted flip in the work commit);
+      then separate docs commit for ADR-044 Accepted
+- Related decisions: ADR-044 Proposed; debt **444** → 21.6; Cap 20
+      residuals **449** Open / **452** Open / **448** Accepted (phase);
+      **450** / **451** / **453** Closed
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
