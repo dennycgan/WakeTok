@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
@@ -14,6 +15,22 @@ const double kCap20MagnifiedEpsilon = 0.02;
 
 /// Video release → fit animation (Cap 20.4 Q1-A).
 const Duration kCap20VideoReleaseToFitDuration = Duration(milliseconds: 180);
+
+/// Cap 20.5b: max interval from first tap **up** → second tap **down**.
+const Duration kCap20DoubleTapMaxInterval = Duration(milliseconds: 350);
+
+/// Cap 20.5b: max distance between the two tap downs (logical px).
+const double kCap20DoubleTapSlop = 24;
+
+/// Cap 20.5b: max press duration for a tap to count toward double-tap.
+const Duration kCap20DoubleTapMaxPress = Duration(milliseconds: 500);
+
+/// Cap 20.5b: movement beyond this cancels the current tap / candidate.
+const double kCap20DoubleTapMoveCancel = 18;
+
+/// Clock for double-tap timing (tests replace to advance without wall clock).
+@visibleForTesting
+DateTime Function() cap20DoubleTapNow = DateTime.now;
 
 /// Fitted content size at scale=1 for the current page (null = unknown →
 /// treat as full viewport; no letterbox-aware clamp).
@@ -232,6 +249,15 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
   double _releaseFromScale = kCap20MinScale;
   Offset _releaseFromTranslation = Offset.zero;
 
+  // Cap 20.5b hand-written double-tap → forceFit (persistent still only).
+  DateTime? _doubleTapFirstUpAt;
+  Offset? _doubleTapFirstDownLocal;
+  bool _doubleTapAwaitingSecondUp = false;
+  DateTime? _tapDownAt;
+  Offset? _tapDownLocal;
+  int? _tapDownPointer;
+  bool _tapDownMovedBeyondSlop = false;
+
   MagnificationHostMode get _mode => ref.read(magnificationHostModeProvider);
 
   bool get _enabled => _mode != MagnificationHostMode.none;
@@ -445,6 +471,8 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     if (_pointers.length < 2) {
       return;
     }
+    _clearDoubleTapCandidate();
+    _clearActiveTapTracking();
     if (_releaseController.isAnimating || _releaseController.value > 0) {
       _silenceReleaseControllerToZero();
     }
@@ -507,15 +535,56 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     _syncContactFlags();
   }
 
+  void _clearDoubleTapCandidate() {
+    _doubleTapFirstUpAt = null;
+    _doubleTapFirstDownLocal = null;
+    _doubleTapAwaitingSecondUp = false;
+  }
+
+  void _clearActiveTapTracking() {
+    _tapDownAt = null;
+    _tapDownLocal = null;
+    _tapDownPointer = null;
+    _tapDownMovedBeyondSlop = false;
+  }
+
+  /// Persistent still + magnified only — same gate family as Reset chrome.
+  bool get _doubleTapArmed => _isStill && _isMagnified;
+
   void _onPointerDown(PointerDownEvent event) {
     if (!_enabled) {
       return;
     }
     _pointers[event.pointer] = event.localPosition;
     if (_pointers.length >= 2) {
+      _clearDoubleTapCandidate();
+      _clearActiveTapTracking();
       _beginPinch();
     } else if (_pointers.length == 1 && _isMagnified) {
       _panLastLocal = event.localPosition;
+    }
+
+    if (_doubleTapArmed && _pointers.length == 1) {
+      final now = cap20DoubleTapNow();
+      if (_doubleTapFirstUpAt != null && _doubleTapFirstDownLocal != null) {
+        final interval = now.difference(_doubleTapFirstUpAt!);
+        final dist = (event.localPosition - _doubleTapFirstDownLocal!).distance;
+        if (interval <= kCap20DoubleTapMaxInterval &&
+            dist <= kCap20DoubleTapSlop) {
+          _doubleTapAwaitingSecondUp = true;
+        } else {
+          _clearDoubleTapCandidate();
+        }
+      }
+      _tapDownAt = now;
+      _tapDownLocal = event.localPosition;
+      _tapDownPointer = event.pointer;
+      _tapDownMovedBeyondSlop = false;
+    } else {
+      _clearActiveTapTracking();
+      if (!_doubleTapArmed) {
+        _clearDoubleTapCandidate();
+      }
     }
     _syncContactFlags();
   }
@@ -525,6 +594,13 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
       return;
     }
     _pointers[event.pointer] = event.localPosition;
+    if (_tapDownPointer == event.pointer && _tapDownLocal != null) {
+      if ((event.localPosition - _tapDownLocal!).distance >
+          kCap20DoubleTapMoveCancel) {
+        _tapDownMovedBeyondSlop = true;
+        _clearDoubleTapCandidate();
+      }
+    }
     if (_pointers.length >= 2) {
       if (_pinchStartSpan == null) {
         _beginPinch();
@@ -539,6 +615,7 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     if (!_enabled && _pointers.isEmpty) {
       return;
     }
+    final upLocal = _pointers[pointer];
     _pointers.remove(pointer);
     if (_pointers.length < 2) {
       _pinchStartSpan = null;
@@ -546,6 +623,11 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     if (_pointers.length == 1 && _isMagnified) {
       _panLastLocal = _pointers.values.first;
     }
+
+    if (_tapDownPointer == pointer) {
+      _finishDoubleTapTrackingOnUp(upLocal);
+    }
+
     if (_pointers.isEmpty) {
       if (_isStill) {
         if (!_isMagnified) {
@@ -560,6 +642,39 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
       _panLastLocal = null;
     }
     _syncContactFlags();
+  }
+
+  void _finishDoubleTapTrackingOnUp(Offset? upLocal) {
+    final downAt = _tapDownAt;
+    final downLocal = _tapDownLocal;
+    final moved = _tapDownMovedBeyondSlop;
+    final awaitingSecond = _doubleTapAwaitingSecondUp;
+    _clearActiveTapTracking();
+
+    if (!_doubleTapArmed || downAt == null || downLocal == null) {
+      _clearDoubleTapCandidate();
+      return;
+    }
+    if (moved) {
+      _clearDoubleTapCandidate();
+      return;
+    }
+    final press = cap20DoubleTapNow().difference(downAt);
+    if (press > kCap20DoubleTapMaxPress) {
+      _clearDoubleTapCandidate();
+      return;
+    }
+
+    if (awaitingSecond) {
+      _clearDoubleTapCandidate();
+      ref.read(browseMagnificationProvider.notifier).forceFit();
+      return;
+    }
+
+    // First tap completed — wait for second down within the interval.
+    _doubleTapFirstUpAt = cap20DoubleTapNow();
+    _doubleTapFirstDownLocal = downLocal;
+    _doubleTapAwaitingSecondUp = false;
   }
 
   @override
@@ -578,6 +693,8 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
         // Stop release anim / fit matrix — keep pointers so L1→L2 handoff
         // (forceFit mid-gesture) can re-baseline. Mode→none still clears
         // pointers via [_interruptBecauseHostModeCleared].
+        _clearDoubleTapCandidate();
+        _clearActiveTapTracking();
         _resetLocalTransformState(clearPointers: false);
       }
     });

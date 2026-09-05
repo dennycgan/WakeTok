@@ -560,4 +560,259 @@ void main() {
       expect(container.read(mainBrowseFeedIndexProvider), 1);
     },
   );
+
+  Future<ProviderContainer> _pumpStillFeed(WidgetTester tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+      ),
+    );
+    await _pumpFeed(tester);
+    return _feedContainer(tester);
+  }
+
+  Future<void> _pinchMagnify(WidgetTester tester) async {
+    final host = find.byKey(const Key('magnificationPointerHost'));
+    final center = tester.getCenter(host);
+    final g1 = await tester.startGesture(center + const Offset(-40, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    final g2 = await tester.startGesture(center + const Offset(40, 0));
+    await tester.pump();
+    await g1.moveBy(const Offset(-70, 0));
+    await g2.moveBy(const Offset(70, 0));
+    await tester.pump();
+    await g1.up();
+    await g2.up();
+    await tester.pump();
+  }
+
+  // Cap 20.5b uses wall-clock via [cap20DoubleTapNow]; WidgetTester.pump
+  // does not advance DateTime.now — inject a fake clock for interval tests.
+  var doubleTapClock = DateTime.utc(2026, 1, 1);
+
+  void _installDoubleTapClock() {
+    doubleTapClock = DateTime.utc(2026, 1, 1);
+    cap20DoubleTapNow = () => doubleTapClock;
+  }
+
+  void _restoreDoubleTapClock() {
+    cap20DoubleTapNow = DateTime.now;
+  }
+
+  void _advanceDoubleTapClock(Duration delta) {
+    doubleTapClock = doubleTapClock.add(delta);
+  }
+
+  Future<void> _tapAt(
+    WidgetTester tester,
+    Offset global, {
+    Duration press = const Duration(milliseconds: 40),
+  }) async {
+    final g = await tester.startGesture(global);
+    _advanceDoubleTapClock(press);
+    await tester.pump(press);
+    await g.up();
+    await tester.pump();
+  }
+
+  testWidgets('T-20.5b-1 magnified double-tap forceFits via same path as Reset', (
+    tester,
+  ) async {
+    _installDoubleTapClock();
+    addTearDown(_restoreDoubleTapClock);
+    final container = await _pumpStillFeed(tester);
+    await _pinchMagnify(tester);
+    expect(container.read(browseStillMagnifiedProvider), isTrue);
+    expect(container.read(magnificationMatrixProvider).scale, greaterThan(1.5));
+
+    final center = tester.getCenter(
+      find.byKey(const Key('magnificationPointerHost')),
+    );
+    await _tapAt(tester, center);
+    _advanceDoubleTapClock(const Duration(milliseconds: 80));
+    await tester.pump(const Duration(milliseconds: 80));
+    await _tapAt(tester, center);
+
+    expect(container.read(browseStillMagnifiedProvider), isFalse);
+    expect(container.read(magnificationMatrixProvider).scale, kCap20MinScale);
+  });
+
+  testWidgets('T-20.5b-2 double-tap interval over 350ms does not forceFit', (
+    tester,
+  ) async {
+    _installDoubleTapClock();
+    addTearDown(_restoreDoubleTapClock);
+    final container = await _pumpStillFeed(tester);
+    await _pinchMagnify(tester);
+    final center = tester.getCenter(
+      find.byKey(const Key('magnificationPointerHost')),
+    );
+    await _tapAt(tester, center);
+    final gap = kCap20DoubleTapMaxInterval + const Duration(milliseconds: 40);
+    _advanceDoubleTapClock(gap);
+    await tester.pump(gap);
+    await _tapAt(tester, center);
+    expect(container.read(browseStillMagnifiedProvider), isTrue);
+    expect(container.read(magnificationMatrixProvider).scale, greaterThan(1.5));
+  });
+
+  testWidgets('T-20.5b-3 double-tap beyond 24px slop does not forceFit', (
+    tester,
+  ) async {
+    _installDoubleTapClock();
+    addTearDown(_restoreDoubleTapClock);
+    final container = await _pumpStillFeed(tester);
+    await _pinchMagnify(tester);
+    final center = tester.getCenter(
+      find.byKey(const Key('magnificationPointerHost')),
+    );
+    await _tapAt(tester, center);
+    _advanceDoubleTapClock(const Duration(milliseconds: 80));
+    await tester.pump(const Duration(milliseconds: 80));
+    await _tapAt(tester, center + const Offset(kCap20DoubleTapSlop + 8, 0));
+    expect(container.read(browseStillMagnifiedProvider), isTrue);
+  });
+
+  testWidgets('T-20.5b-4 pan/pinch motion cancels double-tap candidate', (
+    tester,
+  ) async {
+    _installDoubleTapClock();
+    addTearDown(_restoreDoubleTapClock);
+    final container = await _pumpStillFeed(tester);
+    await _pinchMagnify(tester);
+    final center = tester.getCenter(
+      find.byKey(const Key('magnificationPointerHost')),
+    );
+
+    // First tap then pan (move beyond cancel slop) — candidate must die.
+    await _tapAt(tester, center);
+    _advanceDoubleTapClock(const Duration(milliseconds: 40));
+    await tester.pump(const Duration(milliseconds: 40));
+    final pan = await tester.startGesture(center);
+    await tester.pump();
+    await pan.moveBy(const Offset(40, 0));
+    await tester.pump();
+    await pan.up();
+    await tester.pump();
+    await _tapAt(tester, center);
+    expect(
+      container.read(browseStillMagnifiedProvider),
+      isTrue,
+      reason: 'tap after pan must not complete a stale double-tap',
+    );
+
+    // Expire the verifying tap's first-candidate before the pinch limb,
+    // otherwise that tap + the next tap would complete a double-tap.
+    _advanceDoubleTapClock(
+      kCap20DoubleTapMaxInterval + const Duration(milliseconds: 40),
+    );
+
+    // Pinch clears candidate: first tap, then two-finger, then one tap.
+    await _tapAt(tester, center);
+    _advanceDoubleTapClock(const Duration(milliseconds: 40));
+    await tester.pump(const Duration(milliseconds: 40));
+    final g1 = await tester.startGesture(center + const Offset(-30, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    final g2 = await tester.startGesture(center + const Offset(30, 0));
+    await tester.pump();
+    await g1.up();
+    await g2.up();
+    await tester.pump();
+    await _tapAt(tester, center);
+    expect(container.read(browseStillMagnifiedProvider), isTrue);
+  });
+
+  testWidgets(
+    'T-20.5b-5 magnified pan starts without double-tap disambiguation delay',
+    (tester) async {
+      _installDoubleTapClock();
+      addTearDown(_restoreDoubleTapClock);
+      final container = await _pumpStillFeed(tester);
+      await _pinchMagnify(tester);
+      final before = container.read(magnificationMatrixProvider).translation;
+      final center = tester.getCenter(
+        find.byKey(const Key('magnificationPointerHost')),
+      );
+
+      final g = await tester.startGesture(center);
+      await tester.pump(); // same frame family — no 300ms wait
+      await g.moveBy(const Offset(30, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+      final after = container.read(magnificationMatrixProvider).translation;
+      await g.up();
+
+      expect(
+        (after - before).distance,
+        greaterThan(5),
+        reason: 'pan must apply within one 16ms pump after down+move '
+            '(no GestureDetector double-tap disambiguation window)',
+      );
+      expect(container.read(browseStillMagnifiedProvider), isTrue);
+    },
+  );
+
+  testWidgets('T-20.5b-6 Reset hit-test path forceFits without Host double-tap', (
+    tester,
+  ) async {
+    _installDoubleTapClock();
+    addTearDown(_restoreDoubleTapClock);
+    final container = await _pumpStillFeed(tester);
+    await _pinchMagnify(tester);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('magnificationResetButton')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('magnificationResetButton')));
+    await tester.pumpAndSettle();
+    expect(container.read(browseStillMagnifiedProvider), isFalse);
+    expect(find.byKey(const Key('magnificationResetButton')), findsNothing);
+  });
+
+  testWidgets('T-20.5b-7 fit-state double-tap does not enter magnification', (
+    tester,
+  ) async {
+    _installDoubleTapClock();
+    addTearDown(_restoreDoubleTapClock);
+    final container = await _pumpStillFeed(tester);
+    expect(container.read(browseStillMagnifiedProvider), isFalse);
+    final center = tester.getCenter(
+      find.byKey(const Key('magnificationPointerHost')),
+    );
+    await _tapAt(tester, center);
+    _advanceDoubleTapClock(const Duration(milliseconds: 80));
+    await tester.pump(const Duration(milliseconds: 80));
+    await _tapAt(tester, center);
+    expect(container.read(browseStillMagnifiedProvider), isFalse);
+    expect(container.read(magnificationMatrixProvider).scale, kCap20MinScale);
+  });
+
+  testWidgets(
+    'T-20.5b-8 forceFit clears pending double-tap candidate (no stale second tap)',
+    (tester) async {
+      _installDoubleTapClock();
+      addTearDown(_restoreDoubleTapClock);
+      final container = await _pumpStillFeed(tester);
+      await _pinchMagnify(tester);
+      final center = tester.getCenter(
+        find.byKey(const Key('magnificationPointerHost')),
+      );
+      await _tapAt(tester, center);
+      _advanceDoubleTapClock(const Duration(milliseconds: 40));
+      await tester.pump(const Duration(milliseconds: 40));
+
+      // Any forceFit source (Reset / leave / panel) must wipe the candidate.
+      container.read(browseMagnificationProvider.notifier).forceFit();
+      await tester.pump();
+      expect(container.read(browseStillMagnifiedProvider), isFalse);
+
+      await _pinchMagnify(tester);
+      expect(container.read(browseStillMagnifiedProvider), isTrue);
+      // Keep fake clock inside the original interval so a stale candidate
+      // would still match — forceFit must have cleared it.
+      await _tapAt(tester, center);
+      expect(container.read(browseStillMagnifiedProvider), isTrue);
+      expect(container.read(magnificationMatrixProvider).scale, greaterThan(1.5));
+    },
+  );
 }
