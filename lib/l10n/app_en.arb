@@ -333,9 +333,9 @@
   "@mainBrowseSavedPoolsMenu": {
     "description": "Cap 21.3 Saved pools dropdown control label"
   },
-  "mainBrowseCreatePool": "Create",
+  "mainBrowseCreatePool": "Create Pool",
   "@mainBrowseCreatePool": {
-    "description": "Cap 21.3 Create control — opens Build a Pool scaffold"
+    "description": "Cap 21.3 Create control — opens the Build a Pool screen"
   },
   "mainBrowseSavedPlaceholderSave": "Save current pool — Coming soon",
   "@mainBrowseSavedPlaceholderSave": {
@@ -359,11 +359,53 @@
   },
   "mainBrowseBuildPoolScaffoldTitle": "Build a Pool",
   "@mainBrowseBuildPoolScaffoldTitle": {
-    "description": "Cap 21.3 Build scaffold AppBar title (full Build UI in 21.4)"
+    "description": "Cap 21 Build a Pool screen AppBar title"
   },
   "mainBrowseBuildPoolScaffoldBody": "Pick albums and sources here in a later step. For now, go back to Browse.",
   "@mainBrowseBuildPoolScaffoldBody": {
-    "description": "Cap 21.3 Build scaffold explanatory body (D1=A)"
+    "description": "Legacy Cap 21.3 placeholder body; unused after 21.4 Build UI (key kept for stability)"
+  },
+  "mainBrowseBuildPoolSectionBuiltIn": "Built-in",
+  "@mainBrowseBuildPoolSectionBuiltIn": {
+    "description": "Unused after Cap 21.4 device round — All/Photos/Videos stay top-tab only (key kept for stability)"
+  },
+  "mainBrowseBuildPoolSectionAlbums": "Albums",
+  "@mainBrowseBuildPoolSectionAlbums": {
+    "description": "Cap 21.4 Build catalog section header for user albums"
+  },
+  "mainBrowseBuildPoolSectionSmartAlbums": "Smart Albums",
+  "@mainBrowseBuildPoolSectionSmartAlbums": {
+    "description": "Cap 21.4 smart-album section header; section hidden until curation + counts land (key kept for stability)"
+  },
+  "mainBrowseBuildPoolSelectedHeading": "Selected ({count}/30)",
+  "@mainBrowseBuildPoolSelectedHeading": {
+    "description": "Cap 21.4 selected-sources heading with count",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "mainBrowseBuildPoolStart": "Start browsing",
+  "@mainBrowseBuildPoolStart": {
+    "description": "Cap 21.4 Start button — parks ephemeral and pops to Browse"
+  },
+  "mainBrowseBuildPoolCatalogLoading": "Loading sources…",
+  "@mainBrowseBuildPoolCatalogLoading": {
+    "description": "Cap 21.4 catalog list while assetSourcesProvider is loading"
+  },
+  "mainBrowseBuildPoolCatalogFailed": "Could not load the source list.",
+  "@mainBrowseBuildPoolCatalogFailed": {
+    "description": "Cap 21.4 catalog AsyncError fallback (no Retry polish in 21.4)"
+  },
+  "mainBrowseBuildPoolEmptySelected": "Select at least one source to start.",
+  "@mainBrowseBuildPoolEmptySelected": {
+    "description": "Cap 21.4 hint when selected list is empty"
+  },
+  "mainBrowseBuildPoolCatalogEmpty": "No albums available.",
+  "@mainBrowseBuildPoolCatalogEmpty": {
+    "description": "Cap 21.4 catalog empty state (e.g. Limited access exposes no albums)"
   },
   "mainBrowseNavBrowse": "Browse",
   "@mainBrowseNavBrowse": {

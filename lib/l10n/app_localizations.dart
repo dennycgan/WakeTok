@@ -549,10 +549,10 @@ abstract class AppLocalizations {
   /// **'Saved'**
   String get mainBrowseSavedPoolsMenu;
 
-  /// Cap 21.3 Create control — opens Build a Pool scaffold
+  /// Cap 21.3 Create control — opens the Build a Pool screen
   ///
   /// In en, this message translates to:
-  /// **'Create'**
+  /// **'Create Pool'**
   String get mainBrowseCreatePool;
 
   /// Cap 21.3 gray Saved-menu row; Cap 22 wires persist (ADR-044 D1)
@@ -585,17 +585,71 @@ abstract class AppLocalizations {
   /// **'Unavailable'**
   String get mainBrowseCompositionPeekUnavailable;
 
-  /// Cap 21.3 Build scaffold AppBar title (full Build UI in 21.4)
+  /// Cap 21 Build a Pool screen AppBar title
   ///
   /// In en, this message translates to:
   /// **'Build a Pool'**
   String get mainBrowseBuildPoolScaffoldTitle;
 
-  /// Cap 21.3 Build scaffold explanatory body (D1=A)
+  /// Legacy Cap 21.3 placeholder body; unused after 21.4 Build UI (key kept for stability)
   ///
   /// In en, this message translates to:
   /// **'Pick albums and sources here in a later step. For now, go back to Browse.'**
   String get mainBrowseBuildPoolScaffoldBody;
+
+  /// Unused after Cap 21.4 device round — All/Photos/Videos stay top-tab only (key kept for stability)
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in'**
+  String get mainBrowseBuildPoolSectionBuiltIn;
+
+  /// Cap 21.4 Build catalog section header for user albums
+  ///
+  /// In en, this message translates to:
+  /// **'Albums'**
+  String get mainBrowseBuildPoolSectionAlbums;
+
+  /// Cap 21.4 smart-album section header; section hidden until curation + counts land (key kept for stability)
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Albums'**
+  String get mainBrowseBuildPoolSectionSmartAlbums;
+
+  /// Cap 21.4 selected-sources heading with count
+  ///
+  /// In en, this message translates to:
+  /// **'Selected ({count}/30)'**
+  String mainBrowseBuildPoolSelectedHeading(int count);
+
+  /// Cap 21.4 Start button — parks ephemeral and pops to Browse
+  ///
+  /// In en, this message translates to:
+  /// **'Start browsing'**
+  String get mainBrowseBuildPoolStart;
+
+  /// Cap 21.4 catalog list while assetSourcesProvider is loading
+  ///
+  /// In en, this message translates to:
+  /// **'Loading sources…'**
+  String get mainBrowseBuildPoolCatalogLoading;
+
+  /// Cap 21.4 catalog AsyncError fallback (no Retry polish in 21.4)
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the source list.'**
+  String get mainBrowseBuildPoolCatalogFailed;
+
+  /// Cap 21.4 hint when selected list is empty
+  ///
+  /// In en, this message translates to:
+  /// **'Select at least one source to start.'**
+  String get mainBrowseBuildPoolEmptySelected;
+
+  /// Cap 21.4 catalog empty state (e.g. Limited access exposes no albums)
+  ///
+  /// In en, this message translates to:
+  /// **'No albums available.'**
+  String get mainBrowseBuildPoolCatalogEmpty;
 
   /// Bottom navigation Browse destination
   ///

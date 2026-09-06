@@ -119,20 +119,25 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
         current.definition == parked;
   }
 
+  /// Cap 21.4 / ADR-044 D6.1: Start Browsing — replace parked and activate.
+  void startEphemeralPool(SourcePoolDefinition definition) {
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginEphemeralPool(definition),
+      parkedEphemeralPool: definition,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+    );
+  }
+
   /// Test injection: set parked without changing [activeOrigin].
   @visibleForTesting
   void debugSetParkedEphemeralPool(SourcePoolDefinition? parked) {
     state = state.copyWithParked(parked);
   }
 
-  /// Test injection: activate an ephemeral Definition (also parks it).
+  /// Test injection: same as [startEphemeralPool] (kept for Cap 21.3 tests).
   @visibleForTesting
   void debugActivateEphemeralPool(SourcePoolDefinition definition) {
-    state = BrowseChromeState(
-      activeOrigin: BrowseOriginEphemeralPool(definition),
-      parkedEphemeralPool: definition,
-      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
-    );
+    startEphemeralPool(definition);
   }
 }
 

@@ -269,7 +269,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseSavedPoolsMenu => 'Saved';
 
   @override
-  String get mainBrowseCreatePool => 'Create';
+  String get mainBrowseCreatePool => 'Create Pool';
 
   @override
   String get mainBrowseSavedPlaceholderSave =>
@@ -293,6 +293,37 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get mainBrowseBuildPoolScaffoldBody =>
       'Pick albums and sources here in a later step. For now, go back to Browse.';
+
+  @override
+  String get mainBrowseBuildPoolSectionBuiltIn => 'Built-in';
+
+  @override
+  String get mainBrowseBuildPoolSectionAlbums => 'Albums';
+
+  @override
+  String get mainBrowseBuildPoolSectionSmartAlbums => 'Smart Albums';
+
+  @override
+  String mainBrowseBuildPoolSelectedHeading(int count) {
+    return 'Selected ($count/30)';
+  }
+
+  @override
+  String get mainBrowseBuildPoolStart => 'Start browsing';
+
+  @override
+  String get mainBrowseBuildPoolCatalogLoading => 'Loading sources…';
+
+  @override
+  String get mainBrowseBuildPoolCatalogFailed =>
+      'Could not load the source list.';
+
+  @override
+  String get mainBrowseBuildPoolEmptySelected =>
+      'Select at least one source to start.';
+
+  @override
+  String get mainBrowseBuildPoolCatalogEmpty => 'No albums available.';
 
   @override
   String get mainBrowseNavBrowse => 'Browse';
@@ -835,7 +866,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseSavedPoolsMenu => '已保存';
 
   @override
-  String get mainBrowseCreatePool => '创建';
+  String get mainBrowseCreatePool => '创建片库';
 
   @override
   String get mainBrowseSavedPlaceholderSave => '保存当前片库 — 即将推出';
@@ -857,6 +888,35 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseBuildPoolScaffoldBody => '后续步骤可在此选择相簿与来源。现在请返回浏览。';
+
+  @override
+  String get mainBrowseBuildPoolSectionBuiltIn => '内置';
+
+  @override
+  String get mainBrowseBuildPoolSectionAlbums => '相簿';
+
+  @override
+  String get mainBrowseBuildPoolSectionSmartAlbums => '智能相簿';
+
+  @override
+  String mainBrowseBuildPoolSelectedHeading(int count) {
+    return '已选（$count/30）';
+  }
+
+  @override
+  String get mainBrowseBuildPoolStart => '开始浏览';
+
+  @override
+  String get mainBrowseBuildPoolCatalogLoading => '正在加载来源…';
+
+  @override
+  String get mainBrowseBuildPoolCatalogFailed => '无法加载来源列表。';
+
+  @override
+  String get mainBrowseBuildPoolEmptySelected => '请至少选择一个来源后再开始。';
+
+  @override
+  String get mainBrowseBuildPoolCatalogEmpty => '没有可选的相簿。';
 
   @override
   String get mainBrowseNavBrowse => '浏览';

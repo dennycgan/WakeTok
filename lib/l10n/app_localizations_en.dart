@@ -272,7 +272,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseSavedPoolsMenu => 'Saved';
 
   @override
-  String get mainBrowseCreatePool => 'Create';
+  String get mainBrowseCreatePool => 'Create Pool';
 
   @override
   String get mainBrowseSavedPlaceholderSave =>
@@ -296,6 +296,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get mainBrowseBuildPoolScaffoldBody =>
       'Pick albums and sources here in a later step. For now, go back to Browse.';
+
+  @override
+  String get mainBrowseBuildPoolSectionBuiltIn => 'Built-in';
+
+  @override
+  String get mainBrowseBuildPoolSectionAlbums => 'Albums';
+
+  @override
+  String get mainBrowseBuildPoolSectionSmartAlbums => 'Smart Albums';
+
+  @override
+  String mainBrowseBuildPoolSelectedHeading(int count) {
+    return 'Selected ($count/30)';
+  }
+
+  @override
+  String get mainBrowseBuildPoolStart => 'Start browsing';
+
+  @override
+  String get mainBrowseBuildPoolCatalogLoading => 'Loading sources…';
+
+  @override
+  String get mainBrowseBuildPoolCatalogFailed =>
+      'Could not load the source list.';
+
+  @override
+  String get mainBrowseBuildPoolEmptySelected =>
+      'Select at least one source to start.';
+
+  @override
+  String get mainBrowseBuildPoolCatalogEmpty => 'No albums available.';
 
   @override
   String get mainBrowseNavBrowse => 'Browse';

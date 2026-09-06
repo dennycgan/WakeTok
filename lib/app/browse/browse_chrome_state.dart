@@ -75,14 +75,17 @@ class BrowseChromeState {
     };
   }
 
-  /// Kind passed into feed pages (built-in tab, or first ref of ephemeral).
+  /// Kind passed into feed pages.
+  ///
+  /// A Pool mixes Albums and media types, so it maps to
+  /// [AssetSourceKind.entireLibrary] — the "probe per item" contract Layer 2
+  /// and Layer 3 already implement (still first, `unsupportedMedia` → video).
+  /// Album / smart-album kinds must never reach feed pages: their Layer 2
+  /// branch is a hard failure (Cap 21.4 device finding).
   AssetSourceKind get feedSourceKind {
     return switch (activeOrigin) {
       BrowseOriginBuiltIn(:final source) => source.kind,
-      BrowseOriginEphemeralPool(:final definition) =>
-        definition.orderedSourceReferences.isNotEmpty
-            ? definition.orderedSourceReferences.first.kind
-            : AssetSourceKind.entireLibrary,
+      BrowseOriginEphemeralPool() => AssetSourceKind.entireLibrary,
     };
   }
 
