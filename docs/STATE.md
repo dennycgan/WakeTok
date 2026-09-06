@@ -171,16 +171,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [x] 21.3 Four-control top chrome (shell + layout + chip + peek)
       Work `67f31b0`: Temp chip · Built-in ▾ · Saved ▾ · Create;
       center-anchored pair; peek via `assetSourcesProvider`; Build
-      scaffold; W-2′ + U-21.3-*. zh product copy **片库** (Cap 7
-      `mainBrowsePoolsTab`); kickoff/GLOSSARY「组合」concept-only.
+      scaffold; W-2′ + U-21.3-*. zh ARB follows Cap 7 pool product-copy
+      convention (`mainBrowsePoolsTab`); kickoff/GLOSSARY concept term
+      is concept-only (not product ARB).
       ADR: D6.4, D7, D1 placeholders.
-- [ ] 21.4 Build a Pool Screen (multi-select / reorder / ≤30 / Start)
-      Albums/smart/built-ins; no Generated Clip; Limited = built-ins
-      only (D2). UI cap at 30; zero sources cannot Start; Build cancel
-      leaves parked/active unchanged. Start success: replace parked,
-      `activeOrigin = ephemeralPool(new)`, resolvePool → Mixed→Shuffle.
-      Partial failure ≥1 item may browse (D5). ADR: D1 No-branch, D2,
-      D4, D5, D6.1, Build Screen clause.
+- [x] 21.4 Build a Pool Screen (multi-select / reorder / ≤30 / Start)
+      Work `74c84e1`: user-album catalog (cover + title + trailing
+      check; Cap 19.5 cover API); ordered selected + Start →
+      `startEphemeralPool` + pop; cancel / system back = D6.1 (no
+      chrome write). Built-ins omitted (top tabs only); smart albums
+      hidden pending curation + non-empty counts. Create label =
+      `mainBrowseCreatePool` (EN Create Pool; zh ARB matches Cap 7
+      pool product-copy convention). Device round: ephemeral
+      `feedSourceKind` → `entireLibrary` (album kind never reaches
+      Layer 2). Limited / no-album list → empty catalog (Build path
+      effectively unusable until albums exist — All/Photos/Videos
+      remain top-tab). U-21.4-1…11. ADR: D1 No-branch, D2, D4, D5,
+      D6.1, Build Screen clause.
 - [ ] 21.5 Pool-path polish (honesty / a11y / dead routes)
       Empty/all-fail/partial-fail copy + Retry bounds (ADR-024).
       Built-in collapsed honesty + a11y when Origin=ephemeral (D7).
@@ -205,14 +212,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       ADR-044 Accepted (from post-21.2 docs) or flip if missed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 21.4 Build a Pool Screen (multi-select / reorder /
-      ≤30 / Start)
-- Sub-steps done: 21.1–21.3; chrome work `67f31b0`; ADR-044 Accepted
-- Next step: 21.4 design / implement Build multi-select + Start →
-      park + ephemeral Origin (product path for Temp chip)
-- Related decisions: ADR-044; debt **444** → 21.6; zh product copy
-      **片库** (not kickoff「组合」/ EN Pool in ARB); Cap 20 residuals
-      **449** / **452** Open
+- Goal (one line): 21.5 Pool-path polish (honesty / a11y / dead routes)
+- Sub-steps done: 21.1–21.4; Build work `74c84e1`; chrome `67f31b0`;
+      ADR-044 Accepted
+- Next step: empty / all-fail / partial-fail copy + Retry bounds;
+      Built-in collapsed honesty + a11y when Origin=ephemeral; no dead
+      routes on Create / chip / Built-in / Saved gray
+- Related decisions: ADR-044; debt **444** → 21.6; zh product-copy
+      convention (see Contract pointers; not EN Pool / kickoff
+      concept term in ARB); Cap 20 residuals **449** / **452** Open;
+      Create chip label length on ≤375pt may need layout polish
+      (not a 21.4 regression — known risk)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -221,12 +231,26 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Completed phase snapshots: docs/PHASE_HISTORY.md (append-only)
 - Pigeon contracts: pigeon/waketok_platform_apis.dart → lib/platform/generated/, ios/Runner/Platform/ (spike under pigeon/spikes/ reference only)
 - l10n: lib/l10n/ (ARB + AppLocalizations; locale_resolution.dart; untranslated_messages.json)
-- **zh Pool product copy:** user-facing Simplified Chinese uses **片库**
-  (Cap 7 `mainBrowsePoolsTab`; Cap 21.3 chrome/scaffold same). Kickoff /
-  GLOSSARY「组合」and English **Pool** are concept / EN-ARB / identifier
-  vocabulary only — do not put EN “Pool” or kickoff「组合」into
-  `app_zh_Hans.arb` product strings (21.4 / Cap 22 Saved copy too).
-  Debug `library_smoke` probe strings may still say Pool.
+- **zh Pool product copy:** Cap 7 / Cap 21 chrome+Build zh ARB strings
+  use the Cap 7 pool product-copy convention (`mainBrowsePoolsTab`,
+  `mainBrowseCreatePool`, Temp chip, Saved placeholders). Kickoff /
+  GLOSSARY concept term and English **Pool** are concept / EN-ARB /
+  identifier vocabulary only — do not put EN “Pool” or the kickoff
+  concept term into `app_zh_Hans.arb` product strings (Cap 22 Saved
+  copy too). Debug `library_smoke` probe strings may still say Pool.
+  (Do not paste locale glyphs into STATE — cite ARB keys.)
+- **Ephemeral pool `feedSourceKind`:** any `BrowseOriginEphemeralPool`
+  maps to `AssetSourceKind.entireLibrary` (`BrowseChromeState.feedSourceKind`;
+  work `74c84e1`). Feed Layer 2 / Live / video fallback only know built-in
+  kinds; passing `album` / `smartAlbum` hard-fails every item (L1 still
+  OK). Not a product fork — restores the mixed-content probe contract.
+  U-21.4-11 locks this. No separate ADR (ADR-044 already Accepted).
+- **Limited / empty Build catalog:** Cap 21.4 catalog lists **user albums
+  only**. Limited (or any grant with zero listable albums) shows the empty
+  catalog copy — Start stays disabled. Expected: Build-a-Pool is
+  effectively unusable until albums exist; browsing All / Photos / Videos
+  remains via top Built-in tabs. Smart-album section stays hidden until
+  Host curation + non-empty counts (later discussion).
 - Localization guard: ADR-012 + test/architecture/localization_test.dart
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
@@ -504,8 +528,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 398 | Closed | Main Browse Screen |  | Leave Browse (Settings/Clips/Auto) then return: queue-head page may show black + gold spinner with no Layer 1 still/poster | **Closed by 15.3** (`962b6d1` / ADR-031 Q2): same `_loading` miss chrome as debt **399**, now `_FeedCornerChrome` not centered. Black wait until Layer 1 still exists (ADR-025); 14.4e remount at index 0 can still land on a miss head (Shuffle). Kafka 2026-08-20 device: miss = corner spinner; library loading still centered. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-027 / ADR-031 |
 | 399 | Closed | Main Browse Screen |  | Layer 1 miss (`_loading`) still uses a **centered** brand-gold spinner (`mainBrowseFeedPageLoading`); 14.6b only moved Layer 2 / Live-prepare chrome to bottom-right when a still/poster already exists | **Closed by 15.3** (`962b6d1` / ADR-031 Q2): miss page is `feedBackground` + `_FeedCornerChrome`; no delay-before-show; new ARB `mainBrowseFeedLayer1Loading`. Library resolve `mainBrowseFeedLoading` stays centered. Kafka device PASS. Debt **436** not in this close. | Closed by Cap 15.3 (ADR-031) | ADR-025 / ADR-019 / ADR-031 |
 | 430 | Closed | Main Browse Screen |  | **Center Layer2Waiting (`mainBrowseFeedLayer2Waiting` / “Loading…”) necessity unclear — separate from Layer1Loading and corner reassure** | **Closed by 17.9** (`f1ffadf` / ADR-039): owner option **A** — deleted runtime center copy and ARB key; coverless L2 keeps corner spinner + `mainBrowseFeedLayer3Loading` semantics; corner reassure policy unchanged (`shouldShowLayer2CornerReassure`; `W-17.5b-covered` / coverless ≥3s tests updated). Fixed coverless re-enter `_loading` before L2 in-flight arm (hold/startLoad race). Guard option B (L1-miss→L2 center copy) **not** wired. | Closed by Cap 17.9 (ADR-039) | ADR-034 / ADR-036 |
-| 431 | Closed | Main Browse Screen |  | All / Photos / Videos quick tab switch flashes one frame center Layer1Loading (“Loading item” / “正在加载此项”) | **Closed by 17.9** (`f1ffadf` / ADR-039): source-switch-only 150 ms delay hides **visible** center copy on first current page after tab change; corner spinner + VoiceOver `mainBrowseFeedLayer1Loading` semantics stay immediate. Vertical swipe / cold start unchanged. Kafka Profile owner验收 PASS (4-step). | Closed by Cap 17.9 (ADR-039) | ADR-039 |
-| 432 | Open | Main Browse Screen |  | All / Photos / Videos quick tab switch may flash one frame feed-shell `mainBrowseFeedLoading` (“Loading library…” / “正在加载图库…”) | **Optional polish (retained).** Tab change starts a new Consumption Session (`browseSessionProvider` reload); cached snapshots typically ≤1–2 frames of shell loading. Semantically distinct from page Layer1 copy (17.9 closed rows above). Owner rejected blank-hold polish (empty feed color reads as bug/stutter). Alternatives (`skipLoadingOnReload`, cache-hit synchronous session swap, delayed whole-screen library chrome) unevaluated. | Unassigned | ADR-023 D8 / ADR-039 |
+| 431 | Closed | Main Browse Screen |  | All / Photos / Videos quick tab switch flashes one frame center Layer1Loading (`mainBrowseFeedLayer1Loading`) | **Closed by 17.9** (`f1ffadf` / ADR-039): source-switch-only 150 ms delay hides **visible** center copy on first current page after tab change; corner spinner + VoiceOver `mainBrowseFeedLayer1Loading` semantics stay immediate. Vertical swipe / cold start unchanged. Kafka Profile owner acceptance PASS (4-step). | Closed by Cap 17.9 (ADR-039) | ADR-039 |
+| 432 | Open | Main Browse Screen |  | All / Photos / Videos quick tab switch may flash one frame feed-shell `mainBrowseFeedLoading` | **Optional polish (retained).** Tab change starts a new Consumption Session (`browseSessionProvider` reload); cached snapshots typically ≤1–2 frames of shell loading. Semantically distinct from page Layer1 copy (17.9 closed rows above). Owner rejected blank-hold polish (empty feed color reads as bug/stutter). Alternatives (`skipLoadingOnReload`, cache-hit synchronous session swap, delayed whole-screen library chrome) unevaluated. | Unassigned | ADR-023 D8 / ADR-039 |
 | 400 | Accepted (permanent) | Main Browse Screen |  | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`9eef9db`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. **Cap 17.4 (`c3aa2dc`):** coverless wait **visibility** improved (centered copy + corner spinner); **residual black accepted** (ADR-034 Decision 3). **Cap 17.8 close-out:** row remains on the table as accepted residual (permanent) — Host cannot invent pixels; no further fix or upgrade scheduled; not Cap 17 unfinished work. | Unassigned | ADR-025 / ADR-006 / ADR-031 / ADR-034 |
 | 433 | Closed | Media Info Overlay |  | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Closed by Cap 17.7** (`d9db8c7` / ADR-038): product goal changed from minute-level Photos wall-clock match to **honest approximate** presentation — row 2 `~ Y-M-D` and row 1 coarse short bands from `creationDate` local calendar only; ±1 calendar day vs Photos at import/timezone edges **accepted** (not a bug to chase in Overlay). Rows share honesty stance but are **not** guaranteed numerically consistent with each other or with Photos for cross-check. Minute-level Host/EXIF attempt reverted (`2c0a090`); archive `docs/private/cap17-7-minute-wall-clock-archive/`. Device smoke PASS iPhone13pro Kafka. Cap 19 long-press info may revisit with disclaimer. | Closed by Cap 17.7 | ADR-038; Cap 8 Overlay / ADR-014 family |
 | 434 | Closed | Main Browse Screen |  | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer. **Closed by Cap 18.4** (`0df9ceb` / ADR-040 Decision 4 supplement + Decision 12): lifecycle leave is mechanical pause only (preserves intent); foreground resume auto-plays when intent preserved (respect mute). User tap-pause before interrupt stays paused with center affordance + tap resume. Supersedes the Cap 18.1 draft that required foreground stay paused until tap. No lock-aware special-case code. | Closed by Cap 18.4 (ADR-040) | ADR-006 / ADR-040 |
