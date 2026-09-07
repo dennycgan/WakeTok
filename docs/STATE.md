@@ -97,8 +97,9 @@
 - [x] Display magnification (pinch to zoom, lightweight) (Cap 20 /
       ADR-043; L2 still persistent + Reset; L1 + video L2 transient;
       D5=4×; `docs/acceptance/cap20-*.md`; PHASE_HISTORY)
-- [ ] Build a Pool, Ephemeral Pool, and Source ordering <-- YOU ARE HERE
-- [ ] Saved Pool persistence, reopen, management, and capacity limits
+- [x] Build a Pool, Ephemeral Pool, and Source ordering (Cap 21 /
+      ADR-044…045; `docs/acceptance/cap21-*.md`; PHASE_HISTORY)
+- [ ] Saved Pool persistence, reopen, management, and capacity limits <-- YOU ARE HERE
 - [ ] Current-asset still-in-library gate for mutation chrome
       (canonical Photos-existence signal for Favorites / Cap 19
       Add-to-Album / left-swipe; shared unavailable dialog; same
@@ -159,113 +160,23 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Build a Pool, Ephemeral Pool, and Source ordering
-Contract: ADR-044 Accepted (`a695d2f`; Proposed docs `2b7ab4d`)
-Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+Active capability: Saved Pool persistence, reopen, management, and capacity limits
 
-- [x] 21.1 Contract freeze — ADR-044 Proposed
-      D1–D7 + D6.1–D6.4 locked: BrowseChromeState
-      (`activeOrigin` + `parkedEphemeralPool`), four-control chrome
-      (supersedes kickoff Pool Picker Sheet primary entry), Snapshot
-      cache key = ordered SourceReference fingerprint, debt **444**
-      feed-path remap only, 4 files / **6** call-site migration targets
-      for 21.2 (not migrated in 21.1). Docs `2b7ab4d`.
-- [x] 21.2 BrowseChromeState + 6 call-site migration + fingerprint cache
-      Work `a695d2f`: BrowseChromeState + Origin equality; Session /
-      restartSession / feed-index / L2-ready / feed keys on
-      `activeOrigin`; `mainBrowseSelectedSourceProvider` watches
-      chrome projection; fingerprint `keyForRefs`. Product path
-      built-in-only equivalent. ADR-044 Accepted (same docs commit).
-      Debt **454** Closed (test assert aligned to `81904e1`; not 21.2).
-      ADR: D4, D6.1–D6.3.
-- [x] 21.3 Four-control top chrome (shell + layout + chip + peek)
-      Work `67f31b0`: Temp chip · Built-in ▾ · Saved ▾ · Create;
-      center-anchored pair; peek via `assetSourcesProvider`; Build
-      scaffold; W-2′ + U-21.3-*. zh ARB follows Cap 7 pool product-copy
-      convention (`mainBrowsePoolsTab`); kickoff/GLOSSARY concept term
-      is concept-only (not product ARB).
-      ADR: D6.4, D7, D1 placeholders.
-- [x] 21.4 Build a Pool Screen (multi-select / reorder / ≤30 / Start)
-      Work `74c84e1`: user-album catalog (cover + title + trailing
-      check; Cap 19.5 cover API); ordered selected + Start →
-      `startEphemeralPool` + pop; cancel / system back = D6.1 (no
-      chrome write). Built-ins omitted (top tabs only); smart albums
-      hidden pending curation + non-empty counts. Create label =
-      `mainBrowseCreatePool` (EN Create Pool; zh ARB matches Cap 7
-      pool product-copy convention). Device round: ephemeral
-      `feedSourceKind` → `entireLibrary` (album kind never reaches
-      Layer 2). Limited / no-album list → empty catalog (Build path
-      effectively unusable until albums exist — All/Photos/Videos
-      remain top-tab). U-21.4-1…11. ADR: D1 No-branch, D2, D4, D5,
-      D6.1, Build Screen clause.
-- [x] 21.4b Smart albums in Build catalog (ADR-044 §11)
-      Work `67cb08b`: brute subtype enum (not `.any` alone); DTO
-      `collectionSubtype`; whitelist + explicit excludes (incl. Slo-mo
-      208); `smartAlbumsWithContent` (`fetchLimit = 1`); independent
-      smart-section loading; ARB My Albums / System Albums; immersive
-      dark Build + peek; catalog:selected 9:4; cover-route user-intent
-      pause (center play ready on return). Built-ins stay omitted from
-      Build (Accepted deviation vs ADR-044 §11 literal). Boundary:
-      `docs/reference/cap21-smart-album-boundary.md`. No new ADR.
-- [x] 21.5 Pool-path polish (honesty / a11y / dead routes)
-      Work `80128a3`. Separate closes (not one lump):
-      (1) **D5 presentation:** no Main Browse push banner for
-      partial sources; pull-only honesty via composition peek
-      (+ Cap 22 Saved row later). ADR-045.
-      (2) **Partial Snapshot cache:** non-empty coalesced lists may
-      cache even with source hard-fail; `_hasHardFailure` unchanged
-      for ADR-025 D8 empty auto-retry (not ADR-024 empty bounds).
-      (3) **P4 Build catalog freshness:** open Build /
-      `invalidate(assetSourcesProvider)`; cover request 3s timeout →
-      placeholder (found in 21.5 device soak; not original D5/D7
-      scope).
-      (4) **P5 Limited Create:** Create disabled +
-      `mainBrowseCreatePoolRequiresFullAccess` caption; extends
-      Limited empty-Build Accepted deviation (ADR-044 D2 / 21.4b).
-      (5) **Peek label freeze:** Start-time
-      `parkedCompositionLabels`; missing source never shows PhotoKit
-      id.
-      (6) **Peek non-modal:** Overlay dismiss on outside tap /
-      vertical drag (gesture pass-through = manual acceptance;
-      Cap 21.3 menu-block precedent).
-      (7) **Peek suffix matrix:** Removed from Photos /
-      Requires Full Access by list match + Limited vs Full (ARB
-      keys); empty = name only.
-      (8) **List lag note for Cap 22:** see Contract pointers +
-      debt **455**. Built-in ephemeral Semantics (D7). Saved gray
-      placeholders non-navigating. Debt **444** remains → 21.6.
-- [x] 21.6 debt 444 — honest feed failure
-      Work `a448989`. Feed-only remap: Host `assetUnavailable` →
-      `FeedFailureReason.assetUnavailable` + `mainBrowseFeedUnavailable`;
-      hide Retry; hide Media Info Overlay while `_loading` or unavailable;
-      dim Cap 19 entry via `mainBrowseCurrentAssetHostUnavailableProvider`
-      (ADR-042 Decision 7). Overlay hide + Cap 19 entry dim reuse the
-      feed fail signal only — interim chrome before debt **456** Part B
-      still-in-library Cap (not a Photos-existence probe). D3-B Out; no
-      observer Queue rebuild; Cap 19 mutation mapping untouched. Device
-      smoke PASS (Kafka Profile). Residual: debt **456** (L2-ready /
-      panel liveness), **457** (Host wire-code collapse). ADR-044 D3
-      (no new ADR).
-- [x] 21.7 Device acceptance
-      Work `701bb00` (U-21.7-C Leave Browse chrome guard). Owner PASS
-      2026-09-08: Kafka primary A/B/C/F/G/H/I; i17 short C/G/I; D/E
-      SKIP (U-21.4). Notes `docs/acceptance/cap21-21.7-notes.md`.
-      Residuals **456** / **457** remain Open. ADR: D2, D3, D6.1–D6.3,
-      D6.4, D7 (no new ADR).
-- [ ] 21.8 Cap close-out
-      Cap `[x]`; YOU ARE HERE → Saved Pool persistence…; PHASE_HISTORY
-      snapshot; debt **444** Closed by Cap 21.6 (`a448989`); confirm
-      ADR-044 Accepted (from post-21.2 docs) or flip if missed.
+> Cap internal phases are not yet owner-approved in STATE. Expand this
+> section after kickoff / scope review — do not invent phases here.
+> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 21.8 Cap 21 close-out
-- Sub-steps done: 21.1–21.7; U-21.7-C work `701bb00`; device PASS
-      notes `cap21-21.7-notes.md`
-- Next step: Capability `[x]`; YOU ARE HERE → Saved Pool; PHASE_HISTORY
-      snapshot; confirm ADR-044 Accepted / debt **444** Closed note
-- Related decisions: ADR-044; ADR-045; debt **444** Closed by 21.6;
-      **455** → Cap 22; **456** / **457** Open (21.6 residuals);
-      Cap 20 residuals **449** / **452** Open
+- Goal (one line): Saved Pool scope gate — owner-approved Phase
+      Roadmap TBD
+- Sub-steps done: Cap 21 complete (`docs/PHASE_HISTORY.md`; acceptance
+      `docs/acceptance/cap21-*.md`; ADR-044 / ADR-045; debt **444**
+      Closed by Cap 21.6)
+- Next step: owner kickoff / scope review for Saved Pool phases
+      before coding
+- Related decisions: Cap 21 close debts — **444** Closed; **455** Open
+      → Cap 22 design; **456** / **457** Open; Cap 20 residuals **449** /
+      **452** Open; still-in-library Cap after Cap 22 (456 Part B)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):

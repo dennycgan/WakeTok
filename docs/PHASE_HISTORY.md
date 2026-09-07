@@ -1080,3 +1080,46 @@ Forward-pointer only. Does **not** edit the Cap 20 entry above.
   Cap 20 entry above, has moved to
   `docs/reference/media-chrome-layout-notes.md`. Original Cap 20 entry
   text is unchanged. Live Contract pointers: `docs/STATE.md`.
+
+---
+
+## Build a Pool, Ephemeral Pool, and Source ordering (Cap 21) — 2026-09-08
+
+- [x] 21.1 Contract freeze — ADR-044 Proposed
+      — docs `2b7ab4d`; D1–D7 + D6.1–D6.4 locked
+- [x] 21.2 BrowseChromeState + 6 call-site migration + fingerprint cache
+      — work `a695d2f`; ADR-044 Accepted (docs `8514c16`); debt **454**
+        Closed (test assert; not 21.2 product)
+- [x] 21.3 Four-control top chrome (shell + layout + chip + peek)
+      — work `67f31b0`; W-2′ + U-21.3-*
+- [x] 21.4 Build a Pool Screen (multi-select / reorder / ≤30 / Start)
+      — work `74c84e1`; U-21.4-1…11; ephemeral `feedSourceKind` →
+        `entireLibrary`
+- [x] 21.4b Smart albums in Build catalog (ADR-044 §11)
+      — work `67cb08b`; boundary
+        `docs/reference/cap21-smart-album-boundary.md`; built-ins omitted
+        from Build (Accepted deviation)
+- [x] 21.5 Pool-path polish (honesty / a11y / dead routes)
+      — work `80128a3`; ADR-045 Accepted (`c923bce`); debt **455**
+        opened → Cap 22; ZH Full Access align `8c2be08`
+- [x] 21.6 debt 444 — honest feed failure
+      — work `a448989`; debt **444** Closed; residuals **456** /
+        **457** Open; notes via STATE + Cap 21.6 device smoke
+- [x] 21.7 Device acceptance
+      — work `701bb00` (U-21.7-C); docs `b6a0bdc`; notes
+        `docs/acceptance/cap21-21.7-notes.md`; Kafka primary
+        A/B/C/F/G/H/I + i17 short C/G/I PASS; D/E SKIP (U-21.4)
+- [x] 21.8 Cap close-out: Cap 21 `[x]`; YOU ARE HERE → Saved Pool
+      persistence…; PHASE_HISTORY this snapshot; ADR-044 / ADR-045
+      already Accepted; debt **444** Closed by Cap 21.6 (`a448989`)
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-044 (`a695d2f`; Proposed `2b7ab4d`); ADR-045
+(`80128a3`).
+Known debt at close: **444** Closed by Cap 21.6; **454** Closed;
+**455** Open → Cap 22; **456** / **457** Open (21.6 residuals);
+still-in-library Cap after Cap 22 (456 Part B); Cap 20 residuals
+**449** / **452** Open. Do not flip **455** / **456** / **457** in
+this close-out.
