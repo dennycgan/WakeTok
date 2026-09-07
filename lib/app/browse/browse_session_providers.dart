@@ -71,6 +71,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
       activeOrigin: BrowseOriginBuiltIn(SourceReference.all),
       parkedEphemeralPool: null,
       lastRememberedBuiltIn: SourceReference.all,
+      parkedCompositionLabels: null,
     );
   }
 
@@ -85,6 +86,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
       activeOrigin: BrowseOriginBuiltIn(next),
       parkedEphemeralPool: state.parkedEphemeralPool,
       lastRememberedBuiltIn: next,
+      parkedCompositionLabels: state.parkedCompositionLabels,
     );
   }
 
@@ -107,6 +109,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
       activeOrigin: BrowseOriginEphemeralPool(parked),
       parkedEphemeralPool: parked,
       lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: state.parkedCompositionLabels,
     );
   }
 
@@ -120,11 +123,30 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
   }
 
   /// Cap 21.4 / ADR-044 D6.1: Start Browsing — replace parked and activate.
-  void startEphemeralPool(SourcePoolDefinition definition) {
+  ///
+  /// [compositionLabels] must match [definition.orderedSourceReferences]
+  /// length when non-null (Cap 21.5 peek name freeze).
+  void startEphemeralPool(
+    SourcePoolDefinition definition, {
+    List<String>? compositionLabels,
+  }) {
+    if (compositionLabels != null &&
+        compositionLabels.length !=
+            definition.orderedSourceReferences.length) {
+      throw ArgumentError.value(
+        compositionLabels.length,
+        'compositionLabels.length',
+        'must match orderedSourceReferences '
+            '(${definition.orderedSourceReferences.length})',
+      );
+    }
     state = BrowseChromeState(
       activeOrigin: BrowseOriginEphemeralPool(definition),
       parkedEphemeralPool: definition,
       lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: compositionLabels == null
+          ? null
+          : List<String>.unmodifiable(compositionLabels),
     );
   }
 
@@ -136,8 +158,11 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
 
   /// Test injection: same as [startEphemeralPool] (kept for Cap 21.3 tests).
   @visibleForTesting
-  void debugActivateEphemeralPool(SourcePoolDefinition definition) {
-    startEphemeralPool(definition);
+  void debugActivateEphemeralPool(
+    SourcePoolDefinition definition, {
+    List<String>? compositionLabels,
+  }) {
+    startEphemeralPool(definition, compositionLabels: compositionLabels);
   }
 }
 
@@ -418,13 +443,19 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     List<SourceReference> orderedRefs,
     ResolvedPoolSnapshot snapshot,
   ) {
-    // ADR-014 D5: cache successes only. Cap 13.8 / ADR-024: do not cache
-    // empty coalesced lists or mapped Failed.
-    if (!_hasHardFailure(snapshot) && snapshot.coalescedAssetIds.isNotEmpty) {
+    // Cap 21.5 / ADR-024: never cache empty coalesced lists. Non-empty may
+    // cache even when some sources hard-failed (partial pool still playable).
+    // Do **not** gate this on [_hasHardFailure] — that predicate stays only
+    // for ADR-025 D8 empty auto-retry via [_shouldRetryEmpty].
+    if (snapshot.coalescedAssetIds.isNotEmpty) {
       cache.putForRefs(orderedRefs, snapshot);
     }
   }
 
+  /// True when any source mapped to unauthorized / unavailable.
+  ///
+  /// Used only by [_shouldRetryEmpty] (ADR-025 D8). Cap 21.5 partial-cache
+  /// must not rewrite this predicate.
   bool _hasHardFailure(ResolvedPoolSnapshot snapshot) {
     return snapshot.sourceStatuses.any(
       (s) =>

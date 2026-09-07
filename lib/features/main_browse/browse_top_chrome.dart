@@ -1,15 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/asset_source.dart';
-import 'package:waketok/domain/source/asset_source_availability.dart';
-import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/build_pool_scaffold_page.dart';
+import 'package:waketok/features/main_browse/build_pool_smart_catalog.dart';
+import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
-import 'package:waketok/features/main_browse/smart_album_labels.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 21.3 four-control top chrome (ADR-044 D6.4 / D7).
@@ -30,13 +33,17 @@ class BrowseTopChrome extends ConsumerWidget {
         origin is BrowseOriginEphemeralPool &&
         origin.definition == parked;
 
+    final createEnabled =
+        ref.watch(photosAuthorizationProvider).value != PhotosAccess.limited;
+    final chromeHeight = createEnabled ? 52.0 : 70.0;
+
     return Material(
       key: const Key('mainBrowseTopSourceChrome'),
       color: Colors.transparent,
       child: SafeArea(
         bottom: false,
         child: SizedBox(
-          height: 52,
+          height: chromeHeight,
           child: Stack(
             children: [
               Align(
@@ -77,9 +84,14 @@ class BrowseTopChrome extends ConsumerWidget {
                 right: 8,
                 top: 4,
                 child: _CreateControl(
+                  enabled: createEnabled,
                   onTap: () {
-                    final cover = ref
-                        .read(browseCoveringRouteOpenProvider.notifier);
+                    // Cap 21.5 P4: refresh catalog when opening Build so
+                    // deleted albums do not linger from a stale FutureProvider.
+                    ref.invalidate(assetSourcesProvider);
+                    ref.invalidate(buildPoolSmartCatalogProvider);
+                    final cover =
+                        ref.read(browseCoveringRouteOpenProvider.notifier);
                     cover.setOpen(true);
                     Navigator.of(context)
                         .push(
@@ -108,24 +120,12 @@ class BrowseTopChrome extends ConsumerWidget {
       await showCompositionPeekPopover(
         context: context,
         parked: parked,
+        frozenLabels: ref.read(browseChromeStateProvider).parkedCompositionLabels,
       );
       return;
     }
     ref.read(browseChromeStateProvider.notifier).resumeParkedEphemeral();
   }
-}
-
-String builtInDisplayLabel(AppLocalizations l10n, SourceReference source) {
-  if (source == SourceReference.all) {
-    return l10n.libraryRowAll;
-  }
-  if (source == SourceReference.photos) {
-    return l10n.libraryRowPhotos;
-  }
-  if (source == SourceReference.videos) {
-    return l10n.libraryRowVideos;
-  }
-  return source.id;
 }
 
 class _TempPoolChip extends StatelessWidget {
@@ -160,26 +160,64 @@ class _TempPoolChip extends StatelessWidget {
 }
 
 class _CreateControl extends StatelessWidget {
-  const _CreateControl({required this.onTap});
+  const _CreateControl({
+    required this.onTap,
+    required this.enabled,
+  });
 
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return InkWell(
-      key: const Key('mainBrowseCreatePool'),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Text(
-          l10n.mainBrowseCreatePool,
-          style: tokens.labelOnMedia.copyWith(
-            color: tokens.onMediaMuted,
-            shadows: tokens.onMediaLabelShadows,
+    // Cap 21.5 P5: Limited — Create is disabled (Build catalog has no
+    // albums after Cap 21.4 Q3; STATE Accepted deviation).
+    final color = enabled
+        ? tokens.onMediaMuted
+        : tokens.onMediaMuted.withValues(alpha: 0.35);
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: enabled
+          ? l10n.mainBrowseCreatePool
+          : '${l10n.mainBrowseCreatePool}. ${l10n.mainBrowseCreatePoolRequiresFullAccess}',
+      child: Column(
+        key: const Key('mainBrowseCreatePoolColumn'),
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          InkWell(
+            key: const Key('mainBrowseCreatePool'),
+            onTap: enabled ? onTap : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Text(
+                l10n.mainBrowseCreatePool,
+                style: tokens.labelOnMedia.copyWith(
+                  color: color,
+                  shadows: tokens.onMediaLabelShadows,
+                ),
+              ),
+            ),
           ),
-        ),
+          if (!enabled)
+            Padding(
+              padding: const EdgeInsets.only(right: 10, bottom: 2),
+              child: Text(
+                key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
+                l10n.mainBrowseCreatePoolRequiresFullAccess,
+                textAlign: TextAlign.end,
+                style: tokens.labelOnMedia.copyWith(
+                  fontSize: 9,
+                  height: 1.1,
+                  color: color,
+                  shadows: tokens.onMediaLabelShadows,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -203,27 +241,41 @@ class _BuiltInControl extends StatelessWidget {
     final label = builtInDisplayLabel(l10n, remembered);
     final color =
         highlightAsSelected ? tokens.accent : tokens.onMediaMuted;
-    return InkWell(
-      key: const Key('mainBrowseBuiltInMenu'),
-      onTap: () => _openBuiltInOverlay(context),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: tokens.labelOnMedia.copyWith(
-                color: color,
-                shadows: tokens.onMediaLabelShadows,
-              ),
+    // Cap 21.5 D7: when Origin is ephemeral, visual chrome is muted and
+    // VoiceOver must not announce Built-in as selected for the remembered
+    // tab — announce that browsing is the Temp Pool instead.
+    final semanticsLabel = highlightAsSelected
+        ? label
+        : l10n.mainBrowseBuiltInWhileEphemeralSemantics(label);
+    return Semantics(
+      key: const Key('mainBrowseBuiltInMenuSemantics'),
+      button: true,
+      selected: highlightAsSelected,
+      label: semanticsLabel,
+      child: ExcludeSemantics(
+        child: InkWell(
+          key: const Key('mainBrowseBuiltInMenu'),
+          onTap: () => _openBuiltInOverlay(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: tokens.labelOnMedia.copyWith(
+                    color: color,
+                    shadows: tokens.onMediaLabelShadows,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_drop_down,
+                  size: 18,
+                  color: color,
+                ),
+              ],
             ),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 18,
-              color: color,
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -405,48 +457,88 @@ Future<T?> _showChromeMenuOverlay<T>({
   );
 }
 
-/// Lightweight composition peek anchored under the temp chip (D2: lighter
-/// than Built-in/Saved overlay). Uses [assetSourcesProvider] for names.
+/// Cap 21.5: non-modal composition peek (lighter than Built-in/Saved overlay).
+///
+/// Vertical drag / tap outside dismisses so Browse feed can keep scrolling.
+/// Manual device check for gesture pass-through; automated tests cover
+/// tap-outside and chip re-open dismiss paths where practical.
 Future<void> showCompositionPeekPopover({
   required BuildContext context,
   required SourcePoolDefinition parked,
+  List<String>? frozenLabels,
 }) {
-  return showGeneralDialog<void>(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: AppLocalizations.of(context)!.mainBrowseCompositionPeekTitle,
-    barrierColor: Colors.black.withValues(alpha: 0.35),
-    transitionDuration: const Duration(milliseconds: 100),
-    pageBuilder: (dialogContext, animation, secondaryAnimation) {
-      // Overlay sits under MaterialApp theme; force Browse immersive dark
-      // so Light mode cannot white-on-white the peek card.
-      final darkTheme = waketokTheme(Brightness.dark);
+  final overlay = Overlay.of(context);
+  final completer = Completer<void>();
+  late OverlayEntry entry;
+
+  void dismiss() {
+    if (completer.isCompleted) {
+      return;
+    }
+    entry.remove();
+    completer.complete();
+  }
+
+  final darkTheme = waketokTheme(Brightness.dark);
+  entry = OverlayEntry(
+    builder: (overlayContext) {
       return Theme(
         data: darkTheme,
-        child: SafeArea(
-          child: Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 56, 48, 0),
-              child: _CompositionPeekCard(parked: parked),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Listener(
+                behavior: HitTestBehavior.translucent,
+                onPointerDown: (_) => dismiss(),
+                onPointerMove: (event) {
+                  if (event.delta.dy.abs() >= 4) {
+                    dismiss();
+                  }
+                },
+              ),
             ),
-          ),
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 56, 48, 0),
+                  child: GestureDetector(
+                    // Absorb taps on the card so they do not hit the
+                    // translucent dismiss layer underneath.
+                    onTap: () {},
+                    child: _CompositionPeekCard(
+                      parked: parked,
+                      frozenLabels: frozenLabels,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       );
     },
   );
+  overlay.insert(entry);
+  return completer.future;
 }
 
 class _CompositionPeekCard extends ConsumerWidget {
-  const _CompositionPeekCard({required this.parked});
+  const _CompositionPeekCard({
+    required this.parked,
+    this.frozenLabels,
+  });
 
   final SourcePoolDefinition parked;
+  final List<String>? frozenLabels;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final asyncSources = ref.watch(assetSourcesProvider);
+    final access = ref.watch(photosAuthorizationProvider).value;
+    final refs = parked.orderedSourceReferences;
 
     return Material(
       key: const Key('mainBrowseCompositionPeek'),
@@ -471,11 +563,17 @@ class _CompositionPeekCard extends ConsumerWidget {
                   data: (sources) => ListView(
                     shrinkWrap: true,
                     children: [
-                      for (final ref in parked.orderedSourceReferences)
+                      for (var i = 0; i < refs.length; i++)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Text(
-                            _peekLineLabel(l10n, ref, sources),
+                            compositionPeekLine(
+                              l10n: l10n,
+                              access: access,
+                              reference: refs[i],
+                              catalog: sources,
+                              frozenLabel: _frozenAt(i),
+                            ),
                             style: tokens.bodyOnMedia.copyWith(
                               color: tokens.onMediaMuted,
                             ),
@@ -492,7 +590,7 @@ class _CompositionPeekCard extends ConsumerWidget {
                     ),
                   ),
                   error: (_, _) => Text(
-                    l10n.mainBrowseCompositionPeekUnavailable,
+                    l10n.mainBrowseCompositionPeekUnknownSource,
                     style: tokens.bodyOnMedia.copyWith(
                       color: tokens.onMediaMuted,
                     ),
@@ -506,37 +604,12 @@ class _CompositionPeekCard extends ConsumerWidget {
     );
   }
 
-  String _peekLineLabel(
-    AppLocalizations l10n,
-    SourceReference reference,
-    List<AssetSource> sources,
-  ) {
-    final builtIn = builtInDisplayLabel(l10n, reference);
-    if (reference == SourceReference.all ||
-        reference == SourceReference.photos ||
-        reference == SourceReference.videos) {
-      return builtIn;
+  String? _frozenAt(int index) {
+    final frozen = frozenLabels;
+    if (frozen == null || index < 0 || index >= frozen.length) {
+      return null;
     }
-    AssetSource? match;
-    for (final source in sources) {
-      if (source.kind == reference.kind && source.id == reference.id) {
-        match = source;
-        break;
-      }
-    }
-    if (match == null) {
-      return '$builtIn (${l10n.mainBrowseCompositionPeekUnavailable})';
-    }
-    final subtype = match.collectionSubtype;
-    final name = match.kind == AssetSourceKind.smartAlbum && subtype != null
-        ? smartAlbumDisplayLabel(l10n, subtype)
-        : (match.displayName.isEmpty ? builtIn : match.displayName);
-    final unavailable =
-        match.availability != AssetSourceAvailability.available &&
-            match.availability != AssetSourceAvailability.empty;
-    if (unavailable || match.availability == AssetSourceAvailability.empty) {
-      return '$name (${l10n.mainBrowseCompositionPeekUnavailable})';
-    }
-    return name;
+    final value = frozen[index];
+    return value.isEmpty ? null : value;
   }
 }

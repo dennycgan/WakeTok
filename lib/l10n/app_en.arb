@@ -325,6 +325,15 @@
   "@mainBrowseTempPoolChip": {
     "description": "Cap 21.3 fixed short label for parked ephemeral Pool chip (ADR-044 D7)"
   },
+  "mainBrowseBuiltInWhileEphemeralSemantics": "{builtInLabel}. Currently browsing Temp Pool.",
+  "@mainBrowseBuiltInWhileEphemeralSemantics": {
+    "description": "VoiceOver for Built-in control while Origin is ephemeral Temp Pool",
+    "placeholders": {
+      "builtInLabel": {
+        "type": "String"
+      }
+    }
+  },
   "mainBrowseBuiltInMenu": "Built-in",
   "@mainBrowseBuiltInMenu": {
     "description": "Cap 21.3 Built-in dropdown affordance when no specific source name is shown"
@@ -355,7 +364,23 @@
   },
   "mainBrowseCompositionPeekUnavailable": "Unavailable",
   "@mainBrowseCompositionPeekUnavailable": {
-    "description": "Suffix/mark for a parked source that is empty or unavailable in composition peek"
+    "description": "Legacy Cap 21.3 key; Cap 21.5 peek uses Removed/RequiresFullAccess (kept for key stability)"
+  },
+  "mainBrowseCompositionPeekRemovedFromPhotos": "Removed from Photos",
+  "@mainBrowseCompositionPeekRemovedFromPhotos": {
+    "description": "Composition peek suffix when a source is missing under Full Access or list-unavailable"
+  },
+  "mainBrowseCompositionPeekRequiresFullAccess": "Requires Full Access",
+  "@mainBrowseCompositionPeekRequiresFullAccess": {
+    "description": "Composition peek suffix when source needs Full Access (Limited / unauthorized)"
+  },
+  "mainBrowseCreatePoolRequiresFullAccess": "Requires Full Access",
+  "@mainBrowseCreatePoolRequiresFullAccess": {
+    "description": "Caption under disabled Create when Photos access is Limited (Cap 19.5b vocabulary)"
+  },
+  "mainBrowseCompositionPeekUnknownSource": "Source",
+  "@mainBrowseCompositionPeekUnknownSource": {
+    "description": "Fallback composition label when catalog has no title (never a PhotoKit id)"
   },
   "mainBrowseBuildPoolScaffoldTitle": "Build a Pool",
   "@mainBrowseBuildPoolScaffoldTitle": {

@@ -266,6 +266,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseTempPoolChip => 'Temp Pool';
 
   @override
+  String mainBrowseBuiltInWhileEphemeralSemantics(String builtInLabel) {
+    return '$builtInLabel. Currently browsing Temp Pool.';
+  }
+
+  @override
   String get mainBrowseBuiltInMenu => 'Built-in';
 
   @override
@@ -289,6 +294,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseCompositionPeekUnavailable => 'Unavailable';
+
+  @override
+  String get mainBrowseCompositionPeekRemovedFromPhotos =>
+      'Removed from Photos';
+
+  @override
+  String get mainBrowseCompositionPeekRequiresFullAccess =>
+      'Requires Full Access';
+
+  @override
+  String get mainBrowseCreatePoolRequiresFullAccess => 'Requires Full Access';
+
+  @override
+  String get mainBrowseCompositionPeekUnknownSource => 'Source';
 
   @override
   String get mainBrowseBuildPoolScaffoldTitle => 'Build a Pool';

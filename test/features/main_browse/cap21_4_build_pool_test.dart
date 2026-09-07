@@ -72,8 +72,9 @@ void main() {
       expect(find.byKey(_catalogKey(SourceReference.photos)), findsNothing);
     });
 
-    testWidgets('U-21.4-2 no albums (Limited-style) shows empty catalog',
-        (tester) async {
+    testWidgets('U-21.4-2 no albums shows empty catalog', (tester) async {
+      // Cap 21.5 P5: Limited disables Create — empty catalog is exercised
+      // under Full with zero user albums (same list shape as Limited).
       final fake = FakeAssetSourceRepository(
         allIds: const ['a1'],
         photosIds: const ['p1'],
@@ -81,7 +82,7 @@ void main() {
         extraSources: const [],
       );
       final repo =
-          ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(repo: repo, assetSources: fake),
       );

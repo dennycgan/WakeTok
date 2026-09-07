@@ -44,11 +44,16 @@ final class BrowseOriginEphemeralPool extends BrowseOrigin {
 /// projection can return a built-in ref while [activeOrigin] is ephemeral
 /// (21.3+ chrome honesty). Product path in Cap 21.2 keeps [activeOrigin]
 /// built-in and [parkedEphemeralPool] null.
+///
+/// Cap 21.5: [parkedCompositionLabels] freezes human-readable names at
+/// Start Browsing (same order/length as [parkedEphemeralPool] refs) so
+/// composition peek never falls back to PhotoKit ids when a source vanishes.
 class BrowseChromeState {
   const BrowseChromeState({
     required this.activeOrigin,
     required this.parkedEphemeralPool,
     required this.lastRememberedBuiltIn,
+    this.parkedCompositionLabels,
   });
 
   final BrowseOrigin activeOrigin;
@@ -56,6 +61,9 @@ class BrowseChromeState {
 
   /// Last built-in chosen via [BrowseChromeStateNotifier.selectBuiltIn].
   final SourceReference lastRememberedBuiltIn;
+
+  /// Display names captured at Start; null when nothing parked or unset.
+  final List<String>? parkedCompositionLabels;
 
   /// Built-in ref for tab highlight / legacy projection.
   SourceReference get projectedBuiltIn {
@@ -105,7 +113,8 @@ class BrowseChromeState {
     return other is BrowseChromeState &&
         other.activeOrigin == activeOrigin &&
         other.parkedEphemeralPool == parkedEphemeralPool &&
-        other.lastRememberedBuiltIn == lastRememberedBuiltIn;
+        other.lastRememberedBuiltIn == lastRememberedBuiltIn &&
+        listEquals(other.parkedCompositionLabels, parkedCompositionLabels);
   }
 
   @override
@@ -113,6 +122,7 @@ class BrowseChromeState {
         activeOrigin,
         parkedEphemeralPool,
         lastRememberedBuiltIn,
+        Object.hashAll(parkedCompositionLabels ?? const []),
       );
 }
 
@@ -120,11 +130,14 @@ class BrowseChromeState {
 @visibleForTesting
 extension BrowseChromeStateTesting on BrowseChromeState {
   /// Copy with an injected parked Definition (does not change [activeOrigin]).
+  ///
+  /// Clears [parkedCompositionLabels] — test parking is chip-layout only.
   BrowseChromeState copyWithParked(SourcePoolDefinition? parked) {
     return BrowseChromeState(
       activeOrigin: activeOrigin,
       parkedEphemeralPool: parked,
       lastRememberedBuiltIn: lastRememberedBuiltIn,
+      parkedCompositionLabels: null,
     );
   }
 }

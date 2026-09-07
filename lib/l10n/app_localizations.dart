@@ -537,6 +537,12 @@ abstract class AppLocalizations {
   /// **'Temp Pool'**
   String get mainBrowseTempPoolChip;
 
+  /// VoiceOver for Built-in control while Origin is ephemeral Temp Pool
+  ///
+  /// In en, this message translates to:
+  /// **'{builtInLabel}. Currently browsing Temp Pool.'**
+  String mainBrowseBuiltInWhileEphemeralSemantics(String builtInLabel);
+
   /// Cap 21.3 Built-in dropdown affordance when no specific source name is shown
   ///
   /// In en, this message translates to:
@@ -579,11 +585,35 @@ abstract class AppLocalizations {
   /// **'Sources in this pool'**
   String get mainBrowseCompositionPeekTitle;
 
-  /// Suffix/mark for a parked source that is empty or unavailable in composition peek
+  /// Legacy Cap 21.3 key; Cap 21.5 peek uses Removed/RequiresFullAccess (kept for key stability)
   ///
   /// In en, this message translates to:
   /// **'Unavailable'**
   String get mainBrowseCompositionPeekUnavailable;
+
+  /// Composition peek suffix when a source is missing under Full Access or list-unavailable
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from Photos'**
+  String get mainBrowseCompositionPeekRemovedFromPhotos;
+
+  /// Composition peek suffix when source needs Full Access (Limited / unauthorized)
+  ///
+  /// In en, this message translates to:
+  /// **'Requires Full Access'**
+  String get mainBrowseCompositionPeekRequiresFullAccess;
+
+  /// Caption under disabled Create when Photos access is Limited (Cap 19.5b vocabulary)
+  ///
+  /// In en, this message translates to:
+  /// **'Requires Full Access'**
+  String get mainBrowseCreatePoolRequiresFullAccess;
+
+  /// Fallback composition label when catalog has no title (never a PhotoKit id)
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get mainBrowseCompositionPeekUnknownSource;
 
   /// Cap 21 Build a Pool screen AppBar title
   ///

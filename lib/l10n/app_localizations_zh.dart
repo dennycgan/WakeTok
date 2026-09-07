@@ -263,6 +263,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseTempPoolChip => 'Temp Pool';
 
   @override
+  String mainBrowseBuiltInWhileEphemeralSemantics(String builtInLabel) {
+    return '$builtInLabel. Currently browsing Temp Pool.';
+  }
+
+  @override
   String get mainBrowseBuiltInMenu => 'Built-in';
 
   @override
@@ -286,6 +291,20 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseCompositionPeekUnavailable => 'Unavailable';
+
+  @override
+  String get mainBrowseCompositionPeekRemovedFromPhotos =>
+      'Removed from Photos';
+
+  @override
+  String get mainBrowseCompositionPeekRequiresFullAccess =>
+      'Requires Full Access';
+
+  @override
+  String get mainBrowseCreatePoolRequiresFullAccess => 'Requires Full Access';
+
+  @override
+  String get mainBrowseCompositionPeekUnknownSource => 'Source';
 
   @override
   String get mainBrowseBuildPoolScaffoldTitle => 'Build a Pool';
@@ -918,6 +937,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseTempPoolChip => '临时片库';
 
   @override
+  String mainBrowseBuiltInWhileEphemeralSemantics(String builtInLabel) {
+    return '$builtInLabel。当前正在刷临时片库。';
+  }
+
+  @override
   String get mainBrowseBuiltInMenu => '内置';
 
   @override
@@ -940,6 +964,18 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseCompositionPeekUnavailable => '不可用';
+
+  @override
+  String get mainBrowseCompositionPeekRemovedFromPhotos => '已在系统中删除';
+
+  @override
+  String get mainBrowseCompositionPeekRequiresFullAccess => '需要完整访问权限';
+
+  @override
+  String get mainBrowseCreatePoolRequiresFullAccess => '需要完整照片访问权限';
+
+  @override
+  String get mainBrowseCompositionPeekUnknownSource => '来源';
 
   @override
   String get mainBrowseBuildPoolScaffoldTitle => '创建片库';

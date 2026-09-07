@@ -49,9 +49,16 @@ class _Cap19AlbumCoverThumbnailState
               1,
               512,
             );
-    final bytes = await ref
-        .read(albumCoverRepositoryProvider)
-        .requestCoverThumbnail(widget.albumId, targetSizePx: px);
+    // Cap 21.5 P4: deleted / hanging Host cover must not spin forever.
+    Uint8List? bytes;
+    try {
+      bytes = await ref
+          .read(albumCoverRepositoryProvider)
+          .requestCoverThumbnail(widget.albumId, targetSizePx: px)
+          .timeout(const Duration(seconds: 3));
+    } on Object {
+      bytes = null;
+    }
     if (!mounted) {
       return;
     }

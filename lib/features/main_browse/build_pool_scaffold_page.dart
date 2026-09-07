@@ -11,6 +11,7 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/build_pool_smart_catalog.dart';
 import 'package:waketok/features/main_browse/cap19_album_cover_thumbnail.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
+import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/smart_album_labels.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -41,6 +42,19 @@ class BuildPoolScaffoldPage extends ConsumerStatefulWidget {
 
 class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
   final List<SourceReference> _selected = <SourceReference>[];
+
+  @override
+  void initState() {
+    super.initState();
+    // Cap 21.5 P4: always re-list when Build mounts (tests / deep links).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref.invalidate(assetSourcesProvider);
+      ref.invalidate(buildPoolSmartCatalogProvider);
+    });
+  }
 
   bool _contains(SourceReference ref) {
     for (final item in _selected) {
@@ -84,12 +98,24 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
     if (_selected.isEmpty) {
       return;
     }
+    final l10n = AppLocalizations.of(context)!;
+    final sources = ref.read(assetSourcesProvider).asData?.value ?? const [];
+    final smart =
+        ref.read(buildPoolSmartCatalogProvider).asData?.value ?? const [];
+    final catalog = <AssetSource>[...sources, ...smart];
+    final labels = <String>[
+      for (final reference in _selected)
+        compositionDisplayLabel(l10n, reference, catalog),
+    ];
     final definition = SourcePoolDefinition(
       id: 'ephemeral-${DateTime.now().microsecondsSinceEpoch}',
       persistencePolicy: PersistencePolicy.ephemeral,
       orderedSourceReferences: List<SourceReference>.from(_selected),
     );
-    ref.read(browseChromeStateProvider.notifier).startEphemeralPool(definition);
+    ref.read(browseChromeStateProvider.notifier).startEphemeralPool(
+          definition,
+          compositionLabels: labels,
+        );
     Navigator.of(context).pop();
   }
 

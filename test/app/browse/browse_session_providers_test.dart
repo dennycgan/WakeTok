@@ -9,6 +9,9 @@ import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/session/default_session_profile.dart';
 import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
+import 'package:waketok/domain/source/asset_source_kind.dart';
+import 'package:waketok/domain/source/persistence_policy.dart';
+import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -459,6 +462,83 @@ void main() {
       final afterStale = container.read(browseSessionProvider).requireValue;
       expect(afterStale.orderedAssetIds, ['from-restart']);
       expect(emptyDataIds, isEmpty);
+    },
+  );
+
+  test(
+    'U-21.5-1 partial hard-fail with ids caches; empty+hard still not cached',
+    () async {
+      final fake = FakeAssetSourceRepository(
+        photosIds: const ['p1'],
+        albumResolveUnauthorized: true,
+      );
+      final container = _sessionContainer(fake: fake);
+      addTearDown(container.dispose);
+
+      final parked = SourcePoolDefinition(
+        id: 'partial-cache',
+        persistencePolicy: PersistencePolicy.ephemeral,
+        orderedSourceReferences: const [
+          SourceReference.photos,
+          SourceReference(kind: AssetSourceKind.album, id: 'album-x'),
+        ],
+      );
+      container
+          .read(browseChromeStateProvider.notifier)
+          .debugActivateEphemeralPool(parked);
+
+      final first = await container.read(browseSessionProvider.future);
+      expect(first.orderedAssetIds, ['p1']);
+      expect(
+        first.session.snapshot.sourceStatuses.any(
+          (s) => s.availability == AssetSourceAvailability.unauthorized,
+        ),
+        isTrue,
+      );
+      expect(fake.resolveCalls, 2);
+
+      container.invalidate(browseSessionProvider);
+      final second = await container.read(browseSessionProvider.future);
+      expect(fake.resolveCalls, 2, reason: 'non-empty partial must cache');
+      expect(second.orderedAssetIds, ['p1']);
+
+      // Empty + hard failure: still never cache (ADR-024).
+      fake.photosIds = const [];
+      container.read(browseSnapshotCacheProvider.notifier).clear();
+      container.invalidate(browseSessionProvider);
+      final emptyHard = await container.read(browseSessionProvider.future);
+      expect(emptyHard.orderedAssetIds, isEmpty);
+      final callsAfterEmpty = fake.resolveCalls;
+      container.invalidate(browseSessionProvider);
+      await container.read(browseSessionProvider.future);
+      expect(fake.resolveCalls, greaterThan(callsAfterEmpty));
+    },
+  );
+
+  test(
+    'U-21.5-2 empty success still retries; hard empty does not (ADR-025 D8)',
+    () async {
+      final fake = FakeAssetSourceRepository(allIds: const []);
+      final container = _sessionContainer(
+        fake: fake,
+        emptyRetryDelays: _zeroEmptyRetries,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(browseSessionProvider.future);
+      // 1 initial + 3 retries with _zeroEmptyRetries
+      expect(fake.resolveCalls, 4);
+
+      final hardFake = FakeAssetSourceRepository(
+        resolveException: PlatformException(code: AppError.unauthorized.name),
+      );
+      final hardContainer = _sessionContainer(
+        fake: hardFake,
+        emptyRetryDelays: _zeroEmptyRetries,
+      );
+      addTearDown(hardContainer.dispose);
+      await hardContainer.read(browseSessionProvider.future);
+      expect(hardFake.resolveCalls, 1);
     },
   );
 }
