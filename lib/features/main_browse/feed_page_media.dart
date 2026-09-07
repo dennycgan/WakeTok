@@ -16,12 +16,17 @@ enum FeedPageMediaKind {
 
 enum FeedDisplayLayer { preview, full }
 
-/// Visible fail copy: network/cellular vs download vs generic (ADR-025).
-enum FeedFailureReason { network, download, generic }
+/// Visible fail copy: network/cellular vs download vs missing asset vs
+/// generic (ADR-025 + Cap 21.6 / ADR-044 D3).
+///
+/// [assetUnavailable] is the feed display bucket for Host
+/// `ErrorCode.assetUnavailable` — distinct from
+/// [AssetSourceAvailability.unavailable] (source-level catalog).
+enum FeedFailureReason { network, download, generic, assetUnavailable }
 
 FeedFailureReason feedFailureReasonFromPlatformCode(String code) {
   return switch (code) {
-    'assetUnavailable' => FeedFailureReason.network,
+    'assetUnavailable' => FeedFailureReason.assetUnavailable,
     'iCloudDownloadFailed' => FeedFailureReason.download,
     _ => FeedFailureReason.generic,
   };

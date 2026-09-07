@@ -1046,7 +1046,7 @@ void main() {
     expect(media, isNull);
   });
 
-  test('U-16.3c load assetUnavailable maps to network fail', () async {
+  test('U-16.3c load assetUnavailable maps to assetUnavailable fail', () async {
     final playback = FakePlaybackRepository();
     playback.loadErrorById['v1'] = 'assetUnavailable';
     final gate = FeedMediaRequestGate();
@@ -1062,7 +1062,7 @@ void main() {
       playbackRepository: playback,
     );
     expect(media?.kind, FeedPageMediaKind.failed);
-    expect(media?.failureReason, FeedFailureReason.network);
+    expect(media?.failureReason, FeedFailureReason.assetUnavailable);
   });
 
   test('U-16.3d clearPlaybackPool completes in-flight load', () async {
@@ -1335,7 +1335,7 @@ void main() {
     },
   );
 
-  test('U-14.4b Layer 2 maps assetUnavailable to network fail', () async {
+  test('U-14.4b Layer 2 maps assetUnavailable to assetUnavailable fail', () async {
     final display = FakeMediaDisplayRepository();
     display.displayErrorById['a1'] = 'assetUnavailable';
     final gate = FeedMediaRequestGate();
@@ -1351,7 +1351,7 @@ void main() {
       playbackRepository: FakePlaybackRepository(),
     );
     expect(media?.kind, FeedPageMediaKind.failed);
-    expect(media?.failureReason, FeedFailureReason.network);
+    expect(media?.failureReason, FeedFailureReason.assetUnavailable);
   });
 
   test('U-14.4b Layer 2 maps iCloudDownloadFailed to download fail', () async {
@@ -1656,8 +1656,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
-    expect(find.text(l10n.mainBrowseFeedNetworkFailed), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsOneWidget);
+    expect(find.text(l10n.mainBrowseFeedUnavailable), findsOneWidget);
+    expect(find.text(l10n.mainBrowseFeedNetworkFailed), findsNothing);
+    expect(find.byKey(const Key('mainBrowseFeedPageRetry')), findsNothing);
   });
 
   testWidgets('W-L5 resolve loading hides Overlay', (tester) async {
@@ -1678,7 +1679,7 @@ void main() {
   });
 
   testWidgets(
-    'W-L6 per-page iCloud/failed keeps Overlay when metadata arrived',
+    'W-L6 iCloud download fail keeps Overlay; assetUnavailable hides it',
     (tester) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       final created = DateTime(2024, 3, 10, 14, 5);
@@ -1730,8 +1731,8 @@ void main() {
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsOneWidget);
-      expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
-      expect(find.text(exact), findsOneWidget);
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+      expect(find.text(exact), findsNothing);
     },
   );
 

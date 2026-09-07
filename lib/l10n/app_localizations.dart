@@ -861,6 +861,12 @@ abstract class AppLocalizations {
   /// **'Could not load. Allow wireless data, then retry.'**
   String get mainBrowseFeedNetworkFailed;
 
+  /// Feed Layer-2/page fail when Host returns assetUnavailable (Cap 21.6 debt 444); no Retry
+  ///
+  /// In en, this message translates to:
+  /// **'This item is unavailable.'**
+  String get mainBrowseFeedUnavailable;
+
   /// Visible center copy + immediate VoiceOver on Layer 1 miss; center copy has a source-switch-only 150ms delay (ADR-039)
   ///
   /// In en, this message translates to:

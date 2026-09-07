@@ -109,6 +109,7 @@
     "mainBrowseFeedRetry",
     "mainBrowseFeedMediaFailed",
     "mainBrowseFeedNetworkFailed",
+    "mainBrowseFeedUnavailable",
     "mainBrowseFeedLayer1Loading",
     "mainBrowseFeedLayer2Reassure",
     "mainBrowseFeedLayer3Loading",

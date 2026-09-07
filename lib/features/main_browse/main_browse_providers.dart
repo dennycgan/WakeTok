@@ -58,6 +58,9 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
     unawaited(ref.read(browseSessionProvider.notifier).restartSession());
     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
     ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(true);
+    ref
+        .read(mainBrowseCurrentAssetHostUnavailableProvider.notifier)
+        .setUnavailable(false);
   }
 }
 
@@ -134,12 +137,41 @@ final mainBrowseCurrentAssetIdProvider = Provider<String?>((ref) {
   return ids[feedIndex];
 });
 
-/// True when Browse has a determinate current asset id (Cap 19 entry / future
-/// share / left-swipe arm). Not playback-ready — distinct from scrubber L2 gates.
+/// True when Browse has a determinate current asset id **and** the current
+/// feed page is not in Cap 21.6 Host-`assetUnavailable` fail chrome.
+///
+/// Cap 19 entry / left-swipe arm / future share (ADR-042 Decision 7).
+/// Distinct from debt **456** Part B (proactive Photos-liveness probe before
+/// panel actions) — this limb only mirrors an already-known feed fail reason.
 final mainBrowseCurrentAssetActionableProvider = Provider<bool>((ref) {
   final id = ref.watch(mainBrowseCurrentAssetIdProvider);
-  return id != null && id.isNotEmpty;
+  if (id == null || id.isEmpty) {
+    return false;
+  }
+  return !ref.watch(mainBrowseCurrentAssetHostUnavailableProvider);
 });
+
+/// Cap 21.6: current feed page reports Host `assetUnavailable` fail chrome.
+///
+/// Written by [MediaFeedPage] while current; cleared on leave-current /
+/// successful L2. Drives Cap 19 entry dim + Overlay hide — not a Photos
+/// existence probe (debt **456** Part B).
+final mainBrowseCurrentAssetHostUnavailableProvider =
+    NotifierProvider<MainBrowseCurrentAssetHostUnavailable, bool>(
+      MainBrowseCurrentAssetHostUnavailable.new,
+    );
+
+class MainBrowseCurrentAssetHostUnavailable extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setUnavailable(bool unavailable) {
+    if (state == unavailable) {
+      return;
+    }
+    state = unavailable;
+  }
+}
 
 /// Vertical PageView settle for trailing mutation chrome (ADR-042 Decision 8)
 /// and scrubber peek hide. Written by [VerticalMediaFeed] on scroll-notification

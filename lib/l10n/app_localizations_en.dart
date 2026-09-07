@@ -440,6 +440,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not load. Allow wireless data, then retry.';
 
   @override
+  String get mainBrowseFeedUnavailable => 'This item is unavailable.';
+
+  @override
   String get mainBrowseFeedLayer1Loading => 'Loading item';
 
   @override

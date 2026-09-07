@@ -437,6 +437,9 @@ class AppLocalizationsZh extends AppLocalizations {
       'Could not load. Allow wireless data, then retry.';
 
   @override
+  String get mainBrowseFeedUnavailable => 'This item is unavailable.';
+
+  @override
   String get mainBrowseFeedLayer1Loading => 'Loading item';
 
   @override
@@ -1101,6 +1104,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedNetworkFailed => '无法加载。请允许无线数据后重试。';
+
+  @override
+  String get mainBrowseFeedUnavailable => '此项目不可用。';
 
   @override
   String get mainBrowseFeedLayer1Loading => '正在加载此项';

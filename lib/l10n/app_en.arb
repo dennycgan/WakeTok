@@ -552,6 +552,10 @@
   "@mainBrowseFeedNetworkFailed": {
     "description": "Layer 2 failed before transfer began (cellular/wireless-data prompt or no network)"
   },
+  "mainBrowseFeedUnavailable": "This item is unavailable.",
+  "@mainBrowseFeedUnavailable": {
+    "description": "Feed Layer-2/page fail when Host returns assetUnavailable (Cap 21.6 debt 444); no Retry"
+  },
   "mainBrowseFeedLayer1Loading": "Loading item",
   "@mainBrowseFeedLayer1Loading": {
     "description": "Visible center copy + immediate VoiceOver on Layer 1 miss; center copy has a source-switch-only 150ms delay (ADR-039)"

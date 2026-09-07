@@ -1068,6 +1068,43 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
 
+  /// Cap 21.6: Host `assetUnavailable` fail chrome (page-failed or coverless).
+  bool get _isAssetUnavailableFailure {
+    if (_media?.kind == FeedPageMediaKind.failed &&
+        _media!.failureReason == FeedFailureReason.assetUnavailable) {
+      return true;
+    }
+    return _layer2Failed &&
+        _layer2FailureReason == FeedFailureReason.assetUnavailable;
+  }
+
+  /// Hide Cap 8 Overlay while Host reports the asset is gone (contradicts
+  /// date/size chrome). Also hide during page `_loading` ("Loading item") so
+  /// a prior-visit Overlay cache cannot flash one frame before L2 fail.
+  /// Download / generic fails (with media on screen) may still show Overlay.
+  bool get _showMediaInfoOverlayEffective =>
+      widget.showMediaInfoOverlay &&
+      !_loading &&
+      !_isAssetUnavailableFailure;
+
+  void _publishHostUnavailableGate() {
+    if (!mounted || !widget.isCurrent) {
+      return;
+    }
+    ref
+        .read(mainBrowseCurrentAssetHostUnavailableProvider.notifier)
+        .setUnavailable(_isAssetUnavailableFailure);
+  }
+
+  void _clearHostUnavailableGate() {
+    if (!mounted) {
+      return;
+    }
+    ref
+        .read(mainBrowseCurrentAssetHostUnavailableProvider.notifier)
+        .setUnavailable(false);
+  }
+
   /// Cap 15.11b: hide video slot (Opacity 0) until first frame; no Stack reorder.
   /// Armed only when the video child goes null→non-null (A→B relay), never on
   /// L2-complete while guard defer / [_layer2InFlight] keep the slot empty.
@@ -1879,6 +1916,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (gen != null) {
         _holdVideoSurfaceForL2ReloadIfNeeded(gen);
       }
+      _publishHostUnavailableGate();
     }
     if (leftCurrent) {}
     if (oldWidget.isCurrent != widget.isCurrent ||
@@ -1895,6 +1933,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
     // pause because _startLoad runs and skips the isCurrent-only branch.
     if (leftCurrent) {
+      _clearHostUnavailableGate();
       _cancelInitialLayer1CenterLabelDelay(revealImmediately: true);
       final coordinator = ref.read(playbackCoordinatorProvider);
       _playbackRepo ??= ref.read(playbackRepositoryProvider);
@@ -2040,6 +2079,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       unawaited(live.cancel(id));
       unawaited(live.stopPlayback());
     }
+    // Cap 21.6 host-unavailable gate: cleared in leave-current /
+    // destination select — do not touch [ref] here (unsafe when unmounting).
     super.dispose();
   }
 
@@ -3243,6 +3284,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _layer2Failed = false;
         }
       });
+      _publishHostUnavailableGate();
       return;
     }
     if (layer2.kind == FeedPageMediaKind.video) {
@@ -3269,6 +3311,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Cap 15.11b: first-visit full L1→L2 still arms hold on video-slot
       // mount only (defer / in-flight ordering). DEVICE_LOCAL / L2-ready
       // use armPosterHoldOnL2Apply above (15.14b/c).
+      _publishHostUnavailableGate();
       await _syncPlaybackActive(requireSurfaceReady: false);
       return;
     }
@@ -3295,6 +3338,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     });
     _recordL2ReadySession(layer2: layer2, layer1: layer1);
     widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
+    _publishHostUnavailableGate();
     await _prepareLiveMotion();
   }
 
@@ -3419,6 +3463,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
       });
       widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
+      _publishHostUnavailableGate();
       await _prepareLiveMotion();
       return;
     }
@@ -3617,6 +3662,21 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     });
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    // Cap 21.6: keep shell Cap19 gate aligned if fail chrome flipped without
+    // an explicit publish (post-frame — never write providers during build).
+    if (widget.isCurrent) {
+      final wantUnavailable = _isAssetUnavailableFailure;
+      final haveUnavailable =
+          ref.read(mainBrowseCurrentAssetHostUnavailableProvider);
+      if (wantUnavailable != haveUnavailable) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !widget.isCurrent) {
+            return;
+          }
+          _publishHostUnavailableGate();
+        });
+      }
+    }
 
     if (_loading) {
       // Layer 1 miss chrome (ADR-031 Q2): immediate corner spinner.
@@ -3655,7 +3715,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               l10n: l10n,
               tokens: tokens,
             ),
-            if (widget.showMediaInfoOverlay)
+            if (_showMediaInfoOverlayEffective)
               MediaInfoOverlay(snapshot: widget.overlaySnapshot),
           ],
         ),
@@ -3771,7 +3831,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         cornerReassureLabel: cornerReassureLabel,
         coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
         playbackTapIsCurrent: widget.isCurrent,
-        showMediaInfoOverlay: widget.showMediaInfoOverlay,
+        showMediaInfoOverlay: _showMediaInfoOverlayEffective,
         overlaySnapshot: widget.overlaySnapshot,
       ),
       FeedPageMediaKind.pendingVideo => () {
@@ -3796,9 +3856,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 showFailed: showLayer2FailedSlot,
                 l10n: l10n,
                 tokens: tokens,
-                onFailedRetry: () {
-                  unawaited(_retryFromFailState(pageFailedMedia: false));
-                },
+                onFailedRetry: _feedFailureShowsRetry(
+                      _layer2FailureReason ?? FeedFailureReason.generic,
+                    )
+                    ? () {
+                        unawaited(
+                          _retryFromFailState(pageFailedMedia: false),
+                        );
+                      }
+                    : null,
               ),
             ],
           ),
@@ -3951,7 +4017,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 },
           playbackRepository:
               coordinator == null ? null : (_playbackRepo ?? ref.read(playbackRepositoryProvider)),
-          showMediaInfoOverlay: widget.showMediaInfoOverlay,
+          showMediaInfoOverlay: _showMediaInfoOverlayEffective,
           overlaySnapshot: widget.overlaySnapshot,
         );
       }(),
@@ -3961,20 +4027,30 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 fit: StackFit.expand,
                 children: [
                   _UsableRegionCenter(
-                    child: _BrowseStatusPanel(
-                      panelKey: const Key('mainBrowseFeedPageFailed'),
-                      message: _failureCopy(
-                        l10n,
-                        media.failureReason ?? FeedFailureReason.generic,
-                      ),
-                      actionLabel: l10n.mainBrowseFeedRetry,
-                      actionKey: const Key('mainBrowseFeedPageRetry'),
-                      onAction: () {
-                        unawaited(_retryFromFailState(pageFailedMedia: true));
-                      },
-                    ),
+                    child: () {
+                      final reason =
+                          media.failureReason ?? FeedFailureReason.generic;
+                      final showRetry = _feedFailureShowsRetry(reason);
+                      return _BrowseStatusPanel(
+                        panelKey: const Key('mainBrowseFeedPageFailed'),
+                        message: _failureCopy(l10n, reason),
+                        actionLabel: showRetry
+                            ? l10n.mainBrowseFeedRetry
+                            : null,
+                        actionKey: showRetry
+                            ? const Key('mainBrowseFeedPageRetry')
+                            : null,
+                        onAction: showRetry
+                            ? () {
+                                unawaited(
+                                  _retryFromFailState(pageFailedMedia: true),
+                                );
+                              }
+                            : null,
+                      );
+                    }(),
                   ),
-                  if (widget.showMediaInfoOverlay)
+                  if (_showMediaInfoOverlayEffective)
                     MediaInfoOverlay(snapshot: widget.overlaySnapshot),
                 ],
               )
@@ -4104,9 +4180,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           showFailed: showLayer2FailedSlot,
           l10n: l10n,
           tokens: tokens,
-          onFailedRetry: () {
-            unawaited(_retryFromFailState(pageFailedMedia: false));
-          },
+          onFailedRetry: _feedFailureShowsRetry(
+                _layer2FailureReason ?? FeedFailureReason.generic,
+              )
+              ? () {
+                  unawaited(_retryFromFailState(pageFailedMedia: false));
+                }
+              : null,
         ),
         Cap19LeftSwipeGesture(
           isCurrent: playbackTapIsCurrent,
@@ -4124,7 +4204,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       FeedFailureReason.network => l10n.mainBrowseFeedNetworkFailed,
       FeedFailureReason.download => l10n.mainBrowseFeedDownloadFailed,
       FeedFailureReason.generic => l10n.mainBrowseFeedMediaFailed,
+      FeedFailureReason.assetUnavailable => l10n.mainBrowseFeedUnavailable,
     };
+  }
+
+  /// Cap 21.6 / ADR-044 D3: hide Retry when Host reports missing asset —
+  /// Retry cannot recover a deleted / empty-id / unavailable PHAsset.
+  bool _feedFailureShowsRetry(FeedFailureReason reason) {
+    return reason != FeedFailureReason.assetUnavailable;
   }
 
   /// Center status shared by Layer-1 visible loading copy and coverless fail.
