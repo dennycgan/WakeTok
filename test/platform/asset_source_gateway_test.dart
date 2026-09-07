@@ -146,6 +146,7 @@ void main() {
         estimatedCount: null,
         availability: pigeon.AssetSourceAvailabilityDto.available,
         canAddContent: false,
+        collectionSubtype: 203,
       ),
     ]);
 
@@ -156,11 +157,13 @@ void main() {
     expect(sources[3].displayName, 'Trip');
     expect(sources[3].estimatedCount, 12);
     expect(sources[3].canAddContent, isTrue);
+    expect(sources[3].collectionSubtype, isNull);
     expect(sources[4].kind, AssetSourceKind.smartAlbum);
     expect(sources[4].displayName, 'Favorites');
     expect(sources[4].estimatedCount, isNull);
     expect(sources[4].availability, AssetSourceAvailability.available);
     expect(sources[4].canAddContent, isFalse);
+    expect(sources[4].collectionSubtype, 203);
   });
 
   test('G-S2 gateway resolve maps ordered asset identifiers', () async {

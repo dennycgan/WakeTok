@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
+import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/build_pool_scaffold_page.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/smart_album_labels.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 21.3 four-control top chrome (ADR-044 D6.4 / D7).
@@ -76,11 +78,16 @@ class BrowseTopChrome extends ConsumerWidget {
                 top: 4,
                 child: _CreateControl(
                   onTap: () {
-                    Navigator.of(context).push(
+                    final cover = ref
+                        .read(browseCoveringRouteOpenProvider.notifier);
+                    cover.setOpen(true);
+                    Navigator.of(context)
+                        .push(
                       MaterialPageRoute<void>(
                         builder: (_) => const BuildPoolScaffoldPage(),
                       ),
-                    );
+                    )
+                        .whenComplete(() => cover.setOpen(false));
                   },
                 ),
               ),
@@ -411,12 +418,18 @@ Future<void> showCompositionPeekPopover({
     barrierColor: Colors.black.withValues(alpha: 0.35),
     transitionDuration: const Duration(milliseconds: 100),
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
-      return SafeArea(
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 56, 48, 0),
-            child: _CompositionPeekCard(parked: parked),
+      // Overlay sits under MaterialApp theme; force Browse immersive dark
+      // so Light mode cannot white-on-white the peek card.
+      final darkTheme = waketokTheme(Brightness.dark);
+      return Theme(
+        data: darkTheme,
+        child: SafeArea(
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 56, 48, 0),
+              child: _CompositionPeekCard(parked: parked),
+            ),
           ),
         ),
       );
@@ -514,8 +527,10 @@ class _CompositionPeekCard extends ConsumerWidget {
     if (match == null) {
       return '$builtIn (${l10n.mainBrowseCompositionPeekUnavailable})';
     }
-    final name =
-        match.displayName.isEmpty ? builtIn : match.displayName;
+    final subtype = match.collectionSubtype;
+    final name = match.kind == AssetSourceKind.smartAlbum && subtype != null
+        ? smartAlbumDisplayLabel(l10n, subtype)
+        : (match.displayName.isEmpty ? builtIn : match.displayName);
     final unavailable =
         match.availability != AssetSourceAvailability.available &&
             match.availability != AssetSourceAvailability.empty;

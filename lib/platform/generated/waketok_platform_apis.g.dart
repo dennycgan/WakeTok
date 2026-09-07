@@ -203,6 +203,7 @@ class AssetSourceDto {
     this.estimatedCount,
     required this.availability,
     required this.canAddContent,
+    this.collectionSubtype,
   });
 
   String sourceIdentifier;
@@ -223,6 +224,10 @@ class AssetSourceDto {
   /// built-ins: false (Cap 19.2).
   bool canAddContent;
 
+  /// Cap 21.4b: PhotoKit `PHAssetCollectionSubtype.rawValue` for smart
+  /// albums; null for built-ins and user albums.
+  int? collectionSubtype;
+
   List<Object?> _toList() {
     return <Object?>[
       sourceIdentifier,
@@ -231,6 +236,7 @@ class AssetSourceDto {
       estimatedCount,
       availability,
       canAddContent,
+      collectionSubtype,
     ];
   }
 
@@ -246,6 +252,7 @@ class AssetSourceDto {
       estimatedCount: result[3] as int?,
       availability: result[4]! as AssetSourceAvailabilityDto,
       canAddContent: result[5]! as bool,
+      collectionSubtype: result[6] as int?,
     );
   }
 
@@ -258,7 +265,7 @@ class AssetSourceDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(sourceIdentifier, other.sourceIdentifier) && _deepEquals(displayName, other.displayName) && _deepEquals(kind, other.kind) && _deepEquals(estimatedCount, other.estimatedCount) && _deepEquals(availability, other.availability) && _deepEquals(canAddContent, other.canAddContent);
+    return _deepEquals(sourceIdentifier, other.sourceIdentifier) && _deepEquals(displayName, other.displayName) && _deepEquals(kind, other.kind) && _deepEquals(estimatedCount, other.estimatedCount) && _deepEquals(availability, other.availability) && _deepEquals(canAddContent, other.canAddContent) && _deepEquals(collectionSubtype, other.collectionSubtype);
   }
 
   @override
@@ -267,7 +274,7 @@ class AssetSourceDto {
 
   @override
   String toString() {
-    return 'AssetSourceDto(sourceIdentifier: $sourceIdentifier, displayName: $displayName, kind: $kind, estimatedCount: $estimatedCount, availability: $availability, canAddContent: $canAddContent)';
+    return 'AssetSourceDto(sourceIdentifier: $sourceIdentifier, displayName: $displayName, kind: $kind, estimatedCount: $estimatedCount, availability: $availability, canAddContent: $canAddContent, collectionSubtype: $collectionSubtype)';
   }
 }
 
@@ -1542,9 +1549,9 @@ class PhotoLibraryApi {
     return pigeonVar_replyValue! as LibraryPageDto;
   }
 
-  /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
-  /// Synchronous — counts use PHFetchResult.count only (no network).
-  /// Album / Smart Album listing is deferred.
+  /// Cap 6 / Cap 11.2 / Cap 21.4b: built-ins + (Full) User + Smart Albums.
+  /// Synchronous — smart albums use brute subtype enum (not `.any` alone).
+  /// Emptiness for Build catalog is [smartAlbumsWithContent], not this call.
   Future<List<AssetSourceDto>> listAssetSources() async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.listAssetSources$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -1562,6 +1569,28 @@ class PhotoLibraryApi {
     )
     ;
     return (pigeonVar_replyValue! as List<Object?>).cast<AssetSourceDto>();
+  }
+
+  /// Cap 21.4b: which smart-album localIdentifiers have ≥1 image|video.
+  /// Same predicate as album resolve; Host uses fetchLimit=1 (presence only).
+  /// Unknown / missing ids are omitted from the result (not an error).
+  Future<List<String>> smartAlbumsWithContent(List<String> albumIdentifiers) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.smartAlbumsWithContent$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[albumIdentifiers]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: false,
+    )
+    ;
+    return (pigeonVar_replyValue! as List<Object?>).cast<String>();
   }
 
   /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).

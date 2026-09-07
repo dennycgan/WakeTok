@@ -8,9 +8,11 @@ import 'package:waketok/domain/source/pool_capacity.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
+import 'package:waketok/features/main_browse/build_pool_smart_catalog.dart';
 import 'package:waketok/features/main_browse/cap19_album_cover_thumbnail.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/smart_album_labels.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 21.4 Build a Pool screen (keeps Cap 21.3 class/route key — D5=A).
@@ -27,6 +29,10 @@ class BuildPoolScaffoldPage extends ConsumerStatefulWidget {
   static const Key catalogLoadingKey = Key('mainBrowseBuildPoolCatalogLoading');
   static const Key catalogFailedKey = Key('mainBrowseBuildPoolCatalogFailed');
   static const Key catalogEmptyKey = Key('mainBrowseBuildPoolCatalogEmpty');
+  static const Key smartLoadingKey =
+      Key('mainBrowseBuildPoolSmartCatalogLoading');
+  static const Key smartFailedKey = Key('mainBrowseBuildPoolSmartCatalogFailed');
+  static const Key smartSectionKey = Key('mainBrowseBuildPoolSmartSection');
 
   @override
   ConsumerState<BuildPoolScaffoldPage> createState() =>
@@ -89,6 +95,17 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Cap 21.4b polish: Build is Browse chrome — force dark tokens (same
+    // pattern as Cap 19 half-sheet / Main Browse immersive). System Light
+    // must not reach onMedia labels (white-on-white).
+    final darkTheme = waketokTheme(Brightness.dark);
+    return Theme(
+      data: darkTheme,
+      child: Builder(builder: _buildImmersive),
+    );
+  }
+
+  Widget _buildImmersive(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final asyncSources = ref.watch(assetSourcesProvider);
@@ -110,7 +127,9 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
       body: Column(
         children: [
           Expanded(
-            flex: 3,
+            // Cap 21.4b polish: catalog ~9, selected ~4 (selected ≈ 2/3 of
+            // prior 3:2 selected pane).
+            flex: 9,
             child: asyncSources.when(
               data: (sources) => _CatalogPane(
                 sources: sources,
@@ -153,7 +172,7 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
           ),
           Divider(height: 1, color: tokens.onMediaMuted.withValues(alpha: 0.3)),
           Expanded(
-            flex: 2,
+            flex: 4,
             child: _SelectedPane(
               selected: _selected,
               sources: asyncSources.asData?.value ?? const [],
@@ -189,7 +208,7 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
   }
 }
 
-class _CatalogPane extends StatelessWidget {
+class _CatalogPane extends ConsumerWidget {
   const _CatalogPane({
     required this.sources,
     required this.selected,
@@ -215,16 +234,18 @@ class _CatalogPane extends StatelessWidget {
     return false;
   }
 
-  /// User albums only. All / Photos / Videos stay top-tab controls, and smart
-  /// albums wait for curation + non-empty counts (Cap 21.4 device round).
+  /// User albums render immediately; smart section loads independently.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final albums = <AssetSource>[
       for (final source in sources)
         if (source.kind == AssetSourceKind.album) source,
     ];
-
-    if (albums.isEmpty) {
+    final smartAsync = ref.watch(buildPoolSmartCatalogProvider);
+    final albumsEmpty = albums.isEmpty;
+    final smartSettledEmpty = smartAsync.asData?.value.isEmpty ?? false;
+    final smartStillLoading = smartAsync.isLoading;
+    if (albumsEmpty && smartSettledEmpty && !smartStillLoading) {
       return Center(
         key: BuildPoolScaffoldPage.catalogEmptyKey,
         child: Padding(
@@ -242,8 +263,60 @@ class _CatalogPane extends StatelessWidget {
       key: BuildPoolScaffoldPage.catalogKey,
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
       children: [
-        _sectionHeader(l10n.mainBrowseBuildPoolSectionAlbums),
-        for (final source in albums) _catalogTile(source),
+        if (albums.isNotEmpty) ...[
+          _sectionHeader(l10n.mainBrowseBuildPoolSectionAlbums),
+          for (final source in albums) _catalogTile(source),
+        ],
+        _sectionHeader(l10n.mainBrowseBuildPoolSectionSmartAlbums),
+        ...smartAsync.when(
+          data: (smart) {
+            if (smart.isEmpty) {
+              return const <Widget>[];
+            }
+            return <Widget>[
+              for (final source in smart) _catalogTile(source),
+            ];
+          },
+          loading: () => <Widget>[
+            Padding(
+              key: BuildPoolScaffoldPage.smartLoadingKey,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: tokens.accent,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      l10n.mainBrowseBuildPoolSmartCatalogLoading,
+                      style: tokens.bodyOnMedia.copyWith(
+                        color: tokens.onMediaMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          error: (_, _) => <Widget>[
+            Padding(
+              key: BuildPoolScaffoldPage.smartFailedKey,
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                l10n.mainBrowseBuildPoolSmartCatalogFailed,
+                textAlign: TextAlign.center,
+                style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -258,12 +331,20 @@ class _CatalogPane extends StatelessWidget {
     );
   }
 
+  String _label(AssetSource source) {
+    final subtype = source.collectionSubtype;
+    if (source.kind == AssetSourceKind.smartAlbum && subtype != null) {
+      return smartAlbumDisplayLabel(l10n, subtype);
+    }
+    return source.displayName.isEmpty ? source.id : source.displayName;
+  }
+
   /// Cover + title row (Cap 19.5 Add-to-Album shape), check mark trailing.
   Widget _catalogTile(AssetSource source) {
     final reference = SourceReference.fromAssetSource(source);
     final checked = _isSelected(reference);
     final enabled = checked || !atCap;
-    final label = source.displayName.isEmpty ? reference.id : source.displayName;
+    final label = _label(source);
     return ListTile(
       key: Key(
         'mainBrowseBuildPoolCatalog_${reference.kind.name}_${reference.id}',
@@ -306,9 +387,11 @@ class _SelectedPane extends StatelessWidget {
   String _label(SourceReference reference) {
     for (final source in sources) {
       if (source.kind == reference.kind && source.id == reference.id) {
-        return source.displayName.isEmpty
-            ? reference.id
-            : source.displayName;
+        final subtype = source.collectionSubtype;
+        if (source.kind == AssetSourceKind.smartAlbum && subtype != null) {
+          return smartAlbumDisplayLabel(l10n, subtype);
+        }
+        return source.displayName.isEmpty ? reference.id : source.displayName;
       }
     }
     return reference.id;

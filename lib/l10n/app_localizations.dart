@@ -606,14 +606,128 @@ abstract class AppLocalizations {
   /// Cap 21.4 Build catalog section header for user albums
   ///
   /// In en, this message translates to:
-  /// **'Albums'**
+  /// **'My Albums'**
   String get mainBrowseBuildPoolSectionAlbums;
 
-  /// Cap 21.4 smart-album section header; section hidden until curation + counts land (key kept for stability)
+  /// Cap 21.4b Build catalog section for curated PhotoKit smart albums (product: System Albums)
   ///
   /// In en, this message translates to:
-  /// **'Smart Albums'**
+  /// **'System Albums'**
   String get mainBrowseBuildPoolSectionSmartAlbums;
+
+  /// Cap 21.4b system-albums section while emptiness probe runs
+  ///
+  /// In en, this message translates to:
+  /// **'Loading system albums…'**
+  String get mainBrowseBuildPoolSmartCatalogLoading;
+
+  /// Cap 21.4b system-albums section AsyncError fallback
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load system albums.'**
+  String get mainBrowseBuildPoolSmartCatalogFailed;
+
+  /// Cap 21.4b Build smart-album row label (subtype 203)
+  ///
+  /// In en, this message translates to:
+  /// **'Favorites'**
+  String get smartAlbumFavorites;
+
+  /// Cap 21.4b Build smart-album row label (subtype 213)
+  ///
+  /// In en, this message translates to:
+  /// **'Live Photos'**
+  String get smartAlbumLivePhotos;
+
+  /// Cap 21.4b Build smart-album row label (subtype 211)
+  ///
+  /// In en, this message translates to:
+  /// **'Screenshots'**
+  String get smartAlbumScreenshots;
+
+  /// Cap 21.4b Build smart-album row label (subtype 214)
+  ///
+  /// In en, this message translates to:
+  /// **'Animated'**
+  String get smartAlbumAnimated;
+
+  /// Cap 21.4b Build smart-album row label (subtype 210)
+  ///
+  /// In en, this message translates to:
+  /// **'Selfies'**
+  String get smartAlbumSelfies;
+
+  /// Cap 21.4b Build smart-album row label (subtype 202)
+  ///
+  /// In en, this message translates to:
+  /// **'Videos'**
+  String get smartAlbumVideos;
+
+  /// Cap 21.4b Build smart-album row label (subtype 220)
+  ///
+  /// In en, this message translates to:
+  /// **'Screen Recordings'**
+  String get smartAlbumScreenRecordings;
+
+  /// Cap 21.4b Build smart-album row label (subtype 201)
+  ///
+  /// In en, this message translates to:
+  /// **'Panoramas'**
+  String get smartAlbumPanoramas;
+
+  /// Cap 21.4b Build smart-album row label (subtype 204)
+  ///
+  /// In en, this message translates to:
+  /// **'Time-lapse'**
+  String get smartAlbumTimelapse;
+
+  /// Cap 21.4b Build smart-album row label (subtype 207)
+  ///
+  /// In en, this message translates to:
+  /// **'Bursts'**
+  String get smartAlbumBursts;
+
+  /// Cap 21.4b Build smart-album row label (subtype 208)
+  ///
+  /// In en, this message translates to:
+  /// **'Slo-mo'**
+  String get smartAlbumSlomo;
+
+  /// Cap 21.4b Build smart-album row label (subtype 212)
+  ///
+  /// In en, this message translates to:
+  /// **'Portrait'**
+  String get smartAlbumPortrait;
+
+  /// Cap 21.4b Build smart-album row label (subtype 215)
+  ///
+  /// In en, this message translates to:
+  /// **'Long Exposure'**
+  String get smartAlbumLongExposure;
+
+  /// Cap 21.4b Build smart-album row label (subtype 217)
+  ///
+  /// In en, this message translates to:
+  /// **'RAW'**
+  String get smartAlbumRaw;
+
+  /// Cap 21.4b Build smart-album row label (subtype 218)
+  ///
+  /// In en, this message translates to:
+  /// **'Cinematic'**
+  String get smartAlbumCinematic;
+
+  /// Cap 21.4b Build smart-album row label (subtype 219)
+  ///
+  /// In en, this message translates to:
+  /// **'Spatial'**
+  String get smartAlbumSpatial;
+
+  /// Cap 21.4b Build smart-album row label (subtype 221)
+  ///
+  /// In en, this message translates to:
+  /// **'Dual Capture'**
+  String get smartAlbumDualCapture;
 
   /// Cap 21.4 selected-sources heading with count
   ///

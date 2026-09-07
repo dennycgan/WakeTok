@@ -21,6 +21,7 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
     this.beforeEachResolve,
     this.allIdsForCall,
     Map<String, AssetAvailability>? availabilityById,
+    this.smartAlbumsWithContentIds,
   }) : availabilityById = availabilityById ?? const {};
 
   /// Cap 15.12: per-id list-time availability for resolve (default deviceLocal).
@@ -59,6 +60,13 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
   /// (production Host contract). Tests that need become-current probe
   /// coverage set this; default false keeps W-15.12* inject-at-resolve.
   bool resolveOmitsAvailability = false;
+
+  /// Cap 21.4b: ids treated as non-empty for [smartAlbumsWithContent].
+  /// When null, any id with a non-empty [albumResolveIds] entry is non-empty.
+  Set<String>? smartAlbumsWithContentIds;
+
+  int smartAlbumsWithContentCalls = 0;
+  final List<List<String>> smartAlbumsWithContentHistory = <List<String>>[];
 
   /// When set, [listAssetSources] throws after incrementing [listCalls].
   Exception? listException;
@@ -102,6 +110,24 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
         canAddContent: false,
       ),
       ...extraSources,
+    ];
+  }
+
+  @override
+  Future<List<String>> smartAlbumsWithContent(
+    List<String> albumIdentifiers,
+  ) async {
+    smartAlbumsWithContentCalls += 1;
+    smartAlbumsWithContentHistory.add(
+      List<String>.unmodifiable(albumIdentifiers),
+    );
+    final allow = smartAlbumsWithContentIds;
+    return [
+      for (final id in albumIdentifiers)
+        if (allow != null
+            ? allow.contains(id)
+            : (albumResolveIds[id]?.isNotEmpty ?? false))
+          id,
     ];
   }
 

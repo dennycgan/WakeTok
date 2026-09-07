@@ -290,6 +290,9 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
   /// User albums: PhotoKit canPerform(.addContent). Smart albums and
   /// built-ins: false (Cap 19.2).
   var canAddContent: Bool
+  /// Cap 21.4b: PhotoKit `PHAssetCollectionSubtype.rawValue` for smart
+  /// albums; null for built-ins and user albums.
+  var collectionSubtype: Int64? = nil
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -300,6 +303,7 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
     let estimatedCount: Int64? = nilOrValue(pigeonVar_list[3])
     let availability = pigeonVar_list[4] as! AssetSourceAvailabilityDto
     let canAddContent = pigeonVar_list[5] as! Bool
+    let collectionSubtype: Int64? = nilOrValue(pigeonVar_list[6])
 
     return AssetSourceDto(
       sourceIdentifier: sourceIdentifier,
@@ -307,7 +311,8 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
       kind: kind,
       estimatedCount: estimatedCount,
       availability: availability,
-      canAddContent: canAddContent
+      canAddContent: canAddContent,
+      collectionSubtype: collectionSubtype
     )
   }
   func toList() -> [Any?] {
@@ -318,13 +323,14 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
       estimatedCount,
       availability,
       canAddContent,
+      collectionSubtype,
     ]
   }
   static func == (lhs: AssetSourceDto, rhs: AssetSourceDto) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.sourceIdentifier, rhs.sourceIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.displayName, rhs.displayName) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.kind, rhs.kind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.estimatedCount, rhs.estimatedCount) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.availability, rhs.availability) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.canAddContent, rhs.canAddContent)
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.sourceIdentifier, rhs.sourceIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.displayName, rhs.displayName) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.kind, rhs.kind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.estimatedCount, rhs.estimatedCount) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.availability, rhs.availability) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.canAddContent, rhs.canAddContent) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.collectionSubtype, rhs.collectionSubtype)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -335,10 +341,11 @@ struct AssetSourceDto: Hashable, CustomStringConvertible {
     WaketokPlatformApisPigeonInternal.deepHash(value: estimatedCount, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: availability, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: canAddContent, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: collectionSubtype, hasher: &hasher)
   }
 
   public var description: String {
-    return "AssetSourceDto(sourceIdentifier: \(String(describing: sourceIdentifier)), displayName: \(String(describing: displayName)), kind: \(String(describing: kind)), estimatedCount: \(String(describing: estimatedCount)), availability: \(String(describing: availability)), canAddContent: \(String(describing: canAddContent)))"
+    return "AssetSourceDto(sourceIdentifier: \(String(describing: sourceIdentifier)), displayName: \(String(describing: displayName)), kind: \(String(describing: kind)), estimatedCount: \(String(describing: estimatedCount)), availability: \(String(describing: availability)), canAddContent: \(String(describing: canAddContent)), collectionSubtype: \(String(describing: collectionSubtype)))"
   }
 }
 
@@ -1389,10 +1396,14 @@ protocol PhotoLibraryApi {
   /// Sort: creationDate descending; nil creationDate at end. No album
   /// enumeration; no device-local filter.
   func fetchLibraryPage(cursor: String?, pageSize: Int64, completion: @escaping (Result<LibraryPageDto, Error>) -> Void)
-  /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
-  /// Synchronous — counts use PHFetchResult.count only (no network).
-  /// Album / Smart Album listing is deferred.
+  /// Cap 6 / Cap 11.2 / Cap 21.4b: built-ins + (Full) User + Smart Albums.
+  /// Synchronous — smart albums use brute subtype enum (not `.any` alone).
+  /// Emptiness for Build catalog is [smartAlbumsWithContent], not this call.
   func listAssetSources() throws -> [AssetSourceDto]
+  /// Cap 21.4b: which smart-album localIdentifiers have ≥1 image|video.
+  /// Same predicate as album resolve; Host uses fetchLimit=1 (presence only).
+  /// Unknown / missing ids are omitted from the result (not an error).
+  func smartAlbumsWithContent(albumIdentifiers: [String], completion: @escaping (Result<[String], Error>) -> Void)
   /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
   /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;
   /// pair must match frozen built-in ids (all / photos / videos).
@@ -1594,9 +1605,9 @@ class PhotoLibraryApiSetup {
     } else {
       fetchLibraryPageChannel.setMessageHandler(nil)
     }
-    /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
-    /// Synchronous — counts use PHFetchResult.count only (no network).
-    /// Album / Smart Album listing is deferred.
+    /// Cap 6 / Cap 11.2 / Cap 21.4b: built-ins + (Full) User + Smart Albums.
+    /// Synchronous — smart albums use brute subtype enum (not `.any` alone).
+    /// Emptiness for Build catalog is [smartAlbumsWithContent], not this call.
     let listAssetSourcesChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.listAssetSources\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       listAssetSourcesChannel.setMessageHandler { _, reply in
@@ -1609,6 +1620,26 @@ class PhotoLibraryApiSetup {
       }
     } else {
       listAssetSourcesChannel.setMessageHandler(nil)
+    }
+    /// Cap 21.4b: which smart-album localIdentifiers have ≥1 image|video.
+    /// Same predicate as album resolve; Host uses fetchLimit=1 (presence only).
+    /// Unknown / missing ids are omitted from the result (not an error).
+    let smartAlbumsWithContentChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.smartAlbumsWithContent\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      smartAlbumsWithContentChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let albumIdentifiersArg = args[0] as! [String]
+        api.smartAlbumsWithContent(albumIdentifiers: albumIdentifiersArg) { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      smartAlbumsWithContentChannel.setMessageHandler(nil)
     }
     /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
     /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;

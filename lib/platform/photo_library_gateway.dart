@@ -180,6 +180,7 @@ AssetSource assetSourceFromDto(pigeon.AssetSourceDto dto) {
     estimatedCount: count,
     availability: assetSourceAvailabilityFromPigeon(dto.availability),
     canAddContent: dto.canAddContent,
+    collectionSubtype: dto.collectionSubtype,
   );
 }
 
@@ -277,6 +278,16 @@ class PhotoLibraryGateway
   Future<List<AssetSource>> listAssetSources() async {
     final dtos = await _api.listAssetSources();
     return dtos.map(assetSourceFromDto).toList(growable: false);
+  }
+
+  @override
+  Future<List<String>> smartAlbumsWithContent(
+    List<String> albumIdentifiers,
+  ) async {
+    if (albumIdentifiers.isEmpty) {
+      return const [];
+    }
+    return _api.smartAlbumsWithContent(albumIdentifiers);
   }
 
   @override

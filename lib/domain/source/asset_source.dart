@@ -10,6 +10,10 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 ///
 /// [estimatedCount] may be null for albums when PhotoKit reports
 /// `NSNotFound` (unknown — must not be treated as empty).
+///
+/// Cap 21.4b: [collectionSubtype] is PhotoKit smart-album subtype raw value
+/// when [kind] is [AssetSourceKind.smartAlbum]; otherwise null. Build catalog
+/// labels use ARB keyed by subtype (not [displayName]).
 class AssetSource {
   const AssetSource({
     required this.kind,
@@ -18,6 +22,7 @@ class AssetSource {
     required this.estimatedCount,
     required this.availability,
     required this.canAddContent,
+    this.collectionSubtype,
   });
 
   final AssetSourceKind kind;
@@ -35,4 +40,7 @@ class AssetSource {
 
   /// Built-ins and Cap 11.2 albums: false (Add to Album Cap later).
   final bool canAddContent;
+
+  /// Cap 21.4b smart albums only — `PHAssetCollectionSubtype.rawValue`.
+  final int? collectionSubtype;
 }

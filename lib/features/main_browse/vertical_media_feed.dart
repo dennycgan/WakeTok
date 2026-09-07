@@ -644,6 +644,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     }
     _browseWasActive = browseActive;
 
+    // Cap 21.4b: Build a Pool cover — user-intent pause so the center play
+    // affordance is ready under the route and visible on pop (one tap to
+    // resume). Do not auto-resume on close (that was empty-frame / double-tap).
+    ref.listen<bool>(browseCoveringRouteOpenProvider, (previous, next) {
+      if (next) {
+        unawaited(ref.read(playbackCoordinatorProvider).onBrowseCoverOpened());
+      }
+    });
+
     // Cap 9.6: video host has no persisted mute — push preference on change.
     ref.listen<bool>(sharedMuteProvider, (previous, next) {
       if (previous == next) {

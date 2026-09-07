@@ -111,6 +111,7 @@ class AssetSourceDto {
     required this.availability,
     required this.canAddContent,
     this.estimatedCount,
+    this.collectionSubtype,
   });
 
   String sourceIdentifier;
@@ -129,6 +130,10 @@ class AssetSourceDto {
   /// User albums: PhotoKit canPerform(.addContent). Smart albums and
   /// built-ins: false (Cap 19.2).
   bool canAddContent;
+
+  /// Cap 21.4b: PhotoKit `PHAssetCollectionSubtype.rawValue` for smart
+  /// albums; null for built-ins and user albums.
+  int? collectionSubtype;
 }
 
 class SourceReferenceDto {
@@ -423,10 +428,16 @@ abstract class PhotoLibraryApi {
   @async
   LibraryPageDto fetchLibraryPage(String? cursor, int pageSize);
 
-  /// Cap 6: returns only the three built-in sources (All / Photos / Videos).
-  /// Synchronous — counts use PHFetchResult.count only (no network).
-  /// Album / Smart Album listing is deferred.
+  /// Cap 6 / Cap 11.2 / Cap 21.4b: built-ins + (Full) User + Smart Albums.
+  /// Synchronous — smart albums use brute subtype enum (not `.any` alone).
+  /// Emptiness for Build catalog is [smartAlbumsWithContent], not this call.
   List<AssetSourceDto> listAssetSources();
+
+  /// Cap 21.4b: which smart-album localIdentifiers have ≥1 image|video.
+  /// Same predicate as album resolve; Host uses fetchLimit=1 (presence only).
+  /// Unknown / missing ids are omitted from the result (not an error).
+  @async
+  List<String> smartAlbumsWithContent(List<String> albumIdentifiers);
 
   /// Cap 6: resolves a built-in source to the full ordered id list (D1=A).
   /// [SourceReferenceDto.sourceType] must equal [AssetSourceKind] member name;

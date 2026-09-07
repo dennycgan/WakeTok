@@ -298,10 +298,68 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseBuildPoolSectionBuiltIn => 'Built-in';
 
   @override
-  String get mainBrowseBuildPoolSectionAlbums => 'Albums';
+  String get mainBrowseBuildPoolSectionAlbums => 'My Albums';
 
   @override
-  String get mainBrowseBuildPoolSectionSmartAlbums => 'Smart Albums';
+  String get mainBrowseBuildPoolSectionSmartAlbums => 'System Albums';
+
+  @override
+  String get mainBrowseBuildPoolSmartCatalogLoading => 'Loading system albums…';
+
+  @override
+  String get mainBrowseBuildPoolSmartCatalogFailed =>
+      'Could not load system albums.';
+
+  @override
+  String get smartAlbumFavorites => 'Favorites';
+
+  @override
+  String get smartAlbumLivePhotos => 'Live Photos';
+
+  @override
+  String get smartAlbumScreenshots => 'Screenshots';
+
+  @override
+  String get smartAlbumAnimated => 'Animated';
+
+  @override
+  String get smartAlbumSelfies => 'Selfies';
+
+  @override
+  String get smartAlbumVideos => 'Videos';
+
+  @override
+  String get smartAlbumScreenRecordings => 'Screen Recordings';
+
+  @override
+  String get smartAlbumPanoramas => 'Panoramas';
+
+  @override
+  String get smartAlbumTimelapse => 'Time-lapse';
+
+  @override
+  String get smartAlbumBursts => 'Bursts';
+
+  @override
+  String get smartAlbumSlomo => 'Slo-mo';
+
+  @override
+  String get smartAlbumPortrait => 'Portrait';
+
+  @override
+  String get smartAlbumLongExposure => 'Long Exposure';
+
+  @override
+  String get smartAlbumRaw => 'RAW';
+
+  @override
+  String get smartAlbumCinematic => 'Cinematic';
+
+  @override
+  String get smartAlbumSpatial => 'Spatial';
+
+  @override
+  String get smartAlbumDualCapture => 'Dual Capture';
 
   @override
   String mainBrowseBuildPoolSelectedHeading(int count) {
@@ -887,16 +945,73 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseBuildPoolScaffoldTitle => '创建片库';
 
   @override
-  String get mainBrowseBuildPoolScaffoldBody => '后续步骤可在此选择相簿与来源。现在请返回浏览。';
+  String get mainBrowseBuildPoolScaffoldBody => '后续步骤可在此选择相册与来源。现在请返回浏览。';
 
   @override
   String get mainBrowseBuildPoolSectionBuiltIn => '内置';
 
   @override
-  String get mainBrowseBuildPoolSectionAlbums => '相簿';
+  String get mainBrowseBuildPoolSectionAlbums => '我的相册';
 
   @override
-  String get mainBrowseBuildPoolSectionSmartAlbums => '智能相簿';
+  String get mainBrowseBuildPoolSectionSmartAlbums => '系统相册';
+
+  @override
+  String get mainBrowseBuildPoolSmartCatalogLoading => '正在加载系统相册…';
+
+  @override
+  String get mainBrowseBuildPoolSmartCatalogFailed => '无法加载系统相册。';
+
+  @override
+  String get smartAlbumFavorites => '个人收藏';
+
+  @override
+  String get smartAlbumLivePhotos => '实况照片';
+
+  @override
+  String get smartAlbumScreenshots => '截屏';
+
+  @override
+  String get smartAlbumAnimated => '动图';
+
+  @override
+  String get smartAlbumSelfies => '自拍';
+
+  @override
+  String get smartAlbumVideos => '视频';
+
+  @override
+  String get smartAlbumScreenRecordings => '录屏';
+
+  @override
+  String get smartAlbumPanoramas => '全景照片';
+
+  @override
+  String get smartAlbumTimelapse => '延时摄影';
+
+  @override
+  String get smartAlbumBursts => '连拍快照';
+
+  @override
+  String get smartAlbumSlomo => '慢动作';
+
+  @override
+  String get smartAlbumPortrait => '人像';
+
+  @override
+  String get smartAlbumLongExposure => '长曝光';
+
+  @override
+  String get smartAlbumRaw => 'RAW';
+
+  @override
+  String get smartAlbumCinematic => '电影效果';
+
+  @override
+  String get smartAlbumSpatial => '空间';
+
+  @override
+  String get smartAlbumDualCapture => '同步双拍';
 
   @override
   String mainBrowseBuildPoolSelectedHeading(int count) {
@@ -916,7 +1031,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseBuildPoolEmptySelected => '请至少选择一个来源后再开始。';
 
   @override
-  String get mainBrowseBuildPoolCatalogEmpty => '没有可选的相簿。';
+  String get mainBrowseBuildPoolCatalogEmpty => '没有可选的相册。';
 
   @override
   String get mainBrowseNavBrowse => '浏览';

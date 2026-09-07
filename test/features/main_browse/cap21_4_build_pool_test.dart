@@ -15,9 +15,12 @@ import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/build_pool_scaffold_page.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
+import '../../library_smoke/fake_playback_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
 
 AssetSource _album(String id, String name) {
@@ -448,5 +451,74 @@ void main() {
       // Album kind in a feed page makes Layer 2 fail for every item.
       expect(state.feedSourceKind, AssetSourceKind.entireLibrary);
     });
+
+    testWidgets('U-21.4-12 catalog shows System Albums section header',
+        (tester) async {
+      final fake = FakeAssetSourceRepository(
+        allIds: const ['a1'],
+        extraSources: [_album('alb-1', 'Travel')],
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(repo: repo, assetSources: fake),
+      );
+      await tester.pumpAndSettle();
+      await _openBuild(tester);
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(
+        find.text(l10n.mainBrowseBuildPoolSectionSmartAlbums),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.mainBrowseBuildPoolSectionAlbums), findsOneWidget);
+    });
+
+    testWidgets(
+      'U-21.4b-7 Create cover: pause + intent paused; pop keeps intent paused',
+      (tester) async {
+        final playback = FakePlaybackRepository();
+        final fake = FakeAssetSourceRepository(
+          allIds: const ['v1'],
+          videosIds: const ['v1'],
+          extraSources: [_album('alb-1', 'Travel')],
+        );
+        final repo =
+            ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+        await tester.pumpWidget(
+          permissionUiHarness(
+            repo: repo,
+            assetSources: fake,
+            playback: playback,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+        expect(container.read(browseCoveringRouteOpenProvider), isFalse);
+        final pausesBefore = playback.calls.where((c) => c == 'pause').length;
+
+        await _openBuild(tester);
+        expect(container.read(browseCoveringRouteOpenProvider), isTrue);
+        expect(
+          playback.calls.where((c) => c == 'pause').length,
+          greaterThan(pausesBefore),
+        );
+        expect(
+          container.read(playbackCoordinatorProvider).userIntentWantsPlay,
+          isFalse,
+        );
+
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+        expect(container.read(browseCoveringRouteOpenProvider), isFalse);
+        expect(
+          container.read(playbackCoordinatorProvider).userIntentWantsPlay,
+          isFalse,
+        );
+      },
+    );
   });
 }

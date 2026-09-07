@@ -61,6 +61,27 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
   }
 }
 
+/// True while a full-screen Browse cover route is open (e.g. Build a Pool).
+///
+/// Cap 21.4b: opening sets user-intent pause via [PlaybackCoordinator]
+/// so the center play affordance is already present when the cover pops.
+class BrowseCoveringRouteOpenNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setOpen(bool open) {
+    if (state == open) {
+      return;
+    }
+    state = open;
+  }
+}
+
+final browseCoveringRouteOpenProvider =
+    NotifierProvider<BrowseCoveringRouteOpenNotifier, bool>(
+      BrowseCoveringRouteOpenNotifier.new,
+    );
+
 /// Current PageView index; resets to 0 when the top source changes (Cap 7.5 /
 /// ADR-023 D8: tab = new Session).
 final mainBrowseFeedIndexProvider = NotifierProvider<MainBrowseFeedIndex, int>(

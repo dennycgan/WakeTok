@@ -12,6 +12,10 @@ abstract class AssetSourceRepository {
   /// Limited: built-ins only (albums omitted — ADR-021 / ADR-K).
   Future<List<AssetSource>> listAssetSources();
 
+  /// Cap 21.4b: smart-album localIdentifiers that have ≥1 image|video
+  /// (same predicate as album resolve; presence-only on Host).
+  Future<List<String>> smartAlbumsWithContent(List<String> albumIdentifiers);
+
   /// Full ordered id list for [reference] (D1=A).
   /// Cap 11.2: still built-in pairs only on the Host (album resolve = 11.3).
   ///

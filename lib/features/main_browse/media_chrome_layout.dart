@@ -1,7 +1,7 @@
 /// Shared Main Browse media-area chrome layout (meta / Reset / LIVE / actions).
 ///
 /// Cross-Cap visual system — not Cap 20–specific. Documented in
-/// `docs/acceptance/media-chrome-layout-notes.md`.
+/// `docs/reference/media-chrome-layout-notes.md`.
 library;
 
 import 'dart:math' as math;

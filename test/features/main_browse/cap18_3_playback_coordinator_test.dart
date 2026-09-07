@@ -193,4 +193,25 @@ void main() {
     expect(pauseIdx, greaterThan(intentIdx));
     expect(playback.calls.where((c) => c == 'play'), isEmpty);
   });
+
+  test('C-21.4b-C1 browse cover opened clears intent and pauses', () async {
+    final playback = FakePlaybackRepository();
+    final coordinator = PlaybackCoordinator(playback: playback);
+    final gate = FeedMediaRequestGate();
+    final generation = gate.begin();
+
+    await coordinator.onVideoBecomeCurrent(
+      assetIdentifier: 'a',
+      displayGeneration: generation,
+      displayGate: gate,
+      permission: _allAllowed(),
+      muted: false,
+    );
+    expect(coordinator.userIntentWantsPlay, isTrue);
+    playback.calls.clear();
+
+    await coordinator.onBrowseCoverOpened();
+    expect(coordinator.userIntentWantsPlay, isFalse);
+    expect(playback.calls, contains('pause'));
+  });
 }

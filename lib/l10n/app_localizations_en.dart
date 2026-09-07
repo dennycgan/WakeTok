@@ -301,10 +301,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseBuildPoolSectionBuiltIn => 'Built-in';
 
   @override
-  String get mainBrowseBuildPoolSectionAlbums => 'Albums';
+  String get mainBrowseBuildPoolSectionAlbums => 'My Albums';
 
   @override
-  String get mainBrowseBuildPoolSectionSmartAlbums => 'Smart Albums';
+  String get mainBrowseBuildPoolSectionSmartAlbums => 'System Albums';
+
+  @override
+  String get mainBrowseBuildPoolSmartCatalogLoading => 'Loading system albums…';
+
+  @override
+  String get mainBrowseBuildPoolSmartCatalogFailed =>
+      'Could not load system albums.';
+
+  @override
+  String get smartAlbumFavorites => 'Favorites';
+
+  @override
+  String get smartAlbumLivePhotos => 'Live Photos';
+
+  @override
+  String get smartAlbumScreenshots => 'Screenshots';
+
+  @override
+  String get smartAlbumAnimated => 'Animated';
+
+  @override
+  String get smartAlbumSelfies => 'Selfies';
+
+  @override
+  String get smartAlbumVideos => 'Videos';
+
+  @override
+  String get smartAlbumScreenRecordings => 'Screen Recordings';
+
+  @override
+  String get smartAlbumPanoramas => 'Panoramas';
+
+  @override
+  String get smartAlbumTimelapse => 'Time-lapse';
+
+  @override
+  String get smartAlbumBursts => 'Bursts';
+
+  @override
+  String get smartAlbumSlomo => 'Slo-mo';
+
+  @override
+  String get smartAlbumPortrait => 'Portrait';
+
+  @override
+  String get smartAlbumLongExposure => 'Long Exposure';
+
+  @override
+  String get smartAlbumRaw => 'RAW';
+
+  @override
+  String get smartAlbumCinematic => 'Cinematic';
+
+  @override
+  String get smartAlbumSpatial => 'Spatial';
+
+  @override
+  String get smartAlbumDualCapture => 'Dual Capture';
 
   @override
   String mainBrowseBuildPoolSelectedHeading(int count) {

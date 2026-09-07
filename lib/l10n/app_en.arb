@@ -369,13 +369,89 @@
   "@mainBrowseBuildPoolSectionBuiltIn": {
     "description": "Unused after Cap 21.4 device round — All/Photos/Videos stay top-tab only (key kept for stability)"
   },
-  "mainBrowseBuildPoolSectionAlbums": "Albums",
+  "mainBrowseBuildPoolSectionAlbums": "My Albums",
   "@mainBrowseBuildPoolSectionAlbums": {
     "description": "Cap 21.4 Build catalog section header for user albums"
   },
-  "mainBrowseBuildPoolSectionSmartAlbums": "Smart Albums",
+  "mainBrowseBuildPoolSectionSmartAlbums": "System Albums",
   "@mainBrowseBuildPoolSectionSmartAlbums": {
-    "description": "Cap 21.4 smart-album section header; section hidden until curation + counts land (key kept for stability)"
+    "description": "Cap 21.4b Build catalog section for curated PhotoKit smart albums (product: System Albums)"
+  },
+  "mainBrowseBuildPoolSmartCatalogLoading": "Loading system albums…",
+  "@mainBrowseBuildPoolSmartCatalogLoading": {
+    "description": "Cap 21.4b system-albums section while emptiness probe runs"
+  },
+  "mainBrowseBuildPoolSmartCatalogFailed": "Could not load system albums.",
+  "@mainBrowseBuildPoolSmartCatalogFailed": {
+    "description": "Cap 21.4b system-albums section AsyncError fallback"
+  },
+  "smartAlbumFavorites": "Favorites",
+  "@smartAlbumFavorites": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 203)"
+  },
+  "smartAlbumLivePhotos": "Live Photos",
+  "@smartAlbumLivePhotos": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 213)"
+  },
+  "smartAlbumScreenshots": "Screenshots",
+  "@smartAlbumScreenshots": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 211)"
+  },
+  "smartAlbumAnimated": "Animated",
+  "@smartAlbumAnimated": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 214)"
+  },
+  "smartAlbumSelfies": "Selfies",
+  "@smartAlbumSelfies": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 210)"
+  },
+  "smartAlbumVideos": "Videos",
+  "@smartAlbumVideos": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 202)"
+  },
+  "smartAlbumScreenRecordings": "Screen Recordings",
+  "@smartAlbumScreenRecordings": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 220)"
+  },
+  "smartAlbumPanoramas": "Panoramas",
+  "@smartAlbumPanoramas": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 201)"
+  },
+  "smartAlbumTimelapse": "Time-lapse",
+  "@smartAlbumTimelapse": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 204)"
+  },
+  "smartAlbumBursts": "Bursts",
+  "@smartAlbumBursts": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 207)"
+  },
+  "smartAlbumSlomo": "Slo-mo",
+  "@smartAlbumSlomo": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 208)"
+  },
+  "smartAlbumPortrait": "Portrait",
+  "@smartAlbumPortrait": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 212)"
+  },
+  "smartAlbumLongExposure": "Long Exposure",
+  "@smartAlbumLongExposure": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 215)"
+  },
+  "smartAlbumRaw": "RAW",
+  "@smartAlbumRaw": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 217)"
+  },
+  "smartAlbumCinematic": "Cinematic",
+  "@smartAlbumCinematic": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 218)"
+  },
+  "smartAlbumSpatial": "Spatial",
+  "@smartAlbumSpatial": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 219)"
+  },
+  "smartAlbumDualCapture": "Dual Capture",
+  "@smartAlbumDualCapture": {
+    "description": "Cap 21.4b Build smart-album row label (subtype 221)"
   },
   "mainBrowseBuildPoolSelectedHeading": "Selected ({count}/30)",
   "@mainBrowseBuildPoolSelectedHeading": {

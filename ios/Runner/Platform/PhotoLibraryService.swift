@@ -203,7 +203,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
       kind: source.kind,
       estimatedCount: Int64(count),
       availability: count > 0 ? .available : .empty,
-      canAddContent: false
+      canAddContent: false,
+      collectionSubtype: nil
     )
   }
 
@@ -243,7 +244,10 @@ final class PhotoLibraryService: PhotoLibraryApi {
       kind: kind,
       estimatedCount: count,
       availability: availability,
-      canAddContent: canAddContent
+      canAddContent: canAddContent,
+      collectionSubtype: kind == .smartAlbum
+        ? Int64(collection.assetCollectionSubtype.rawValue)
+        : nil
     )
   }
 
@@ -301,30 +305,53 @@ final class PhotoLibraryService: PhotoLibraryApi {
 
   /// Smart albums excluding Hidden / Recently Deleted (Cap 11.2 D3=A).
   ///
+  /// Cap 21.4b: brute-force subtype raw values — do **not** rely on
+  /// `subtype: .any` alone (omits Recently Added / Unable to Upload).
   /// PhotoKit has no public `smartAlbumRecentlyDeleted` member. Recently
-  /// Deleted appears as smartAlbum with undocumented rawValue `1000000201`
-  /// (stable across observed iOS versions; title matching is locale-fragile).
+  /// Deleted appears as smartAlbum with undocumented rawValue `1000000201`.
   private static let smartAlbumRecentlyDeletedRawValue: Int = 1_000_000_201
 
+  /// Raw subtypes scanned for listing (public band + known undocumented).
+  private static let smartAlbumBruteRawValues: [Int] = Array(200...240) + [
+    1_000_000_201, 1_000_000_218, 1_000_000_219, 1_000_000_220, 1_000_000_221,
+  ]
+
   private func listSmartAlbumSources() -> [AssetSourceDto] {
-    let result = PHAssetCollection.fetchAssetCollections(
-      with: .smartAlbum,
-      subtype: .any,
-      options: nil
-    )
+    var seenIds = Set<String>()
     var albums: [AssetSourceDto] = []
-    albums.reserveCapacity(result.count)
-    result.enumerateObjects { collection, _, _ in
-      let subtype = collection.assetCollectionSubtype
+    for raw in Self.smartAlbumBruteRawValues {
+      guard let subtype = PHAssetCollectionSubtype(rawValue: raw) else {
+        continue
+      }
       if subtype == .smartAlbumAllHidden {
-        return
+        continue
       }
-      if subtype.rawValue == Self.smartAlbumRecentlyDeletedRawValue {
-        return
+      if raw == Self.smartAlbumRecentlyDeletedRawValue {
+        continue
       }
-      albums.append(self.makeAlbumSourceDto(collection, kind: .smartAlbum))
+      let result = PHAssetCollection.fetchAssetCollections(
+        with: .smartAlbum,
+        subtype: subtype,
+        options: nil
+      )
+      result.enumerateObjects { collection, _, _ in
+        let id = collection.localIdentifier
+        if seenIds.contains(id) {
+          return
+        }
+        seenIds.insert(id)
+        albums.append(self.makeAlbumSourceDto(collection, kind: .smartAlbum))
+      }
     }
     return sortedByDisplayName(albums)
+  }
+
+  /// Cap 21.4b: presence probe (image|video, fetchLimit=1).
+  private func smartAlbumHasContent(_ collection: PHAssetCollection) -> Bool {
+    let options = makeAlbumAssetFetchOptions()
+    options.fetchLimit = 1
+    let assets = PHAsset.fetchAssets(in: collection, options: options)
+    return assets.firstObject != nil
   }
 
   private func collectLocalIdentifiers(
@@ -554,6 +581,46 @@ final class PhotoLibraryService: PhotoLibraryApi {
       sources.append(contentsOf: listSmartAlbumSources())
     }
     return sources
+  }
+
+  func smartAlbumsWithContent(
+    albumIdentifiers: [String],
+    completion: @escaping (Result<[String], Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    if albumIdentifiers.isEmpty {
+      completion(.success([]))
+      return
+    }
+    DispatchQueue.global(qos: .userInitiated).async {
+      let collections = PHAssetCollection.fetchAssetCollections(
+        withLocalIdentifiers: albumIdentifiers,
+        options: nil
+      )
+      var nonEmpty: [String] = []
+      nonEmpty.reserveCapacity(albumIdentifiers.count)
+      // Preserve caller order.
+      var byId: [String: PHAssetCollection] = [:]
+      collections.enumerateObjects { collection, _, _ in
+        byId[collection.localIdentifier] = collection
+      }
+      for id in albumIdentifiers {
+        guard let collection = byId[id] else {
+          continue
+        }
+        if self.smartAlbumHasContent(collection) {
+          nonEmpty.append(id)
+        }
+      }
+      DispatchQueue.main.async {
+        completion(.success(nonEmpty))
+      }
+    }
   }
 
   func resolveSource(

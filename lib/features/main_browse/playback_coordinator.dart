@@ -273,6 +273,19 @@ class PlaybackCoordinator extends ChangeNotifier {
     });
   }
 
+  /// Cap 21.4b: full-screen Browse cover (Build a Pool) opened.
+  ///
+  /// Sets user intent to paused + Host pause so the center play affordance is
+  /// already painted under the cover and visible the instant the route pops
+  /// (no empty frame, no double-tap). Distinct from [onLeaveForeground]
+  /// (preserves intent for auto-resume) and [onLeaveCurrent] (mechanical).
+  Future<void> onBrowseCoverOpened() {
+    return _enqueue(() async {
+      _setUserIntentWantsPlay(false);
+      await _playback.pause();
+    });
+  }
+
   /// PvTransitionGuard handoff resume — preserves user intent, no nav activation.
   Future<void> onTransitionHandoffResume({
     required String assetIdentifier,
