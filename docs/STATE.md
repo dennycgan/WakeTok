@@ -188,6 +188,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       effectively unusable until albums exist — All/Photos/Videos
       remain top-tab). U-21.4-1…11. ADR: D1 No-branch, D2, D4, D5,
       D6.1, Build Screen clause.
+- [x] 21.4b Smart albums in Build catalog (ADR-044 §11)
+      Work `67cb08b`: brute subtype enum (not `.any` alone); DTO
+      `collectionSubtype`; whitelist + explicit excludes (incl. Slo-mo
+      208); `smartAlbumsWithContent` (`fetchLimit = 1`); independent
+      smart-section loading; ARB My Albums / System Albums; immersive
+      dark Build + peek; catalog:selected 9:4; cover-route user-intent
+      pause (center play ready on return). Built-ins stay omitted from
+      Build (Accepted deviation vs ADR-044 §11 literal). Boundary:
+      `docs/reference/cap21-smart-album-boundary.md`. No new ADR.
 - [ ] 21.5 Pool-path polish (honesty / a11y / dead routes)
       Empty/all-fail/partial-fail copy + Retry bounds (ADR-024).
       Built-in collapsed honesty + a11y when Origin=ephemeral (D7).
@@ -213,8 +222,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): 21.5 Pool-path polish (honesty / a11y / dead routes)
-- Sub-steps done: 21.1–21.4; Build work `74c84e1`; chrome `67f31b0`;
-      ADR-044 Accepted
+- Sub-steps done: 21.1–21.4b; Build work `74c84e1`; smart catalog
+      `67cb08b`; chrome `67f31b0`; ADR-044 Accepted
 - Next step: empty / all-fail / partial-fail copy + Retry bounds;
       Built-in collapsed honesty + a11y when Origin=ephemeral; no dead
       routes on Create / chip / Built-in / Saved gray
@@ -245,12 +254,20 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   kinds; passing `album` / `smartAlbum` hard-fails every item (L1 still
   OK). Not a product fork — restores the mixed-content probe contract.
   U-21.4-11 locks this. No separate ADR (ADR-044 already Accepted).
-- **Limited / empty Build catalog:** Cap 21.4 catalog lists **user albums
-  only**. Limited (or any grant with zero listable albums) shows the empty
-  catalog copy — Start stays disabled. Expected: Build-a-Pool is
-  effectively unusable until albums exist; browsing All / Photos / Videos
-  remains via top Built-in tabs. Smart-album section stays hidden until
-  Host curation + non-empty counts (later discussion).
+- **Limited / empty Build catalog:** Cap 21.4b catalog lists **user
+  albums** (My Albums) + **curated system albums** (whitelist ∩
+  non-empty). Limited (or any grant with zero listable user albums and
+  zero visible system albums) shows the empty catalog copy — Start stays
+  disabled. Expected: Build-a-Pool is effectively unusable until sources
+  exist; browsing All / Photos / Videos remains via top Built-in tabs.
+  Built-ins stay omitted from the Build list (Accepted deviation vs
+  ADR-044 §11). Boundary table:
+  `docs/reference/cap21-smart-album-boundary.md`.
+- **Cap 21.4b smart-album boundary (live maintenance):** dead whitelist /
+  exclude table + live emptiness / brute-enum rules —
+  `docs/reference/cap21-smart-album-boundary.md`. New iOS subtypes do
+  **not** auto-join; owner edits the table + ARB deliberately. Work
+  `67cb08b`.
 - Localization guard: ADR-012 + test/architecture/localization_test.dart
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
@@ -264,7 +281,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   (`aa03be8` / ADR-023);
   media-area chrome layout (Reset / LIVE / actions / MVP 3-row meta):
   `media_chrome_layout.dart` + work `81904e1`; notes
-  `docs/acceptance/media-chrome-layout-notes.md` (not Cap 20–only; not ADR-043)
+  `docs/reference/media-chrome-layout-notes.md` (not Cap 20–only; not ADR-043)
 - Built-in sources: lib/domain/source/, PhotoLibraryApi.listAssetSources / resolveSource (ADR-013); providers: lib/features/library_smoke/asset_source_providers.dart
 - Cap 11.2 list albums: Host `listAssetSources` Full = built-ins +
   albumRegular + smart (Hidden/RD excluded); Limited = built-ins only;
@@ -470,7 +487,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   docs/acceptance/cap18-18.6-notes.md
 - Media chrome layout (Reset / LIVE / actions / MVP 3-row meta;
   shared browse chrome, not Cap 20–only; not ADR-043):
-  docs/acceptance/media-chrome-layout-notes.md — work `81904e1`
+  docs/reference/media-chrome-layout-notes.md — work `81904e1`
+- Cap 21.4b smart-album Build catalog boundary (live whitelist /
+  exclude maintenance):
+  docs/reference/cap21-smart-album-boundary.md — work `67cb08b`
 - Acceptance notes (Cap 20.6 device acceptance — D5=4× / B.1 / Q2-A;
   debt **451** Closed / **452** Open):
   docs/acceptance/cap20-20.6-notes.md — work `bc15517`
@@ -555,7 +575,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 451 | Closed | Main Browse Screen | Cap 20 | `W-14.6c` still `Image.file` uses `BoxFit.fill` but test expected `BoxFit.contain` | **Closed by Cap 20.6** (`bc15517`): assert rewritten for Cap 20 letterbox shell — `StillFittedMagnificationShell` sizes a contain-formula box from positive pixel dims; `Image` uses `BoxFit.fill` **only inside that box** (not viewport stretch). Architecture `presentation_defaults_test` still documents ctor default `BoxFit.contain` for fallbacks. Degenerate / missing pixel dims → viewport-sized fill stretch is debt **452** (Open). | Closed by Cap 20.6 (`bc15517`) | ADR-028; Cap 14.6c; Cap 20 letterbox |
 | 452 | Open | Main Browse Screen | Cap 20.6 | Missing or ≤0 `pixelWidth`/`pixelHeight` on display still → letterbox shell falls back to viewport size → `BoxFit.fill` stretches | Production Host normally writes PHAsset / decoded dims. Dart fields stay nullable (Pigeon optional). Shell treats null OR ≤0 as fitted=viewport — then fill WOULD stretch. PHAsset can report 0 / wrong dims (iCloud / incomplete metadata). Healthy-path guard is `W-14.6c` (`bc15517`); this Open row tracks the degenerate-dims residual. | Unassigned | ADR-028; Cap 20 letterbox; `cap20-20.6-notes.md` |
 | 453 | Closed | Live Photo (Cap 9) | Cap 20.6 | App leave / lock mid Live motion left a mid-frame PV; pinch dead | **Lifecycle gap itself is Cap 9 legacy** (no AppLifecycle → Live unload from Cap 9 landing). **Became user-visible only after Cap 20.5** wired `_liveMotionMounted` to `MagnificationHostMode.none` (stuck mid-motion frame + pinch failure = same root cause, two faces). Pinch recovery **depends on** Live unload — not a separate debt. **Not an ADR-043 product decision** (lifecycle fix under Cap 9 / ADR-019 shape; Host-mode gate only made the gap visible). Discovered during Cap 20.6 soak; does **not** block 20.6 close-out. **Closed by** `7f43863` (2026-09-05): leave `inactive`/`paused`/`hidden` + resume heal → same unload as `playbackEnded`, then best-effort `stopPlayback`; unload claims dirty before Host stop (stacked leave idempotent). i17 Profile PASS: static cover + pinch. | Closed by Cap 20.6 soak (`7f43863`) | ADR-019 |
-| 454 | Closed | Main Browse Screen | Cap 21.2 | `W-14.6b-L4` / `W-15.3` corner-chrome bottom inset assert expects ~12; product bottom is ~7.2 since media chrome layout | **Discovered during Cap 21.2; not introduced by 21.2.** Stash of all Cap 21.2 Origin/ChromeState work still failed identically on clean HEAD. Root cause: `81904e1` (2026-09-05) changed `_FeedCornerChrome` bottom from fixed inset 12 to `mainBrowseLiveStatusBottomInset` (≈7.2, aligned with Overlay; see `media-chrome-layout-notes.md`); widget asserts still used `closeTo(12, 1)` on `feed.bottom - chrome.bottom` (trailing inset 12 remained correct). Distinct from closed debt **440** (timing/strut reds, fixed `6682582`). **Closed by test-only fix:** `W-14.6b-L4` / `W-15.3` now assert trailing via `kMediaChromeTrailingInset` and bottom via `mainBrowseLiveStatusBottomInset(tokens)` — aligns asserts with the product value already shipped in `81904e1`; **no `lib/` product change**. Full `flutter test` green. | Closed by debt-454 test align | —; `81904e1`; `docs/acceptance/media-chrome-layout-notes.md` |
+| 454 | Closed | Main Browse Screen | Cap 21.2 | `W-14.6b-L4` / `W-15.3` corner-chrome bottom inset assert expects ~12; product bottom is ~7.2 since media chrome layout | **Discovered during Cap 21.2; not introduced by 21.2.** Stash of all Cap 21.2 Origin/ChromeState work still failed identically on clean HEAD. Root cause: `81904e1` (2026-09-05) changed `_FeedCornerChrome` bottom from fixed inset 12 to `mainBrowseLiveStatusBottomInset` (≈7.2, aligned with Overlay; see `media-chrome-layout-notes.md`); widget asserts still used `closeTo(12, 1)` on `feed.bottom - chrome.bottom` (trailing inset 12 remained correct). Distinct from closed debt **440** (timing/strut reds, fixed `6682582`). **Closed by test-only fix:** `W-14.6b-L4` / `W-15.3` now assert trailing via `kMediaChromeTrailingInset` and bottom via `mainBrowseLiveStatusBottomInset(tokens)` — aligns asserts with the product value already shipped in `81904e1`; **no `lib/` product change**. Full `flutter test` green. | Closed by debt-454 test align | —; `81904e1`; `docs/reference/media-chrome-layout-notes.md` |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

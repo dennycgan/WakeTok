@@ -1068,3 +1068,15 @@ this close-out.
 - `81904e1` — media chrome layout (shared browse; **not** ADR-043)
 - `7f43863` — Live AppLifecycle unload / debt **453** Closed (Cap 9 /
   ADR-019; Cap 20.5 Host gate made gap visible)
+
+---
+
+## Path correction — media-chrome-layout-notes (2026-09-07)
+
+Forward-pointer only. Does **not** edit the Cap 20 entry above.
+
+- **Path correction (Cap 21.4b docs; work `67cb08b`):**
+  `docs/acceptance/media-chrome-layout-notes.md`, referenced in the
+  Cap 20 entry above, has moved to
+  `docs/reference/media-chrome-layout-notes.md`. Original Cap 20 entry
+  text is unchanged. Live Contract pointers: `docs/STATE.md`.
