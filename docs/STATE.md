@@ -246,26 +246,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       smoke PASS (Kafka Profile). Residual: debt **456** (L2-ready /
       panel liveness), **457** (Host wire-code collapse). ADR-044 D3
       (no new ADR).
-- [ ] 21.7 Device acceptance
-      Matrix: (A) Full multi-album Build→Start; (B) All then chip
-      resume; (C) Leave Browse preserves Origin+park; (D) Build cancel
-      preserves park; (E) new Start replaces park; (F) Limited
-      built-ins only; (G) external delete → 444 copy not wireless
-      (evict L2-ready/temp first — debt **456** Part A); (H) active
-      chip peek; (I) force-quit → reopen: chip gone, activeOrigin
-      default All, no residual ephemeral. Notes under
-      `docs/acceptance/cap21-*`. ADR: D2, D3, D6.1–D6.3, D6.4, D7.
+- [x] 21.7 Device acceptance
+      Work `701bb00` (U-21.7-C Leave Browse chrome guard). Owner PASS
+      2026-09-08: Kafka primary A/B/C/F/G/H/I; i17 short C/G/I; D/E
+      SKIP (U-21.4). Notes `docs/acceptance/cap21-21.7-notes.md`.
+      Residuals **456** / **457** remain Open. ADR: D2, D3, D6.1–D6.3,
+      D6.4, D7 (no new ADR).
 - [ ] 21.8 Cap close-out
       Cap `[x]`; YOU ARE HERE → Saved Pool persistence…; PHASE_HISTORY
       snapshot; debt **444** Closed by Cap 21.6 (`a448989`); confirm
       ADR-044 Accepted (from post-21.2 docs) or flip if missed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 21.7 Cap 21 device acceptance matrix
-- Sub-steps done: 21.1–21.6; feed unavailable work `a448989`;
-      pool-path polish `80128a3`; ADR-045 / ADR-044 Accepted
-- Next step: run matrix A–I; note L2-ready/temp eviction for (G);
-      write `docs/acceptance/cap21-*` as needed
+- Goal (one line): 21.8 Cap 21 close-out
+- Sub-steps done: 21.1–21.7; U-21.7-C work `701bb00`; device PASS
+      notes `cap21-21.7-notes.md`
+- Next step: Capability `[x]`; YOU ARE HERE → Saved Pool; PHASE_HISTORY
+      snapshot; confirm ADR-044 Accepted / debt **444** Closed note
 - Related decisions: ADR-044; ADR-045; debt **444** Closed by 21.6;
       **455** → Cap 22; **456** / **457** Open (21.6 residuals);
       Cap 20 residuals **449** / **452** Open
