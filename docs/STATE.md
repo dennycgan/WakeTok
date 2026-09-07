@@ -197,11 +197,33 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       pause (center play ready on return). Built-ins stay omitted from
       Build (Accepted deviation vs ADR-044 §11 literal). Boundary:
       `docs/reference/cap21-smart-album-boundary.md`. No new ADR.
-- [ ] 21.5 Pool-path polish (honesty / a11y / dead routes)
-      Empty/all-fail/partial-fail copy + Retry bounds (ADR-024).
-      Built-in collapsed honesty + a11y when Origin=ephemeral (D7).
-      Create / chip / Built-in / Saved gray: no dead routes. ADR: D5,
-      D7, D6.4 closure.
+- [x] 21.5 Pool-path polish (honesty / a11y / dead routes)
+      Work `80128a3`. Separate closes (not one lump):
+      (1) **D5 presentation:** no Main Browse push banner for
+      partial sources; pull-only honesty via composition peek
+      (+ Cap 22 Saved row later). ADR-045.
+      (2) **Partial Snapshot cache:** non-empty coalesced lists may
+      cache even with source hard-fail; `_hasHardFailure` unchanged
+      for ADR-025 D8 empty auto-retry (not ADR-024 empty bounds).
+      (3) **P4 Build catalog freshness:** open Build /
+      `invalidate(assetSourcesProvider)`; cover request 3s timeout →
+      placeholder (found in 21.5 device soak; not original D5/D7
+      scope).
+      (4) **P5 Limited Create:** Create disabled +
+      `mainBrowseCreatePoolRequiresFullAccess` caption; extends
+      Limited empty-Build Accepted deviation (ADR-044 D2 / 21.4b).
+      (5) **Peek label freeze:** Start-time
+      `parkedCompositionLabels`; missing source never shows PhotoKit
+      id.
+      (6) **Peek non-modal:** Overlay dismiss on outside tap /
+      vertical drag (gesture pass-through = manual acceptance;
+      Cap 21.3 menu-block precedent).
+      (7) **Peek suffix matrix:** Removed from Photos /
+      Requires Full Access by list match + Limited vs Full (ARB
+      keys); empty = name only.
+      (8) **List lag note for Cap 22:** see Contract pointers +
+      debt **455**. Built-in ephemeral Semantics (D7). Saved gray
+      placeholders non-navigating. Debt **444** remains → 21.6.
 - [ ] 21.6 debt 444 — honest feed failure
       Distinct FeedFailureReason + ARB; remap only feed
       `feedFailureReasonFromPlatformCode` chain (not favorite /
@@ -221,17 +243,16 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       ADR-044 Accepted (from post-21.2 docs) or flip if missed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 21.5 Pool-path polish (honesty / a11y / dead routes)
-- Sub-steps done: 21.1–21.4b; Build work `74c84e1`; smart catalog
-      `67cb08b`; chrome `67f31b0`; ADR-044 Accepted
-- Next step: empty / all-fail / partial-fail copy + Retry bounds;
-      Built-in collapsed honesty + a11y when Origin=ephemeral; no dead
-      routes on Create / chip / Built-in / Saved gray
-- Related decisions: ADR-044; debt **444** → 21.6; zh product-copy
-      convention (see Contract pointers; not EN Pool / kickoff
-      concept term in ARB); Cap 20 residuals **449** / **452** Open;
-      Create chip label length on ≤375pt may need layout polish
-      (not a 21.4 regression — known risk)
+- Goal (one line): 21.6 debt 444 — honest feed failure copy
+- Sub-steps done: 21.1–21.5; pool-path polish work `80128a3`;
+      ADR-045 Accepted (same docs commit); smart catalog `67cb08b`;
+      Build `74c84e1`; chrome `67f31b0`; ADR-044 Accepted
+- Next step: remap feed `assetUnavailable` off wireless/network ARB;
+      distinct FeedFailureReason; disable useless Retry; no observer
+      Queue rebuild (D3-B soft-skip default Out)
+- Related decisions: ADR-044; ADR-045; debt **444** → 21.6; debt
+      **455** → Cap 22 list refresh; zh product-copy convention
+      (Contract pointers); Cap 20 residuals **449** / **452** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -258,11 +279,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   albums** (My Albums) + **curated system albums** (whitelist ∩
   non-empty). Limited (or any grant with zero listable user albums and
   zero visible system albums) shows the empty catalog copy — Start stays
-  disabled. Expected: Build-a-Pool is effectively unusable until sources
-  exist; browsing All / Photos / Videos remains via top Built-in tabs.
-  Built-ins stay omitted from the Build list (Accepted deviation vs
-  ADR-044 §11). Boundary table:
+  disabled. Cap 21.5 (`80128a3`): Create is **disabled** under Limited
+  with `mainBrowseCreatePoolRequiresFullAccess` caption (same Full Access
+  vocabulary as Cap 19.5b). Expected: Build-a-Pool is effectively
+  unusable until Full Access + listable sources; browsing All / Photos /
+  Videos remains via top Built-in tabs. Built-ins stay omitted from the
+  Build list (Accepted deviation vs ADR-044 §11). Boundary table:
   `docs/reference/cap21-smart-album-boundary.md`.
+- **`assetSourcesProvider` list lag (Cap 21.5 / Cap 22 design memo):**
+  Album-catalog data updates only when the FutureProvider is actively
+  (re)read after invalidate — it does **not** auto-observe Photos library
+  mutations. Composition peek “album removed” honesty therefore appears
+  only after a list refresh (Cap 21.5 triggers invalidate when opening
+  Create). This is **list-layer lag**, not Session/Queue lag
+  (ADR-027 / ADR-023 D7). Cap 22 Saved composition / detail UIs that
+  reuse `assetSourcesProvider` **must** plan explicit refresh timing;
+  do not assume a persisted recipe detects deleted albums by itself.
+  Debt **455**.
 - **Cap 21.4b smart-album boundary (live maintenance):** dead whitelist /
   exclude table + live emptiness / brute-enum rules —
   `docs/reference/cap21-smart-album-boundary.md`. New iOS subtypes do
@@ -576,6 +609,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 452 | Open | Main Browse Screen | Cap 20.6 | Missing or ≤0 `pixelWidth`/`pixelHeight` on display still → letterbox shell falls back to viewport size → `BoxFit.fill` stretches | Production Host normally writes PHAsset / decoded dims. Dart fields stay nullable (Pigeon optional). Shell treats null OR ≤0 as fitted=viewport — then fill WOULD stretch. PHAsset can report 0 / wrong dims (iCloud / incomplete metadata). Healthy-path guard is `W-14.6c` (`bc15517`); this Open row tracks the degenerate-dims residual. | Unassigned | ADR-028; Cap 20 letterbox; `cap20-20.6-notes.md` |
 | 453 | Closed | Live Photo (Cap 9) | Cap 20.6 | App leave / lock mid Live motion left a mid-frame PV; pinch dead | **Lifecycle gap itself is Cap 9 legacy** (no AppLifecycle → Live unload from Cap 9 landing). **Became user-visible only after Cap 20.5** wired `_liveMotionMounted` to `MagnificationHostMode.none` (stuck mid-motion frame + pinch failure = same root cause, two faces). Pinch recovery **depends on** Live unload — not a separate debt. **Not an ADR-043 product decision** (lifecycle fix under Cap 9 / ADR-019 shape; Host-mode gate only made the gap visible). Discovered during Cap 20.6 soak; does **not** block 20.6 close-out. **Closed by** `7f43863` (2026-09-05): leave `inactive`/`paused`/`hidden` + resume heal → same unload as `playbackEnded`, then best-effort `stopPlayback`; unload claims dirty before Host stop (stacked leave idempotent). i17 Profile PASS: static cover + pinch. | Closed by Cap 20.6 soak (`7f43863`) | ADR-019 |
 | 454 | Closed | Main Browse Screen | Cap 21.2 | `W-14.6b-L4` / `W-15.3` corner-chrome bottom inset assert expects ~12; product bottom is ~7.2 since media chrome layout | **Discovered during Cap 21.2; not introduced by 21.2.** Stash of all Cap 21.2 Origin/ChromeState work still failed identically on clean HEAD. Root cause: `81904e1` (2026-09-05) changed `_FeedCornerChrome` bottom from fixed inset 12 to `mainBrowseLiveStatusBottomInset` (≈7.2, aligned with Overlay; see `media-chrome-layout-notes.md`); widget asserts still used `closeTo(12, 1)` on `feed.bottom - chrome.bottom` (trailing inset 12 remained correct). Distinct from closed debt **440** (timing/strut reds, fixed `6682582`). **Closed by test-only fix:** `W-14.6b-L4` / `W-15.3` now assert trailing via `kMediaChromeTrailingInset` and bottom via `mainBrowseLiveStatusBottomInset(tokens)` — aligns asserts with the product value already shipped in `81904e1`; **no `lib/` product change**. Full `flutter test` green. | Closed by debt-454 test align | —; `81904e1`; `docs/reference/media-chrome-layout-notes.md` |
+| 455 | Open | Saved Pool persistence | Cap 21.5 | Cap 22 Saved composition/detail must plan `assetSourcesProvider` refresh; list does not auto-detect deleted albums | **Logged Cap 21.5 device soak.** Peek “album removed” suffixes read the current `assetSourcesProvider` value; that list refreshes only on explicit invalidate (Build open in Cap 21.5). Session/Queue keep deleted-album asset ids until process death (ADR-027 / ADR-023 D7) — orthogonal. Cap 22 Saved peek/detail that reuse the same provider will look “healthy” after an external album delete until something refreshes the list. Design must schedule invalidate (or equivalent) when opening Saved composition UI — not assume persistence observes PhotoKit. | Cap 22 (Saved Pool) design | ADR-044 / ADR-045; Contract pointers list-lag note |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

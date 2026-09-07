@@ -5174,3 +5174,72 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     layout** risk, not an open Cap 21.1 product fork.
   - Architecture / localization guards remain mandatory on `lib/` work
     (ADR-009/010/012).
+
+## ADR-045: Cap 21.5 pool-path honesty — D5 hint surfaces and partial Snapshot cache
+
+- Status: Accepted (2026-09-07)
+- Commit/PR anchor: 80128a3
+- Plain summary (owner reads this):
+  When some albums in a temp Pool fail but others still have photos,
+  WakeTok still lets you browse. Cap 21.5 does **not** push a banner on
+  Main Browse for those partial failures. Honesty lives in the temp-chip
+  composition peek (and later Cap 22 Saved rows). Non-empty Snapshots may
+  be cached even if a source hard-failed; truly empty results stay
+  uncached and keep the existing empty auto-retry rules.
+- Context / what problem forced this:
+  ADR-044 Decision 5 requires non-blocking hints for Empty / Unavailable /
+  Unauthorized sources when the coalesced Snapshot still has ≥1 item. An
+  early Cap 21.5 attempt used a dismissible Main Browse push banner;
+  device soak showed it as noise and competed with feed chrome. Peek
+  already lists composition names (ADR-044 D6.4 / D7). Separately, cache
+  policy for “partial hard-fail but non-empty coalesced list” needed an
+  explicit lock so empty auto-retry (ADR-025 D8) is not confused with
+  empty-never-cache (ADR-024).
+- Decision (what was chosen):
+  1. **D5 presentation surfaces.** Partial-source honesty is **pull-only**
+     on Main Browse: composition peek on the parked temp chip (Cap 21),
+     plus Cap 22 Saved composition / detail rows later. **Do not** push a
+     Main Browse feed banner for partial sources.
+  2. **Partial Snapshot cache.** If `coalescedAssetIds` is non-empty,
+     the Snapshot **may** enter the browse session cache even when one or
+     more sources hard-failed. `_hasHardFailure` (or equivalent) used for
+     ADR-025 D8 empty auto-retry remains driven only by empty-result
+     paths — do not flip it solely because a non-empty partial resolve
+     had a hard-fail limb. Empty Snapshots remain never-cached (ADR-024).
+  3. **Peek label honesty (implementation bound of D6.4 peek).** Start
+     freezes display labels (`parkedCompositionLabels`). Missing list
+     matches never show PhotoKit ids. Suffix vocabulary:
+     Requires Full Access (Limited + missing, or unauthorized) vs
+     Removed from Photos (Full Access + missing / unavailable); empty or
+     available sources show the name only.
+  4. **Build catalog freshness (21.5 soak, not a D5 rewrite).** Opening
+     Create / Build invalidates `assetSourcesProvider` (and smart catalog
+     as needed). Cover thumbnail requests time out to placeholder so a
+     stalled cover cannot block the catalog.
+  5. **Limited Create.** Under Limited Access, Create is disabled with
+     Full Access caption copy (same vocabulary as Cap 19.5b). Extends the
+     Cap 21.4b Limited / empty-Build Accepted deviation; does not rewrite
+     ADR-044 Decision 2’s built-ins-only Build list rule.
+  6. **List lag for Cap 22.** `assetSourcesProvider` does not auto-observe
+     Photos library mutations; “album removed” peek honesty appears only
+     after an intentional refresh. Cap 22 Saved UIs that reuse the list
+     must plan invalidate timing (STATE debt **455**). Session / Queue
+     lag remains ADR-027 / ADR-023 D7 — orthogonal.
+- Alternatives considered and rejected:
+  - Dismissible Main Browse push banner for partial sources — rejected;
+    owner soak: chrome noise; D5 “non-blocking” ≠ push interrupt.
+  - Treating any source hard-fail as empty-cache / empty-retry path —
+    rejected; would discard browsable coalesced content and conflate
+    ADR-024 / ADR-025 D8.
+  - Showing PhotoKit ids when list match is missing — rejected; breaks
+    peek honesty.
+  - Claiming Limited + missing album as “deleted” — rejected; Host omits
+    albums under Limited; Full Access vocabulary required.
+- Consequences / constraints accepted:
+  - ADR-044 Decision 5 **product** rule (browse when ≥1 item; non-blocking
+    hints) stays; this ADR narrows **where** hints appear.
+  - Do not edit ADR-044 Decision 5 body; this entry is the presentation /
+    cache lock.
+  - Debt **444** (honest feed `assetUnavailable` copy) remains Cap 21.6.
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009/010/012).
