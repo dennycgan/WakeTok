@@ -603,7 +603,7 @@ abstract class AppLocalizations {
   /// **'Requires Full Access'**
   String get mainBrowseCompositionPeekRequiresFullAccess;
 
-  /// Caption under disabled Create when Photos access is Limited (Cap 19.5b vocabulary)
+  /// Caption under disabled Create when Photos access is Limited (ZH aligns Cap 5.3 Full Access root; Cap 19.5b panel copy may differ)
   ///
   /// In en, this message translates to:
   /// **'Requires Full Access'**

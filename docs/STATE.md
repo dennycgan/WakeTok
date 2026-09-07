@@ -280,11 +280,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   non-empty). Limited (or any grant with zero listable user albums and
   zero visible system albums) shows the empty catalog copy — Start stays
   disabled. Cap 21.5 (`80128a3`): Create is **disabled** under Limited
-  with `mainBrowseCreatePoolRequiresFullAccess` caption (same Full Access
-  vocabulary as Cap 19.5b). Expected: Build-a-Pool is effectively
-  unusable until Full Access + listable sources; browsing All / Photos /
-  Videos remains via top Built-in tabs. Built-ins stay omitted from the
-  Build list (Accepted deviation vs ADR-044 §11). Boundary table:
+  with `mainBrowseCreatePoolRequiresFullAccess` caption. Cap 21.5 ZH Full
+  Access root wording follows Cap 5.3 `limitedAccessBannerMessage` (not
+  Cap 19.5b). Cap 19.5b `cap19PanelAddToAlbumLimitedMessage` still uses a
+  different Full Access phrasing — known drift, not fixed in the Cap 21.5
+  copy-align follow-up (leave for a later localisation sweep). Expected:
+  Build-a-Pool is effectively unusable until Full Access + listable
+  sources; browsing All / Photos / Videos remains via top Built-in tabs.
+  Built-ins stay omitted from the Build list (Accepted deviation vs
+  ADR-044 §11). Boundary table:
   `docs/reference/cap21-smart-album-boundary.md`.
 - **`assetSourcesProvider` list lag (Cap 21.5 / Cap 22 design memo):**
   Album-catalog data updates only when the FutureProvider is actively
@@ -561,7 +565,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 414 | Open | POC-09 |  | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | 415 | Open | POC-09 |  | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
 | 416 | Open | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |
-| 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
+| 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred. **Also (logged Cap 21.5 follow-up):** `app_zh_Hans.arb` debug / probe strings under `source*` / `playbackProbe*` / `cap19*Probe*` still carry Latin product/API tokens (Photos, Videos, Pool, Limited, unauthorized, estimatedCount, PHAsset, bootstrap, L-BOOT, …). Visible only under `kDebugMode` / library_smoke — not Release product risk; systematic ZH cleanup deferred to Settings and localisation completion (same Inventory lane). Cap 21.5 follow-up only aligned `playbackProbeLoadImage` / `playbackProbeLoadVideo` with `libraryRowPhotos` / `libraryRowVideos` wording. | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | 418 | Open | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
 | 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); Cursor reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7) | — |
 | 420 | Open | iOS Photos permission |  | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |

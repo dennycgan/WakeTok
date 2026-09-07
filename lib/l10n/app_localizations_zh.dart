@@ -901,10 +901,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get playbackProbeSectionTitle => '播放与图像管线（调试）';
 
   @override
-  String get playbackProbeLoadImage => '加载首张 Photos 静图';
+  String get playbackProbeLoadImage => '加载首张图片静图';
 
   @override
-  String get playbackProbeLoadVideo => '加载首个 Videos 项';
+  String get playbackProbeLoadVideo => '加载首个视频项';
 
   @override
   String get playbackProbePlay => '播放';
@@ -969,10 +969,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseCompositionPeekRemovedFromPhotos => '已在系统中删除';
 
   @override
-  String get mainBrowseCompositionPeekRequiresFullAccess => '需要完整访问权限';
+  String get mainBrowseCompositionPeekRequiresFullAccess => '需要完全访问权限';
 
   @override
-  String get mainBrowseCreatePoolRequiresFullAccess => '需要完整照片访问权限';
+  String get mainBrowseCreatePoolRequiresFullAccess => '需要完全访问权限';
 
   @override
   String get mainBrowseCompositionPeekUnknownSource => '来源';
