@@ -161,22 +161,54 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Saved Pool persistence, reopen, management, and capacity limits
+Contract: ADR-046 Proposed (docs this commit; Accepted after first Cap 22 work)
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-> Cap internal phases are not yet owner-approved in STATE. Expand this
-> section after kickoff / scope review — do not invent phases here.
-> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+- [x] 22.1 Contract freeze — ADR-046 Proposed
+      D1–D9 locked: Drift SQLite (owner-approved stack; kickoff =
+      SQLite only); Save/Start decoupling + fingerprint gate; peek
+      promote / Start-after-Save clear `parkedEphemeralPool`; unique
+      displayName (trim + case-insensitive; Rename excludes self);
+      capacity dialog at 10; Saved pools menu; chip when `savedPool`
+      active; debt **455** close criterion; Out: recipe edit /
+      Checkpoint / Clip / **456**/**457**. Docs (this commit).
+- [ ] 22.2 Drift/SQLite baseline + SavedPoolRepository
+      Domain repository + Drift schema (pool + ordered refs);
+      save/load/rename/delete; enforce max 10; composition-root
+      wiring. After first **work** commit: separate **docs** commit
+      flips ADR-046 → Accepted + real anchor. ADR: D1, D2.
+- [ ] 22.3 Save UX
+      Shared naming dialog (+ unique-name inline error); Build Save
+      (stay on Build); ephemeral peek Save + promote clear park;
+      shared capacity dialog; Start↔fingerprint→`savedPool`. ADR: D3,
+      D4, D5.
+- [ ] 22.4 Saved chrome
+      Saved pools menu: list / open / Info / Rename / Delete(+confirm);
+      control label Saved pools; chip when `savedPool` active; debt
+      **455** refresh on list/Info; drop Coming-soon gray stubs. ADR:
+      D6, D7, D8.
+- [ ] 22.5 Misc polish
+      Placeholder for Cap 21/22 residual UI/interaction issues (e.g.
+      top-chrome vertical alignment; end-of-queue → next-round jump
+      feel). Concrete list + fix plan: mini scope freeze with owner
+      **before any code**. Must not absorb debt **456** Part B, recipe
+      edit, or SessionCheckpoint.
+- [ ] 22.6 Device acceptance
+      Dual Save entries; capacity-10 dialog; rename uniqueness;
+      reopen; process death keeps Saved; album-removed honesty;
+      Limited. Notes under `docs/acceptance/cap22-*`.
+- [ ] 22.7 Cap close-out
+      Cap `[x]`; YOU ARE HERE → still-in-library gate…; PHASE_HISTORY
+      snapshot; ADR-046 Accepted; debt **455** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Saved Pool scope gate — owner-approved Phase
-      Roadmap TBD
-- Sub-steps done: Cap 21 complete (`docs/PHASE_HISTORY.md`; acceptance
-      `docs/acceptance/cap21-*.md`; ADR-044 / ADR-045; debt **444**
-      Closed by Cap 21.6)
-- Next step: owner kickoff / scope review for Saved Pool phases
-      before coding
-- Related decisions: Cap 21 close debts — **444** Closed; **455** Open
-      → Cap 22 design; **456** / **457** Open; Cap 20 residuals **449** /
-      **452** Open; still-in-library Cap after Cap 22 (456 Part B)
+- Goal (one line): 22.2 Drift/SQLite baseline + SavedPoolRepository
+- Sub-steps done: 22.1 ADR-046 Proposed + Phase Roadmap 22.1–22.7
+- Next step: design/impl Drift schema + domain repository (work then
+      docs Accept ADR-046); no Save UI until 22.3
+- Related decisions: ADR-046 Proposed; debt **455** → Cap 22 close;
+      **456** / **457** Open (after Cap 22 for Part B); Cap 20 **449** /
+      **452** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):

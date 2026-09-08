@@ -5243,3 +5243,116 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Debt **444** (honest feed `assetUnavailable` copy) remains Cap 21.6.
   - Architecture / localization guards remain mandatory on `lib/` work
     (ADR-009/010/012).
+
+---
+
+## ADR-046: Cap 22 Saved Pool persistence — Drift SQLite, save/start decoupling, Saved chrome
+
+- Status: Proposed
+- Commit/PR anchor: (none until first Cap 22 implementing work commit)
+- Plain summary (owner reads this):
+  You can save a multi-source Pool recipe under a name, reopen it from
+  Saved pools, rename or delete it, and browse it later. Recipes live in
+  a local SQLite database (Drift). Names must be unique. Saving never
+  starts browsing by itself; Start browsing is the only Build action that
+  changes what you are watching.
+- Context / what problem forced this:
+  Cap 21 delivered ephemeral Build→Start, parked temp chip, composition
+  peek, and a gray Saved shell (ADR-044 / ADR-045). Kickoff and GLOSSARY
+  §15 require Saved Pool Presets: persist ordered Asset Source references
+  + display name (not Snapshots or playheads), enforce max 10 Saved and
+  max 30 sources per Definition, reopen/rename/delete, and live re-resolve
+  on each new Session. Cap 22 must extend `activeOrigin` with `savedPool`,
+  replace the Coming-soon Saved stubs, and close debt **455** (refresh
+  `assetSourcesProvider` when opening Saved composition UI). Owner UX
+  locks two Save entries (Build before Start; ephemeral peek), shared
+  dialogs, chip reuse when Saved is active, no recipe edit in MVP, and
+  unique names with validate-and-block (no auto-suffix).
+- Decision (what was chosen):
+  1. **D1 — Persist what.** Saved Preset = `SourcePoolDefinition` with
+     `persistencePolicy: saved`: id, displayName, createdAt/updatedAt,
+     ordered SourceReferences (kind + id + position). Do **not** persist
+     Resolved Snapshot, Session Queue, or playback position
+     (SessionCheckpoint = later Cap). Cap 22 ships pool + ordered-ref
+     tables only; Clip / GeneratedClip / Export tables are **Out**.
+     Persistence stack: **SQLite via Drift** — owner-approved engineering
+     choice (kickoff requires local SQLite only; Drift is **not** a
+     kickoff mandate). Domain repository interface; Drift implementation
+     under `lib/data/`; features must not import Drift (ADR-009/010).
+  2. **D2 — Capacity (kickoff ADR-P / ADR-020).** Max **10** Saved
+     Presets (enforce on save). Max **30** sources per Definition
+     (already Cap 21). At capacity, Save opens a **shared capacity
+     dialog** (not the naming dialog); guide the user to Saved pools to
+     delete; **no** auto-delete of the oldest. Ephemeral Start remains
+     allowed. Temp Definitions do not count toward 10.
+  3. **D3 — Save / Start decoupling (Build).** **Save** = persist only:
+     shared naming dialog → DB write → stay on Build → light success
+     feedback; **no** route pop; **no** chrome / Session change (extends
+     ADR-044 D6.1 “Build cancel does not write chrome”). On successful
+     Save, Build tracks `lastSavedFingerprint` (ordered SourceReference
+     sequence) + `lastSavedPoolId`. **Start** is the sole Build action
+     that writes chrome: if the current selection fingerprint equals
+     `lastSavedFingerprint` → `activeOrigin = savedPool(lastSavedPoolId)`
+     and **`parkedEphemeralPool = null`**; otherwise Cap 21 ephemeral
+     Start (replace parked with the new ephemeral Definition). Save-only
+     then leave Build without Start: chrome unchanged; the preset exists
+     in DB and is opened only from Saved pools.
+  4. **D4 — Second Save entry (composition peek).** Ephemeral peek (temp
+     chip while `activeOrigin` is that ephemeral): footer **Save this
+     pool** → shared naming dialog → on success: write DB,
+     **`activeOrigin = savedPool(...)`**, **`parkedEphemeralPool = null`**
+     (promote; do not keep a duplicate parked shadow). Saved Info peek:
+     recipe only; **no** Save footer.
+  5. **D5 — Shared dialogs / surfaces.** One naming dialog (Build Save,
+     peek Save, and Rename). One capacity-full dialog (both Save
+     entries). One composition peek card family (temp peek vs Saved Info;
+     footers differ). Delete confirm = thin shared confirm dialog.
+  6. **D6 — Saved pools menu + unique displayName.** Control label:
+     **Saved pools** (EN); zh per Cap 7 pool product-copy convention.
+     List presets; per-row **Info** (peek), **Rename**, **Delete** (+
+     confirm). **Out:** edit recipe / reorder sources / replace
+     unavailable sources (**Accepted deviation** vs kickoff Manage Pools
+     “adjust order / replace failed sources”). Missing-source honesty:
+     ADR-045 suffixes. **Unique names:** on confirm in the shared naming
+     dialog, if the normalized name collides with another Saved preset →
+     **block submit** and show an inline error; **no** auto-suffix / auto-
+     rename. Normalize for compare: trim + case-insensitive (no locale-
+     specific fold tables). Rename uses the same predicate and **excludes
+     the current pool id** (same normalized name as self is allowed).
+     Debt **455:** invalidate/refresh `assetSourcesProvider` when opening
+     Saved list or Saved Info (and equivalent name-mapping UI).
+  7. **D7 — Chrome / chip when `savedPool` active.** Extend
+     `activeOrigin` with `savedPool(...)`. Chip rules: `builtIn` /
+     `ephemeralPool` unchanged from Cap 21; when `activeOrigin` is
+     `savedPool`, the chip shows the **current Saved** composition path;
+     `parkedEphemeralPool` may remain in memory but does **not** own the
+     chip. Switching Saved → built-in restores the parked-temp chip if
+     park is non-null. Promote / Start-after-matching-Save paths that
+     make the recipe “only saved” **clear `parkedEphemeralPool`**.
+  8. **D8 — Debt 455.** Closing **455** (Saved composition UI refresh
+     timing) is a Cap 22 acceptance criterion.
+  9. **D9 — Out of Cap 22.** Recipe edit; SessionCheckpoint; Clip
+     persistence; cross-device sync; debt **456** / **457**; still-in-
+     library Cap; Share UI.
+- Rejected alternatives (why not):
+  - Save&Start merged, “also save” checkbox, or post-save “start now?”
+    sheet — rejected; Save must not navigate or write chrome; Start is
+    the sole Build chrome writer (single-control semantics since Cap
+    21.3).
+  - Allowing duplicate displayNames — rejected (owner revision); silent
+    auto-suffix “(2)” — rejected (no unsolicited smart correction).
+  - Claiming Drift is a kickoff requirement — rejected; kickoff specifies
+    SQLite only; Drift is an owner-approved encapsulation choice.
+  - Implementing kickoff Manage “reorder / replace failed sources” in
+    Cap 22 — rejected; MVP Accepted deviation = no recipe edit.
+- Consequences / constraints accepted:
+  - Flip this entry to Accepted with the first Cap 22 implementing work
+    commit as anchor (two-commit discipline; no fake anchors while
+    Proposed).
+  - ADR-044 D6.1/D6.4/D7 remain binding; this ADR adds `savedPool` origin,
+    Save entries, and Saved menu behavior.
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009/010/012).
+  - Phase **22.5** misc polish is a placeholder; a mini scope freeze with
+    the owner is required before any 22.5 code; 22.5 must not absorb
+    debt **456** Part B, recipe edit, or SessionCheckpoint.
