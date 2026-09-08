@@ -177,11 +177,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       save/load/rename/delete; enforce max 10; composition-root
       wiring. Work `d62e962`. ADR-046 Accepted this docs commit.
       ADR: D1, D2.
-- [ ] 22.3 Save UX
+- [x] 22.3 Save UX
       Shared naming dialog (+ unique-name inline error); Build Save
       (stay on Build); ephemeral peek Save + promote clear park;
-      shared capacity dialog; Start↔fingerprint→`savedPool`. ADR: D3,
-      D4, D5.
+      shared capacity dialog; Start↔fingerprint→`savedPool`.
+      `BrowseOriginSavedPool` identity is `poolId` only (definition
+      snapshot does not participate in `==`). Failed Save does not
+      overwrite `lastSaved*`. Q1 chrome gap: after promote /
+      Start-after-Save, no Temp chip and no Saved chip until 22.4.
+      Work `4db65ec`. ADR: D3, D4, D5.
 - [ ] 22.4 Saved chrome
       Saved pools menu: list / open / Info / Rename / Delete(+confirm);
       control label Saved pools; chip when `savedPool` active; debt
@@ -202,10 +206,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       snapshot; debt **455** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 22.3 Save UX
-- Sub-steps done: 22.1 contract; 22.2 Drift SavedPoolRepository `d62e962`
-- Next step: shared naming dialog; Build Save; peek Save + promote;
-      capacity dialog; Start fingerprint → `savedPool`
+- Goal (one line): 22.4 Saved chrome
+- Sub-steps done: 22.1 contract; 22.2 Drift SavedPoolRepository
+      `d62e962`; 22.3 Save UX `4db65ec`
+- Next step: Saved pools menu (list / open / Info / Rename / Delete);
+      Saved chip when `savedPool` active; debt **455** refresh
 - Related decisions: ADR-046 Accepted (`d62e962`); debt **455** →
       Cap 22 close (22.4 refresh); **456** / **457** Open (after Cap 22
       for Part B); Cap 20 **449** / **452** Open
@@ -225,12 +230,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   concept term into `app_zh_Hans.arb` product strings (Cap 22 Saved
   copy too). Debug `library_smoke` probe strings may still say Pool.
   (Do not paste locale glyphs into STATE — cite ARB keys.)
-- **Ephemeral pool `feedSourceKind`:** any `BrowseOriginEphemeralPool`
-  maps to `AssetSourceKind.entireLibrary` (`BrowseChromeState.feedSourceKind`;
-  work `74c84e1`). Feed Layer 2 / Live / video fallback only know built-in
+- **Ephemeral / Saved pool `feedSourceKind`:** any
+  `BrowseOriginEphemeralPool` or `BrowseOriginSavedPool` maps to
+  `AssetSourceKind.entireLibrary` (`BrowseChromeState.feedSourceKind`;
+  ephemeral work `74c84e1`; Saved `saved:$poolId` feed id in `4db65ec`).
+  Feed Layer 2 / Live / video fallback only know built-in
   kinds; passing `album` / `smartAlbum` hard-fails every item (L1 still
   OK). Not a product fork — restores the mixed-content probe contract.
-  U-21.4-11 locks this. No separate ADR (ADR-044 already Accepted).
+  U-21.4-11 locks ephemeral. No separate ADR (ADR-044 already Accepted).
 - **Limited / empty Build catalog:** Cap 21.4b catalog lists **user
   albums** (My Albums) + **curated system albums** (whitelist ∩
   non-empty). Limited (or any grant with zero listable user albums and
@@ -427,7 +434,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - ADR-046: Cap 22 Saved Pool persistence — **Accepted** (2026-09-08),
       anchor `d62e962` (Cap 22.2 work)
 - Cap 22 Saved Pool persistence: `lib/domain/source/saved_pool_repository.dart`
-      + Drift `lib/data/local/` (work `d62e962`); Save UI is 22.3
+      + Drift `lib/data/local/` (work `d62e962`); Save UX 22.3
+      (`4db65ec`: `BrowseOriginSavedPool`, Build/peek Save,
+      `saved_pool_dialogs.dart`)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
