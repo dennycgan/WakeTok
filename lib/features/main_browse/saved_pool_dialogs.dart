@@ -25,12 +25,14 @@ final class SavedPoolNamingAtCapacity extends SavedPoolNamingOutcome {
   const SavedPoolNamingAtCapacity();
 }
 
-/// Shared naming dialog (Build Save, peek Save; Rename uses [excludePoolId]).
+/// Shared naming dialog (Build Save, peek Save; Rename uses [renamePoolId]).
 Future<SavedPoolNamingOutcome> showSavedPoolNamingDialog({
   required BuildContext context,
   required SavedPoolRepository repository,
-  required List<SourceReference> orderedSourceReferences,
+  List<SourceReference> orderedSourceReferences = const [],
   String? excludePoolId,
+  String? initialDisplayName,
+  String? renamePoolId,
 }) async {
   final outcome = await showDialog<SavedPoolNamingOutcome>(
     context: context,
@@ -39,11 +41,57 @@ Future<SavedPoolNamingOutcome> showSavedPoolNamingDialog({
       return _SavedPoolNamingDialog(
         repository: repository,
         orderedSourceReferences: orderedSourceReferences,
-        excludePoolId: excludePoolId,
+        excludePoolId: excludePoolId ?? renamePoolId,
+        initialDisplayName: initialDisplayName,
+        renamePoolId: renamePoolId,
       );
     },
   );
   return outcome ?? const SavedPoolNamingCancelled();
+}
+
+Future<bool> showSavedPoolDeleteConfirmDialog({
+  required BuildContext context,
+  required String displayName,
+}) async {
+  final l10n = AppLocalizations.of(context)!;
+  final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        key: const Key('mainBrowseSavedPoolDeleteDialog'),
+        backgroundColor: tokens.surface,
+        title: Text(
+          l10n.mainBrowseSavedPoolDeleteTitle,
+          style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
+        ),
+        content: Text(
+          l10n.mainBrowseSavedPoolDeleteBody(displayName),
+          style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
+        ),
+        actions: [
+          TextButton(
+            key: const Key('mainBrowseSavedPoolDeleteCancel'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              l10n.mainBrowseSavedPoolDeleteCancel,
+              style: tokens.labelOnMedia.copyWith(color: tokens.onMediaMuted),
+            ),
+          ),
+          TextButton(
+            key: const Key('mainBrowseSavedPoolDeleteConfirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(
+              l10n.mainBrowseSavedPoolDeleteConfirm,
+              style: tokens.labelOnMedia.copyWith(color: tokens.accent),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+  return confirmed ?? false;
 }
 
 Future<void> showSavedPoolCapacityDialog(BuildContext context) {
@@ -83,20 +131,30 @@ class _SavedPoolNamingDialog extends StatefulWidget {
     required this.repository,
     required this.orderedSourceReferences,
     this.excludePoolId,
+    this.initialDisplayName,
+    this.renamePoolId,
   });
 
   final SavedPoolRepository repository;
   final List<SourceReference> orderedSourceReferences;
   final String? excludePoolId;
+  final String? initialDisplayName;
+  final String? renamePoolId;
 
   @override
   State<_SavedPoolNamingDialog> createState() => _SavedPoolNamingDialogState();
 }
 
 class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
   String? _error;
   bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialDisplayName ?? '');
+  }
 
   @override
   void dispose() {
@@ -120,7 +178,8 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
     });
     try {
       final existing = await widget.repository.loadAll();
-      if (existing.length >= PoolCapacity.maxSavedPoolPresets) {
+      final renaming = widget.renamePoolId != null;
+      if (!renaming && existing.length >= PoolCapacity.maxSavedPoolPresets) {
         if (mounted) {
           Navigator.of(context).pop(const SavedPoolNamingAtCapacity());
         }
@@ -139,10 +198,15 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
         }
         return;
       }
-      final record = await widget.repository.save(
-        displayName: trimmed,
-        orderedSourceReferences: widget.orderedSourceReferences,
-      );
+      final record = renaming
+          ? await widget.repository.rename(
+              id: widget.renamePoolId!,
+              displayName: trimmed,
+            )
+          : await widget.repository.save(
+              displayName: trimmed,
+              orderedSourceReferences: widget.orderedSourceReferences,
+            );
       if (mounted) {
         Navigator.of(context).pop(SavedPoolNamingSaved(record));
       }

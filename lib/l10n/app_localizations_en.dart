@@ -271,10 +271,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String mainBrowseBuiltInWhileSavedPoolSemantics(
+    String builtInLabel,
+    String savedPoolName,
+  ) {
+    return '$builtInLabel. Currently browsing $savedPoolName.';
+  }
+
+  @override
   String get mainBrowseBuiltInMenu => 'Built-in';
 
   @override
-  String get mainBrowseSavedPoolsMenu => 'Saved';
+  String get mainBrowseSavedPoolsMenu => 'Saved pools';
 
   @override
   String get mainBrowseCreatePool => 'Create Pool';
@@ -427,6 +435,29 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseCompositionPeekSave => 'Save this pool';
+
+  @override
+  String get mainBrowseSavedPoolRowInfo => 'Info';
+
+  @override
+  String get mainBrowseSavedPoolRowRename => 'Rename';
+
+  @override
+  String get mainBrowseSavedPoolRowDelete => 'Delete';
+
+  @override
+  String get mainBrowseSavedPoolDeleteTitle => 'Delete this pool?';
+
+  @override
+  String mainBrowseSavedPoolDeleteBody(String name) {
+    return 'Delete “$name”? This cannot be undone.';
+  }
+
+  @override
+  String get mainBrowseSavedPoolDeleteConfirm => 'Delete';
+
+  @override
+  String get mainBrowseSavedPoolDeleteCancel => 'Cancel';
 
   @override
   String get mainBrowseBuildPoolCatalogLoading => 'Loading sources…';

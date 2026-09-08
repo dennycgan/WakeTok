@@ -334,13 +334,25 @@
       }
     }
   },
+  "mainBrowseBuiltInWhileSavedPoolSemantics": "{builtInLabel}. Currently browsing {savedPoolName}.",
+  "@mainBrowseBuiltInWhileSavedPoolSemantics": {
+    "description": "VoiceOver for Built-in control while Origin is a Saved Pool (ADR-044 D6.4)",
+    "placeholders": {
+      "builtInLabel": {
+        "type": "String"
+      },
+      "savedPoolName": {
+        "type": "String"
+      }
+    }
+  },
   "mainBrowseBuiltInMenu": "Built-in",
   "@mainBrowseBuiltInMenu": {
     "description": "Cap 21.3 Built-in dropdown affordance when no specific source name is shown"
   },
-  "mainBrowseSavedPoolsMenu": "Saved",
+  "mainBrowseSavedPoolsMenu": "Saved pools",
   "@mainBrowseSavedPoolsMenu": {
-    "description": "Cap 21.3 Saved pools dropdown control label"
+    "description": "Cap 22.4 Saved pools dropdown control label (ADR-046 D6)"
   },
   "mainBrowseCreatePool": "Create Pool",
   "@mainBrowseCreatePool": {
@@ -539,6 +551,39 @@
   "mainBrowseCompositionPeekSave": "Save this pool",
   "@mainBrowseCompositionPeekSave": {
     "description": "Ephemeral composition peek footer — persist and promote to savedPool"
+  },
+  "mainBrowseSavedPoolRowInfo": "Info",
+  "@mainBrowseSavedPoolRowInfo": {
+    "description": "Saved menu per-row Info (composition peek)"
+  },
+  "mainBrowseSavedPoolRowRename": "Rename",
+  "@mainBrowseSavedPoolRowRename": {
+    "description": "Saved menu per-row Rename"
+  },
+  "mainBrowseSavedPoolRowDelete": "Delete",
+  "@mainBrowseSavedPoolRowDelete": {
+    "description": "Saved menu per-row Delete"
+  },
+  "mainBrowseSavedPoolDeleteTitle": "Delete this pool?",
+  "@mainBrowseSavedPoolDeleteTitle": {
+    "description": "Confirm dialog title before deleting a Saved preset"
+  },
+  "mainBrowseSavedPoolDeleteBody": "Delete “{name}”? This cannot be undone.",
+  "@mainBrowseSavedPoolDeleteBody": {
+    "description": "Confirm dialog body; {name} is the preset displayName",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mainBrowseSavedPoolDeleteConfirm": "Delete",
+  "@mainBrowseSavedPoolDeleteConfirm": {
+    "description": "Confirm dialog destructive action"
+  },
+  "mainBrowseSavedPoolDeleteCancel": "Cancel",
+  "@mainBrowseSavedPoolDeleteCancel": {
+    "description": "Confirm dialog dismiss"
   },
   "mainBrowseBuildPoolCatalogLoading": "Loading sources…",
   "@mainBrowseBuildPoolCatalogLoading": {

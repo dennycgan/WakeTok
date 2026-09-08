@@ -149,6 +149,30 @@ class BrowseChromeState {
   );
 }
 
+/// Left chrome chip (Cap 21 Temp / Cap 22 Saved). Exhaustive on [origin].
+enum BrowseLeftChipKind { hidden, tempPool, savedPool }
+
+/// Chip occupancy: Saved owns the slot even if park is non-null (ADR-046 D7).
+BrowseLeftChipKind leftChipKindFor({
+  required BrowseOrigin origin,
+  required SourcePoolDefinition? parked,
+}) {
+  return switch (origin) {
+    BrowseOriginSavedPool() => BrowseLeftChipKind.savedPool,
+    BrowseOriginBuiltIn() || BrowseOriginEphemeralPool() =>
+      parked != null ? BrowseLeftChipKind.tempPool : BrowseLeftChipKind.hidden,
+  };
+}
+
+/// Built-in control accent / Semantics `selected` (ADR-044 D6.4).
+bool builtInControlSelected(BrowseOrigin origin) {
+  return switch (origin) {
+    BrowseOriginBuiltIn() => true,
+    BrowseOriginEphemeralPool() => false,
+    BrowseOriginSavedPool() => false,
+  };
+}
+
 /// Test-only / future Start helpers for parked + ephemeral active.
 @visibleForTesting
 extension BrowseChromeStateTesting on BrowseChromeState {

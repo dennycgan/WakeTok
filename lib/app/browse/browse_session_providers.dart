@@ -163,6 +163,42 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     );
   }
 
+  /// Cap 22.4 / ADR-046 D7: open from Saved menu — keep park.
+  ///
+  /// No-op when [record] is already the active Saved origin (caller peeks).
+  void openSavedPool(SavedPoolRecord record) {
+    final current = state.activeOrigin;
+    if (current is BrowseOriginSavedPool && current.poolId == record.id) {
+      return;
+    }
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginSavedPool(
+        poolId: record.id,
+        definition: record.toDefinition(),
+      ),
+      parkedEphemeralPool: state.parkedEphemeralPool,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: state.parkedCompositionLabels,
+    );
+  }
+
+  /// Refresh the active Saved recipe snapshot after Rename (same [poolId]).
+  void replaceActiveSavedPool(SavedPoolRecord record) {
+    final current = state.activeOrigin;
+    if (current is! BrowseOriginSavedPool || current.poolId != record.id) {
+      return;
+    }
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginSavedPool(
+        poolId: record.id,
+        definition: record.toDefinition(),
+      ),
+      parkedEphemeralPool: state.parkedEphemeralPool,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: state.parkedCompositionLabels,
+    );
+  }
+
   /// Test injection: set parked without changing [activeOrigin].
   @visibleForTesting
   void debugSetParkedEphemeralPool(SourcePoolDefinition? parked) {

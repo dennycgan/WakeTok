@@ -17,6 +17,9 @@ export 'package:waketok/app/browse/browse_session_providers.dart'
         BrowseOriginBuiltIn,
         BrowseOriginEphemeralPool,
         BrowseOriginSavedPool,
+        BrowseLeftChipKind,
+        leftChipKindFor,
+        builtInControlSelected,
         BrowseSessionNotifier,
         BrowseSessionView,
         browseChromeStateProvider,
@@ -30,7 +33,7 @@ export 'package:waketok/app/browse/browse_session_providers.dart'
         mainBrowseSelectedSourceProvider,
         MainBrowseSelectedSource;
 export 'package:waketok/app/saved_pool_providers.dart'
-    show savedPoolRepositoryProvider;
+    show savedPoolRepositoryProvider, savedPoolRecordsProvider;
 
 /// Bottom destinations for the Main Browse shell.
 enum MainBrowseDestination { browse, clips, auto, settings }

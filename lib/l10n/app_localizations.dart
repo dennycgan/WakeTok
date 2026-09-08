@@ -543,16 +543,25 @@ abstract class AppLocalizations {
   /// **'{builtInLabel}. Currently browsing Temp Pool.'**
   String mainBrowseBuiltInWhileEphemeralSemantics(String builtInLabel);
 
+  /// VoiceOver for Built-in control while Origin is a Saved Pool (ADR-044 D6.4)
+  ///
+  /// In en, this message translates to:
+  /// **'{builtInLabel}. Currently browsing {savedPoolName}.'**
+  String mainBrowseBuiltInWhileSavedPoolSemantics(
+    String builtInLabel,
+    String savedPoolName,
+  );
+
   /// Cap 21.3 Built-in dropdown affordance when no specific source name is shown
   ///
   /// In en, this message translates to:
   /// **'Built-in'**
   String get mainBrowseBuiltInMenu;
 
-  /// Cap 21.3 Saved pools dropdown control label
+  /// Cap 22.4 Saved pools dropdown control label (ADR-046 D6)
   ///
   /// In en, this message translates to:
-  /// **'Saved'**
+  /// **'Saved pools'**
   String get mainBrowseSavedPoolsMenu;
 
   /// Cap 21.3 Create control — opens the Build a Pool screen
@@ -842,6 +851,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Save this pool'**
   String get mainBrowseCompositionPeekSave;
+
+  /// Saved menu per-row Info (composition peek)
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get mainBrowseSavedPoolRowInfo;
+
+  /// Saved menu per-row Rename
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get mainBrowseSavedPoolRowRename;
+
+  /// Saved menu per-row Delete
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get mainBrowseSavedPoolRowDelete;
+
+  /// Confirm dialog title before deleting a Saved preset
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this pool?'**
+  String get mainBrowseSavedPoolDeleteTitle;
+
+  /// Confirm dialog body; {name} is the preset displayName
+  ///
+  /// In en, this message translates to:
+  /// **'Delete “{name}”? This cannot be undone.'**
+  String mainBrowseSavedPoolDeleteBody(String name);
+
+  /// Confirm dialog destructive action
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get mainBrowseSavedPoolDeleteConfirm;
+
+  /// Confirm dialog dismiss
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get mainBrowseSavedPoolDeleteCancel;
 
   /// Cap 21.4 catalog list while assetSourcesProvider is loading
   ///

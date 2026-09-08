@@ -268,10 +268,18 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String mainBrowseBuiltInWhileSavedPoolSemantics(
+    String builtInLabel,
+    String savedPoolName,
+  ) {
+    return '$builtInLabel. Currently browsing $savedPoolName.';
+  }
+
+  @override
   String get mainBrowseBuiltInMenu => 'Built-in';
 
   @override
-  String get mainBrowseSavedPoolsMenu => 'Saved';
+  String get mainBrowseSavedPoolsMenu => 'Saved pools';
 
   @override
   String get mainBrowseCreatePool => 'Create Pool';
@@ -424,6 +432,29 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseCompositionPeekSave => 'Save this pool';
+
+  @override
+  String get mainBrowseSavedPoolRowInfo => 'Info';
+
+  @override
+  String get mainBrowseSavedPoolRowRename => 'Rename';
+
+  @override
+  String get mainBrowseSavedPoolRowDelete => 'Delete';
+
+  @override
+  String get mainBrowseSavedPoolDeleteTitle => 'Delete this pool?';
+
+  @override
+  String mainBrowseSavedPoolDeleteBody(String name) {
+    return 'Delete “$name”? This cannot be undone.';
+  }
+
+  @override
+  String get mainBrowseSavedPoolDeleteConfirm => 'Delete';
+
+  @override
+  String get mainBrowseSavedPoolDeleteCancel => 'Cancel';
 
   @override
   String get mainBrowseBuildPoolCatalogLoading => 'Loading sources…';
@@ -982,6 +1013,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
+  String mainBrowseBuiltInWhileSavedPoolSemantics(
+    String builtInLabel,
+    String savedPoolName,
+  ) {
+    return '$builtInLabel。当前正在刷$savedPoolName。';
+  }
+
+  @override
   String get mainBrowseBuiltInMenu => '内置';
 
   @override
@@ -1132,6 +1171,29 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseCompositionPeekSave => '保存此片库';
+
+  @override
+  String get mainBrowseSavedPoolRowInfo => '详情';
+
+  @override
+  String get mainBrowseSavedPoolRowRename => '重命名';
+
+  @override
+  String get mainBrowseSavedPoolRowDelete => '删除';
+
+  @override
+  String get mainBrowseSavedPoolDeleteTitle => '删除这个片库？';
+
+  @override
+  String mainBrowseSavedPoolDeleteBody(String name) {
+    return '删除「$name」？此操作无法撤销。';
+  }
+
+  @override
+  String get mainBrowseSavedPoolDeleteConfirm => '删除';
+
+  @override
+  String get mainBrowseSavedPoolDeleteCancel => '取消';
 
   @override
   String get mainBrowseBuildPoolCatalogLoading => '正在加载来源…';

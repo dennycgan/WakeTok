@@ -186,7 +186,7 @@ void main() {
       expect(builtInText.style?.color, dark.onMediaMuted);
     });
 
-    testWidgets('U-21.3-7 Saved placeholders are non-navigating',
+    testWidgets('U-21.3-7 empty Saved menu is non-navigating',
         (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -197,12 +197,16 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('mainBrowseSavedOverlay')), findsOneWidget);
       expect(
-        find.byKey(const Key('mainBrowseSavedPlaceholderSave')),
+        find.byKey(const Key('mainBrowseSavedPlaceholderEmpty')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseSavedPlaceholderSave')),
+        findsNothing,
       );
 
       await tester.tap(
-        find.byKey(const Key('mainBrowseSavedPlaceholderSave')),
+        find.byKey(const Key('mainBrowseSavedPlaceholderEmpty')),
         warnIfMissed: false,
       );
       await tester.pumpAndSettle();

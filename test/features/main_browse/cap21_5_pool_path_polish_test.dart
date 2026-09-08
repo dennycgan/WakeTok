@@ -352,7 +352,7 @@ void main() {
     );
 
     testWidgets(
-      'U-21.5-5 Saved gray placeholder stays non-navigating',
+      'U-21.5-5 empty Saved menu stays on feed',
       (tester) async {
         final repo =
             ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -362,9 +362,17 @@ void main() {
         await tester.tap(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('mainBrowseSavedOverlay')), findsOneWidget);
+        expect(
+          find.byKey(const Key('mainBrowseSavedPlaceholderEmpty')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('mainBrowseSavedPlaceholderManage')),
+          findsNothing,
+        );
 
         await tester.tap(
-          find.byKey(const Key('mainBrowseSavedPlaceholderManage')),
+          find.byKey(const Key('mainBrowseSavedPlaceholderEmpty')),
           warnIfMissed: false,
         );
         await tester.pumpAndSettle();
