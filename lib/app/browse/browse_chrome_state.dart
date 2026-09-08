@@ -38,6 +38,26 @@ final class BrowseOriginEphemeralPool extends BrowseOrigin {
   int get hashCode => Object.hash(BrowseOriginEphemeralPool, definition);
 }
 
+/// Saved Pool Preset currently driving the Session (Cap 22 / ADR-046 D3–D4).
+///
+/// Identity is [poolId] only. [definition] is the recipe snapshot used to
+/// resolve this Session — it does not participate in equality (SPD `==`
+/// includes displayName, which would treat a later Rename as a new Origin).
+final class BrowseOriginSavedPool extends BrowseOrigin {
+  const BrowseOriginSavedPool({required this.poolId, required this.definition});
+
+  final String poolId;
+  final SourcePoolDefinition definition;
+
+  @override
+  bool operator ==(Object other) {
+    return other is BrowseOriginSavedPool && other.poolId == poolId;
+  }
+
+  @override
+  int get hashCode => Object.hash(BrowseOriginSavedPool, poolId);
+}
+
 /// Cap 21 / ADR-044 D6.1: session authority + parked temp Pool memory.
 ///
 /// [lastRememberedBuiltIn] is updated on every built-in select so the
@@ -80,6 +100,7 @@ class BrowseChromeState {
       BrowseOriginBuiltIn(:final source) => source.id,
       BrowseOriginEphemeralPool(:final definition) =>
         'ephemeral:${definition.id}',
+      BrowseOriginSavedPool(:final poolId) => 'saved:$poolId',
     };
   }
 
@@ -94,6 +115,7 @@ class BrowseChromeState {
     return switch (activeOrigin) {
       BrowseOriginBuiltIn(:final source) => source.kind,
       BrowseOriginEphemeralPool() => AssetSourceKind.entireLibrary,
+      BrowseOriginSavedPool() => AssetSourceKind.entireLibrary,
     };
   }
 
@@ -105,6 +127,7 @@ class BrowseChromeState {
     return switch (origin) {
       BrowseOriginBuiltIn(:final source) => forBuiltIn(source),
       BrowseOriginEphemeralPool(:final definition) => definition,
+      BrowseOriginSavedPool(:final definition) => definition,
     };
   }
 
@@ -119,11 +142,11 @@ class BrowseChromeState {
 
   @override
   int get hashCode => Object.hash(
-        activeOrigin,
-        parkedEphemeralPool,
-        lastRememberedBuiltIn,
-        Object.hashAll(parkedCompositionLabels ?? const []),
-      );
+    activeOrigin,
+    parkedEphemeralPool,
+    lastRememberedBuiltIn,
+    Object.hashAll(parkedCompositionLabels ?? const []),
+  );
 }
 
 /// Test-only / future Start helpers for parked + ephemeral active.

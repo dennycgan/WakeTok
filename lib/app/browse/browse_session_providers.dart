@@ -11,6 +11,7 @@ import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/resolve_pool.dart';
 import 'package:waketok/domain/source/resolved_pool_snapshot.dart';
+import 'package:waketok/domain/source/saved_pool_record.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
@@ -101,8 +102,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
       return;
     }
     final current = state.activeOrigin;
-    if (current is BrowseOriginEphemeralPool &&
-        current.definition == parked) {
+    if (current is BrowseOriginEphemeralPool && current.definition == parked) {
       return;
     }
     state = BrowseChromeState(
@@ -131,8 +131,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     List<String>? compositionLabels,
   }) {
     if (compositionLabels != null &&
-        compositionLabels.length !=
-            definition.orderedSourceReferences.length) {
+        compositionLabels.length != definition.orderedSourceReferences.length) {
       throw ArgumentError.value(
         compositionLabels.length,
         'compositionLabels.length',
@@ -147,6 +146,20 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
       parkedCompositionLabels: compositionLabels == null
           ? null
           : List<String>.unmodifiable(compositionLabels),
+    );
+  }
+
+  /// Cap 22.3 / ADR-046 D3–D4: activate a Saved preset and clear park.
+  void startSavedPool(SavedPoolRecord record) {
+    final definition = record.toDefinition();
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginSavedPool(
+        poolId: record.id,
+        definition: definition,
+      ),
+      parkedEphemeralPool: null,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: null,
     );
   }
 
@@ -220,8 +233,7 @@ class BrowseSnapshotCache extends Notifier<Map<String, ResolvedPoolSnapshot>> {
   /// Single-source key — compatible with Cap 13 callers / tests.
   static String keyFor(SourceReference source) => keyForRefs([source]);
 
-  ResolvedPoolSnapshot? get(SourceReference source) =>
-      getForRefs([source]);
+  ResolvedPoolSnapshot? get(SourceReference source) => getForRefs([source]);
 
   ResolvedPoolSnapshot? getForRefs(List<SourceReference> ordered) =>
       state[keyForRefs(ordered)];
@@ -239,6 +251,7 @@ class BrowseSnapshotCache extends Notifier<Map<String, ResolvedPoolSnapshot>> {
 
   void clear() => state = const {};
 }
+
 /// Ephemeral single-source SPD id for a Browse tab (not a Saved Pool).
 String browsePoolDefinitionId(SourceReference source) =>
     'browse-${source.kind.name}-${source.id}';

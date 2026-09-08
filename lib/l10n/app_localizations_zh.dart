@@ -389,6 +389,43 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseBuildPoolStart => 'Start browsing';
 
   @override
+  String get mainBrowseBuildPoolSave => 'Save';
+
+  @override
+  String get mainBrowseBuildPoolSaveSuccess => 'Saved.';
+
+  @override
+  String get mainBrowseSavedPoolNamingTitle => 'Name this pool';
+
+  @override
+  String get mainBrowseSavedPoolNamingHint => 'Name';
+
+  @override
+  String get mainBrowseSavedPoolNamingConfirm => 'Save';
+
+  @override
+  String get mainBrowseSavedPoolNamingCancel => 'Cancel';
+
+  @override
+  String get mainBrowseSavedPoolNamingEmpty => 'Enter a name.';
+
+  @override
+  String get mainBrowseSavedPoolNamingDuplicate => 'That name is already used.';
+
+  @override
+  String get mainBrowseSavedPoolCapacityTitle => 'Saved pools full';
+
+  @override
+  String get mainBrowseSavedPoolCapacityBody =>
+      'You can save up to 10 pools. Delete one from Saved pools, then try again.';
+
+  @override
+  String get mainBrowseSavedPoolCapacityConfirm => 'OK';
+
+  @override
+  String get mainBrowseCompositionPeekSave => 'Save this pool';
+
+  @override
   String get mainBrowseBuildPoolCatalogLoading => 'Loading sources…';
 
   @override
@@ -1059,6 +1096,42 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseBuildPoolStart => '开始浏览';
+
+  @override
+  String get mainBrowseBuildPoolSave => '保存';
+
+  @override
+  String get mainBrowseBuildPoolSaveSuccess => '已保存。';
+
+  @override
+  String get mainBrowseSavedPoolNamingTitle => '给这个片库命名';
+
+  @override
+  String get mainBrowseSavedPoolNamingHint => '名称';
+
+  @override
+  String get mainBrowseSavedPoolNamingConfirm => '保存';
+
+  @override
+  String get mainBrowseSavedPoolNamingCancel => '取消';
+
+  @override
+  String get mainBrowseSavedPoolNamingEmpty => '请输入名称。';
+
+  @override
+  String get mainBrowseSavedPoolNamingDuplicate => '这个名称已被使用。';
+
+  @override
+  String get mainBrowseSavedPoolCapacityTitle => '已保存片库已满';
+
+  @override
+  String get mainBrowseSavedPoolCapacityBody => '最多保存 10 个片库。请到「已保存」中删除一个后再试。';
+
+  @override
+  String get mainBrowseSavedPoolCapacityConfirm => '好';
+
+  @override
+  String get mainBrowseCompositionPeekSave => '保存此片库';
 
   @override
   String get mainBrowseBuildPoolCatalogLoading => '正在加载来源…';

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/saved_pool_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
@@ -26,6 +27,7 @@ import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../domain/library/fake_waketok_album_store.dart';
+import '../../domain/source/fake_saved_pool_repository.dart';
 import '../../library_smoke/fake_album_cover_repository.dart';
 import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_favorite_repository.dart';
@@ -87,6 +89,7 @@ Widget permissionUiHarness({
   FakePlaybackRepository? playback,
   FakePresentationMetadataRepository? presentationMetadata,
   LivePhotoRepository? livePhoto,
+  FakeSavedPoolRepository? savedPools,
   bool sharedMuteInitiallyMuted = false,
 
   /// Cap 13.4: default seeded Shuffle so feed widget tests are deterministic.
@@ -116,6 +119,7 @@ Widget permissionUiHarness({
   final leftSwipePrefs =
       cap19LeftSwipePreferences ?? FakeCap19LeftSwipePreferences();
   final albumStore = wakeTokAlbumStore ?? FakeWakeTokAlbumStore();
+  final pools = savedPools ?? FakeSavedPoolRepository();
   return ProviderScope(
     overrides: [
       photosAuthorizationRepositoryProvider.overrideWithValue(repo),
@@ -126,6 +130,7 @@ Widget permissionUiHarness({
       assetFavoriteRepositoryProvider.overrideWithValue(favorites),
       cap19LeftSwipePreferencesProvider.overrideWithValue(leftSwipePrefs),
       wakeTokAlbumStoreProvider.overrideWithValue(albumStore),
+      savedPoolRepositoryProvider.overrideWithValue(pools),
       mediaDisplayRepositoryProvider.overrideWithValue(
         mediaDisplay ?? FakeMediaDisplayRepository(),
       ),

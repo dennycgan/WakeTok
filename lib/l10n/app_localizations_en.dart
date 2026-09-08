@@ -392,6 +392,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseBuildPoolStart => 'Start browsing';
 
   @override
+  String get mainBrowseBuildPoolSave => 'Save';
+
+  @override
+  String get mainBrowseBuildPoolSaveSuccess => 'Saved.';
+
+  @override
+  String get mainBrowseSavedPoolNamingTitle => 'Name this pool';
+
+  @override
+  String get mainBrowseSavedPoolNamingHint => 'Name';
+
+  @override
+  String get mainBrowseSavedPoolNamingConfirm => 'Save';
+
+  @override
+  String get mainBrowseSavedPoolNamingCancel => 'Cancel';
+
+  @override
+  String get mainBrowseSavedPoolNamingEmpty => 'Enter a name.';
+
+  @override
+  String get mainBrowseSavedPoolNamingDuplicate => 'That name is already used.';
+
+  @override
+  String get mainBrowseSavedPoolCapacityTitle => 'Saved pools full';
+
+  @override
+  String get mainBrowseSavedPoolCapacityBody =>
+      'You can save up to 10 pools. Delete one from Saved pools, then try again.';
+
+  @override
+  String get mainBrowseSavedPoolCapacityConfirm => 'OK';
+
+  @override
+  String get mainBrowseCompositionPeekSave => 'Save this pool';
+
+  @override
   String get mainBrowseBuildPoolCatalogLoading => 'Loading sources…';
 
   @override

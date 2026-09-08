@@ -771,6 +771,78 @@ abstract class AppLocalizations {
   /// **'Start browsing'**
   String get mainBrowseBuildPoolStart;
 
+  /// Cap 22.3 Build Save — persist only, stay on Build
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get mainBrowseBuildPoolSave;
+
+  /// Cap 22.3 light success after Build Save
+  ///
+  /// In en, this message translates to:
+  /// **'Saved.'**
+  String get mainBrowseBuildPoolSaveSuccess;
+
+  /// Shared Saved Pool naming dialog title (Build Save, peek Save, Rename)
+  ///
+  /// In en, this message translates to:
+  /// **'Name this pool'**
+  String get mainBrowseSavedPoolNamingTitle;
+
+  /// Shared naming dialog text field hint
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get mainBrowseSavedPoolNamingHint;
+
+  /// Shared naming dialog confirm
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get mainBrowseSavedPoolNamingConfirm;
+
+  /// Shared naming dialog cancel
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get mainBrowseSavedPoolNamingCancel;
+
+  /// Inline error when the naming field is empty after trim
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a name.'**
+  String get mainBrowseSavedPoolNamingEmpty;
+
+  /// Inline error when the normalized name collides with another Saved preset
+  ///
+  /// In en, this message translates to:
+  /// **'That name is already used.'**
+  String get mainBrowseSavedPoolNamingDuplicate;
+
+  /// Capacity dialog title at max 10 Saved presets
+  ///
+  /// In en, this message translates to:
+  /// **'Saved pools full'**
+  String get mainBrowseSavedPoolCapacityTitle;
+
+  /// Capacity dialog body — guides the user to Saved pools to delete (ADR-046 D2)
+  ///
+  /// In en, this message translates to:
+  /// **'You can save up to 10 pools. Delete one from Saved pools, then try again.'**
+  String get mainBrowseSavedPoolCapacityBody;
+
+  /// Capacity dialog dismiss
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get mainBrowseSavedPoolCapacityConfirm;
+
+  /// Ephemeral composition peek footer — persist and promote to savedPool
+  ///
+  /// In en, this message translates to:
+  /// **'Save this pool'**
+  String get mainBrowseCompositionPeekSave;
+
   /// Cap 21.4 catalog list while assetSourcesProvider is loading
   ///
   /// In en, this message translates to:

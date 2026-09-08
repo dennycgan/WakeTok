@@ -492,6 +492,54 @@
   "@mainBrowseBuildPoolStart": {
     "description": "Cap 21.4 Start button — parks ephemeral and pops to Browse"
   },
+  "mainBrowseBuildPoolSave": "Save",
+  "@mainBrowseBuildPoolSave": {
+    "description": "Cap 22.3 Build Save — persist only, stay on Build"
+  },
+  "mainBrowseBuildPoolSaveSuccess": "Saved.",
+  "@mainBrowseBuildPoolSaveSuccess": {
+    "description": "Cap 22.3 light success after Build Save"
+  },
+  "mainBrowseSavedPoolNamingTitle": "Name this pool",
+  "@mainBrowseSavedPoolNamingTitle": {
+    "description": "Shared Saved Pool naming dialog title (Build Save, peek Save, Rename)"
+  },
+  "mainBrowseSavedPoolNamingHint": "Name",
+  "@mainBrowseSavedPoolNamingHint": {
+    "description": "Shared naming dialog text field hint"
+  },
+  "mainBrowseSavedPoolNamingConfirm": "Save",
+  "@mainBrowseSavedPoolNamingConfirm": {
+    "description": "Shared naming dialog confirm"
+  },
+  "mainBrowseSavedPoolNamingCancel": "Cancel",
+  "@mainBrowseSavedPoolNamingCancel": {
+    "description": "Shared naming dialog cancel"
+  },
+  "mainBrowseSavedPoolNamingEmpty": "Enter a name.",
+  "@mainBrowseSavedPoolNamingEmpty": {
+    "description": "Inline error when the naming field is empty after trim"
+  },
+  "mainBrowseSavedPoolNamingDuplicate": "That name is already used.",
+  "@mainBrowseSavedPoolNamingDuplicate": {
+    "description": "Inline error when the normalized name collides with another Saved preset"
+  },
+  "mainBrowseSavedPoolCapacityTitle": "Saved pools full",
+  "@mainBrowseSavedPoolCapacityTitle": {
+    "description": "Capacity dialog title at max 10 Saved presets"
+  },
+  "mainBrowseSavedPoolCapacityBody": "You can save up to 10 pools. Delete one from Saved pools, then try again.",
+  "@mainBrowseSavedPoolCapacityBody": {
+    "description": "Capacity dialog body — guides the user to Saved pools to delete (ADR-046 D2)"
+  },
+  "mainBrowseSavedPoolCapacityConfirm": "OK",
+  "@mainBrowseSavedPoolCapacityConfirm": {
+    "description": "Capacity dialog dismiss"
+  },
+  "mainBrowseCompositionPeekSave": "Save this pool",
+  "@mainBrowseCompositionPeekSave": {
+    "description": "Ephemeral composition peek footer — persist and promote to savedPool"
+  },
   "mainBrowseBuildPoolCatalogLoading": "Loading sources…",
   "@mainBrowseBuildPoolCatalogLoading": {
     "description": "Cap 21.4 catalog list while assetSourcesProvider is loading"

@@ -13,6 +13,7 @@ import 'package:waketok/features/main_browse/cap19_album_cover_thumbnail.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
 import 'package:waketok/features/main_browse/smart_album_labels.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -25,14 +26,18 @@ class BuildPoolScaffoldPage extends ConsumerStatefulWidget {
 
   static const Key pageKey = Key('mainBrowseBuildPoolScaffold');
   static const Key startKey = Key('mainBrowseBuildPoolStart');
+  static const Key saveKey = Key('mainBrowseBuildPoolSave');
   static const Key catalogKey = Key('mainBrowseBuildPoolCatalog');
   static const Key selectedListKey = Key('mainBrowseBuildPoolSelected');
   static const Key catalogLoadingKey = Key('mainBrowseBuildPoolCatalogLoading');
   static const Key catalogFailedKey = Key('mainBrowseBuildPoolCatalogFailed');
   static const Key catalogEmptyKey = Key('mainBrowseBuildPoolCatalogEmpty');
-  static const Key smartLoadingKey =
-      Key('mainBrowseBuildPoolSmartCatalogLoading');
-  static const Key smartFailedKey = Key('mainBrowseBuildPoolSmartCatalogFailed');
+  static const Key smartLoadingKey = Key(
+    'mainBrowseBuildPoolSmartCatalogLoading',
+  );
+  static const Key smartFailedKey = Key(
+    'mainBrowseBuildPoolSmartCatalogFailed',
+  );
   static const Key smartSectionKey = Key('mainBrowseBuildPoolSmartSection');
 
   @override
@@ -42,6 +47,11 @@ class BuildPoolScaffoldPage extends ConsumerStatefulWidget {
 
 class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
   final List<SourceReference> _selected = <SourceReference>[];
+
+  /// Route-local only. Written on successful Save; failed Save must not
+  /// clear or overwrite (Start still maps to the last successful preset).
+  String? _lastSavedFingerprint;
+  String? _lastSavedPoolId;
 
   @override
   void initState() {
@@ -94,28 +104,91 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
     });
   }
 
-  void _start() {
-    if (_selected.isEmpty) {
-      return;
-    }
+  List<String> _compositionLabels() {
     final l10n = AppLocalizations.of(context)!;
     final sources = ref.read(assetSourcesProvider).asData?.value ?? const [];
     final smart =
         ref.read(buildPoolSmartCatalogProvider).asData?.value ?? const [];
     final catalog = <AssetSource>[...sources, ...smart];
-    final labels = <String>[
+    return [
       for (final reference in _selected)
         compositionDisplayLabel(l10n, reference, catalog),
     ];
+  }
+
+  Future<void> _save() async {
+    if (_selected.isEmpty) {
+      return;
+    }
+    final repo = ref.read(savedPoolRepositoryProvider);
+    final existing = await repo.loadAll();
+    if (!mounted) {
+      return;
+    }
+    if (existing.length >= PoolCapacity.maxSavedPoolPresets) {
+      await showSavedPoolCapacityDialog(context);
+      return;
+    }
+    final outcome = await showSavedPoolNamingDialog(
+      context: context,
+      repository: repo,
+      orderedSourceReferences: List<SourceReference>.from(_selected),
+    );
+    if (!mounted) {
+      return;
+    }
+    switch (outcome) {
+      case SavedPoolNamingCancelled():
+        return;
+      case SavedPoolNamingAtCapacity():
+        await showSavedPoolCapacityDialog(context);
+        return;
+      case SavedPoolNamingSaved(:final record):
+        _lastSavedFingerprint = BrowseSnapshotCache.keyForRefs(_selected);
+        _lastSavedPoolId = record.id;
+        final l10n = AppLocalizations.of(context)!;
+        final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            key: const Key('mainBrowseBuildPoolSaveSuccess'),
+            content: Text(
+              l10n.mainBrowseBuildPoolSaveSuccess,
+              style: tokens.bodyOnMedia.copyWith(color: tokens.onMedia),
+            ),
+            backgroundColor: tokens.surface,
+          ),
+        );
+    }
+  }
+
+  Future<void> _start() async {
+    if (_selected.isEmpty) {
+      return;
+    }
+    final fingerprint = BrowseSnapshotCache.keyForRefs(_selected);
+    final savedId = _lastSavedPoolId;
+    if (savedId != null && fingerprint == _lastSavedFingerprint) {
+      final record = await ref
+          .read(savedPoolRepositoryProvider)
+          .loadById(savedId);
+      if (!mounted) {
+        return;
+      }
+      if (record != null) {
+        ref.read(browseChromeStateProvider.notifier).startSavedPool(record);
+        Navigator.of(context).pop();
+        return;
+      }
+    }
+    final labels = _compositionLabels();
     final definition = SourcePoolDefinition(
       id: 'ephemeral-${DateTime.now().microsecondsSinceEpoch}',
       persistencePolicy: PersistencePolicy.ephemeral,
       orderedSourceReferences: List<SourceReference>.from(_selected),
     );
-    ref.read(browseChromeStateProvider.notifier).startEphemeralPool(
-          definition,
-          compositionLabels: labels,
-        );
+    ref
+        .read(browseChromeStateProvider.notifier)
+        .startEphemeralPool(definition, compositionLabels: labels);
     Navigator.of(context).pop();
   }
 
@@ -212,19 +285,36 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
             top: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  key: BuildPoolScaffoldPage.startKey,
-                  onPressed: canStart ? _start : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: tokens.accent,
-                    foregroundColor: tokens.onMedia,
-                    disabledBackgroundColor:
-                        tokens.onMediaMuted.withValues(alpha: 0.25),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  OutlinedButton(
+                    key: BuildPoolScaffoldPage.saveKey,
+                    onPressed: canStart ? _save : null,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tokens.onMedia,
+                      side: BorderSide(
+                        color: canStart
+                            ? tokens.accent
+                            : tokens.onMediaMuted.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Text(l10n.mainBrowseBuildPoolSave),
                   ),
-                  child: Text(l10n.mainBrowseBuildPoolStart),
-                ),
+                  const SizedBox(height: 8),
+                  FilledButton(
+                    key: BuildPoolScaffoldPage.startKey,
+                    onPressed: canStart ? _start : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: tokens.accent,
+                      foregroundColor: tokens.onMedia,
+                      disabledBackgroundColor: tokens.onMediaMuted.withValues(
+                        alpha: 0.25,
+                      ),
+                    ),
+                    child: Text(l10n.mainBrowseBuildPoolStart),
+                  ),
+                ],
               ),
             ),
           ),
@@ -299,9 +389,7 @@ class _CatalogPane extends ConsumerWidget {
             if (smart.isEmpty) {
               return const <Widget>[];
             }
-            return <Widget>[
-              for (final source in smart) _catalogTile(source),
-            ];
+            return <Widget>[for (final source in smart) _catalogTile(source)];
           },
           loading: () => <Widget>[
             Padding(

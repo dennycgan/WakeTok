@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/asset_source.dart';
+import 'package:waketok/domain/source/pool_capacity.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
@@ -13,6 +14,7 @@ import 'package:waketok/features/main_browse/build_pool_scaffold_page.dart';
 import 'package:waketok/features/main_browse/build_pool_smart_catalog.dart';
 import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 21.3 four-control top chrome (ADR-044 D6.4 / D7).
@@ -29,7 +31,8 @@ class BrowseTopChrome extends ConsumerWidget {
     final origin = chrome.activeOrigin;
     final builtInActive = origin is BrowseOriginBuiltIn;
     final remembered = chrome.lastRememberedBuiltIn;
-    final ephemeralActive = parked != null &&
+    final ephemeralActive =
+        parked != null &&
         origin is BrowseOriginEphemeralPool &&
         origin.definition == parked;
 
@@ -90,15 +93,16 @@ class BrowseTopChrome extends ConsumerWidget {
                     // deleted albums do not linger from a stale FutureProvider.
                     ref.invalidate(assetSourcesProvider);
                     ref.invalidate(buildPoolSmartCatalogProvider);
-                    final cover =
-                        ref.read(browseCoveringRouteOpenProvider.notifier);
+                    final cover = ref.read(
+                      browseCoveringRouteOpenProvider.notifier,
+                    );
                     cover.setOpen(true);
                     Navigator.of(context)
                         .push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const BuildPoolScaffoldPage(),
-                      ),
-                    )
+                          MaterialPageRoute<void>(
+                            builder: (_) => const BuildPoolScaffoldPage(),
+                          ),
+                        )
                         .whenComplete(() => cover.setOpen(false));
                   },
                 ),
@@ -120,7 +124,10 @@ class BrowseTopChrome extends ConsumerWidget {
       await showCompositionPeekPopover(
         context: context,
         parked: parked,
-        frozenLabels: ref.read(browseChromeStateProvider).parkedCompositionLabels,
+        frozenLabels: ref
+            .read(browseChromeStateProvider)
+            .parkedCompositionLabels,
+        showSaveFooter: true,
       );
       return;
     }
@@ -160,10 +167,7 @@ class _TempPoolChip extends StatelessWidget {
 }
 
 class _CreateControl extends StatelessWidget {
-  const _CreateControl({
-    required this.onTap,
-    required this.enabled,
-  });
+  const _CreateControl({required this.onTap, required this.enabled});
 
   final VoidCallback onTap;
   final bool enabled;
@@ -239,8 +243,7 @@ class _BuiltInControl extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final label = builtInDisplayLabel(l10n, remembered);
-    final color =
-        highlightAsSelected ? tokens.accent : tokens.onMediaMuted;
+    final color = highlightAsSelected ? tokens.accent : tokens.onMediaMuted;
     // Cap 21.5 D7: when Origin is ephemeral, visual chrome is muted and
     // VoiceOver must not announce Built-in as selected for the remembered
     // tab — announce that browsing is the Temp Pool instead.
@@ -268,11 +271,7 @@ class _BuiltInControl extends StatelessWidget {
                     shadows: tokens.onMediaLabelShadows,
                   ),
                 ),
-                Icon(
-                  Icons.arrow_drop_down,
-                  size: 18,
-                  color: color,
-                ),
+                Icon(Icons.arrow_drop_down, size: 18, color: color),
               ],
             ),
           ),
@@ -335,11 +334,7 @@ class _SavedControl extends StatelessWidget {
                 shadows: tokens.onMediaLabelShadows,
               ),
             ),
-            Icon(
-              Icons.arrow_drop_down,
-              size: 18,
-              color: tokens.onMediaMuted,
-            ),
+            Icon(Icons.arrow_drop_down, size: 18, color: tokens.onMediaMuted),
           ],
         ),
       ),
@@ -436,7 +431,8 @@ Future<T?> _showChromeMenuOverlay<T>({
                         title: Text(
                           item.label,
                           style: tokens.labelOnMedia.copyWith(
-                            color: item.labelColor ??
+                            color:
+                                item.labelColor ??
                                 (item.enabled
                                     ? tokens.onMedia
                                     : tokens.onMediaMuted),
@@ -466,6 +462,7 @@ Future<void> showCompositionPeekPopover({
   required BuildContext context,
   required SourcePoolDefinition parked,
   List<String>? frozenLabels,
+  bool showSaveFooter = false,
 }) {
   final overlay = Overlay.of(context);
   final completer = Completer<void>();
@@ -509,6 +506,9 @@ Future<void> showCompositionPeekPopover({
                     child: _CompositionPeekCard(
                       parked: parked,
                       frozenLabels: frozenLabels,
+                      showSaveFooter: showSaveFooter,
+                      hostContext: context,
+                      onDismiss: dismiss,
                     ),
                   ),
                 ),
@@ -526,11 +526,17 @@ Future<void> showCompositionPeekPopover({
 class _CompositionPeekCard extends ConsumerWidget {
   const _CompositionPeekCard({
     required this.parked,
+    required this.hostContext,
+    required this.onDismiss,
     this.frozenLabels,
+    this.showSaveFooter = false,
   });
 
   final SourcePoolDefinition parked;
   final List<String>? frozenLabels;
+  final bool showSaveFooter;
+  final BuildContext hostContext;
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -546,7 +552,7 @@ class _CompositionPeekCard extends ConsumerWidget {
       elevation: 6,
       borderRadius: BorderRadius.circular(10),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 280, maxHeight: 320),
+        constraints: const BoxConstraints(maxWidth: 280, maxHeight: 360),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
           child: Column(
@@ -597,11 +603,60 @@ class _CompositionPeekCard extends ConsumerWidget {
                   ),
                 ),
               ),
+              if (showSaveFooter) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    key: const Key('mainBrowseCompositionPeekSave'),
+                    onPressed: () => _saveFromPeek(ref),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tokens.onMedia,
+                      side: BorderSide(color: tokens.accent),
+                    ),
+                    child: Text(l10n.mainBrowseCompositionPeekSave),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _saveFromPeek(WidgetRef ref) async {
+    final host = hostContext;
+    if (!host.mounted) {
+      return;
+    }
+    final repo = ref.read(savedPoolRepositoryProvider);
+    final existing = await repo.loadAll();
+    if (!host.mounted) {
+      return;
+    }
+    if (existing.length >= PoolCapacity.maxSavedPoolPresets) {
+      await showSavedPoolCapacityDialog(host);
+      return;
+    }
+    final outcome = await showSavedPoolNamingDialog(
+      context: host,
+      repository: repo,
+      orderedSourceReferences: parked.orderedSourceReferences,
+    );
+    if (!host.mounted) {
+      return;
+    }
+    switch (outcome) {
+      case SavedPoolNamingCancelled():
+        return;
+      case SavedPoolNamingAtCapacity():
+        await showSavedPoolCapacityDialog(host);
+        return;
+      case SavedPoolNamingSaved(:final record):
+        ref.read(browseChromeStateProvider.notifier).startSavedPool(record);
+        onDismiss();
+    }
   }
 
   String? _frozenAt(int index) {
