@@ -161,7 +161,7 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Saved Pool persistence, reopen, management, and capacity limits
-Contract: ADR-046 Proposed (docs this commit; Accepted after first Cap 22 work)
+Contract: ADR-046 Accepted (work `d62e962`)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 22.1 Contract freeze — ADR-046 Proposed
@@ -172,11 +172,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       capacity dialog at 10; Saved pools menu; chip when `savedPool`
       active; debt **455** close criterion; Out: recipe edit /
       Checkpoint / Clip / **456**/**457**. Docs (this commit).
-- [ ] 22.2 Drift/SQLite baseline + SavedPoolRepository
+- [x] 22.2 Drift/SQLite baseline + SavedPoolRepository
       Domain repository + Drift schema (pool + ordered refs);
       save/load/rename/delete; enforce max 10; composition-root
-      wiring. After first **work** commit: separate **docs** commit
-      flips ADR-046 → Accepted + real anchor. ADR: D1, D2.
+      wiring. Work `d62e962`. ADR-046 Accepted this docs commit.
+      ADR: D1, D2.
 - [ ] 22.3 Save UX
       Shared naming dialog (+ unique-name inline error); Build Save
       (stay on Build); ephemeral peek Save + promote clear park;
@@ -199,16 +199,16 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Limited. Notes under `docs/acceptance/cap22-*`.
 - [ ] 22.7 Cap close-out
       Cap `[x]`; YOU ARE HERE → still-in-library gate…; PHASE_HISTORY
-      snapshot; ADR-046 Accepted; debt **455** Closed.
+      snapshot; debt **455** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 22.2 Drift/SQLite baseline + SavedPoolRepository
-- Sub-steps done: 22.1 ADR-046 Proposed + Phase Roadmap 22.1–22.7
-- Next step: design/impl Drift schema + domain repository (work then
-      docs Accept ADR-046); no Save UI until 22.3
-- Related decisions: ADR-046 Proposed; debt **455** → Cap 22 close;
-      **456** / **457** Open (after Cap 22 for Part B); Cap 20 **449** /
-      **452** Open
+- Goal (one line): 22.3 Save UX
+- Sub-steps done: 22.1 contract; 22.2 Drift SavedPoolRepository `d62e962`
+- Next step: shared naming dialog; Build Save; peek Save + promote;
+      capacity dialog; Start fingerprint → `savedPool`
+- Related decisions: ADR-046 Accepted (`d62e962`); debt **455** →
+      Cap 22 close (22.4 refresh); **456** / **457** Open (after Cap 22
+      for Part B); Cap 20 **449** / **452** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -424,6 +424,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - ADR-040: Cap 18 Main Browse gesture arbitration and dual-signal
       Manual playback control — **Accepted** (2026-08-28), anchor
       `0df9ceb` (Cap 18.4 work; 18.3 `84ef30c`)
+- ADR-046: Cap 22 Saved Pool persistence — **Accepted** (2026-09-08),
+      anchor `d62e962` (Cap 22.2 work)
+- Cap 22 Saved Pool persistence: `lib/domain/source/saved_pool_repository.dart`
+      + Drift `lib/data/local/` (work `d62e962`); Save UI is 22.3
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):

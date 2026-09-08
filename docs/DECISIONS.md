@@ -5248,8 +5248,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-046: Cap 22 Saved Pool persistence — Drift SQLite, save/start decoupling, Saved chrome
 
-- Status: Proposed
-- Commit/PR anchor: (none until first Cap 22 implementing work commit)
+- Status: Accepted (2026-09-08)
+- Commit/PR anchor: d62e962
 - Plain summary (owner reads this):
   You can save a multi-source Pool recipe under a name, reopen it from
   Saved pools, rename or delete it, and browse it later. Recipes live in
@@ -5346,9 +5346,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Implementing kickoff Manage “reorder / replace failed sources” in
     Cap 22 — rejected; MVP Accepted deviation = no recipe edit.
 - Consequences / constraints accepted:
-  - Flip this entry to Accepted with the first Cap 22 implementing work
-    commit as anchor (two-commit discipline; no fake anchors while
-    Proposed).
+  - Accepted date/anchor = Cap 22.2 work `d62e962` (2026-09-08), from
+    `git log -1 --format=%cs d62e962` (not inside the work commit).
   - ADR-044 D6.1/D6.4/D7 remain binding; this ADR adds `savedPool` origin,
     Save entries, and Saved menu behavior.
   - Architecture / localization guards remain mandatory on `lib/` work
