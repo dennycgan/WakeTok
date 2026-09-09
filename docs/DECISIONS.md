@@ -5248,7 +5248,15 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-046: Cap 22 Saved Pool persistence — Drift SQLite, save/start decoupling, Saved chrome
 
-- Status: Accepted (2026-09-08)
+- Status: Accepted (2026-09-08); Decision 3 (Build Save/Start decoupling +
+  `lastSavedFingerprint`) and Decision 5 (shared surfaces including one
+  composition-peek family for temp + Saved Info) are **narrowly superseded
+  by ADR-047** (Accepted 2026-09-09, anchor `0b68e01`). Decision 7’s
+  “Start-after-matching-Save … clear `parkedEphemeralPool`” clause is
+  superseded with Decision 3 under ADR-047 (Promote / Build Save & browse
+  remain the clear-park writers). D1–D2, D4 ephemeral peek Save, D6
+  menu/unique names, D7 chip occupancy (aside from that clear-park
+  clause), D8–D9 remain binding.
 - Commit/PR anchor: d62e962
 - Plain summary (owner reads this):
   You can save a multi-source Pool recipe under a name, reopen it from
@@ -5355,3 +5363,110 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Phase **22.5** misc polish is a placeholder; a mini scope freeze with
     the owner is required before any 22.5 code; 22.5 must not absorb
     debt **456** Part B, recipe edit, or SessionCheckpoint.
+
+---
+
+## ADR-047: Cap 22 Build Save & browse + entry-point recipe shells (supersedes ADR-046 D3 / D5)
+
+- Status: Accepted (2026-09-09)
+- Commit/PR anchor: 0b68e01
+- Plain summary (owner reads this):
+  On Build a Pool, **Save & browse** names the recipe, saves it, and
+  immediately starts browsing that Saved pool. **Browse without saving**
+  always starts a temporary pool. Recipe list **shell** is chosen by
+  **tap entry point** (not temp vs saved): top-leading chip → composition
+  peek; Saved-menu row **i** → centered AlertDialog. Re-tapping an
+  already-active Saved row shows a Cap 19 browse toast (not a recipe
+  shell). Saved recipe titles use `Sources in “{name}”` /
+  「{name}」中的来源 on both shells; Temp peek keeps
+  **Sources in this pool**.
+- Context / what problem forced this:
+  Cap 22.4 device soak showed ADR-046 Decision 3’s Save-only / fingerprint
+  Start path mismatched product intent (assemble then watch; optional
+  persist — not “save several presets without browsing”). Separately,
+  ADR-046 D5’s single peek family and an early soak guess that “Saved =
+  center / Temp = peek” both failed owner review: shell must follow
+  **where** the user tapped. Owner locked Build CTA + entry-point shells
+  into one ADR during the same soak; implementing code lands in the Cap
+  22.4 supplemental work commit (not the first 22.4 chrome work
+  `0ca1198`).
+- Decision (what was chosen):
+  1. **Supersede scope (narrow).** Supersedes **ADR-046 Decision 3** in
+     full, **ADR-046 Decision 5**’s “one composition peek card family
+     (temp peek vs Saved Info)” clause (and D6’s “per-row Info (peek)”
+     wording as that Info surface), and **ADR-046 Decision 7**’s
+     “Start-after-matching-Save … clear park” clause only. ADR-046 D1–D2,
+     D4 ephemeral peek **Save this pool** promote, D6 menu/unique names
+     (aside from Info surface), D7 chip occupancy rules, D8–D9 remain
+     binding. Do **not** edit ADR-046 Decision bodies in place.
+  2. **D3 — Save & browse / Browse without saving (Build).**
+     - **Save & browse:** shared naming dialog → DB write →
+       `activeOrigin = savedPool(...)` and **`parkedEphemeralPool =
+       null`** → pop Build (same chrome-write family as D4 peek
+       promote). Cancel or capacity-full: stay on Build; no chrome
+       write. No success SnackBar required. Visual primary CTA =
+       Filled accent (**Save & browse** above outlined **Browse without
+       saving**).
+     - **Browse without saving (Start):** always Cap 21 ephemeral Start
+       (replace parked with the new ephemeral Definition) → pop Build.
+       **Never** consult a prior Save fingerprint.
+     - **Removed:** `lastSavedFingerprint` / `lastSavedPoolId` and any
+       Start-after-matching-Save branch.
+     - Copy (new ARB keys; not peek’s “Save this pool”): EN **Save &
+       browse** / **Browse without saving**; zh **保存并浏览** /
+       **不保存直接浏览**.
+     - Overturns the ADR-046 Rejected alternative that forbade merging
+       Save with Start navigation/chrome write — that reject assumed a
+       false “save several without browsing” workflow.
+  3. **D5 — Shared dialogs / surfaces (revised; entry-point shells).**
+     Keep one naming dialog and one capacity-full dialog. **Recipe list
+     shell = tap target, not pool attribute:**
+     - **Top-leading chip** (Temp while parked-active, or Saved chip
+       while `savedPool` active) → **composition peek**. Temp may show
+       Save footer; Saved peek never shows Save footer.
+     - **Saved-menu row Info (i)** → **centered AlertDialog** (immersive
+       dark shell — same family as naming / capacity).
+     - **Saved-menu row Open** when that preset is **already** active →
+       Cap 19 `showCap19BrowseToast` (**You're already browsing
+       “{name}”.** / **当前刷的就是这个片库。**); do **not** open peek
+       or center Info.
+     - **Titles:** Temp peek = **Sources in this pool**. Any Saved
+       recipe surface (peek or center) =
+       `mainBrowseSavedPoolSourcesTitle` — EN **Sources in “{name}”**,
+       zh **「{name}」中的来源**. Body = live composition lines
+       (ADR-045 honesty / debt **455** refresh). Delete confirm
+       unchanged. Menu already dismisses before Info (row Icon `pop`).
+  4. **Clear park.** Promote (ADR-046 D4) and Build Save & browse
+     (this ADR D3) paths that make the recipe “only saved” **clear
+     `parkedEphemeralPool`**. Ephemeral Start still replaces park with
+     the new temp Definition (Cap 21).
+  5. **Peek vs center dismiss.** Ephemeral composition peek must not
+     remain under naming / capacity dialogs. Callers dismiss peek before
+     those surfaces; naming / capacity entry also call
+     `dismissCompositionPeekIfOpen()` as double-insurance for the Temp
+     peek → Save path. Centered Saved Info is not a peek and does not
+     rely on that insurance.
+- Rejected alternatives (why not):
+  - Keep D3 decoupled for potential future recipe-edit — rejected; D6
+    already excludes recipe edit from MVP with nothing scheduled; if
+    recipe editing is ever added in a later Cap, re-decoupling Save/Start
+    needs its own owner decision at that time, not assumed from this
+    supersede.
+  - Reuse peek “Save this pool” copy for Build Save & browse — rejected;
+    Build labels must state that browsing starts immediately.
+  - Attribute-based shells (Saved always center / Temp always peek) —
+    rejected; owner soak: shell follows **click position**, not
+    temp/saved.
+  - Already-active Saved row Open → center Info — rejected; toast only.
+  - Edit ADR-046 Decision 3 / D5 bodies in place — rejected (append-only
+    ADR discipline).
+- Consequences / constraints accepted:
+  - Accepted date and anchor come from Cap 22.4 supplemental work
+    `0b68e01` (`git log -1 --format=%cs` → 2026-09-09), not `0ca1198`
+    and not the design-discussion day.
+  - ADR-046 Status records the narrow supersession; historical Rejected
+    “Save&Start merged … rejected” text under ADR-046 stays as history.
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009/010/012).
+  - SnackBar ban for Browse toasts is STATE + architecture guard
+    (ADR-009 Enforcement); not a new ADR number.

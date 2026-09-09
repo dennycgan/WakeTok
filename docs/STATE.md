@@ -30,6 +30,13 @@
   machine only; not in this repo). Re-verify Host pinch hit-test notes after
   Flutter SDK upgrades (Scrollable `DragScrollActivity.shouldIgnorePointer`).
   Same fragility family first observable symptom: debt **458**.
+- Browse brief action feedback: use Cap 19 `showCap19BrowseToast` (top
+  overlay under source chrome). Do **not** use Material bottom `SnackBar`
+  for success/error toasts (Cap 19.5b owner §7 item 7; welded convention).
+  Machine-guarded: `test/architecture/dependency_test.dart` fails on
+  `SnackBar(` / `.showSnackBar(` under `lib/features/**` and `lib/app/**`
+  (ADR-009 Enforcement — not owner-only post-capability audit).
+  Centered `AlertDialog` (naming / capacity / Info / delete) is orthogonal.
 
 ## Capability Roadmap (project-level; top-to-bottom = execution order; YOU ARE HERE)
 - [x] Project Bootstrap (flutter create scaffold, pigeon/ placeholder, docs skeleton, root commit)
@@ -162,7 +169,7 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Saved Pool persistence, reopen, management, and capacity limits
-Contract: ADR-046 Accepted (work `d62e962`)
+Contract: ADR-046 Accepted (work `d62e962`); ADR-047 Accepted (work `0b68e01`)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 22.1 Contract freeze — ADR-046 Proposed
@@ -187,11 +194,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       overwrite `lastSaved*`. Q1 chrome gap: after promote /
       Start-after-Save, no Temp chip and no Saved chip until 22.4.
       Work `4db65ec`. ADR: D3, D4, D5.
-- [ ] 22.4 Saved chrome
+- [x] 22.4 Saved chrome
       Saved pools menu: list / open / Info / Rename / Delete(+confirm);
       control label Saved pools; chip when `savedPool` active; debt
-      **455** refresh on list/Info; drop Coming-soon gray stubs. ADR:
-      D6, D7, D8.
+      **455** refresh on list/Info; drop Coming-soon gray stubs.
+      ADR-047: Save & browse / Browse without saving; entry-point
+      recipe shells (chip peek / menu i center dialog); already-active
+      row toast. Work `0ca1198` + supplemental `0b68e01`. ADR-047
+      Accepted this docs commit. ADR: D6–D8 (via ADR-046) + ADR-047.
 - [ ] 22.5 Misc polish
       Placeholder for Cap 21/22 residual UI/interaction issues (e.g.
       top-chrome vertical alignment; end-of-queue → next-round jump
@@ -207,14 +217,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       snapshot; debt **455** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 22.4 Saved chrome
+- Goal (one line): 22.5 Misc polish
 - Sub-steps done: 22.1 contract; 22.2 Drift SavedPoolRepository
-      `d62e962`; 22.3 Save UX `4db65ec`
-- Next step: Saved pools menu (list / open / Info / Rename / Delete);
-      Saved chip when `savedPool` active; debt **455** refresh
-- Related decisions: ADR-046 Accepted (`d62e962`); debt **455** →
-      Cap 22 close (22.4 refresh); **456** / **457** Open (after Cap 22
-      for Part B); Cap 20 **449** / **452** Open
+      `d62e962`; 22.3 Save UX `4db65ec`; 22.4 Saved chrome `0ca1198`
+      + `0b68e01`
+- Next step: mini scope freeze with owner before any 22.5 code
+- Related decisions: ADR-046 Accepted (`d62e962`); ADR-047 Accepted
+      (`0b68e01`); debt **455** → Cap 22 close (22.7); **456** /
+      **457** Open (after Cap 22 for Part B); Cap 20 **449** / **452**
+      Open; Cap 22.4 **458** Monitoring
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -433,11 +444,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Manual playback control — **Accepted** (2026-08-28), anchor
       `0df9ceb` (Cap 18.4 work; 18.3 `84ef30c`)
 - ADR-046: Cap 22 Saved Pool persistence — **Accepted** (2026-09-08),
-      anchor `d62e962` (Cap 22.2 work)
+      anchor `d62e962` (Cap 22.2 work); D3/D5/(D7 clear-park clause)
+      narrowly superseded by ADR-047
+- ADR-047: Cap 22 Build Save & browse + entry-point recipe shells —
+      **Accepted** (2026-09-09), anchor `0b68e01` (Cap 22.4
+      supplemental; first chrome `0ca1198`)
 - Cap 22 Saved Pool persistence: `lib/domain/source/saved_pool_repository.dart`
       + Drift `lib/data/local/` (work `d62e962`); Save UX 22.3
-      (`4db65ec`: `BrowseOriginSavedPool`, Build/peek Save,
-      `saved_pool_dialogs.dart`)
+      (`4db65ec`); 22.4 chrome + ADR-047 polish (`0ca1198`, `0b68e01`)
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
