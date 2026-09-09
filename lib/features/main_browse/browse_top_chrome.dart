@@ -13,6 +13,8 @@ import 'package:waketok/features/authorization/photos_authorization_notifier.dar
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/build_pool_scaffold_page.dart';
 import 'package:waketok/features/main_browse/build_pool_smart_catalog.dart';
+import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
+import 'package:waketok/features/main_browse/composition_peek_dismiss.dart';
 import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
@@ -145,11 +147,22 @@ class BrowseTopChrome extends ConsumerWidget {
   Future<void> _onSavedChipTap(BuildContext context, WidgetRef ref) async {
     final origin = ref.read(browseChromeStateProvider).activeOrigin;
     switch (origin) {
-      case BrowseOriginSavedPool(:final definition):
+      case BrowseOriginSavedPool(:final definition, :final poolId):
+        // Entry-point shell: top-leading chip → composition peek (not
+        // center Info). Same peek family as Temp; Saved title uses name.
         ref.invalidate(assetSourcesProvider);
+        final name = _savedChipDisplayName(
+              origin: origin,
+              records: ref.read(savedPoolRecordsProvider).asData?.value,
+            ) ??
+            definition.displayName ??
+            poolId;
         await showCompositionPeekPopover(
           context: context,
           parked: definition,
+          title: AppLocalizations.of(context)!.mainBrowseSavedPoolSourcesTitle(
+            name,
+          ),
           showSaveFooter: false,
         );
       case BrowseOriginBuiltIn() || BrowseOriginEphemeralPool():
@@ -381,7 +394,6 @@ class _BuiltInControl extends StatelessWidget {
 
   Future<void> _openBuiltInOverlay(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final choice = await _showChromeMenuOverlay<SourceReference>(
       context: context,
       menuKey: const Key('mainBrowseBuiltInOverlay'),
@@ -403,7 +415,6 @@ class _BuiltInControl extends StatelessWidget {
           value: SourceReference.videos,
         ),
       ],
-      tokens: tokens,
     );
     if (choice != null) {
       onPick(choice);
@@ -447,11 +458,9 @@ class _SavedControl extends ConsumerWidget {
       return;
     }
     final l10n = AppLocalizations.of(context)!;
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final pick = await _showSavedPoolsOverlay(
       context: context,
       barrierLabel: l10n.mainBrowseSavedPoolsMenu,
-      tokens: tokens,
     );
     if (!context.mounted || pick == null) {
       return;
@@ -474,21 +483,24 @@ class _SavedControl extends ConsumerWidget {
           BrowseOriginBuiltIn() || BrowseOriginEphemeralPool() => false,
         };
         if (already) {
-          ref.invalidate(assetSourcesProvider);
-          await showCompositionPeekPopover(
-            context: context,
-            parked: record.toDefinition(),
-            showSaveFooter: false,
+          final l10n = AppLocalizations.of(context)!;
+          showCap19BrowseToast(
+            context,
+            message: l10n.mainBrowseSavedPoolAlreadyBrowsing(
+              record.displayName,
+            ),
+            toastKey: const Key('mainBrowseSavedPoolAlreadyBrowsingToast'),
           );
           return;
         }
         notifier.openSavedPool(record);
       case _SavedOverlayInfo(:final record):
+        // Menu already popped via Navigator.pop(pick); center Info (not peek).
         ref.invalidate(assetSourcesProvider);
-        await showCompositionPeekPopover(
+        await showSavedPoolInfoDialog(
           context: context,
-          parked: record.toDefinition(),
-          showSaveFooter: false,
+          displayName: record.displayName,
+          definition: record.toDefinition(),
         );
       case _SavedOverlayRename(:final record):
         final outcome = await showSavedPoolNamingDialog(
@@ -558,8 +570,11 @@ final class _SavedOverlayDelete extends _SavedOverlayPick {
 Future<_SavedOverlayPick?> _showSavedPoolsOverlay({
   required BuildContext context,
   required String barrierLabel,
-  required WakeTokTokens tokens,
 }) {
+  // showGeneralDialog does not capture InheritedThemes — force immersive
+  // dark like Cap 19 half-sheet / Cap 21 Build (avoid light surface + onMedia).
+  final darkTheme = waketokTheme(Brightness.dark);
+  final tokens = darkTheme.extension<WakeTokTokens>()!;
   return showGeneralDialog<_SavedOverlayPick>(
     context: context,
     barrierDismissible: true,
@@ -567,157 +582,160 @@ Future<_SavedOverlayPick?> _showSavedPoolsOverlay({
     barrierColor: Colors.black.withValues(alpha: 0.55),
     transitionDuration: const Duration(milliseconds: 120),
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
-      return SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 56),
-            child: Material(
-              key: const Key('mainBrowseSavedOverlay'),
-              color: tokens.surface.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  minWidth: 220,
-                  maxWidth: 320,
-                  maxHeight: 400,
-                ),
-                child: Consumer(
-                  builder: (context, ref, _) {
-                    final l10n = AppLocalizations.of(context)!;
-                    final async = ref.watch(savedPoolRecordsProvider);
-                    return async.when(
-                      data: (rows) {
-                        if (rows.isEmpty) {
-                          return ListTile(
-                            key: const Key('mainBrowseSavedPlaceholderEmpty'),
-                            enabled: false,
-                            title: Text(
-                              l10n.mainBrowseSavedPlaceholderEmpty,
-                              style: tokens.labelOnMedia.copyWith(
-                                color: tokens.onMediaMuted.withValues(
-                                  alpha: 0.55,
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                        return ListView(
-                          shrinkWrap: true,
-                          children: [
-                            for (final record in rows)
-                              ListTile(
-                                key: Key('mainBrowseSavedRow_${record.id}'),
-                                title: Text(
-                                  record.displayName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: tokens.labelOnMedia.copyWith(
-                                    color: tokens.onMedia,
+      return Theme(
+        data: darkTheme,
+        child: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 56),
+              child: Material(
+                key: const Key('mainBrowseSavedOverlay'),
+                color: tokens.surface.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    minWidth: 220,
+                    maxWidth: 320,
+                    maxHeight: 400,
+                  ),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final l10n = AppLocalizations.of(context)!;
+                      final async = ref.watch(savedPoolRecordsProvider);
+                      return async.when(
+                        data: (rows) {
+                          if (rows.isEmpty) {
+                            return ListTile(
+                              key: const Key('mainBrowseSavedPlaceholderEmpty'),
+                              enabled: false,
+                              title: Text(
+                                l10n.mainBrowseSavedPlaceholderEmpty,
+                                style: tokens.labelOnMedia.copyWith(
+                                  color: tokens.onMediaMuted.withValues(
+                                    alpha: 0.55,
                                   ),
                                 ),
-                                onTap: () => Navigator.of(
-                                  dialogContext,
-                                ).pop(_SavedOverlayOpen(record)),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      key: Key(
-                                        'mainBrowseSavedRowInfo_${record.id}',
-                                      ),
-                                      tooltip: l10n.mainBrowseSavedPoolRowInfo,
-                                      visualDensity: VisualDensity.compact,
-                                      style: IconButton.styleFrom(
-                                        minimumSize: const Size(36, 36),
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      icon: Icon(
-                                        Icons.info_outline,
-                                        size: 20,
-                                        color: tokens.accent,
-                                      ),
-                                      onPressed: () => Navigator.of(
-                                        dialogContext,
-                                      ).pop(_SavedOverlayInfo(record)),
-                                    ),
-                                    IconButton(
-                                      key: Key(
-                                        'mainBrowseSavedRowRename_${record.id}',
-                                      ),
-                                      tooltip:
-                                          l10n.mainBrowseSavedPoolRowRename,
-                                      visualDensity: VisualDensity.compact,
-                                      style: IconButton.styleFrom(
-                                        minimumSize: const Size(36, 36),
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      icon: Icon(
-                                        Icons.edit_outlined,
-                                        size: 20,
-                                        color: tokens.accent,
-                                      ),
-                                      onPressed: () => Navigator.of(
-                                        dialogContext,
-                                      ).pop(_SavedOverlayRename(record)),
-                                    ),
-                                    IconButton(
-                                      key: Key(
-                                        'mainBrowseSavedRowDelete_${record.id}',
-                                      ),
-                                      tooltip:
-                                          l10n.mainBrowseSavedPoolRowDelete,
-                                      visualDensity: VisualDensity.compact,
-                                      style: IconButton.styleFrom(
-                                        minimumSize: const Size(36, 36),
-                                        tapTargetSize:
-                                            MaterialTapTargetSize.shrinkWrap,
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      icon: Icon(
-                                        Icons.delete_outline,
-                                        size: 20,
-                                        color: tokens.accent,
-                                      ),
-                                      onPressed: () => Navigator.of(
-                                        dialogContext,
-                                      ).pop(_SavedOverlayDelete(record)),
-                                    ),
-                                  ],
-                                ),
                               ),
-                          ],
-                        );
-                      },
-                      loading: () => Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: tokens.accent,
+                            );
+                          }
+                          return ListView(
+                            shrinkWrap: true,
+                            children: [
+                              for (final record in rows)
+                                ListTile(
+                                  key: Key('mainBrowseSavedRow_${record.id}'),
+                                  title: Text(
+                                    record.displayName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: tokens.labelOnMedia.copyWith(
+                                      color: tokens.onMedia,
+                                    ),
+                                  ),
+                                  onTap: () => Navigator.of(
+                                    dialogContext,
+                                  ).pop(_SavedOverlayOpen(record)),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        key: Key(
+                                          'mainBrowseSavedRowInfo_${record.id}',
+                                        ),
+                                        tooltip: l10n.mainBrowseSavedPoolRowInfo,
+                                        visualDensity: VisualDensity.compact,
+                                        style: IconButton.styleFrom(
+                                          minimumSize: const Size(36, 36),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        icon: Icon(
+                                          Icons.info_outline,
+                                          size: 20,
+                                          color: tokens.accent,
+                                        ),
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(_SavedOverlayInfo(record)),
+                                      ),
+                                      IconButton(
+                                        key: Key(
+                                          'mainBrowseSavedRowRename_${record.id}',
+                                        ),
+                                        tooltip:
+                                            l10n.mainBrowseSavedPoolRowRename,
+                                        visualDensity: VisualDensity.compact,
+                                        style: IconButton.styleFrom(
+                                          minimumSize: const Size(36, 36),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        icon: Icon(
+                                          Icons.edit_outlined,
+                                          size: 20,
+                                          color: tokens.accent,
+                                        ),
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(_SavedOverlayRename(record)),
+                                      ),
+                                      IconButton(
+                                        key: Key(
+                                          'mainBrowseSavedRowDelete_${record.id}',
+                                        ),
+                                        tooltip:
+                                            l10n.mainBrowseSavedPoolRowDelete,
+                                        visualDensity: VisualDensity.compact,
+                                        style: IconButton.styleFrom(
+                                          minimumSize: const Size(36, 36),
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          size: 20,
+                                          color: tokens.accent,
+                                        ),
+                                        onPressed: () => Navigator.of(
+                                          dialogContext,
+                                        ).pop(_SavedOverlayDelete(record)),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
+                        loading: () => Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: tokens.accent,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      error: (_, _) => ListTile(
-                        enabled: false,
-                        title: Text(
-                          l10n.mainBrowseSavedPlaceholderEmpty,
-                          style: tokens.labelOnMedia.copyWith(
-                            color: tokens.onMediaMuted,
+                        error: (_, _) => ListTile(
+                          enabled: false,
+                          title: Text(
+                            l10n.mainBrowseSavedPlaceholderEmpty,
+                            style: tokens.labelOnMedia.copyWith(
+                              color: tokens.onMediaMuted,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -751,8 +769,10 @@ Future<T?> _showChromeMenuOverlay<T>({
   required Key menuKey,
   required String barrierLabel,
   required List<_ChromeMenuItem<T>> items,
-  required WakeTokTokens tokens,
 }) {
+  // showGeneralDialog does not capture InheritedThemes — force immersive dark.
+  final darkTheme = waketokTheme(Brightness.dark);
+  final tokens = darkTheme.extension<WakeTokTokens>()!;
   return showGeneralDialog<T>(
     context: context,
     barrierDismissible: true,
@@ -760,40 +780,43 @@ Future<T?> _showChromeMenuOverlay<T>({
     barrierColor: Colors.black.withValues(alpha: 0.55),
     transitionDuration: const Duration(milliseconds: 120),
     pageBuilder: (dialogContext, animation, secondaryAnimation) {
-      return SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 56),
-            child: Material(
-              key: menuKey,
-              color: tokens.surface.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(12),
-              clipBehavior: Clip.antiAlias,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final item in items)
-                      ListTile(
-                        key: item.key,
-                        enabled: item.enabled,
-                        title: Text(
-                          item.label,
-                          style: tokens.labelOnMedia.copyWith(
-                            color:
-                                item.labelColor ??
-                                (item.enabled
-                                    ? tokens.onMedia
-                                    : tokens.onMediaMuted),
+      return Theme(
+        data: darkTheme,
+        child: SafeArea(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.only(top: 56),
+              child: Material(
+                key: menuKey,
+                color: tokens.surface.withValues(alpha: 0.96),
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 220, maxWidth: 320),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final item in items)
+                        ListTile(
+                          key: item.key,
+                          enabled: item.enabled,
+                          title: Text(
+                            item.label,
+                            style: tokens.labelOnMedia.copyWith(
+                              color:
+                                  item.labelColor ??
+                                  (item.enabled
+                                      ? tokens.onMedia
+                                      : tokens.onMediaMuted),
+                            ),
                           ),
+                          onTap: item.enabled && item.value != null
+                              ? () => Navigator.of(dialogContext).pop(item.value)
+                              : null,
                         ),
-                        onTap: item.enabled && item.value != null
-                            ? () => Navigator.of(dialogContext).pop(item.value)
-                            : null,
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -814,6 +837,7 @@ Future<void> showCompositionPeekPopover({
   required SourcePoolDefinition parked,
   List<String>? frozenLabels,
   bool showSaveFooter = false,
+  String? title,
 }) {
   final overlay = Overlay.of(context);
   final completer = Completer<void>();
@@ -824,10 +848,12 @@ Future<void> showCompositionPeekPopover({
       return;
     }
     entry.remove();
+    registerCompositionPeekDismiss(null);
     completer.complete();
   }
 
   final darkTheme = waketokTheme(Brightness.dark);
+  registerCompositionPeekDismiss(dismiss);
   entry = OverlayEntry(
     builder: (overlayContext) {
       return Theme(
@@ -858,6 +884,7 @@ Future<void> showCompositionPeekPopover({
                       parked: parked,
                       frozenLabels: frozenLabels,
                       showSaveFooter: showSaveFooter,
+                      title: title,
                       hostContext: context,
                       onDismiss: dismiss,
                     ),
@@ -881,11 +908,13 @@ class _CompositionPeekCard extends ConsumerWidget {
     required this.onDismiss,
     this.frozenLabels,
     this.showSaveFooter = false,
+    this.title,
   });
 
   final SourcePoolDefinition parked;
   final List<String>? frozenLabels;
   final bool showSaveFooter;
+  final String? title;
   final BuildContext hostContext;
   final VoidCallback onDismiss;
 
@@ -911,8 +940,11 @@ class _CompositionPeekCard extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                l10n.mainBrowseCompositionPeekTitle,
-                style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
+                title ?? l10n.mainBrowseCompositionPeekTitle,
+                style: tokens.labelOnMedia.copyWith(
+                  color: tokens.onMedia,
+                  inherit: false,
+                ),
               ),
               const SizedBox(height: 8),
               Flexible(
@@ -960,7 +992,7 @@ class _CompositionPeekCard extends ConsumerWidget {
                   width: double.infinity,
                   child: OutlinedButton(
                     key: const Key('mainBrowseCompositionPeekSave'),
-                    onPressed: () => _saveFromPeek(ref),
+                    onPressed: _saveFromPeek,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: tokens.onMedia,
                       side: BorderSide(color: tokens.accent),
@@ -976,12 +1008,18 @@ class _CompositionPeekCard extends ConsumerWidget {
     );
   }
 
-  Future<void> _saveFromPeek(WidgetRef ref) async {
+  Future<void> _saveFromPeek() async {
     final host = hostContext;
     if (!host.mounted) {
       return;
     }
-    final repo = ref.read(savedPoolRepositoryProvider);
+    // Capture before dismiss — OverlayEntry.remove unmounts this card's Ref.
+    final container = ProviderScope.containerOf(host);
+    final repo = container.read(savedPoolRepositoryProvider);
+    final sourceRefs = parked.orderedSourceReferences;
+    // Dismiss composition peek before capacity / naming dialogs so the two
+    // surfaces never overlap (Temp chip → Save this pool).
+    onDismiss();
     final existing = await repo.loadAll();
     if (!host.mounted) {
       return;
@@ -993,7 +1031,7 @@ class _CompositionPeekCard extends ConsumerWidget {
     final outcome = await showSavedPoolNamingDialog(
       context: host,
       repository: repo,
-      orderedSourceReferences: parked.orderedSourceReferences,
+      orderedSourceReferences: sourceRefs,
     );
     if (!host.mounted) {
       return;
@@ -1005,8 +1043,7 @@ class _CompositionPeekCard extends ConsumerWidget {
         await showSavedPoolCapacityDialog(host);
         return;
       case SavedPoolNamingSaved(:final record):
-        ref.read(browseChromeStateProvider.notifier).startSavedPool(record);
-        onDismiss();
+        container.read(browseChromeStateProvider.notifier).startSavedPool(record);
     }
   }
 

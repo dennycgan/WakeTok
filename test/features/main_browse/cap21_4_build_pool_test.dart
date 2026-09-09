@@ -92,7 +92,7 @@ void main() {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       expect(find.byKey(BuildPoolScaffoldPage.catalogEmptyKey), findsOneWidget);
       expect(find.text(l10n.mainBrowseBuildPoolCatalogEmpty), findsOneWidget);
-      final start = tester.widget<FilledButton>(
+      final start = tester.widget<OutlinedButton>(
         find.byKey(BuildPoolScaffoldPage.startKey),
       );
       expect(start.onPressed, isNull);
@@ -112,14 +112,14 @@ void main() {
       await tester.pumpAndSettle();
       await _openBuild(tester);
 
-      final start = tester.widget<FilledButton>(
+      final start = tester.widget<OutlinedButton>(
         find.byKey(BuildPoolScaffoldPage.startKey),
       );
       expect(start.onPressed, isNull);
 
       await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
       await tester.pumpAndSettle();
-      final enabled = tester.widget<FilledButton>(
+      final enabled = tester.widget<OutlinedButton>(
         find.byKey(BuildPoolScaffoldPage.startKey),
       );
       expect(enabled.onPressed, isNotNull);

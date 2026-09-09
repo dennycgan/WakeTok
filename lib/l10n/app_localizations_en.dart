@@ -301,6 +301,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseCompositionPeekTitle => 'Sources in this pool';
 
   @override
+  String mainBrowseSavedPoolSourcesTitle(String name) {
+    return 'Sources in “$name”';
+  }
+
+  @override
+  String mainBrowseSavedPoolAlreadyBrowsing(String name) {
+    return 'You\'re already browsing “$name”.';
+  }
+
+  @override
   String get mainBrowseCompositionPeekUnavailable => 'Unavailable';
 
   @override
@@ -406,6 +416,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseBuildPoolSaveSuccess => 'Saved.';
 
   @override
+  String get mainBrowseBuildPoolSaveAndBrowse => 'Save & browse';
+
+  @override
+  String get mainBrowseBuildPoolBrowseWithoutSaving => 'Browse without saving';
+
+  @override
   String get mainBrowseSavedPoolNamingTitle => 'Name this pool';
 
   @override
@@ -438,6 +454,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseSavedPoolRowInfo => 'Info';
+
+  @override
+  String get mainBrowseSavedPoolInfoClose => 'OK';
 
   @override
   String get mainBrowseSavedPoolRowRename => 'Rename';

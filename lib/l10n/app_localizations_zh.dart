@@ -298,6 +298,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseCompositionPeekTitle => 'Sources in this pool';
 
   @override
+  String mainBrowseSavedPoolSourcesTitle(String name) {
+    return 'Sources in “$name”';
+  }
+
+  @override
+  String mainBrowseSavedPoolAlreadyBrowsing(String name) {
+    return 'You\'re already browsing “$name”.';
+  }
+
+  @override
   String get mainBrowseCompositionPeekUnavailable => 'Unavailable';
 
   @override
@@ -403,6 +413,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseBuildPoolSaveSuccess => 'Saved.';
 
   @override
+  String get mainBrowseBuildPoolSaveAndBrowse => 'Save & browse';
+
+  @override
+  String get mainBrowseBuildPoolBrowseWithoutSaving => 'Browse without saving';
+
+  @override
   String get mainBrowseSavedPoolNamingTitle => 'Name this pool';
 
   @override
@@ -435,6 +451,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseSavedPoolRowInfo => 'Info';
+
+  @override
+  String get mainBrowseSavedPoolInfoClose => 'OK';
 
   @override
   String get mainBrowseSavedPoolRowRename => 'Rename';
@@ -1042,6 +1061,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseCompositionPeekTitle => '此片库中的来源';
 
   @override
+  String mainBrowseSavedPoolSourcesTitle(String name) {
+    return '「$name」中的来源';
+  }
+
+  @override
+  String mainBrowseSavedPoolAlreadyBrowsing(String name) {
+    return '当前刷的就是这个片库。';
+  }
+
+  @override
   String get mainBrowseCompositionPeekUnavailable => '不可用';
 
   @override
@@ -1143,6 +1172,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseBuildPoolSaveSuccess => '已保存。';
 
   @override
+  String get mainBrowseBuildPoolSaveAndBrowse => '保存并浏览';
+
+  @override
+  String get mainBrowseBuildPoolBrowseWithoutSaving => '不保存直接浏览';
+
+  @override
   String get mainBrowseSavedPoolNamingTitle => '给这个片库命名';
 
   @override
@@ -1167,13 +1202,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseSavedPoolCapacityBody => '最多保存 10 个片库。请到「已保存」中删除一个后再试。';
 
   @override
-  String get mainBrowseSavedPoolCapacityConfirm => '好';
+  String get mainBrowseSavedPoolCapacityConfirm => 'OK';
 
   @override
   String get mainBrowseCompositionPeekSave => '保存此片库';
 
   @override
   String get mainBrowseSavedPoolRowInfo => '详情';
+
+  @override
+  String get mainBrowseSavedPoolInfoClose => 'OK';
 
   @override
   String get mainBrowseSavedPoolRowRename => '重命名';

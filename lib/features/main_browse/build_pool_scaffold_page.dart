@@ -19,8 +19,10 @@ import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 21.4 Build a Pool screen (keeps Cap 21.3 class/route key — D5=A).
 ///
-/// Multi-select catalog + ordered selected list + Start. Cancel / system
-/// back does not mutate [browseChromeStateProvider] (ADR-044 D6.1 cancel).
+/// Multi-select catalog + ordered selected list. ADR-047: **Save & browse**
+/// persists then `startSavedPool` + pop; **Browse without saving** always
+/// starts ephemeral + pop. Cancel / system back does not mutate
+/// [browseChromeStateProvider] (ADR-044 D6.1 cancel).
 class BuildPoolScaffoldPage extends ConsumerStatefulWidget {
   const BuildPoolScaffoldPage({super.key});
 
@@ -47,11 +49,6 @@ class BuildPoolScaffoldPage extends ConsumerStatefulWidget {
 
 class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
   final List<SourceReference> _selected = <SourceReference>[];
-
-  /// Route-local only. Written on successful Save; failed Save must not
-  /// clear or overwrite (Start still maps to the last successful preset).
-  String? _lastSavedFingerprint;
-  String? _lastSavedPoolId;
 
   @override
   void initState() {
@@ -116,7 +113,7 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
     ];
   }
 
-  Future<void> _save() async {
+  Future<void> _saveAndBrowse() async {
     if (_selected.isEmpty) {
       return;
     }
@@ -144,41 +141,15 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
         await showSavedPoolCapacityDialog(context);
         return;
       case SavedPoolNamingSaved(:final record):
-        _lastSavedFingerprint = BrowseSnapshotCache.keyForRefs(_selected);
-        _lastSavedPoolId = record.id;
-        final l10n = AppLocalizations.of(context)!;
-        final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            key: const Key('mainBrowseBuildPoolSaveSuccess'),
-            content: Text(
-              l10n.mainBrowseBuildPoolSaveSuccess,
-              style: tokens.bodyOnMedia.copyWith(color: tokens.onMedia),
-            ),
-            backgroundColor: tokens.surface,
-          ),
-        );
+        // ADR-047 / D3: persist then start Saved Session (same family as D4).
+        ref.read(browseChromeStateProvider.notifier).startSavedPool(record);
+        Navigator.of(context).pop();
     }
   }
 
-  Future<void> _start() async {
+  Future<void> _browseWithoutSaving() async {
     if (_selected.isEmpty) {
       return;
-    }
-    final fingerprint = BrowseSnapshotCache.keyForRefs(_selected);
-    final savedId = _lastSavedPoolId;
-    if (savedId != null && fingerprint == _lastSavedFingerprint) {
-      final record = await ref
-          .read(savedPoolRepositoryProvider)
-          .loadById(savedId);
-      if (!mounted) {
-        return;
-      }
-      if (record != null) {
-        ref.read(browseChromeStateProvider.notifier).startSavedPool(record);
-        Navigator.of(context).pop();
-        return;
-      }
     }
     final labels = _compositionLabels();
     final definition = SourcePoolDefinition(
@@ -220,7 +191,9 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
         elevation: 0,
         title: Text(
           l10n.mainBrowseBuildPoolScaffoldTitle,
-          style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
+          // Match bottom Filled/Outlined button label (Theme labelLarge /
+          // labelChrome) — not the smaller on-media badge role.
+          style: tokens.labelChrome.copyWith(color: tokens.onMedia),
         ),
       ),
       body: Column(
@@ -288,9 +261,22 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  OutlinedButton(
+                  FilledButton(
                     key: BuildPoolScaffoldPage.saveKey,
-                    onPressed: canStart ? _save : null,
+                    onPressed: canStart ? _saveAndBrowse : null,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: tokens.accent,
+                      foregroundColor: tokens.onMedia,
+                      disabledBackgroundColor: tokens.onMediaMuted.withValues(
+                        alpha: 0.25,
+                      ),
+                    ),
+                    child: Text(l10n.mainBrowseBuildPoolSaveAndBrowse),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    key: BuildPoolScaffoldPage.startKey,
+                    onPressed: canStart ? _browseWithoutSaving : null,
                     style: OutlinedButton.styleFrom(
                       foregroundColor: tokens.onMedia,
                       side: BorderSide(
@@ -299,20 +285,7 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
                             : tokens.onMediaMuted.withValues(alpha: 0.25),
                       ),
                     ),
-                    child: Text(l10n.mainBrowseBuildPoolSave),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    key: BuildPoolScaffoldPage.startKey,
-                    onPressed: canStart ? _start : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: tokens.accent,
-                      foregroundColor: tokens.onMedia,
-                      disabledBackgroundColor: tokens.onMediaMuted.withValues(
-                        alpha: 0.25,
-                      ),
-                    ),
-                    child: Text(l10n.mainBrowseBuildPoolStart),
+                    child: Text(l10n.mainBrowseBuildPoolBrowseWithoutSaving),
                   ),
                 ],
               ),

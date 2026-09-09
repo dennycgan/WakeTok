@@ -11,6 +11,7 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../domain/source/fake_saved_pool_repository.dart';
@@ -41,11 +42,13 @@ Future<void> _pump({
   FakeSavedPoolRepository? savedPools,
   FakeAssetSourceRepository? assetSources,
   PhotosAccess access = PhotosAccess.full,
+  ThemeMode themeMode = ThemeMode.system,
 }) async {
   await tester.pumpWidget(
     permissionUiHarness(
       repo: ControllablePhotosAuthorizationRepository(access),
       savedPools: savedPools,
+      themeMode: themeMode,
       assetSources:
           assetSources ??
           FakeAssetSourceRepository(
@@ -129,7 +132,7 @@ void main() {
       expect(find.byKey(const Key('mainBrowseSavedPoolChip')), findsNothing);
     });
 
-    testWidgets('Saved chip tap opens Info peek without Save footer', (
+    testWidgets('Saved chip tap opens composition peek (not center Info)', (
       tester,
     ) async {
       final pools = FakeSavedPoolRepository(createId: () => 'p1');
@@ -147,9 +150,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('mainBrowseSavedPoolChip')));
       await tester.pumpAndSettle();
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsOneWidget);
       expect(
-        find.byKey(const Key('mainBrowseCompositionPeek')),
+        find.text(l10n.mainBrowseSavedPoolSourcesTitle('Trip')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseSavedPoolInfoDialog')),
+        findsNothing,
       );
       expect(
         find.byKey(const Key('mainBrowseCompositionPeekSave')),
@@ -157,7 +166,7 @@ void main() {
       );
     });
 
-    testWidgets('455 Info peek shows removed suffix after catalog drop', (
+    testWidgets('455 peek shows removed suffix after catalog drop', (
       tester,
     ) async {
       final fake = FakeAssetSourceRepository(
@@ -186,10 +195,74 @@ void main() {
       await tester.tap(find.byKey(const Key('mainBrowseSavedPoolChip')));
       await tester.pumpAndSettle();
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsOneWidget);
       expect(
         find.textContaining(l10n.mainBrowseCompositionPeekRemovedFromPhotos),
         findsOneWidget,
       );
+    });
+
+    testWidgets('menu Info closes overlay and opens centered dialog', (
+      tester,
+    ) async {
+      final pools = FakeSavedPoolRepository(createId: () => 'p1');
+      await pools.save(
+        displayName: 'Trip',
+        orderedSourceReferences: const [SourceReference.photos],
+      );
+      await _pump(tester: tester, savedPools: pools);
+      await tester.tap(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainBrowseSavedRowInfo_p1')));
+      await tester.pumpAndSettle();
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(find.byKey(const Key('mainBrowseSavedOverlay')), findsNothing);
+      expect(
+        find.byKey(const Key('mainBrowseSavedPoolInfoDialog')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsNothing);
+      expect(
+        find.text(l10n.mainBrowseSavedPoolSourcesTitle('Trip')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('already-active Saved row Open shows toast (not Info)', (
+      tester,
+    ) async {
+      final pools = FakeSavedPoolRepository(createId: () => 'p1');
+      await pools.save(
+        displayName: 'Trip',
+        orderedSourceReferences: const [SourceReference.photos],
+      );
+      await _pump(tester: tester, savedPools: pools);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      container
+          .read(browseChromeStateProvider.notifier)
+          .openSavedPool((await pools.loadAll()).single);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainBrowseSavedRow_p1')));
+      await tester.pumpAndSettle();
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(
+        find.byKey(const Key('mainBrowseSavedPoolAlreadyBrowsingToast')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(l10n.mainBrowseSavedPoolAlreadyBrowsing('Trip')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('mainBrowseSavedPoolInfoDialog')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsNothing);
+      await tester.pump(kCap19BrowseToastDuration);
     });
 
     testWidgets('Rename self-name ok; duplicate blocked; chip updates', (
@@ -382,5 +455,48 @@ void main() {
       );
       expect(centerSaved.dx, closeTo(centerEmpty.dx, 1));
     });
+
+    testWidgets(
+      'ThemeMode.light: Saved overlay + naming dialog use immersive dark surface',
+      (tester) async {
+        final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+        final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+        expect(light.surface, isNot(dark.surface));
+
+        final pools = FakeSavedPoolRepository(createId: () => 'p1');
+        await pools.save(
+          displayName: 'Trip',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
+        await _pump(
+          tester: tester,
+          savedPools: pools,
+          themeMode: ThemeMode.light,
+        );
+
+        await tester.tap(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+        await tester.pumpAndSettle();
+        final overlay = tester.widget<Material>(
+          find.byKey(const Key('mainBrowseSavedOverlay')),
+        );
+        expect(overlay.color, dark.surface.withValues(alpha: 0.96));
+        expect(overlay.color, isNot(light.surface.withValues(alpha: 0.96)));
+
+        await tester.tap(find.byKey(const Key('mainBrowseSavedRowRename_p1')));
+        await tester.pumpAndSettle();
+        final dialog = tester.widget<AlertDialog>(
+          find.byKey(const Key('mainBrowseSavedPoolNamingDialog')),
+        );
+        expect(dialog.backgroundColor, dark.surface);
+        expect(dialog.backgroundColor, isNot(light.surface));
+        final title = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(const Key('mainBrowseSavedPoolNamingDialog')),
+            matching: find.text('Name this pool'),
+          ),
+        );
+        expect(title.style?.color, dark.onMedia);
+      },
+    );
   });
 }

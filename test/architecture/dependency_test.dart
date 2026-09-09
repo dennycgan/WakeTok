@@ -17,9 +17,23 @@ void main() {
 
     for (final file in files) {
       final rel = _posixRel(packageRoot, file);
+      final source = file.readAsStringSync();
+
+      // SnackBar ban: features + app (Cap 19 showCap19BrowseToast). Runs
+      // before _isScanExempt so lib/app/** is included (import/color guards
+      // still exempt app — ADR-009 Enforcement, not theme Slice-1).
+      if (rel.startsWith('lib/features/') || rel.startsWith('lib/app/')) {
+        for (final match in _snackBarLiteral.allMatches(source)) {
+          violations.add(
+            '$rel:${_lineNumber(source, match.start)}: '
+            'features/app must not use SnackBar / showSnackBar — '
+            'use Cap 19 showCap19BrowseToast (ADR-009 Enforcement)',
+          );
+        }
+      }
+
       if (_isScanExempt(rel)) continue;
 
-      final source = file.readAsStringSync();
       final layer = _layerOf(rel);
 
       if (layer == 'features') {
@@ -273,6 +287,9 @@ final _importOrExport = RegExp(
 );
 
 final _colorHexLiteral = RegExp(r'Color\s*\(\s*0[xX]');
+
+/// Constructor or ScaffoldMessenger call site — not bare word "SnackBar".
+final _snackBarLiteral = RegExp(r'SnackBar\s*\(|\.showSnackBar\s*\(');
 
 const _dbPackages = <String>{
   'sqflite',

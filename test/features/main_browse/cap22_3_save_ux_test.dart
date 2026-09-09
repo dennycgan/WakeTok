@@ -62,15 +62,7 @@ Future<void> _pumpHarness(
   await tester.pumpAndSettle();
 }
 
-Future<void> _hideBuildSnackBar(WidgetTester tester) async {
-  final messenger = ScaffoldMessenger.maybeOf(
-    tester.element(find.byKey(BuildPoolScaffoldPage.pageKey)),
-  );
-  messenger?.hideCurrentSnackBar();
-  await tester.pump();
-}
-
-Future<void> _saveNamed(WidgetTester tester, String name) async {
+Future<void> _saveAndBrowseNamed(WidgetTester tester, String name) async {
   await tester.tap(find.byKey(BuildPoolScaffoldPage.saveKey));
   await tester.pumpAndSettle();
   await tester.enterText(
@@ -78,65 +70,93 @@ Future<void> _saveNamed(WidgetTester tester, String name) async {
     name,
   );
   await tester.tap(find.byKey(const Key('mainBrowseSavedPoolNamingConfirm')));
-  await tester.pump();
-  await tester.pump();
+  await tester.pumpAndSettle();
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('U-22.3 Build Save / Start fingerprint', () {
-    testWidgets('Save and Start disabled when selection is empty', (
-      tester,
-    ) async {
+  group('U-22.3 Build Save & browse / Browse without saving', () {
+    testWidgets('buttons disabled when selection is empty', (tester) async {
       await _pumpHarness(tester);
       await _openBuild(tester);
 
       expect(
         tester
-            .widget<OutlinedButton>(find.byKey(BuildPoolScaffoldPage.saveKey))
+            .widget<FilledButton>(find.byKey(BuildPoolScaffoldPage.saveKey))
             .onPressed,
         isNull,
       );
       expect(
         tester
-            .widget<FilledButton>(find.byKey(BuildPoolScaffoldPage.startKey))
+            .widget<OutlinedButton>(find.byKey(BuildPoolScaffoldPage.startKey))
             .onPressed,
         isNull,
       );
     });
 
-    testWidgets('successful Save stays on Build and does not change chrome', (
-      tester,
-    ) async {
-      final pools = FakeSavedPoolRepository(createId: () => 'saved-1');
-      await _pumpHarness(tester, savedPools: pools);
+    testWidgets('Save & browse labels use ADR-047 copy', (tester) async {
+      await _pumpHarness(tester);
       await _openBuild(tester);
-
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
-      await tester.pumpAndSettle();
-      await _saveNamed(tester, 'Trip');
-      await tester.pump();
-
-      expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsOneWidget);
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      expect(find.text(l10n.mainBrowseBuildPoolSaveAndBrowse), findsOneWidget);
       expect(
-        find.byKey(const Key('mainBrowseBuildPoolSaveSuccess')),
+        find.text(l10n.mainBrowseBuildPoolBrowseWithoutSaving),
         findsOneWidget,
       );
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      expect(find.text(l10n.mainBrowseBuildPoolSaveSuccess), findsOneWidget);
+    });
 
+    testWidgets(
+      'Save & browse: naming success starts savedPool and pops Build',
+      (tester) async {
+        final pools = FakeSavedPoolRepository(createId: () => 'saved-1');
+        await _pumpHarness(tester, savedPools: pools);
+        await _openBuild(tester);
+
+        await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
+        await tester.pumpAndSettle();
+        await _saveAndBrowseNamed(tester, 'Trip');
+
+        expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsNothing);
+        expect(
+          find.byKey(const Key('mainBrowseBuildPoolSaveSuccess')),
+          findsNothing,
+        );
+        expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsNothing);
+        expect(find.byKey(const Key('mainBrowseSavedPoolChip')), findsOneWidget);
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+        final chrome = container.read(browseChromeStateProvider);
+        expect(chrome.activeOrigin, isA<BrowseOriginSavedPool>());
+        expect(
+          (chrome.activeOrigin as BrowseOriginSavedPool).poolId,
+          'saved-1',
+        );
+        expect(chrome.parkedEphemeralPool, isNull);
+        expect((await pools.loadAll()).single.id, 'saved-1');
+      },
+    );
+
+    testWidgets('Save cancel stays on Build; chrome unchanged', (tester) async {
+      await _pumpHarness(tester);
+      await _openBuild(tester);
+      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(BuildPoolScaffoldPage.saveKey));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('mainBrowseSavedPoolNamingCancel')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsOneWidget);
       final container = ProviderScope.containerOf(
         tester.element(find.byType(MaterialApp)),
       );
-      final chrome = container.read(browseChromeStateProvider);
       expect(
-        chrome.activeOrigin,
+        container.read(browseChromeStateProvider).activeOrigin,
         const BrowseOriginBuiltIn(SourceReference.all),
       );
-      expect(chrome.parkedEphemeralPool, isNull);
-      expect((await pools.loadAll()).single.id, 'saved-1');
-      await _hideBuildSnackBar(tester);
     });
 
     testWidgets('empty name shows inline error', (tester) async {
@@ -206,136 +226,33 @@ void main() {
         find.byKey(const Key('mainBrowseSavedPoolNamingDialog')),
         findsNothing,
       );
-    });
-
-    testWidgets('Start after Save uses savedPool origin', (tester) async {
-      final pools = FakeSavedPoolRepository(createId: () => 'saved-1');
-      await _pumpHarness(tester, savedPools: pools);
-      await _openBuild(tester);
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
-      await tester.pumpAndSettle();
-      await _saveNamed(tester, 'Trip');
-      await _hideBuildSnackBar(tester);
-      await tester.tap(find.byKey(BuildPoolScaffoldPage.startKey));
-      await tester.pumpAndSettle();
-
-      expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsNothing);
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialApp)),
-      );
-      final chrome = container.read(browseChromeStateProvider);
-      expect(chrome.activeOrigin, isA<BrowseOriginSavedPool>());
-      expect((chrome.activeOrigin as BrowseOriginSavedPool).poolId, 'saved-1');
-      expect(chrome.parkedEphemeralPool, isNull);
-    });
-
-    testWidgets('Start without Save uses ephemeral', (tester) async {
-      await _pumpHarness(tester);
-      await _openBuild(tester);
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(BuildPoolScaffoldPage.startKey));
-      await tester.pumpAndSettle();
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialApp)),
-      );
-      final chrome = container.read(browseChromeStateProvider);
-      expect(chrome.activeOrigin, isA<BrowseOriginEphemeralPool>());
-      expect(chrome.parkedEphemeralPool, isNotNull);
-      expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsOneWidget);
-    });
-
-    testWidgets('mutate selection after Save then Start uses ephemeral', (
-      tester,
-    ) async {
-      final pools = FakeSavedPoolRepository(createId: () => 'saved-1');
-      await _pumpHarness(tester, savedPools: pools);
-      await _openBuild(tester);
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
-      await tester.pumpAndSettle();
-      await _saveNamed(tester, 'Trip');
-      await _hideBuildSnackBar(tester);
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-2'))));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(BuildPoolScaffoldPage.startKey));
-      await tester.pumpAndSettle();
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialApp)),
-      );
-      expect(
-        container.read(browseChromeStateProvider).activeOrigin,
-        isA<BrowseOriginEphemeralPool>(),
-      );
-    });
-
-    testWidgets('mutate then restore selection Start uses savedPool', (
-      tester,
-    ) async {
-      final pools = FakeSavedPoolRepository(createId: () => 'saved-1');
-      await _pumpHarness(tester, savedPools: pools);
-      await _openBuild(tester);
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
-      await tester.pumpAndSettle();
-      await _saveNamed(tester, 'Trip');
-      await _hideBuildSnackBar(tester);
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-2'))));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-2'))));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(BuildPoolScaffoldPage.startKey));
-      await tester.pumpAndSettle();
-
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialApp)),
-      );
-      final origin = container.read(browseChromeStateProvider).activeOrigin;
-      expect(origin, isA<BrowseOriginSavedPool>());
-      expect((origin as BrowseOriginSavedPool).poolId, 'saved-1');
+      expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsOneWidget);
     });
 
     testWidgets(
-      'failed Save after success does not replace lastSaved; Start uses first',
+      'Browse without saving always uses ephemeral (even after prior Save)',
       (tester) async {
-        var n = 0;
-        final pools = FakeSavedPoolRepository(createId: () => 'saved-${n++}');
+        // ADR-047: no fingerprint — Start never becomes savedPool.
+        final pools = FakeSavedPoolRepository(createId: () => 'saved-1');
+        await pools.save(
+          displayName: 'Preexisting',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
         await _pumpHarness(tester, savedPools: pools);
         await _openBuild(tester);
         await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
         await tester.pumpAndSettle();
-        await _saveNamed(tester, 'Trip');
-        await _hideBuildSnackBar(tester);
-
-        await tester.tap(find.byKey(BuildPoolScaffoldPage.saveKey));
-        await tester.pumpAndSettle();
-        await tester.enterText(
-          find.byKey(const Key('mainBrowseSavedPoolNamingField')),
-          'Trip',
-        );
-        await tester.tap(
-          find.byKey(const Key('mainBrowseSavedPoolNamingConfirm')),
-        );
-        await tester.pump();
-        await tester.pump();
-        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-        expect(
-          find.text(l10n.mainBrowseSavedPoolNamingDuplicate),
-          findsOneWidget,
-        );
-        await tester.tap(
-          find.byKey(const Key('mainBrowseSavedPoolNamingCancel')),
-        );
-        await tester.pumpAndSettle();
-
         await tester.tap(find.byKey(BuildPoolScaffoldPage.startKey));
         await tester.pumpAndSettle();
+
+        expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsNothing);
         final container = ProviderScope.containerOf(
           tester.element(find.byType(MaterialApp)),
         );
-        final origin = container.read(browseChromeStateProvider).activeOrigin;
-        expect(origin, isA<BrowseOriginSavedPool>());
-        expect((origin as BrowseOriginSavedPool).poolId, 'saved-0');
+        final chrome = container.read(browseChromeStateProvider);
+        expect(chrome.activeOrigin, isA<BrowseOriginEphemeralPool>());
+        expect(chrome.parkedEphemeralPool, isNotNull);
+        expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsOneWidget);
         expect((await pools.loadAll()).length, 1);
       },
     );
@@ -408,6 +325,13 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('mainBrowseCompositionPeekSave')));
       await tester.pumpAndSettle();
+      // Ephemeral peek → Save path: peek must be gone before naming (22.3).
+      // Saved Info is a center dialog and does not use this dismiss insurance.
+      expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsNothing);
+      expect(
+        find.byKey(const Key('mainBrowseSavedPoolNamingDialog')),
+        findsOneWidget,
+      );
       await tester.enterText(
         find.byKey(const Key('mainBrowseSavedPoolNamingField')),
         'Weekend',
@@ -427,5 +351,54 @@ void main() {
       );
       expect(chrome.parkedEphemeralPool, isNull);
     });
+
+    testWidgets(
+      'ephemeral peek → Save at capacity: peek gone before capacity dialog',
+      (tester) async {
+        // Covers dismissCompositionPeekIfOpen insurance on capacity entry
+        // for the Temp peek → Save path only (not Saved Info).
+        final pools = FakeSavedPoolRepository();
+        for (var i = 0; i < PoolCapacity.maxSavedPoolPresets; i++) {
+          await pools.save(
+            displayName: 'Seed $i',
+            orderedSourceReferences: const [SourceReference.photos],
+          );
+        }
+        await _pumpHarness(
+          tester,
+          savedPools: pools,
+          assetSources: FakeAssetSourceRepository(
+            photosIds: const ['p1'],
+            videosIds: const ['v1'],
+          ),
+        );
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+        container
+            .read(browseChromeStateProvider.notifier)
+            .startEphemeralPool(
+              SourcePoolDefinition(
+                id: 'eph-peek',
+                persistencePolicy: PersistencePolicy.ephemeral,
+                orderedSourceReferences: const [
+                  SourceReference.photos,
+                  SourceReference.videos,
+                ],
+              ),
+              compositionLabels: const ['Photos', 'Videos'],
+            );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('mainBrowseTempPoolChip')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('mainBrowseCompositionPeekSave')));
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsNothing);
+        expect(
+          find.byKey(const Key('mainBrowseSavedPoolCapacityDialog')),
+          findsOneWidget,
+        );
+      },
+    );
   });
 }

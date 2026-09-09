@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/source/pool_capacity.dart';
 import 'package:waketok/domain/source/saved_pool_display_name.dart';
 import 'package:waketok/domain/source/saved_pool_failure.dart';
 import 'package:waketok/domain/source/saved_pool_record.dart';
 import 'package:waketok/domain/source/saved_pool_repository.dart';
+import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
+import 'package:waketok/features/main_browse/composition_peek_dismiss.dart';
+import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 sealed class SavedPoolNamingOutcome {
@@ -25,6 +31,11 @@ final class SavedPoolNamingAtCapacity extends SavedPoolNamingOutcome {
   const SavedPoolNamingAtCapacity();
 }
 
+/// Browse-serving Saved dialogs always use immersive dark tokens (Cap 21
+/// Build / Cap 19 half-sheet pattern). Light Appearance must not pair white
+/// [WakeTokTokens.surface] with white [WakeTokTokens.onMedia].
+ThemeData _browseImmersiveDarkTheme() => waketokTheme(Brightness.dark);
+
 /// Shared naming dialog (Build Save, peek Save; Rename uses [renamePoolId]).
 Future<SavedPoolNamingOutcome> showSavedPoolNamingDialog({
   required BuildContext context,
@@ -34,16 +45,22 @@ Future<SavedPoolNamingOutcome> showSavedPoolNamingDialog({
   String? initialDisplayName,
   String? renamePoolId,
 }) async {
+  // Double-insurance for ephemeral composition peek → Save (not Saved Info).
+  dismissCompositionPeekIfOpen();
+  final darkTheme = _browseImmersiveDarkTheme();
   final outcome = await showDialog<SavedPoolNamingOutcome>(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) {
-      return _SavedPoolNamingDialog(
-        repository: repository,
-        orderedSourceReferences: orderedSourceReferences,
-        excludePoolId: excludePoolId ?? renamePoolId,
-        initialDisplayName: initialDisplayName,
-        renamePoolId: renamePoolId,
+      return Theme(
+        data: darkTheme,
+        child: _SavedPoolNamingDialog(
+          repository: repository,
+          orderedSourceReferences: orderedSourceReferences,
+          excludePoolId: excludePoolId ?? renamePoolId,
+          initialDisplayName: initialDisplayName,
+          renamePoolId: renamePoolId,
+        ),
       );
     },
   );
@@ -54,40 +71,44 @@ Future<bool> showSavedPoolDeleteConfirmDialog({
   required BuildContext context,
   required String displayName,
 }) async {
+  final darkTheme = _browseImmersiveDarkTheme();
+  final tokens = darkTheme.extension<WakeTokTokens>()!;
   final l10n = AppLocalizations.of(context)!;
-  final tokens = Theme.of(context).extension<WakeTokTokens>()!;
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        key: const Key('mainBrowseSavedPoolDeleteDialog'),
-        backgroundColor: tokens.surface,
-        title: Text(
-          l10n.mainBrowseSavedPoolDeleteTitle,
-          style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
-        ),
-        content: Text(
-          l10n.mainBrowseSavedPoolDeleteBody(displayName),
-          style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
-        ),
-        actions: [
-          TextButton(
-            key: const Key('mainBrowseSavedPoolDeleteCancel'),
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(
-              l10n.mainBrowseSavedPoolDeleteCancel,
-              style: tokens.labelOnMedia.copyWith(color: tokens.onMediaMuted),
-            ),
+      return Theme(
+        data: darkTheme,
+        child: AlertDialog(
+          key: const Key('mainBrowseSavedPoolDeleteDialog'),
+          backgroundColor: tokens.surface,
+          title: Text(
+            l10n.mainBrowseSavedPoolDeleteTitle,
+            style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
           ),
-          TextButton(
-            key: const Key('mainBrowseSavedPoolDeleteConfirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(
-              l10n.mainBrowseSavedPoolDeleteConfirm,
-              style: tokens.labelOnMedia.copyWith(color: tokens.accent),
-            ),
+          content: Text(
+            l10n.mainBrowseSavedPoolDeleteBody(displayName),
+            style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
           ),
-        ],
+          actions: [
+            TextButton(
+              key: const Key('mainBrowseSavedPoolDeleteCancel'),
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(
+                l10n.mainBrowseSavedPoolDeleteCancel,
+                style: tokens.labelOnMedia.copyWith(color: tokens.onMediaMuted),
+              ),
+            ),
+            TextButton(
+              key: const Key('mainBrowseSavedPoolDeleteConfirm'),
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(
+                l10n.mainBrowseSavedPoolDeleteConfirm,
+                style: tokens.labelOnMedia.copyWith(color: tokens.accent),
+              ),
+            ),
+          ],
+        ),
       );
     },
   );
@@ -95,35 +116,159 @@ Future<bool> showSavedPoolDeleteConfirmDialog({
 }
 
 Future<void> showSavedPoolCapacityDialog(BuildContext context) {
+  // Double-insurance for ephemeral composition peek → Save (not Saved Info).
+  dismissCompositionPeekIfOpen();
+  final darkTheme = _browseImmersiveDarkTheme();
+  final tokens = darkTheme.extension<WakeTokTokens>()!;
   final l10n = AppLocalizations.of(context)!;
-  final tokens = Theme.of(context).extension<WakeTokTokens>()!;
   return showDialog<void>(
     context: context,
     builder: (dialogContext) {
-      return AlertDialog(
-        key: const Key('mainBrowseSavedPoolCapacityDialog'),
-        backgroundColor: tokens.surface,
-        title: Text(
-          l10n.mainBrowseSavedPoolCapacityTitle,
-          style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
-        ),
-        content: Text(
-          l10n.mainBrowseSavedPoolCapacityBody,
-          style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
-        ),
-        actions: [
-          TextButton(
-            key: const Key('mainBrowseSavedPoolCapacityConfirm'),
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(
-              l10n.mainBrowseSavedPoolCapacityConfirm,
-              style: tokens.labelOnMedia.copyWith(color: tokens.accent),
-            ),
+      return Theme(
+        data: darkTheme,
+        child: AlertDialog(
+          key: const Key('mainBrowseSavedPoolCapacityDialog'),
+          backgroundColor: tokens.surface,
+          title: Text(
+            l10n.mainBrowseSavedPoolCapacityTitle,
+            style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
           ),
-        ],
+          content: Text(
+            l10n.mainBrowseSavedPoolCapacityBody,
+            style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
+          ),
+          actions: [
+            TextButton(
+              key: const Key('mainBrowseSavedPoolCapacityConfirm'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                l10n.mainBrowseSavedPoolCapacityConfirm,
+                style: tokens.labelOnMedia.copyWith(color: tokens.accent),
+              ),
+            ),
+          ],
+        ),
       );
     },
   );
+}
+
+/// Centered Saved recipe Info (AlertDialog shell — same family as capacity /
+/// naming). Opened from Saved-menu row Info (i), not from the top-leading chip.
+Future<void> showSavedPoolInfoDialog({
+  required BuildContext context,
+  required String displayName,
+  required SourcePoolDefinition definition,
+}) {
+  final darkTheme = _browseImmersiveDarkTheme();
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return Theme(
+        data: darkTheme,
+        child: _SavedPoolInfoDialog(
+          displayName: displayName,
+          definition: definition,
+        ),
+      );
+    },
+  );
+}
+
+class _SavedPoolInfoDialog extends ConsumerWidget {
+  const _SavedPoolInfoDialog({
+    required this.displayName,
+    required this.definition,
+  });
+
+  final String displayName;
+  final SourcePoolDefinition definition;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context)!;
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    final asyncSources = ref.watch(assetSourcesProvider);
+    final access = ref.watch(photosAuthorizationProvider).value;
+    final refs = definition.orderedSourceReferences;
+
+    return AlertDialog(
+      key: const Key('mainBrowseSavedPoolInfoDialog'),
+      backgroundColor: tokens.surface,
+      // Match composition peek title exactly (peek has no Dialog titleLarge
+      // DefaultTextStyle). Tight padding so OK sits near bottom-trailing.
+      titleTextStyle: tokens.labelOnMedia.copyWith(
+        color: tokens.onMedia,
+        inherit: false,
+      ),
+      contentTextStyle: tokens.bodyOnMedia.copyWith(
+        color: tokens.onMediaMuted,
+        inherit: false,
+      ),
+      titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+      buttonPadding: const EdgeInsets.symmetric(horizontal: 8),
+      title: Text(l10n.mainBrowseSavedPoolSourcesTitle(displayName)),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 320),
+          child: asyncSources.when(
+            data: (sources) => ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              children: [
+                for (final reference in refs)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      compositionPeekLine(
+                        l10n: l10n,
+                        access: access,
+                        reference: reference,
+                        catalog: sources,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            loading: () => Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: tokens.accent,
+                ),
+              ),
+            ),
+            error: (_, _) => Text(l10n.mainBrowseCompositionPeekUnknownSource),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const Key('mainBrowseSavedPoolInfoClose'),
+          onPressed: () => Navigator.of(context).pop(),
+          style: TextButton.styleFrom(
+            foregroundColor: tokens.accent,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            minimumSize: Size.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+          child: Text(
+            l10n.mainBrowseSavedPoolInfoClose,
+            style: tokens.labelOnMedia.copyWith(
+              color: tokens.accent,
+              inherit: false,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _SavedPoolNamingDialog extends StatefulWidget {

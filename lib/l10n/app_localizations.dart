@@ -588,11 +588,23 @@ abstract class AppLocalizations {
   /// **'No saved pools yet'**
   String get mainBrowseSavedPlaceholderEmpty;
 
-  /// Cap 21.3 read-only composition peek title when Temp chip is already active
+  /// Temp chip composition peek title (ephemeral only)
   ///
   /// In en, this message translates to:
   /// **'Sources in this pool'**
   String get mainBrowseCompositionPeekTitle;
+
+  /// Saved recipe title for peek and centered Info; {name} is displayName
+  ///
+  /// In en, this message translates to:
+  /// **'Sources in “{name}”'**
+  String mainBrowseSavedPoolSourcesTitle(String name);
+
+  /// Toast when Saved menu row is tapped while that pool is already active
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re already browsing “{name}”.'**
+  String mainBrowseSavedPoolAlreadyBrowsing(String name);
 
   /// Legacy Cap 21.3 key; Cap 21.5 peek uses Removed/RequiresFullAccess (kept for key stability)
   ///
@@ -774,23 +786,35 @@ abstract class AppLocalizations {
   /// **'Selected ({count}/30)'**
   String mainBrowseBuildPoolSelectedHeading(int count);
 
-  /// Cap 21.4 Start button — parks ephemeral and pops to Browse
+  /// Legacy Cap 21.4 Start label — unused after ADR-047; kept for key stability
   ///
   /// In en, this message translates to:
   /// **'Start browsing'**
   String get mainBrowseBuildPoolStart;
 
-  /// Cap 22.3 Build Save — persist only, stay on Build
+  /// Legacy Cap 22.3 Save-only label — unused after ADR-047; kept for key stability
   ///
   /// In en, this message translates to:
   /// **'Save'**
   String get mainBrowseBuildPoolSave;
 
-  /// Cap 22.3 light success after Build Save
+  /// Legacy Cap 22.3 Save-only SnackBar — unused after ADR-047; kept for key stability
   ///
   /// In en, this message translates to:
   /// **'Saved.'**
   String get mainBrowseBuildPoolSaveSuccess;
+
+  /// ADR-047 Build: persist then start Saved Session and pop
+  ///
+  /// In en, this message translates to:
+  /// **'Save & browse'**
+  String get mainBrowseBuildPoolSaveAndBrowse;
+
+  /// ADR-047 Build: ephemeral Start only — never consult prior Save
+  ///
+  /// In en, this message translates to:
+  /// **'Browse without saving'**
+  String get mainBrowseBuildPoolBrowseWithoutSaving;
 
   /// Shared Saved Pool naming dialog title (Build Save, peek Save, Rename)
   ///
@@ -852,11 +876,17 @@ abstract class AppLocalizations {
   /// **'Save this pool'**
   String get mainBrowseCompositionPeekSave;
 
-  /// Saved menu per-row Info (composition peek)
+  /// Saved menu per-row Info — opens centered recipe dialog
   ///
   /// In en, this message translates to:
   /// **'Info'**
   String get mainBrowseSavedPoolRowInfo;
+
+  /// Centered Saved Info dialog dismiss
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get mainBrowseSavedPoolInfoClose;
 
   /// Saved menu per-row Rename
   ///

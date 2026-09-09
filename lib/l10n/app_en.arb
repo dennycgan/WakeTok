@@ -372,7 +372,25 @@
   },
   "mainBrowseCompositionPeekTitle": "Sources in this pool",
   "@mainBrowseCompositionPeekTitle": {
-    "description": "Cap 21.3 read-only composition peek title when Temp chip is already active"
+    "description": "Temp chip composition peek title (ephemeral only)"
+  },
+  "mainBrowseSavedPoolSourcesTitle": "Sources in “{name}”",
+  "@mainBrowseSavedPoolSourcesTitle": {
+    "description": "Saved recipe title for peek and centered Info; {name} is displayName",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mainBrowseSavedPoolAlreadyBrowsing": "You're already browsing “{name}”.",
+  "@mainBrowseSavedPoolAlreadyBrowsing": {
+    "description": "Toast when Saved menu row is tapped while that pool is already active",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "mainBrowseCompositionPeekUnavailable": "Unavailable",
   "@mainBrowseCompositionPeekUnavailable": {
@@ -502,15 +520,23 @@
   },
   "mainBrowseBuildPoolStart": "Start browsing",
   "@mainBrowseBuildPoolStart": {
-    "description": "Cap 21.4 Start button — parks ephemeral and pops to Browse"
+    "description": "Legacy Cap 21.4 Start label — unused after ADR-047; kept for key stability"
   },
   "mainBrowseBuildPoolSave": "Save",
   "@mainBrowseBuildPoolSave": {
-    "description": "Cap 22.3 Build Save — persist only, stay on Build"
+    "description": "Legacy Cap 22.3 Save-only label — unused after ADR-047; kept for key stability"
   },
   "mainBrowseBuildPoolSaveSuccess": "Saved.",
   "@mainBrowseBuildPoolSaveSuccess": {
-    "description": "Cap 22.3 light success after Build Save"
+    "description": "Legacy Cap 22.3 Save-only SnackBar — unused after ADR-047; kept for key stability"
+  },
+  "mainBrowseBuildPoolSaveAndBrowse": "Save & browse",
+  "@mainBrowseBuildPoolSaveAndBrowse": {
+    "description": "ADR-047 Build: persist then start Saved Session and pop"
+  },
+  "mainBrowseBuildPoolBrowseWithoutSaving": "Browse without saving",
+  "@mainBrowseBuildPoolBrowseWithoutSaving": {
+    "description": "ADR-047 Build: ephemeral Start only — never consult prior Save"
   },
   "mainBrowseSavedPoolNamingTitle": "Name this pool",
   "@mainBrowseSavedPoolNamingTitle": {
@@ -554,7 +580,11 @@
   },
   "mainBrowseSavedPoolRowInfo": "Info",
   "@mainBrowseSavedPoolRowInfo": {
-    "description": "Saved menu per-row Info (composition peek)"
+    "description": "Saved menu per-row Info — opens centered recipe dialog"
+  },
+  "mainBrowseSavedPoolInfoClose": "OK",
+  "@mainBrowseSavedPoolInfoClose": {
+    "description": "Centered Saved Info dialog dismiss"
   },
   "mainBrowseSavedPoolRowRename": "Rename",
   "@mainBrowseSavedPoolRowRename": {
