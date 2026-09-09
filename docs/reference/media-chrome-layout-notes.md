@@ -1,8 +1,12 @@
 # Media chrome layout — zones & parameters
 
-> **Status:** Working snapshot (owner visual lock on device, 2026-09-05).  
-> **Work commit:** `81904e1` (`feat(app): media chrome layout — Reset/LIVE/actions + MVP 3-row meta`).  
-> **Scope:** Main Browse **media-area** chrome only (not top source chrome / bottom tab bar).  
+> **Status:** Working snapshot. Media-area visual lock (owner device, 2026-09-05,
+> work `81904e1`). **Browse shell** top/bottom chrome metrics added Cap 22.5
+> polish (see §11; keep in sync with `browse_top_chrome.dart` /
+> `main_browse_shell_page.dart`).  
+> **Scope:**  
+> - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
+> - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
 > **Not** Cap 20–specific — shared visual system. Cap 20 Reset / magnification sit *inside* this layout.  
 > **Not** an ADR. Do **not** fold into ADR-043.  
 > **Code anchors:**  
@@ -12,10 +16,12 @@
 > - `lib/features/main_browse/magnification_reset_button.dart`  
 > - `lib/features/main_browse/cap19_entry_icon.dart` + `cap19_entry_layout.dart`  
 > - `lib/features/main_browse/vertical_media_feed.dart` (`_LiveBadge` / `_FeedCornerChrome`)  
+> - `lib/features/main_browse/browse_top_chrome.dart` (shell top; §11)  
+> - `lib/features/main_browse/main_browse_shell_page.dart` (shell bottom; §11)  
 > - `lib/core/theme/waketok_tokens.dart` (`labelOnMedia`, `onMediaPillFill`, `mediaScrim`)  
 > - Goldens: `test/features/main_browse/goldens/media_chrome_preview/` — local-only, manual maintenance required (no CI; see debt **449** for the repo-wide CI gap). After any chrome visual tweak, re-run `flutter test --update-goldens` on this machine and eyeball the diff before committing
 
-**How to retune:** change the named constant / token in the table, then reinstall Profile and re-check the alignment row in §3. Prefer editing constants over hard-coding numbers in widgets.
+**How to retune:** change the named constant / token in the table, then reinstall Profile and re-check the alignment row in §3 (media) or §11 (shell). Prefer editing constants over hard-coding numbers in widgets.
 
 ---
 
@@ -287,6 +293,78 @@ So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt bel
 5. **Longest realistic row-3 copy** (e.g. Live Photo label + file size via `mediaInfoCharacteristicsJoined`) must **not** collide with trailing LIVE / action chrome under the derived trailing inset (**108** today: was a hard-coded ~123 reserve; formula + 32/48 action + LIVE reserve must still clear on device).  
 6. Run: `live_badge_meta_align_test`, Cap 20 still Reset tests (`T-20.3-1` included), `test/architecture/`.  
 7. If chrome layout goldens under `media_chrome_preview/` changed: re-run `flutter test --update-goldens` on this machine and eyeball the diff before committing. These goldens are local-only / manual (no CI). Debt **449** is the repo-wide “no push CI for `flutter test`” gap — not a chrome-only debt.
+
+---
+
+## 11. Browse shell chrome (top four-control + bottom tab)
+
+> Separate from §§1–10 media-area chrome. Still on-media / immersive; lives in
+> the shell above/below the feed, not in the per-item Stack.
+
+### 11.1 Glossary
+
+| Term | Meaning |
+|------|---------|
+| **Top chrome / four-control row** | Cap 21.3 row: leading chip · Built-in · Saved · Create (`BrowseTopChrome`). |
+| **Chip** | Leading pill control. Either **Temp Pool** (`_TempPoolChip`, parked ephemeral) or **Saved Pool** (`_SavedPoolChip`, active saved preset name). Not the center Built-in/Saved menus. |
+| **Temp Pool chip** | Fixed short ARB label (`mainBrowseTempPoolChip`). Accent + surface pill while ephemeral is active; muted / no pill while parked but Built-in/Saved is current. |
+| **Saved Pool chip** | Shows active saved `displayName` (ellipsis). Always surface pill + accent when shown. |
+| **Built-in control** | Center-left dropdown: All / Photos / Videos (`_BuiltInControl`). Selected → accent + surface pill. |
+| **Saved pools menu** | Center-right dropdown opener (`_SavedControl`); lists presets in an overlay. |
+| **Create** | Trailing control (`_CreateControl`); opens Build a Pool cover. Disabled + helper line under Limited access. |
+| **Center pair** | Built-in + Saved, screen-centered (`mainBrowseChromeCenterPair`). Chip show/hide must **not** translate this pair (Stack overlay). |
+| **Covering route** | Full-screen Build cover; `browseCoveringRouteOpenProvider` + `PlaybackCoordinator.onBrowseCoverOpened` (user-intent pause). |
+| **Bottom tab bar** | Browse / Clips / Auto / Settings (`_MainBrowseBottomBar`). Custom row — not Material 3 `NavigationBar`. |
+
+### 11.2 Shared typography (shell labels)
+
+**Canonical token for shell chrome labels:** `WakeTokTokens.labelOnMedia` (**12 / w600**, token default `height: 1.2`).
+
+| | Top chrome (All / Temp / Saved / Create) | Bottom tab (Browse / Clips / …) |
+|--|------------------------------------------|--------------------------------|
+| Token | `labelOnMedia` | `labelOnMedia` (same) |
+| Size | **12** | **12** |
+| Weight | **w600** | **w600** |
+| Runtime `height` | **`1.0`** via `copyWith` (optical center in fixed hit) | **`1.0`** via `copyWith` |
+| Shadows | `onMediaLabelShadows` | none |
+| Color | `accent` (selected / active chip) or `onMediaMuted` | `accent` / `onMediaMuted` |
+
+**Historical note:** bottom once used `labelChrome` (token **14 / w500**, then locally overridden toward 11). Cap 22.5 polish **aligned bottom → top** (`labelOnMedia` + `height: 1.0` only). Do **not** reintroduce `labelChrome` on the bottom bar without an owner pass. Token `labelChrome` remains for other chrome surfaces (theme `labelLarge`).
+
+**Code:**
+
+- Top: `browse_top_chrome.dart` → `_chromeOnMediaLabelStyle` = `labelOnMedia.copyWith(inherit: false, height: 1.0, shadows: onMediaLabelShadows, color: …)` plus `TextHeightBehavior` (no first ascent / last descent).
+- Bottom: `main_browse_shell_page.dart` → `tokens.labelOnMedia.copyWith(height: 1.0)` then `copyWith(color: …)` in `_BottomNavCell`.
+
+### 11.3 Top chrome layout metrics
+
+Constants in `browse_top_chrome.dart` (file-private; change there, then update this table):
+
+| Symbol | Value | Role |
+|--------|-------|------|
+| `_kChromeControlHeight` | **32** | Fixed hit / pill height for Temp, Saved chip, Built-in, Saved menu, Create label |
+| `_kChromeControlHPad` | **10** | Horizontal padding inside the hit |
+| `_kSavedChipMaxWidth` | **112** | Saved chip ellipsis budget (second line of defense vs naming weight) |
+| `_kChromeDropdownIconSize` | **16** | `Icons.arrow_drop_down` next to Built-in / Saved labels |
+| Chrome band height | **52** (Create enabled) / **70** (Limited + Create helper) | `SizedBox` under `SafeArea` |
+
+**Layout model:** `Stack` — center pair `Align(center)`; leading chip / Create `Positioned` + `Align` vertically centered in the band. Equal H pad + `Center` inside `_chromeControlShell` keep label (+ dropdown) geometrically centered in the 32pt hit.
+
+**Selected / active fill:** `tokens.surface` @ **0.92** alpha; `BorderRadius.circular(16)`.
+
+**Do not:** push the center pair sideways when the leading chip appears (owner lock — chip show/hide must not shift Built-in/Saved).
+
+### 11.4 Related product limits (naming → chip)
+
+Saved preset **display names** use a visual weight budget (domain `saved_pool_display_name.dart`): wide (EAW W/F, ideograph/kana/Hangul/fullwidth) ×3, else ×1, max **32**. Chip `maxWidth` 112 is independent UI truncation. IME composing is not weighed; over-budget commit/paste truncates to the longest in-budget **prefix**.
+
+### 11.5 Shell device check (after retune)
+
+1. ZH + EN: Temp/Saved chip, Built-in, Saved, Create share one optical baseline; Create not lower than center pair.  
+2. Selected Built-in / active chip: label + dropdown (if any) centered in the gray pill.  
+3. Chip appear/disappear: center pair `dx` unchanged (`cap22_4` / `cap21_3` chrome tests).  
+4. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`).  
+5. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/`.
 
 ---
 

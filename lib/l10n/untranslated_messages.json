@@ -107,6 +107,7 @@
     "mainBrowseSavedPoolNamingCancel",
     "mainBrowseSavedPoolNamingEmpty",
     "mainBrowseSavedPoolNamingDuplicate",
+    "mainBrowseSavedPoolNamingTooLong",
     "mainBrowseSavedPoolNamingDuplicateRecipe",
     "mainBrowseSavedPoolCapacityTitle",
     "mainBrowseSavedPoolCapacityBody",

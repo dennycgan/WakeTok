@@ -21,6 +21,11 @@ final class SavedPoolInvalidName extends SavedPoolException {
   const SavedPoolInvalidName();
 }
 
+/// Display name exceeds the visual naming weight budget (wide×3 / else×1).
+final class SavedPoolNameTooLong extends SavedPoolException {
+  const SavedPoolNameTooLong();
+}
+
 /// Recipe is empty, exceeds max sources, or has an empty source id.
 final class SavedPoolInvalidRecipe extends SavedPoolException {
   const SavedPoolInvalidRecipe();

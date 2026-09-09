@@ -20,6 +20,82 @@ import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
+/// Shared chrome control metrics (Temp / Saved chip / Built-in / Create / Saved menu).
+const double _kChromeControlHeight = 32;
+const double _kChromeControlHPad = 10;
+const double _kSavedChipMaxWidth = 112;
+const double _kChromeDropdownIconSize = 16;
+
+/// Drop font leading so glyphs sit in the geometric middle of the fixed hit.
+const TextHeightBehavior _kChromeTextHeightBehavior = TextHeightBehavior(
+  applyHeightToFirstAscent: false,
+  applyHeightToLastDescent: false,
+);
+
+TextStyle _chromeOnMediaLabelStyle(WakeTokTokens tokens, Color color) {
+  return tokens.labelOnMedia.copyWith(
+    color: color,
+    inherit: false,
+    height: 1.0,
+    shadows: tokens.onMediaLabelShadows,
+  );
+}
+
+Widget _chromeLabelText(
+  String text,
+  TextStyle style, {
+  int maxLines = 1,
+}) {
+  return Text(
+    text,
+    maxLines: maxLines,
+    overflow: TextOverflow.ellipsis,
+    textHeightBehavior: _kChromeTextHeightBehavior,
+    style: style,
+  );
+}
+
+/// Fixed-height chrome hit; [child] is centered on both axes inside the pad.
+Widget _chromeControlShell({
+  required Widget child,
+  double? maxWidth,
+}) {
+  final body = SizedBox(
+    height: _kChromeControlHeight,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: _kChromeControlHPad),
+      child: Center(child: child),
+    ),
+  );
+  if (maxWidth == null) {
+    return body;
+  }
+  return ConstrainedBox(
+    constraints: BoxConstraints(maxWidth: maxWidth),
+    child: body,
+  );
+}
+
+Widget _chromeDropdownRow({
+  required String label,
+  required TextStyle style,
+  required Color iconColor,
+}) {
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    mainAxisAlignment: MainAxisAlignment.center,
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      _chromeLabelText(label, style),
+      Icon(
+        Icons.arrow_drop_down,
+        size: _kChromeDropdownIconSize,
+        color: iconColor,
+      ),
+    ],
+  );
+}
+
 /// Cap 21.3 four-control top chrome (ADR-044 D6.4 / D7).
 ///
 /// Layout: Temp chip (left, if parked) · Built-in+Saved (screen-center) ·
@@ -253,15 +329,10 @@ class _TempPoolChip extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Text(
+          child: _chromeControlShell(
+            child: _chromeLabelText(
               l10n.mainBrowseTempPoolChip,
-              style: tokens.labelOnMedia.copyWith(
-                color: color,
-                inherit: false,
-                shadows: tokens.onMediaLabelShadows,
-              ),
+              _chromeOnMediaLabelStyle(tokens, color),
             ),
           ),
         ),
@@ -286,19 +357,11 @@ class _SavedPoolChip extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 140),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: tokens.labelOnMedia.copyWith(
-                color: tokens.accent,
-                shadows: tokens.onMediaLabelShadows,
-              ),
-            ),
+        child: _chromeControlShell(
+          maxWidth: _kSavedChipMaxWidth,
+          child: _chromeLabelText(
+            label,
+            _chromeOnMediaLabelStyle(tokens, tokens.accent),
           ),
         ),
       ),
@@ -321,6 +384,7 @@ class _CreateControl extends StatelessWidget {
     final color = enabled
         ? tokens.onMediaMuted
         : tokens.onMediaMuted.withValues(alpha: 0.35);
+    final labelStyle = _chromeOnMediaLabelStyle(tokens, color);
     return Semantics(
       button: true,
       enabled: enabled,
@@ -335,27 +399,25 @@ class _CreateControl extends StatelessWidget {
           InkWell(
             key: const Key('mainBrowseCreatePool'),
             onTap: enabled ? onTap : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              child: Text(
+            child: _chromeControlShell(
+              child: _chromeLabelText(
                 l10n.mainBrowseCreatePool,
-                style: tokens.labelOnMedia.copyWith(
-                  color: color,
-                  shadows: tokens.onMediaLabelShadows,
-                ),
+                labelStyle,
               ),
             ),
           ),
           if (!enabled)
             Padding(
-              padding: const EdgeInsets.only(right: 10, bottom: 2),
+              padding: const EdgeInsets.only(right: _kChromeControlHPad, bottom: 2),
               child: Text(
                 key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
                 l10n.mainBrowseCreatePoolRequiresFullAccess,
                 textAlign: TextAlign.end,
+                textHeightBehavior: _kChromeTextHeightBehavior,
                 style: tokens.labelOnMedia.copyWith(
                   fontSize: 9,
-                  height: 1.1,
+                  height: 1.0,
+                  inherit: false,
                   color: color,
                   shadows: tokens.onMediaLabelShadows,
                 ),
@@ -409,21 +471,11 @@ class _BuiltInControl extends StatelessWidget {
           child: InkWell(
             onTap: () => _openBuiltInOverlay(context),
             borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    label,
-                    style: tokens.labelOnMedia.copyWith(
-                      color: color,
-                      inherit: false,
-                      shadows: tokens.onMediaLabelShadows,
-                    ),
-                  ),
-                  Icon(Icons.arrow_drop_down, size: 18, color: color),
-                ],
+            child: _chromeControlShell(
+              child: _chromeDropdownRow(
+                label: label,
+                style: _chromeOnMediaLabelStyle(tokens, color),
+                iconColor: color,
               ),
             ),
           ),
@@ -472,20 +524,11 @@ class _SavedControl extends ConsumerWidget {
     return InkWell(
       key: const Key('mainBrowseSavedPoolsMenu'),
       onTap: () => _openSavedOverlay(context, ref),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.mainBrowseSavedPoolsMenu,
-              style: tokens.labelOnMedia.copyWith(
-                color: tokens.onMediaMuted,
-                shadows: tokens.onMediaLabelShadows,
-              ),
-            ),
-            Icon(Icons.arrow_drop_down, size: 18, color: tokens.onMediaMuted),
-          ],
+      child: _chromeControlShell(
+        child: _chromeDropdownRow(
+          label: l10n.mainBrowseSavedPoolsMenu,
+          style: _chromeOnMediaLabelStyle(tokens, tokens.onMediaMuted),
+          iconColor: tokens.onMediaMuted,
         ),
       ),
     );
@@ -695,7 +738,7 @@ Future<_SavedOverlayPick?> _showSavedPoolsOverlay({
                                         icon: Icon(
                                           Icons.info_outline,
                                           size: 20,
-                                          color: tokens.accent,
+                                          color: tokens.onMediaMuted,
                                         ),
                                         onPressed: () => Navigator.of(
                                           dialogContext,
@@ -717,7 +760,7 @@ Future<_SavedOverlayPick?> _showSavedPoolsOverlay({
                                         icon: Icon(
                                           Icons.edit_outlined,
                                           size: 20,
-                                          color: tokens.accent,
+                                          color: tokens.onMediaMuted,
                                         ),
                                         onPressed: () => Navigator.of(
                                           dialogContext,
@@ -739,7 +782,7 @@ Future<_SavedOverlayPick?> _showSavedPoolsOverlay({
                                         icon: Icon(
                                           Icons.delete_outline,
                                           size: 20,
-                                          color: tokens.accent,
+                                          color: tokens.onMediaMuted,
                                         ),
                                         onPressed: () => Navigator.of(
                                           dialogContext,
@@ -981,6 +1024,8 @@ class _CompositionPeekCard extends ConsumerWidget {
             children: [
               Text(
                 title ?? l10n.mainBrowseCompositionPeekTitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: browseSavedPoolDialogTitleStyle(tokens),
               ),
               const SizedBox(height: 8),

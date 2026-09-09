@@ -80,26 +80,35 @@ class PlaybackCoordinator extends ChangeNotifier {
   }
 
   /// Become-current after Layer 2 [load] (and optionally surface-ready).
+  ///
+  /// [browseCoverOpen]: Cap 21.4b Build cover — suppress the whole navigation
+  /// activation (intent reset **and** [startsNewNavigationActivation]) so an
+  /// iCloud L1→L2 completion under the cover cannot arm Host pending / play.
+  /// Still syncs + pauses so [_markIntentSynced] runs (pop must not look like
+  /// a fresh nav activation).
   Future<void> onVideoBecomeCurrent({
     required String assetIdentifier,
     required int displayGeneration,
     required FeedMediaRequestGate displayGate,
     required SystemPlaybackPermission permission,
     required bool muted,
+    bool browseCoverOpen = false,
   }) {
     return _enqueue(() async {
       final nav = _isNewNavigationActivation(
         assetIdentifier: assetIdentifier,
         displayGeneration: displayGeneration,
       );
-      if (nav && _isForegroundLifecycle) {
+      final allowNavActivation =
+          nav && _isForegroundLifecycle && !browseCoverOpen;
+      if (allowNavActivation) {
         _setUserIntentWantsPlay(true);
       }
       await _syncIntentAndPlayback(
         assetIdentifier: assetIdentifier,
         displayGeneration: displayGeneration,
         displayGate: displayGate,
-        startsNewNavigationActivation: nav && _isForegroundLifecycle,
+        startsNewNavigationActivation: allowNavActivation,
         clearsPendingNavigationActivation: !_isForegroundLifecycle,
         permission: permission,
         muted: muted,
@@ -279,6 +288,8 @@ class PlaybackCoordinator extends ChangeNotifier {
   /// already painted under the cover and visible the instant the route pops
   /// (no empty frame, no double-tap). Distinct from [onLeaveForeground]
   /// (preserves intent for auto-resume) and [onLeaveCurrent] (mechanical).
+  /// Pair with [onVideoBecomeCurrent] `browseCoverOpen: true` so a later
+  /// L1→L2 become-current under the cover cannot re-arm nav activation.
   Future<void> onBrowseCoverOpened() {
     return _enqueue(() async {
       _setUserIntentWantsPlay(false);

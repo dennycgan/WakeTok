@@ -127,6 +127,7 @@
   "mainBrowseSavedPoolNamingCancel": "取消",
   "mainBrowseSavedPoolNamingEmpty": "请输入名称。",
   "mainBrowseSavedPoolNamingDuplicate": "这个名称已被使用。",
+  "mainBrowseSavedPoolNamingTooLong": "名称超出长度限制。",
   "mainBrowseSavedPoolNamingDuplicateRecipe": "你已创建过相同配方的片库 — 「{name}」。",
   "mainBrowseSavedPoolCapacityTitle": "已保存片库已满",
   "mainBrowseSavedPoolCapacityBody": "最多保存 10 个片库。请到「已保存」中删除一个后再试。",

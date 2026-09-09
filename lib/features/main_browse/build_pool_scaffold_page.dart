@@ -522,9 +522,18 @@ class _SelectedPane extends StatelessWidget {
                   itemBuilder: (context, index) {
                     final reference = selected[index];
                     final label = _label(reference);
+                    // Compact rows so ~5 selected sources fit between the
+                    // heading and Save & browse (default ListTile ≈ 3).
                     return ListTile(
                       key: Key(
                         'mainBrowseBuildPoolSelected_${reference.kind.name}_${reference.id}_$index',
+                      ),
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      minVerticalPadding: 0,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 0,
                       ),
                       title: Text(
                         label,
@@ -536,6 +545,12 @@ class _SelectedPane extends StatelessWidget {
                         icon: Icon(
                           Icons.remove_circle_outline,
                           color: tokens.onMediaMuted,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size(36, 36),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          padding: EdgeInsets.zero,
                         ),
                         onPressed: () => onRemove(index),
                       ),

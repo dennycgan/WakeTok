@@ -440,6 +440,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseSavedPoolNamingDuplicate => 'This name is already used.';
 
   @override
+  String get mainBrowseSavedPoolNamingTooLong => 'Name is too long.';
+
+  @override
   String mainBrowseSavedPoolNamingDuplicateRecipe(String name) {
     return 'You already have a pool with these sources — “$name”.';
   }

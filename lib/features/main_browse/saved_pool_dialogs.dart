@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/source/pool_capacity.dart';
@@ -279,7 +280,11 @@ class _SavedPoolInfoDialog extends ConsumerWidget {
     return browseSavedPoolAlertDialog(
       key: const Key('mainBrowseSavedPoolInfoDialog'),
       tokens: tokens,
-      title: Text(l10n.mainBrowseSavedPoolSourcesTitle(displayName)),
+      title: Text(
+        l10n.mainBrowseSavedPoolSourcesTitle(displayName),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
       content: SizedBox(
         width: double.maxFinite,
         child: ConstrainedBox(
@@ -386,6 +391,13 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
       });
       return;
     }
+    if (!savedPoolDisplayNameWithinWeightLimit(trimmed)) {
+      setState(() {
+        _error = l10n.mainBrowseSavedPoolNamingTooLong;
+        _blockedDuplicateKey = null;
+      });
+      return;
+    }
     final nameKey = savedPoolDisplayNameKey(trimmed);
     final renaming = widget.renamePoolId != null;
     // Same colliding name already surfaced — skip async re-check / setState.
@@ -469,6 +481,14 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
           _blockedDuplicateKey = nameKey;
         });
       }
+    } on SavedPoolNameTooLong {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _error = l10n.mainBrowseSavedPoolNamingTooLong;
+          _blockedDuplicateKey = null;
+        });
+      }
     } on SavedPoolCapacityExceeded {
       if (mounted) {
         Navigator.of(context).pop(const SavedPoolNamingAtCapacity());
@@ -498,6 +518,7 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
           controller: _controller,
           enabled: !_submitting,
           autofocus: true,
+          inputFormatters: const [SavedPoolDisplayNameWeightFormatter()],
           style: tokens.bodyOnMedia.copyWith(color: tokens.onMedia),
           cursorColor: tokens.accent,
           decoration: InputDecoration(
@@ -548,6 +569,45 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Keeps committed edits within [kSavedPoolDisplayNameMaxWeight].
+///
+/// IME composing / pre-edit (e.g. Pinyin before 上屏) is not weighed. When a
+/// committed string is over budget (bulk IME / paste), truncates to the longest
+/// in-budget **prefix** instead of rejecting the whole edit. Legacy over-budget
+/// values may still shorten even while remaining over budget.
+class SavedPoolDisplayNameWeightFormatter extends TextInputFormatter {
+  const SavedPoolDisplayNameWeightFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Let the IME finish; Latin pre-edit must not consume the CJK budget.
+    if (newValue.composing.isValid && !newValue.composing.isCollapsed) {
+      return newValue;
+    }
+
+    final newWeight = savedPoolDisplayNameWeight(newValue.text);
+    if (newWeight <= kSavedPoolDisplayNameMaxWeight) {
+      return newValue;
+    }
+
+    final oldWeight = savedPoolDisplayNameWeight(oldValue.text);
+    // Legacy rename field still over budget: allow progressive shortening.
+    if (oldWeight > kSavedPoolDisplayNameMaxWeight && newWeight < oldWeight) {
+      return newValue;
+    }
+
+    final truncated = truncateSavedPoolDisplayNameToWeightLimit(newValue.text);
+    return TextEditingValue(
+      text: truncated,
+      selection: TextSelection.collapsed(offset: truncated.length),
+      composing: TextRange.empty,
     );
   }
 }

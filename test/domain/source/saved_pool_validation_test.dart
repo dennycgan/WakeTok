@@ -29,6 +29,56 @@ void main() {
         throwsA(isA<SavedPoolInvalidName>()),
       );
     });
+
+    test('weight: Latin 1, CJK/kana/Hangul/fullwidth 3', () {
+      expect(savedPoolDisplayNameWeight('A'), 1);
+      expect(savedPoolDisplayNameWeight('中'), 3);
+      expect(savedPoolDisplayNameWeight('あ'), 3);
+      expect(savedPoolDisplayNameWeight('한'), 3);
+      expect(savedPoolDisplayNameWeight('Ａ'), 3); // fullwidth A
+      expect(isSavedPoolWideWeightRune('中'.runes.first), isTrue);
+      expect(isSavedPoolWideWeightRune('A'.runes.first), isFalse);
+    });
+
+    test('weight budget: 32 Latin / 10 CJK; require throws NameTooLong', () {
+      expect(savedPoolDisplayNameWeight('a' * 32), 32);
+      expect(savedPoolDisplayNameWithinWeightLimit('a' * 32), isTrue);
+      expect(savedPoolDisplayNameWithinWeightLimit('a' * 33), isFalse);
+      expect(savedPoolDisplayNameWeight('中' * 10), 30);
+      expect(savedPoolDisplayNameWithinWeightLimit('中' * 10), isTrue);
+      expect(savedPoolDisplayNameWithinWeightLimit('中' * 11), isFalse);
+      expect(requireSavedPoolDisplayName('中' * 10), '中' * 10);
+      expect(
+        () => requireSavedPoolDisplayName('中' * 11),
+        throwsA(isA<SavedPoolNameTooLong>()),
+      );
+      expect(
+        () => requireSavedPoolDisplayName('a' * 33),
+        throwsA(isA<SavedPoolNameTooLong>()),
+      );
+      // Mixed: 9 CJK (27) + 5 Latin (5) = 32.
+      expect(
+        savedPoolDisplayNameWeight('${'中' * 9}hello'),
+        32,
+      );
+      expect(
+        savedPoolDisplayNameWithinWeightLimit('${'中' * 9}hello!'),
+        isFalse,
+      );
+    });
+
+    test('truncate keeps longest in-budget prefix', () {
+      expect(truncateSavedPoolDisplayNameToWeightLimit('中' * 10), '中' * 10);
+      expect(truncateSavedPoolDisplayNameToWeightLimit('中' * 15), '中' * 10);
+      expect(
+        truncateSavedPoolDisplayNameToWeightLimit('a' * 40),
+        'a' * 32,
+      );
+      expect(
+        truncateSavedPoolDisplayNameToWeightLimit('${'中' * 9}hello!'),
+        '${'中' * 9}hello',
+      );
+    });
   });
 
   group('ensureSavedPoolRecipe', () {

@@ -3849,6 +3849,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             requireSurfaceReady: requireSurfaceReady,
           ),
           muted: ref.read(sharedMuteProvider),
+          browseCoverOpen: ref.read(browseCoveringRouteOpenProvider),
         );
   }
 

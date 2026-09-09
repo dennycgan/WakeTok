@@ -214,4 +214,103 @@ void main() {
     expect(coordinator.userIntentWantsPlay, isFalse);
     expect(playback.calls, contains('pause'));
   });
+
+  test(
+    'C-21.4b-C2 cover-open first become-current: no nav pending; tap resume playOnly-shaped',
+    () async {
+      final playback = FakePlaybackRepository();
+      final coordinator = PlaybackCoordinator(playback: playback);
+      final gate = FeedMediaRequestGate();
+      final generation = gate.begin();
+
+      await coordinator.onBrowseCoverOpened();
+      expect(coordinator.userIntentWantsPlay, isFalse);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'icloud-v',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+        browseCoverOpen: true,
+      );
+
+      expect(coordinator.userIntentWantsPlay, isFalse);
+      expect(playback.intentCalls, hasLength(1));
+      expect(playback.intentCalls.single.wantsPlay, isFalse);
+      expect(
+        playback.intentCalls.single.startsNewNavigationActivation,
+        isFalse,
+      );
+      expect(playback.calls.where((c) => c == 'play'), isEmpty);
+      expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+
+      // Pop: clear cover latch only — intent stays paused (Cap 21.4b).
+      playback.calls.clear();
+      playback.intentCalls.clear();
+
+      await coordinator.onUserTapTogglePlay(
+        assetIdentifier: 'icloud-v',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+
+      expect(coordinator.userIntentWantsPlay, isTrue);
+      expect(playback.intentCalls, hasLength(1));
+      expect(playback.intentCalls.single.wantsPlay, isTrue);
+      expect(
+        playback.intentCalls.single.startsNewNavigationActivation,
+        isFalse,
+      );
+      expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+    },
+  );
+
+  test(
+    'C-21.4b-C3 L2-before-cover baseline: tap resume matches C-21.4b-C2 shape',
+    () async {
+      final playback = FakePlaybackRepository();
+      final coordinator = PlaybackCoordinator(playback: playback);
+      final gate = FeedMediaRequestGate();
+      final generation = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'local-v',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+      expect(coordinator.userIntentWantsPlay, isTrue);
+      expect(playback.intentCalls.last.startsNewNavigationActivation, isTrue);
+
+      await coordinator.onBrowseCoverOpened();
+      expect(coordinator.userIntentWantsPlay, isFalse);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+
+      await coordinator.onUserTapTogglePlay(
+        assetIdentifier: 'local-v',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+
+      expect(coordinator.userIntentWantsPlay, isTrue);
+      expect(playback.intentCalls, hasLength(1));
+      expect(playback.intentCalls.single.wantsPlay, isTrue);
+      expect(
+        playback.intentCalls.single.startsNewNavigationActivation,
+        isFalse,
+      );
+      expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+    },
+  );
 }

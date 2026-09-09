@@ -562,6 +562,10 @@
   "@mainBrowseSavedPoolNamingDuplicate": {
     "description": "Inline error when the normalized name collides with another Saved preset"
   },
+  "mainBrowseSavedPoolNamingTooLong": "Name is too long.",
+  "@mainBrowseSavedPoolNamingTooLong": {
+    "description": "Inline error when the name exceeds the visual naming weight budget"
+  },
   "mainBrowseSavedPoolNamingDuplicateRecipe": "You already have a pool with these sources — “{name}”.",
   "@mainBrowseSavedPoolNamingDuplicateRecipe": {
     "description": "Inline error when create recipe matches an existing Saved preset; {name} is that preset's display name",

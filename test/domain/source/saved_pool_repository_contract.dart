@@ -80,6 +80,17 @@ void savedPoolRepositoryContract(
       expect(await repo.loadAll(), isEmpty);
     });
 
+    test('over-budget displayName is NameTooLong before recipe', () async {
+      expect(
+        () => repo.save(
+          displayName: '中' * 11,
+          orderedSourceReferences: const [SourceReference.all],
+        ),
+        throwsA(isA<SavedPoolNameTooLong>()),
+      );
+      expect(await repo.loadAll(), isEmpty);
+    });
+
     test('0 sources is InvalidRecipe, store unchanged', () async {
       expect(
         () => repo.save(

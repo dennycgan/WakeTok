@@ -852,6 +852,12 @@ abstract class AppLocalizations {
   /// **'This name is already used.'**
   String get mainBrowseSavedPoolNamingDuplicate;
 
+  /// Inline error when the name exceeds the visual naming weight budget
+  ///
+  /// In en, this message translates to:
+  /// **'Name is too long.'**
+  String get mainBrowseSavedPoolNamingTooLong;
+
   /// Inline error when create recipe matches an existing Saved preset; {name} is that preset's display name
   ///
   /// In en, this message translates to:
