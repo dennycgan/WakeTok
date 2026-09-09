@@ -9,6 +9,7 @@ import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/main.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -20,6 +21,7 @@ import '../../library_smoke/fake_library_catalog_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../../library_smoke/fake_playback_repository.dart';
 import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
+import '../../library_smoke/fake_new_round_toast_preferences.dart';
 import '../../library_smoke/fake_presentation_metadata_repository.dart';
 import '../../domain/library/fake_waketok_album_store.dart';
 
@@ -180,6 +182,9 @@ void main() {
           cap19LeftSwipePreferencesProvider.overrideWithValue(
             FakeCap19LeftSwipePreferences(),
           ),
+          newRoundToastPreferencesProvider.overrideWithValue(
+            FakeNewRoundToastPreferences(),
+          ),
           wakeTokAlbumStoreProvider.overrideWithValue(FakeWakeTokAlbumStore()),
         ],
         child: const WakeTokApp(),
@@ -244,6 +249,9 @@ void main() {
           ),
           cap19LeftSwipePreferencesProvider.overrideWithValue(
             FakeCap19LeftSwipePreferences(),
+          ),
+          newRoundToastPreferencesProvider.overrideWithValue(
+            FakeNewRoundToastPreferences(),
           ),
           wakeTokAlbumStoreProvider.overrideWithValue(FakeWakeTokAlbumStore()),
         ],

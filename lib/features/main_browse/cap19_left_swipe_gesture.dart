@@ -15,6 +15,10 @@ import 'package:waketok/l10n/app_localizations.dart';
 ///
 /// Uses [Listener] (not [GestureDetector]) so vertical [PageView] drags are
 /// not blocked in the gesture arena.
+///
+/// Cap 22.5b: feed soft-commit / roundEpoch remount may dispose this State
+/// while a pointer is still tracked. All [ref] / animation paths must
+/// no-op when [mounted] is false (unfinished pointer × remount audit).
 class Cap19LeftSwipeGesture extends ConsumerStatefulWidget {
   const Cap19LeftSwipeGesture({
     super.key,
@@ -49,6 +53,7 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
 
   @override
   void dispose() {
+    _resetPointerTracking();
     _releaseController.dispose();
     super.dispose();
   }
@@ -78,7 +83,9 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
         // Magnification pinch armed PageView lock — drop in-flight swipe
         // tracking so two-finger pinch is not classified as left-swipe.
         _resetPointerTracking();
-        ref.read(cap19LeftSwipeDragProvider.notifier).reset();
+        if (mounted) {
+          ref.read(cap19LeftSwipeDragProvider.notifier).reset();
+        }
       }
     });
     if (!armed) {
@@ -107,7 +114,7 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
           _dragDelta = Offset.zero;
         },
         onPointerMove: (event) {
-          if (!_tracking || _releaseAnimating) {
+          if (!mounted || !_tracking || _releaseAnimating) {
             return;
           }
           _dragDelta = event.position - _pointerStart;
@@ -143,7 +150,8 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
   }
 
   Future<void> _cancelPointer(BuildContext context) async {
-    if (!_tracking || _releaseAnimating) {
+    if (!mounted || !_tracking || _releaseAnimating) {
+      _resetPointerTracking();
       return;
     }
     _resetPointerTracking();
@@ -151,6 +159,9 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
   }
 
   Future<void> _animateOffsetTo(double target, Duration duration) async {
+    if (!mounted) {
+      return;
+    }
     final notifier = ref.read(cap19LeftSwipeDragProvider.notifier);
     final begin = ref.read(cap19LeftSwipeDragProvider).offsetX;
     if (begin == target) {
@@ -163,6 +174,9 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
       CurvedAnimation(parent: _releaseController, curve: Curves.easeOutCubic),
     );
     void listener() {
+      if (!mounted) {
+        return;
+      }
       notifier.updateOffset(_releaseAnimation!.value);
     }
 
@@ -170,16 +184,18 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
     await _releaseController.forward(from: 0);
     _releaseAnimation!.removeListener(listener);
     _releaseController.reset();
+    if (!mounted) {
+      return;
+    }
     if (target == 0) {
       notifier.reset();
     }
-    if (mounted) {
-      setState(() => _releaseAnimating = false);
-    }
+    setState(() => _releaseAnimating = false);
   }
 
   Future<void> _finishPointer(BuildContext context) async {
-    if (!_tracking || _releaseAnimating) {
+    if (!mounted || !_tracking || _releaseAnimating) {
+      _resetPointerTracking();
       return;
     }
     final delta = _dragDelta;
@@ -190,6 +206,9 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
       return;
     }
 
+    if (!mounted) {
+      return;
+    }
     Cap19LeftSwipeGuideSession.markGuideShown();
     ref.read(cap19LeftSwipeDragProvider.notifier).reset();
 

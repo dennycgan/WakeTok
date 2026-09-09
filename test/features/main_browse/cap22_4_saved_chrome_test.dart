@@ -12,6 +12,7 @@ import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
+import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../domain/source/fake_saved_pool_repository.dart';
@@ -227,6 +228,82 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'U-22.5 Info / Capacity / peek share title metrics + dialog chrome',
+      (tester) async {
+        final dark = waketokTheme(Brightness.dark);
+        final tokens = dark.extension<WakeTokTokens>()!;
+        final expected = browseSavedPoolDialogTitleStyle(tokens);
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+
+        final pools = FakeSavedPoolRepository(createId: () => 'p1');
+        await pools.save(
+          displayName: 'Trip',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
+        await _pump(tester: tester, savedPools: pools);
+
+        await tester.tap(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('mainBrowseSavedRowInfo_p1')));
+        await tester.pumpAndSettle();
+        final infoDialog = tester.widget<AlertDialog>(
+          find.byKey(const Key('mainBrowseSavedPoolInfoDialog')),
+        );
+        expect(infoDialog.titleTextStyle?.fontSize, expected.fontSize);
+        expect(infoDialog.titleTextStyle?.fontWeight, expected.fontWeight);
+        expect(infoDialog.titleTextStyle?.inherit, isFalse);
+        expect(infoDialog.actionsPadding, browseSavedPoolDialogActionsPadding);
+        await tester.tap(find.byKey(const Key('mainBrowseSavedPoolInfoClose')));
+        await tester.pumpAndSettle();
+
+        final capacityFuture = showSavedPoolCapacityDialog(
+          tester.element(find.byType(Navigator)),
+        );
+        await tester.pumpAndSettle();
+        final capacityDialog = tester.widget<AlertDialog>(
+          find.byKey(const Key('mainBrowseSavedPoolCapacityDialog')),
+        );
+        expect(capacityDialog.titleTextStyle?.fontSize, expected.fontSize);
+        expect(capacityDialog.titleTextStyle?.fontWeight, expected.fontWeight);
+        expect(capacityDialog.titleTextStyle?.inherit, isFalse);
+        expect(
+          capacityDialog.actionsPadding,
+          browseSavedPoolDialogActionsPadding,
+        );
+        await tester.tap(
+          find.byKey(const Key('mainBrowseSavedPoolCapacityConfirm')),
+        );
+        await tester.pumpAndSettle();
+        await capacityFuture;
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+        container
+            .read(browseChromeStateProvider.notifier)
+            .startEphemeralPool(
+              SourcePoolDefinition(
+                id: 'eph',
+                persistencePolicy: PersistencePolicy.ephemeral,
+                orderedSourceReferences: const [SourceReference.photos],
+              ),
+            );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('mainBrowseTempPoolChip')));
+        await tester.pumpAndSettle();
+        final peekTitle = tester.widget<Text>(
+          find.descendant(
+            of: find.byKey(const Key('mainBrowseCompositionPeek')),
+            matching: find.text(l10n.mainBrowseCompositionPeekTitle),
+          ),
+        );
+        expect(peekTitle.style?.fontSize, expected.fontSize);
+        expect(peekTitle.style?.fontWeight, expected.fontWeight);
+        expect(peekTitle.style?.inherit, isFalse);
+      },
+    );
 
     testWidgets('already-active Saved row Open shows toast (not Info)', (
       tester,
@@ -489,13 +566,8 @@ void main() {
         );
         expect(dialog.backgroundColor, dark.surface);
         expect(dialog.backgroundColor, isNot(light.surface));
-        final title = tester.widget<Text>(
-          find.descendant(
-            of: find.byKey(const Key('mainBrowseSavedPoolNamingDialog')),
-            matching: find.text('Name this pool'),
-          ),
-        );
-        expect(title.style?.color, dark.onMedia);
+        expect(dialog.titleTextStyle?.color, dark.onMedia);
+        expect(dialog.titleTextStyle?.inherit, isFalse);
       },
     );
   });

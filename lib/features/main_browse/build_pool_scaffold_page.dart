@@ -355,6 +355,12 @@ class _CatalogPane extends ConsumerWidget {
         if (albums.isNotEmpty) ...[
           _sectionHeader(l10n.mainBrowseBuildPoolSectionAlbums),
           for (final source in albums) _catalogTile(source),
+          Divider(
+            key: const Key('mainBrowseBuildPoolSectionSmartDivider'),
+            height: 24,
+            thickness: 1,
+            color: tokens.onMediaMuted.withValues(alpha: 0.3),
+          ),
         ],
         _sectionHeader(l10n.mainBrowseBuildPoolSectionSmartAlbums),
         ...smartAsync.when(
@@ -413,7 +419,8 @@ class _CatalogPane extends ConsumerWidget {
       padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
       child: Text(
         title,
-        style: tokens.labelOnMedia.copyWith(color: tokens.onMediaMuted),
+        // Same type role as AppBar "Build a Pool" (labelChrome).
+        style: tokens.labelChrome.copyWith(color: tokens.onMedia),
       ),
     );
   }

@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/data/local/drift_saved_pool_repository.dart';
 import 'package:waketok/data/local/waketok_database.dart';
 import 'package:waketok/data/preferences/cap19_left_swipe_preferences_store.dart';
+import 'package:waketok/data/preferences/new_round_toast_preferences_store.dart';
 import 'package:waketok/data/preferences/waketok_album_preferences_store.dart';
 import 'package:waketok/features/authorization/photos_access_gate.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
@@ -35,6 +37,7 @@ Future<void> main() async {
   final livePhoto = LivePhotoGateway();
   final wakeTokAlbumStore = WakeTokAlbumPreferencesStore();
   final cap19LeftSwipePreferences = Cap19LeftSwipePreferencesStore();
+  final newRoundToastPreferences = NewRoundToastPreferencesStore();
   final savedPoolRepository = DriftSavedPoolRepository(
     WaketokDatabase.defaults(),
   );
@@ -50,6 +53,9 @@ Future<void> main() async {
         wakeTokAlbumStoreProvider.overrideWithValue(wakeTokAlbumStore),
         cap19LeftSwipePreferencesProvider.overrideWithValue(
           cap19LeftSwipePreferences,
+        ),
+        newRoundToastPreferencesProvider.overrideWithValue(
+          newRoundToastPreferences,
         ),
         savedPoolRepositoryProvider.overrideWithValue(savedPoolRepository),
         mediaDisplayRepositoryProvider.overrideWithValue(gateway),

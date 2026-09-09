@@ -437,7 +437,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseSavedPoolNamingEmpty => 'Enter a name.';
 
   @override
-  String get mainBrowseSavedPoolNamingDuplicate => 'That name is already used.';
+  String get mainBrowseSavedPoolNamingDuplicate => 'This name is already used.';
+
+  @override
+  String mainBrowseSavedPoolNamingDuplicateRecipe(String name) {
+    return 'You already have a pool with these sources — “$name”.';
+  }
 
   @override
   String get mainBrowseSavedPoolCapacityTitle => 'Saved pools full';
@@ -512,6 +517,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseFeedEmpty => 'No items in this source.';
+
+  @override
+  String get mainBrowseNewRoundToast => 'You\'ve seen it all — starting over';
 
   @override
   String get mainBrowseFeedResolveFailed => 'Could not load this source.';
@@ -777,4 +785,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cap19SettingsLeftSwipeGuideSubtitle =>
       'Once per launch when Browse is ready';
+
+  @override
+  String get browseSettingsSectionTitle => 'Browse notices';
+
+  @override
+  String get browseSettingsNewRoundToastTitle => 'Starting-over notice';
+
+  @override
+  String get browseSettingsNewRoundToastSubtitle =>
+      'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
 }

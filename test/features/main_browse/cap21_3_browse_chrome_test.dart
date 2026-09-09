@@ -101,6 +101,118 @@ void main() {
       expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsNothing);
     });
 
+    testWidgets(
+      'U-22.5 Temp chip mutes when Built-in selected; muted tap still resumes',
+      (tester) async {
+      final fake = FakeAssetSourceRepository(
+        allIds: const ['a1'],
+        photosIds: const ['p1'],
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(repo: repo, assetSources: fake),
+      );
+      await tester.pumpAndSettle();
+
+      final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      final parked = _parkedDef();
+      final notifier = container.read(browseChromeStateProvider.notifier);
+      notifier.debugActivateEphemeralPool(parked);
+      await tester.pumpAndSettle();
+
+      Text chipLabel() => tester.widget<Text>(
+            find.descendant(
+              of: find.byKey(const Key('mainBrowseTempPoolChip')),
+              matching: find.byType(Text),
+            ),
+          );
+      Material chipMaterial() => tester.widget<Material>(
+            find.byKey(const Key('mainBrowseTempPoolChip')),
+          );
+
+      expect(chipLabel().style?.color, dark.accent);
+      expect(chipMaterial().color, dark.surface.withValues(alpha: 0.92));
+
+      notifier.selectBuiltIn(SourceReference.all);
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(browseChromeStateProvider).activeOrigin,
+        const BrowseOriginBuiltIn(SourceReference.all),
+      );
+      expect(container.read(browseChromeStateProvider).parkedEphemeralPool, parked);
+      expect(chipLabel().style?.color, dark.onMediaMuted);
+      expect(chipMaterial().color, Colors.transparent);
+
+      final builtInText = tester.widget<Text>(
+        find.descendant(
+          of: find.byKey(const Key('mainBrowseBuiltInMenu')),
+          matching: find.byType(Text),
+        ),
+      );
+      expect(builtInText.style?.color, dark.accent);
+      expect(
+        tester.widget<Material>(find.byKey(const Key('mainBrowseBuiltInMenu'))).color,
+        dark.surface.withValues(alpha: 0.92),
+      );
+
+      await tester.tap(find.byKey(const Key('mainBrowseTempPoolChip')));
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(browseChromeStateProvider).activeOrigin,
+        BrowseOriginEphemeralPool(parked),
+      );
+      expect(chipLabel().style?.color, dark.accent);
+      expect(chipMaterial().color, dark.surface.withValues(alpha: 0.92));
+      expect(
+        tester.widget<Material>(find.byKey(const Key('mainBrowseBuiltInMenu'))).color,
+        Colors.transparent,
+      );
+      expect(find.byKey(const Key('mainBrowseCompositionPeek')), findsNothing);
+    });
+
+    testWidgets(
+      'U-22.5 Temp, Built-in, Saved, and Create share vertical center',
+      (tester) async {
+      final fake = FakeAssetSourceRepository(
+        allIds: const ['a1'],
+        photosIds: const ['p1'],
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(repo: repo, assetSources: fake),
+      );
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      container
+          .read(browseChromeStateProvider.notifier)
+          .debugActivateEphemeralPool(_parkedDef());
+      await tester.pumpAndSettle();
+
+      final tempDy =
+          tester.getCenter(find.byKey(const Key('mainBrowseTempPoolChip'))).dy;
+      final builtInDy =
+          tester.getCenter(find.byKey(const Key('mainBrowseBuiltInMenu'))).dy;
+      final createDy =
+          tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+      final savedDy = tester
+          .getCenter(find.byKey(const Key('mainBrowseSavedPoolsMenu')))
+          .dy;
+
+      expect(tempDy, closeTo(builtInDy, 2));
+      expect(createDy, closeTo(builtInDy, 2));
+      expect(savedDy, closeTo(builtInDy, 2));
+    });
+
     testWidgets('U-21.3-3 active chip opens peek; no Origin change',
         (tester) async {
       final fake = FakeAssetSourceRepository(
@@ -184,6 +296,10 @@ void main() {
       );
       expect(builtInText.style?.color, isNot(dark.accent));
       expect(builtInText.style?.color, dark.onMediaMuted);
+      expect(
+        tester.widget<Material>(find.byKey(const Key('mainBrowseBuiltInMenu'))).color,
+        Colors.transparent,
+      );
     });
 
     testWidgets('U-21.3-7 empty Saved menu is non-navigating',

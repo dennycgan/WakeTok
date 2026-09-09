@@ -55,6 +55,15 @@ class FakeSavedPoolRepository implements SavedPoolRepository {
     if (_rows.length >= PoolCapacity.maxSavedPoolPresets) {
       throw const SavedPoolCapacityExceeded();
     }
+    final recipeClash = findSavedPoolWithSameRecipe(
+      candidate: orderedSourceReferences,
+      existing: _rows,
+    );
+    if (recipeClash != null) {
+      throw SavedPoolDuplicateRecipe(
+        existingDisplayName: recipeClash.displayName,
+      );
+    }
     if (_rows.any((row) => savedPoolDisplayNameKey(row.displayName) == key)) {
       throw const SavedPoolDuplicateName();
     }

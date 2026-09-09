@@ -558,9 +558,18 @@
   "@mainBrowseSavedPoolNamingEmpty": {
     "description": "Inline error when the naming field is empty after trim"
   },
-  "mainBrowseSavedPoolNamingDuplicate": "That name is already used.",
+  "mainBrowseSavedPoolNamingDuplicate": "This name is already used.",
   "@mainBrowseSavedPoolNamingDuplicate": {
     "description": "Inline error when the normalized name collides with another Saved preset"
+  },
+  "mainBrowseSavedPoolNamingDuplicateRecipe": "You already have a pool with these sources — “{name}”.",
+  "@mainBrowseSavedPoolNamingDuplicateRecipe": {
+    "description": "Inline error when create recipe matches an existing Saved preset; {name} is that preset's display name",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
   },
   "mainBrowseSavedPoolCapacityTitle": "Saved pools full",
   "@mainBrowseSavedPoolCapacityTitle": {
@@ -658,6 +667,10 @@
   "mainBrowseFeedEmpty": "No items in this source.",
   "@mainBrowseFeedEmpty": {
     "description": "Main Browse feed when resolve returns an empty id list"
+  },
+  "mainBrowseNewRoundToast": "You've seen it all — starting over",
+  "@mainBrowseNewRoundToast": {
+    "description": "Cap 22.5 toast after one full Endless pass; commit next Shuffle (not internal jargon)"
   },
   "mainBrowseFeedResolveFailed": "Could not load this source.",
   "@mainBrowseFeedResolveFailed": {
@@ -1007,5 +1020,17 @@
   "cap19SettingsLeftSwipeGuideSubtitle": "Once per launch when Browse is ready",
   "@cap19SettingsLeftSwipeGuideSubtitle": {
     "description": "Cap 19.7 guide tip toggle subtitle"
+  },
+  "browseSettingsSectionTitle": "Browse notices",
+  "@browseSettingsSectionTitle": {
+    "description": "Cap 22.5 Settings section for Browse notifications (not bottom-nav Browse)"
+  },
+  "browseSettingsNewRoundToastTitle": "Starting-over notice",
+  "@browseSettingsNewRoundToastTitle": {
+    "description": "Cap 22.5 toggle title for end-of-list restart toast"
+  },
+  "browseSettingsNewRoundToastSubtitle": "When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.",
+  "@browseSettingsNewRoundToastSubtitle": {
+    "description": "Cap 22.5 toggle subtitle: where, when, duration, early dismiss"
   }
 }

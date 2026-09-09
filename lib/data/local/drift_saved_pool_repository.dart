@@ -68,6 +68,19 @@ class DriftSavedPoolRepository implements SavedPoolRepository {
       if (existing.length >= PoolCapacity.maxSavedPoolPresets) {
         throw const SavedPoolCapacityExceeded();
       }
+      final existingRecords = <SavedPoolRecord>[
+        for (final row in existing)
+          _recordFromRow(row, await _sourcesForPool(row.id)),
+      ];
+      final recipeClash = findSavedPoolWithSameRecipe(
+        candidate: orderedSourceReferences,
+        existing: existingRecords,
+      );
+      if (recipeClash != null) {
+        throw SavedPoolDuplicateRecipe(
+          existingDisplayName: recipeClash.displayName,
+        );
+      }
       final clash = existing.where((row) => row.displayNameKey == key);
       if (clash.isNotEmpty) {
         throw const SavedPoolDuplicateName();

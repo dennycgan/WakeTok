@@ -468,11 +468,29 @@ void main() {
       await _openBuild(tester);
 
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final tokens = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
       expect(
         find.text(l10n.mainBrowseBuildPoolSectionSmartAlbums),
         findsOneWidget,
       );
       expect(find.text(l10n.mainBrowseBuildPoolSectionAlbums), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseBuildPoolSectionSmartDivider')),
+        findsOneWidget,
+      );
+      final albumsHeader = tester.widget<Text>(
+        find.text(l10n.mainBrowseBuildPoolSectionAlbums),
+      );
+      final smartHeader = tester.widget<Text>(
+        find.text(l10n.mainBrowseBuildPoolSectionSmartAlbums),
+      );
+      final title = tester.widget<Text>(
+        find.text(l10n.mainBrowseBuildPoolScaffoldTitle),
+      );
+      expect(albumsHeader.style?.fontSize, title.style?.fontSize);
+      expect(smartHeader.style?.fontSize, title.style?.fontSize);
+      expect(albumsHeader.style?.fontWeight, title.style?.fontWeight);
+      expect(albumsHeader.style?.color, tokens.onMedia);
     });
 
     testWidgets(

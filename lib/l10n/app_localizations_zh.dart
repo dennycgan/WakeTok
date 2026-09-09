@@ -434,7 +434,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseSavedPoolNamingEmpty => 'Enter a name.';
 
   @override
-  String get mainBrowseSavedPoolNamingDuplicate => 'That name is already used.';
+  String get mainBrowseSavedPoolNamingDuplicate => 'This name is already used.';
+
+  @override
+  String mainBrowseSavedPoolNamingDuplicateRecipe(String name) {
+    return 'You already have a pool with these sources — “$name”.';
+  }
 
   @override
   String get mainBrowseSavedPoolCapacityTitle => 'Saved pools full';
@@ -509,6 +514,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseFeedEmpty => 'No items in this source.';
+
+  @override
+  String get mainBrowseNewRoundToast => 'You\'ve seen it all — starting over';
 
   @override
   String get mainBrowseFeedResolveFailed => 'Could not load this source.';
@@ -774,6 +782,16 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get cap19SettingsLeftSwipeGuideSubtitle =>
       'Once per launch when Browse is ready';
+
+  @override
+  String get browseSettingsSectionTitle => 'Browse notices';
+
+  @override
+  String get browseSettingsNewRoundToastTitle => 'Starting-over notice';
+
+  @override
+  String get browseSettingsNewRoundToastSubtitle =>
+      'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1196,6 +1214,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseSavedPoolNamingDuplicate => '这个名称已被使用。';
 
   @override
+  String mainBrowseSavedPoolNamingDuplicateRecipe(String name) {
+    return '你已创建过相同配方的片库 — 「$name」。';
+  }
+
+  @override
   String get mainBrowseSavedPoolCapacityTitle => '已保存片库已满';
 
   @override
@@ -1265,6 +1288,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedEmpty => '此来源没有内容。';
+
+  @override
+  String get mainBrowseNewRoundToast => '已浏览一遍，重新开始';
 
   @override
   String get mainBrowseFeedResolveFailed => '无法加载此来源。';
@@ -1518,4 +1544,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19SettingsLeftSwipeGuideSubtitle => '每次启动在浏览就绪时显示一次';
+
+  @override
+  String get browseSettingsSectionTitle => '浏览提示';
+
+  @override
+  String get browseSettingsNewRoundToastTitle => '重新开始提示';
+
+  @override
+  String get browseSettingsNewRoundToastSubtitle =>
+      '当你把当前列表刷完、从头再看时，浏览页顶部会短暂出现一条提示，大约 1.5 秒。一划走就会立刻消失。';
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
@@ -109,7 +110,10 @@ void main() {
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
-      for (final id in const ['a1', 'a2']) {
+      // Cap 22.5: leave 0→1 must not mount the endless-round bridge page
+      // (prepare at n-2), or a reused head id duplicates still keys.
+      const pool = ['a1', 'a2', 'a3', 'a4', 'a5'];
+      for (final id in pool) {
         final l1 = '/tmp/waketok_continuity_${id}_l1.jpg';
         final l2 = '/tmp/waketok_continuity_${id}_l2.jpg';
         File(l1).writeAsBytesSync(
@@ -133,18 +137,28 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          assetSources: FakeAssetSourceRepository(allIds: pool),
           mediaDisplay: display,
+          browseShuffleSeed: 0,
         ),
       );
       await pumpAsync(tester);
 
-      final stillA1 = find.byKey(
-        const Key('mainBrowseFeedStill_a1'),
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(VerticalMediaFeed)),
+      );
+      final headId = container
+          .read(browseSessionProvider)
+          .requireValue
+          .orderedAssetIds
+          .first;
+
+      final stillHead = find.byKey(
+        Key('mainBrowseFeedStill_$headId'),
         skipOffstage: false,
       );
       final imageFinder = find.descendant(
-        of: stillA1,
+        of: stillHead,
         matching: find.byType(Image, skipOffstage: false),
         skipOffstage: false,
       );
@@ -153,7 +167,7 @@ void main() {
         tester
             .widget<MagnificationHostModeBinder>(
               find.descendant(
-                of: stillA1,
+                of: stillHead,
                 matching: find.byType(
                   MagnificationHostModeBinder,
                   skipOffstage: false,
@@ -167,16 +181,13 @@ void main() {
       final stateBefore =
           (tester.element(imageFinder) as StatefulElement).state;
 
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(VerticalMediaFeed)),
-      );
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
       await pumpAsync(tester);
 
       expect(imageFinder, findsOneWidget);
       final binderAfter = tester.widget<MagnificationHostModeBinder>(
         find.descendant(
-          of: stillA1,
+          of: stillHead,
           matching: find.byType(
             MagnificationHostModeBinder,
             skipOffstage: false,
@@ -189,7 +200,10 @@ void main() {
         tester
             .state<MediaFeedPageState>(
               find.byWidgetPredicate(
-                (w) => w is MediaFeedPage && w.assetIdentifier == 'a1',
+                (w) =>
+                    w is MediaFeedPage &&
+                    w.assetIdentifier == headId &&
+                    w.feedIndex == 0,
                 skipOffstage: false,
               ),
             )

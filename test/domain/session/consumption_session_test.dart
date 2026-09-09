@@ -313,4 +313,65 @@ void main() {
     final next = startNextShuffleRound(session: session, random: Random(1));
     expect(identical(next, session), isTrue);
   });
+
+  test('PREP-1 prepareNextRoundQueue does not mutate session; first ≠ last', () {
+    final snap = _snapshot(id: 'prep1', ids: const ['a', 'b', 'c', 'd', 'e']);
+    final session = startConsumptionSession(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(0),
+    );
+    final beforeIds = List<String>.from(session.queue.orderedAssetIds);
+    final prepared = prepareNextRoundQueue(
+      session: session,
+      random: Random(1),
+    );
+    expect(prepared, isNotNull);
+    expect(session.queue.orderedAssetIds, beforeIds);
+    expect(prepared!.orderedAssetIds.first, isNot(beforeIds.last));
+    expect(prepared.snapshotId, snap.id);
+  });
+
+  test('COMMIT-1 commitPreparedNextRound keeps prepared order (no reshuffle)', () {
+    final snap = _snapshot(id: 'commit1', ids: const ['a', 'b', 'c', 'd', 'e']);
+    final session = startConsumptionSession(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(0),
+    );
+    final prepared = prepareNextRoundQueue(
+      session: session,
+      random: Random(1),
+    )!;
+    final committed = commitPreparedNextRound(
+      session: session,
+      prepared: prepared,
+    );
+    expect(committed.currentIndex, 0);
+    expect(committed.playbackPositionMs, isNull);
+    expect(committed.queue.orderedAssetIds, prepared.orderedAssetIds);
+    expect(committed.queue.orderedAssetIds.first, prepared.orderedAssetIds.first);
+  });
+
+  test('COMMIT-2 commitPreparedNextRound landingIndex=1', () {
+    final snap = _snapshot(id: 'commit2', ids: const ['a', 'b', 'c', 'd', 'e']);
+    final session = startConsumptionSession(
+      snapshot: snap,
+      configuration: _shuffleManualRepeatAll,
+      random: Random(0),
+    );
+    final prepared = prepareNextRoundQueue(
+      session: session,
+      random: Random(1),
+    )!;
+    expect(prepared.orderedAssetIds.length, greaterThanOrEqualTo(2));
+    final committed = commitPreparedNextRound(
+      session: session,
+      prepared: prepared,
+      currentIndex: 1,
+    );
+    expect(committed.currentIndex, 1);
+    expect(committed.currentAssetId, prepared.orderedAssetIds[1]);
+    expect(committed.queue.orderedAssetIds, prepared.orderedAssetIds);
+  });
 }

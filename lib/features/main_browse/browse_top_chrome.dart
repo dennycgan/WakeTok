@@ -53,69 +53,89 @@ class BrowseTopChrome extends ConsumerWidget {
           height: chromeHeight,
           child: Stack(
             children: [
+              // Vertically center all four controls in the chrome band
+              // (Cap 22.5: top:4 left/right sat optically higher than the
+              // Built-in+Saved pair which includes the dropdown icon).
               Align(
-                alignment: Alignment.topCenter,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 4),
-                  child: Row(
-                    key: const Key('mainBrowseChromeCenterPair'),
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _BuiltInControl(
-                        remembered: remembered,
-                        origin: origin,
-                        savedPoolName: savedChipName,
-                        highlightAsSelected: builtInSelected,
-                        onPick: (next) => ref
-                            .read(mainBrowseSelectedSourceProvider.notifier)
-                            .select(next),
-                      ),
-                      const SizedBox(width: 12),
-                      const _SavedControl(),
-                    ],
-                  ),
+                alignment: Alignment.center,
+                child: Row(
+                  key: const Key('mainBrowseChromeCenterPair'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _BuiltInControl(
+                      remembered: remembered,
+                      origin: origin,
+                      savedPoolName: savedChipName,
+                      highlightAsSelected: builtInSelected,
+                      onPick: (next) => ref
+                          .read(mainBrowseSelectedSourceProvider.notifier)
+                          .select(next),
+                    ),
+                    const SizedBox(width: 12),
+                    const _SavedControl(),
+                  ],
                 ),
               ),
               switch (chipKind) {
                 BrowseLeftChipKind.hidden => const SizedBox.shrink(),
                 BrowseLeftChipKind.tempPool => Positioned(
                   left: 8,
-                  top: 4,
-                  child: _TempPoolChip(
-                    onTap: () => _onTempChipTap(context, ref, parked: parked!),
+                  top: 0,
+                  bottom: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _TempPoolChip(
+                      isActive: switch (origin) {
+                        BrowseOriginEphemeralPool() => true,
+                        BrowseOriginBuiltIn() ||
+                        BrowseOriginSavedPool() =>
+                          false,
+                      },
+                      onTap: () =>
+                          _onTempChipTap(context, ref, parked: parked!),
+                    ),
                   ),
                 ),
                 BrowseLeftChipKind.savedPool => Positioned(
                   left: 8,
-                  top: 4,
-                  child: _SavedPoolChip(
-                    label: savedChipName ?? '',
-                    onTap: () => _onSavedChipTap(context, ref),
+                  top: 0,
+                  bottom: 0,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: _SavedPoolChip(
+                      label: savedChipName ?? '',
+                      onTap: () => _onSavedChipTap(context, ref),
+                    ),
                   ),
                 ),
               },
               Positioned(
                 right: 8,
-                top: 4,
-                child: _CreateControl(
-                  enabled: createEnabled,
-                  onTap: () {
-                    // Cap 21.5 P4: refresh catalog when opening Build so
-                    // deleted albums do not linger from a stale FutureProvider.
-                    ref.invalidate(assetSourcesProvider);
-                    ref.invalidate(buildPoolSmartCatalogProvider);
-                    final cover = ref.read(
-                      browseCoveringRouteOpenProvider.notifier,
-                    );
-                    cover.setOpen(true);
-                    Navigator.of(context)
-                        .push(
-                          MaterialPageRoute<void>(
-                            builder: (_) => const BuildPoolScaffoldPage(),
-                          ),
-                        )
-                        .whenComplete(() => cover.setOpen(false));
-                  },
+                top: 0,
+                bottom: 0,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: _CreateControl(
+                    enabled: createEnabled,
+                    onTap: () {
+                      // Cap 21.5 P4: refresh catalog when opening Build so
+                      // deleted albums do not linger from a stale
+                      // FutureProvider.
+                      ref.invalidate(assetSourcesProvider);
+                      ref.invalidate(buildPoolSmartCatalogProvider);
+                      final cover = ref.read(
+                        browseCoveringRouteOpenProvider.notifier,
+                      );
+                      cover.setOpen(true);
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const BuildPoolScaffoldPage(),
+                            ),
+                          )
+                          .whenComplete(() => cover.setOpen(false));
+                    },
+                  ),
                 ),
               ),
             ],
@@ -208,28 +228,40 @@ String _builtInSemanticsLabel({
 }
 
 class _TempPoolChip extends StatelessWidget {
-  const _TempPoolChip({required this.onTap});
+  const _TempPoolChip({required this.isActive, required this.onTap});
 
+  /// True while browsing the parked ephemeral (accent + surface pill).
+  /// False while parked but [BrowseOriginBuiltIn] (muted, no pill).
+  final bool isActive;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return Material(
-      key: const Key('mainBrowseTempPoolChip'),
-      color: tokens.surface.withValues(alpha: 0.92),
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
+    final color = isActive ? tokens.accent : tokens.onMediaMuted;
+    return Semantics(
+      button: true,
+      selected: isActive,
+      label: l10n.mainBrowseTempPoolChip,
+      child: Material(
+        key: const Key('mainBrowseTempPoolChip'),
+        color: isActive
+            ? tokens.surface.withValues(alpha: 0.92)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Text(
-            l10n.mainBrowseTempPoolChip,
-            style: tokens.labelOnMedia.copyWith(
-              color: tokens.accent,
-              shadows: tokens.onMediaLabelShadows,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Text(
+              l10n.mainBrowseTempPoolChip,
+              style: tokens.labelOnMedia.copyWith(
+                color: color,
+                inherit: false,
+                shadows: tokens.onMediaLabelShadows,
+              ),
             ),
           ),
         ),
@@ -368,23 +400,31 @@ class _BuiltInControl extends StatelessWidget {
       selected: highlightAsSelected,
       label: semanticsLabel,
       child: ExcludeSemantics(
-        child: InkWell(
+        child: Material(
           key: const Key('mainBrowseBuiltInMenu'),
-          onTap: () => _openBuiltInOverlay(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: tokens.labelOnMedia.copyWith(
-                    color: color,
-                    shadows: tokens.onMediaLabelShadows,
+          color: highlightAsSelected
+              ? tokens.surface.withValues(alpha: 0.92)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => _openBuiltInOverlay(context),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: tokens.labelOnMedia.copyWith(
+                      color: color,
+                      inherit: false,
+                      shadows: tokens.onMediaLabelShadows,
+                    ),
                   ),
-                ),
-                Icon(Icons.arrow_drop_down, size: 18, color: color),
-              ],
+                  Icon(Icons.arrow_drop_down, size: 18, color: color),
+                ],
+              ),
             ),
           ),
         ),
@@ -941,10 +981,7 @@ class _CompositionPeekCard extends ConsumerWidget {
             children: [
               Text(
                 title ?? l10n.mainBrowseCompositionPeekTitle,
-                style: tokens.labelOnMedia.copyWith(
-                  color: tokens.onMedia,
-                  inherit: false,
-                ),
+                style: browseSavedPoolDialogTitleStyle(tokens),
               ),
               const SizedBox(height: 8),
               Flexible(

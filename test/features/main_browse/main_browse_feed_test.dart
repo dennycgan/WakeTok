@@ -21,6 +21,8 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
+import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
+import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
@@ -40,6 +42,7 @@ import 'package:waketok/features/library_smoke/playback_providers.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
+import '../../library_smoke/fake_new_round_toast_preferences.dart';
 import '../../library_smoke/fake_playback_repository.dart';
 import '../../library_smoke/fake_presentation_metadata_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
@@ -3198,12 +3201,15 @@ void main() {
     expect(before.orderedAssetIds, ['e', 'c', 'd', 'b', 'a']);
     final lastId = before.orderedAssetIds.last;
 
+    // Avoid pumpAndSettle near end — placeholder neighbor spinner never settles.
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     container.read(browseSessionProvider.notifier).advanceToNextRound();
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
 
     final after = container.read(browseSessionProvider).requireValue;
     expect(container.read(mainBrowseFeedIndexProvider), 0);
@@ -3212,7 +3218,7 @@ void main() {
   });
 
   testWidgets(
-    'W-END-2 last-page outOfRange ScrollUpdate advances a new round',
+    'W-END-2 last real page in-range ScrollUpdate does not advance',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final sources = FakeAssetSourceRepository(
@@ -3230,38 +3236,180 @@ void main() {
       final element = tester.element(find.byType(VerticalMediaFeed));
       final container = ProviderScope.containerOf(element);
       final before = container.read(browseSessionProvider).requireValue;
-      expect(before.orderedAssetIds.length, 5);
+      // Last real item (n-1), not the placeholder page.
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump();
 
       final pageContext = tester.element(find.byType(PageView));
       final metrics = FixedScrollMetrics(
         minScrollExtent: 0,
         maxScrollExtent: 800,
-        pixels: 860,
+        pixels: 800,
         viewportDimension: 400,
         axisDirection: AxisDirection.down,
         devicePixelRatio: tester.view.devicePixelRatio,
       );
+      expect(metrics.extentAfter, 0);
+      expect(metrics.outOfRange, isFalse);
       ScrollUpdateNotification(
         metrics: metrics,
         context: pageContext,
         depth: 0,
         dragDetails: null,
-        scrollDelta: 24,
+        scrollDelta: 12,
       ).dispatch(pageContext);
+      await tester.pump();
+
+      final after = container.read(browseSessionProvider).requireValue;
+      expect(after.roundEpoch, before.roundEpoch);
+      expect(container.read(mainBrowseFeedIndexProvider), 4);
+    },
+  );
+
+  testWidgets('W-END-3 placeholder exists when n>1', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    final n =
+        container.read(browseSessionProvider).requireValue.orderedAssetIds.length;
+    expect(n, greaterThan(1));
+
+    final pageView = tester.widget<PageView>(find.byType(PageView));
+    final delegate = pageView.childrenDelegate as SliverChildBuilderDelegate;
+    expect(delegate.estimatedChildCount, n + 1);
+
+    // Land on last real page so allowImplicitScrolling builds the neighbor
+    // placeholder — do not jumpToPage(n) (ScrollEnd settle would advance).
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(n - 1);
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(
+        const Key('mainBrowseEndlessRoundPlaceholder'),
+        skipOffstage: false,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const Key('mainBrowseEndlessRoundPlaceholder'),
+          skipOffstage: false,
+        ),
+        matching: find.byKey(
+          const Key('mainBrowseFeedCoverlessWaitLabel'),
+          skipOffstage: false,
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const Key('mainBrowseEndlessRoundPlaceholder'),
+          skipOffstage: false,
+        ),
+        matching: find.byKey(
+          const Key('mainBrowseFeedPageLoadingSpinner'),
+          skipOffstage: false,
+        ),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'W-END-9 round advance does not arm ADR-039 Layer1 center-label delay',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final sources = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c', 'd', 'e'],
+      );
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          browseShuffleSeed: 0,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      expect(feedState.debugLastDelayInitialLayer1CenterLabel, isFalse);
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      feedState.debugAdvanceEndlessRound(l10n);
+      await tester.pump();
+      await tester.pump();
+
+      expect(feedState.debugLastDelayInitialLayer1CenterLabel, isFalse);
+
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      hideCap19BrowseToast();
+      await tester.pump(kCap19BrowseToastDuration);
+    },
+  );
+  testWidgets(
+    'W-END-4 placeholder ScrollEnd settle advances (debugAdvanceEndlessRound)',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final sources = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c', 'd', 'e'],
+      );
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          browseShuffleSeed: 0,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      final before = container.read(browseSessionProvider).requireValue;
+      final lastId = before.orderedAssetIds.last;
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+
+      // Prefer debug seam — widget-test ScrollEnd settle on placeholder is flaky.
+      feedState.debugAdvanceEndlessRound(l10n);
       await tester.pump();
       await tester.pump();
 
       final after = container.read(browseSessionProvider).requireValue;
       expect(after.roundEpoch, greaterThan(before.roundEpoch));
+      expect(after.orderedAssetIds.first, isNot(lastId));
       expect(container.read(mainBrowseFeedIndexProvider), 0);
+
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsOneWidget);
+      hideCap19BrowseToast();
+      await tester.pump(kCap19BrowseToastDuration);
     },
   );
 
-  testWidgets('W-END-3 last-page in-range ScrollUpdate does not advance', (
-    tester,
-  ) async {
+  testWidgets('W-END-5 overscroll from end advances round', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a', 'b', 'c', 'd', 'e'],
@@ -3278,8 +3426,7 @@ void main() {
     final element = tester.element(find.byType(VerticalMediaFeed));
     final container = ProviderScope.containerOf(element);
     final before = container.read(browseSessionProvider).requireValue;
-    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
-    await tester.pumpAndSettle();
+    final lastId = before.orderedAssetIds.last;
 
     final pageContext = tester.element(find.byType(PageView));
     final metrics = FixedScrollMetrics(
@@ -3290,21 +3437,92 @@ void main() {
       axisDirection: AxisDirection.down,
       devicePixelRatio: tester.view.devicePixelRatio,
     );
-    expect(metrics.extentAfter, 0);
-    expect(metrics.outOfRange, isFalse);
-    ScrollUpdateNotification(
+    OverscrollNotification(
       metrics: metrics,
       context: pageContext,
-      depth: 0,
+      overscroll: 24,
       dragDetails: null,
-      scrollDelta: 12,
     ).dispatch(pageContext);
+    await tester.pump();
     await tester.pump();
 
     final after = container.read(browseSessionProvider).requireValue;
-    expect(after.roundEpoch, before.roundEpoch);
-    expect(container.read(mainBrowseFeedIndexProvider), 4);
+    expect(after.roundEpoch, greaterThan(before.roundEpoch));
+    expect(after.orderedAssetIds.first, isNot(lastId));
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump();
+    hideCap19BrowseToast();
+    await tester.pump(kCap19BrowseToastDuration);
   });
+
+  testWidgets(
+    'W-END-7 starting-over toast hides when leaving remounted head',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final sources = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c', 'd', 'e'],
+      );
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          browseShuffleSeed: 0,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
+
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      feedState.debugShowNewRoundToastArmed(l10n);
+      await tester.pump();
+      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsOneWidget);
+      expect(feedState.debugNewRoundToastDismissOnLeaveHead, isTrue);
+
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+      await tester.pump();
+      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsNothing);
+      expect(feedState.debugNewRoundToastDismissOnLeaveHead, isFalse);
+    },
+  );
+
+  testWidgets(
+    'W-END-8 Settings off skips starting-over toast after advance',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final sources = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c', 'd', 'e'],
+      );
+      final prefs = FakeNewRoundToastPreferences()..newRoundToastEnabled = false;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: sources,
+          browseShuffleSeed: 0,
+          newRoundToastPreferences: prefs,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      feedState.debugAdvanceEndlessRound(l10n);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump();
+      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsNothing);
+    },
+  );
 
   test('U-14.4 Layer 1 miss is null not failed', () async {
     final display = FakeMediaDisplayRepository();
@@ -4356,7 +4574,8 @@ void main() {
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
-      for (final id in const ['v1', 'v2']) {
+      // Cap 22.5: n=2 leave→last mounts bridge; pad so index 1 ≠ n-2.
+      for (final id in const ['v1', 'v2', 'v3', 'v4', 'v5']) {
         display.displayErrorById[id] = 'unsupportedMedia';
         display.previewsById[id] = DisplayAsset(
           assetIdentifier: id,
@@ -4368,9 +4587,12 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['v1', 'v2', 'v3', 'v4', 'v5'],
+          ),
           mediaDisplay: display,
           playback: playback,
+          browseShuffleSeed: 0,
         ),
       );
       await pumpAsyncWork(tester);
@@ -4424,7 +4646,10 @@ void main() {
 
       final page = tester.state<MediaFeedPageState>(
         find.byWidgetPredicate(
-          (w) => w is MediaFeedPage && w.assetIdentifier == leaving,
+          (w) =>
+              w is MediaFeedPage &&
+              w.assetIdentifier == leaving &&
+              w.feedIndex == 0,
           skipOffstage: false,
         ),
       );
@@ -4488,7 +4713,7 @@ void main() {
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
-      for (final id in const ['v1', 'v2']) {
+      for (final id in const ['v1', 'v2', 'v3', 'v4', 'v5']) {
         display.displayErrorById[id] = 'unsupportedMedia';
         display.previewsById[id] = DisplayAsset(
           assetIdentifier: id,
@@ -4500,9 +4725,12 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['v1', 'v2', 'v3', 'v4', 'v5'],
+          ),
           mediaDisplay: display,
           playback: playback,
+          browseShuffleSeed: 0,
         ),
       );
       await pumpAsyncWork(tester);
@@ -4530,7 +4758,10 @@ void main() {
 
       final page = tester.state<MediaFeedPageState>(
         find.byWidgetPredicate(
-          (w) => w is MediaFeedPage && w.assetIdentifier == leaving,
+          (w) =>
+              w is MediaFeedPage &&
+              w.assetIdentifier == leaving &&
+              w.feedIndex == 0,
           skipOffstage: false,
         ),
       );
@@ -5021,19 +5252,25 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
       final gate = Completer<void>();
-      display.displayGates['a1'] = gate;
-      display.displayGates['a2'] = gate;
+      for (final id in const ['a1', 'a2', 'a3', 'a4', 'a5']) {
+        display.displayGates[id] = gate;
+      }
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
+          // Cap 22.5: pad past n=2 so leave 0→1 does not mount bridge.
           assetSources: FakeAssetSourceRepository(
-            photosIds: const ['a1', 'a2'],
+            photosIds: const ['a1', 'a2', 'a3', 'a4', 'a5'],
             availabilityById: const {
               'a1': AssetAvailability.deviceLocal,
               'a2': AssetAvailability.deviceLocal,
+              'a3': AssetAvailability.deviceLocal,
+              'a4': AssetAvailability.deviceLocal,
+              'a5': AssetAvailability.deviceLocal,
             },
           ),
           mediaDisplay: display,
+          browseShuffleSeed: 0,
         ),
       );
       await tester.pump();

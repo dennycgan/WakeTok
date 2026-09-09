@@ -849,8 +849,14 @@ abstract class AppLocalizations {
   /// Inline error when the normalized name collides with another Saved preset
   ///
   /// In en, this message translates to:
-  /// **'That name is already used.'**
+  /// **'This name is already used.'**
   String get mainBrowseSavedPoolNamingDuplicate;
+
+  /// Inline error when create recipe matches an existing Saved preset; {name} is that preset's display name
+  ///
+  /// In en, this message translates to:
+  /// **'You already have a pool with these sources — “{name}”.'**
+  String mainBrowseSavedPoolNamingDuplicateRecipe(String name);
 
   /// Capacity dialog title at max 10 Saved presets
   ///
@@ -989,6 +995,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No items in this source.'**
   String get mainBrowseFeedEmpty;
+
+  /// Cap 22.5 toast after one full Endless pass; commit next Shuffle (not internal jargon)
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve seen it all — starting over'**
+  String get mainBrowseNewRoundToast;
 
   /// Main Browse feed when resolveSource fails
   ///
@@ -1439,6 +1451,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Once per launch when Browse is ready'**
   String get cap19SettingsLeftSwipeGuideSubtitle;
+
+  /// Cap 22.5 Settings section for Browse notifications (not bottom-nav Browse)
+  ///
+  /// In en, this message translates to:
+  /// **'Browse notices'**
+  String get browseSettingsSectionTitle;
+
+  /// Cap 22.5 toggle title for end-of-list restart toast
+  ///
+  /// In en, this message translates to:
+  /// **'Starting-over notice'**
+  String get browseSettingsNewRoundToastTitle;
+
+  /// Cap 22.5 toggle subtitle: where, when, duration, early dismiss
+  ///
+  /// In en, this message translates to:
+  /// **'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.'**
+  String get browseSettingsNewRoundToastSubtitle;
 }
 
 class _AppLocalizationsDelegate

@@ -7,6 +7,7 @@ import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
+import 'package:waketok/domain/session/session_queue.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/resolve_pool.dart';
@@ -302,7 +303,10 @@ SourcePoolDefinition browsePoolDefinition(SourceReference source) {
 
 /// In-memory Browse feed session + round epoch (Cap 13.4).
 class BrowseSessionView {
-  const BrowseSessionView({required this.session, required this.roundEpoch});
+  const BrowseSessionView({
+    required this.session,
+    required this.roundEpoch,
+  });
 
   final ConsumptionSession session;
   final int roundEpoch;
@@ -315,7 +319,7 @@ class BrowseSessionView {
 /// Watches [browseChromeStateProvider].activeOrigin (ADR-044 D6.1). Each
 /// distinct Origin (including built-in revisit) starts a **new** Session on
 /// the cached Snapshot (D8). [advanceToNextRound] reshuffles in-place for
-/// Endless.
+/// Endless Repeat All (Cap 22.5 scheme A: placeholder settle / overscroll).
 final browseSessionProvider =
     AsyncNotifierProvider<BrowseSessionNotifier, BrowseSessionView>(
       BrowseSessionNotifier.new,
@@ -359,7 +363,9 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     return BrowseSessionView(session: session, roundEpoch: _roundEpoch);
   }
 
-  /// Endless Shuffle: next round on the same Snapshot (Repeat All).
+  /// Endless Shuffle: reshuffle immediately on the same Snapshot and bump
+  /// [BrowseSessionView.roundEpoch] (PageView remount). Cap 22.5 scheme A
+  /// calls this after placeholder ScrollEnd settle or true overscroll.
   void advanceToNextRound() {
     final current = state.asData?.value;
     if (current == null) {

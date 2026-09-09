@@ -196,28 +196,86 @@ int _remapIndex({
 /// No-ops (returns [session] unchanged) when:
 /// - [repeatPolicy] is not [RepeatPolicy.repeatAll], or
 /// - the queue length is ≤ 1 (nothing to reshuffle meaningfully).
+///
+/// Implemented via [prepareNextRoundQueue] + [commitPreparedNextRound]
+/// (single shuffle, no second draw). Cap 22.5 scheme A feed UI advances via
+/// the browse-session `advanceToNextRound` path; prepare/commit remain
+/// domain helpers for this helper (not a feed bridge UI).
 ConsumptionSession startNextShuffleRound({
+  required ConsumptionSession session,
+  Random? random,
+}) {
+  final prepared = prepareNextRoundQueue(session: session, random: random);
+  if (prepared == null) {
+    return session;
+  }
+  return commitPreparedNextRound(session: session, prepared: prepared);
+}
+
+/// Builds the next Endless Shuffle round queue **without** mutating [session].
+///
+/// Returns `null` when Repeat All does not apply or the queue length is ≤ 1.
+/// Uses [previousRoundLastId] = current round last (ADR-023 first≠last).
+///
+/// Domain helper for [startNextShuffleRound] (and PREP-* tests) — not Cap
+/// 22.5 feed bridge UI.
+SessionQueue? prepareNextRoundQueue({
   required ConsumptionSession session,
   Random? random,
 }) {
   final config = session.queue.configuration;
   if (config.repeatPolicy != RepeatPolicy.repeatAll) {
-    return session;
+    return null;
   }
   final ids = session.queue.orderedAssetIds;
   if (ids.length <= 1) {
-    return session;
+    return null;
   }
-  final newQueue = buildSessionQueue(
+  return buildSessionQueue(
     snapshot: session.snapshot,
     configuration: config,
     random: random,
     previousRoundLastId: ids.last,
   );
+}
+
+/// Commits a previously prepared next-round [SessionQueue] (no reshuffle).
+///
+/// [prepared] must belong to [session.snapshot] (same [SessionQueue.snapshotId]).
+///
+/// [currentIndex] is the landing index in the prepared queue (default `0`).
+/// Domain helper for [startNextShuffleRound] (and COMMIT-* tests) — not Cap
+/// 22.5 feed bridge UI.
+ConsumptionSession commitPreparedNextRound({
+  required ConsumptionSession session,
+  required SessionQueue prepared,
+  int currentIndex = 0,
+}) {
+  if (prepared.snapshotId != session.snapshot.id) {
+    throw ArgumentError.value(
+      prepared.snapshotId,
+      'prepared.snapshotId',
+      'must match session.snapshot.id (${session.snapshot.id})',
+    );
+  }
+  if (prepared.orderedAssetIds.isEmpty) {
+    throw ArgumentError.value(
+      prepared.orderedAssetIds,
+      'prepared.orderedAssetIds',
+      'must not be empty',
+    );
+  }
+  if (currentIndex < 0 || currentIndex >= prepared.orderedAssetIds.length) {
+    throw RangeError.index(
+      currentIndex,
+      prepared.orderedAssetIds,
+      'currentIndex',
+    );
+  }
   return ConsumptionSession(
     snapshot: session.snapshot,
-    queue: newQueue,
-    currentIndex: 0,
+    queue: prepared,
+    currentIndex: currentIndex,
     playbackPositionMs: null,
   );
 }

@@ -4,8 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
@@ -31,6 +33,8 @@ import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
+import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_gesture.dart';
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
@@ -47,7 +51,8 @@ import 'package:waketok/l10n/app_localizations.dart';
 const double kCoverlessCenterTopChromeBody = 8 + 8 + 20 + 16;
 
 /// True when a vertical feed scroll is past the trailing edge (next-item
-/// direction). Used for Endless last-page round advance.
+/// direction). Used for Endless round advance **fallback** after the
+/// static placeholder page (Cap 22.5 scheme A) — true overscroll only.
 ///
 /// Last-page **settle** (`extentAfter == 0` but still in-range) must not
 /// match — that would reshuffle when the user only lands on the last item.
@@ -80,11 +85,34 @@ class VerticalMediaFeed extends ConsumerStatefulWidget {
 class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     with WidgetsBindingObserver {
   PageController? _pageController;
+  /// Tracks which [BrowseSessionView.roundEpoch] [_pageController] was built
+  /// for. Remount must recreate the controller at the landing index —
+  /// [PageController.initialPage] is fixed at construction; reusing the
+  /// old controller after a new PageView key would flash page 0.
+  int? _pageControllerEpoch;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
   bool _advancingRound = false;
+  /// Cap 22.5 scheme A: placeholder page (index == session length) armed
+  /// for ScrollEnd settle advance. Do not [setIndex] to the placeholder —
+  /// feed-index listen would [PageController.jumpToPage] and truncate scroll.
+  bool _endlessPlaceholderArmed = false;
+  /// Cancels in-flight toast / post-advance work across dispose or re-advance.
+  int _roundAdvanceGen = 0;
+  /// Last still Layer 1 per asset (preheat / current) for remount seed so
+  /// round landing does not flash bare feedBackground.
+  final Map<String, FeedPageMedia> _layer1Seeds = <String, FeedPageMedia>{};
+  /// Cap 22.5: after showing starting-over toast, dismiss when leaving
+  /// feedIndex 0 (landing) or leave Browse.
+  bool _newRoundToastDismissArmed = false;
+  int? _newRoundToastLandingFeedIndex;
   AppLifecycleState? _lastLifecycle;
   String? _lastDataSourceId;
+
+  /// Last build's ADR-039 source-switch center-label delay flag.
+  /// Round advance must leave this false (same [feedDataSourceId]).
+  @visibleForTesting
+  bool debugLastDelayInitialLayer1CenterLabel = false;
 
   final FeedActivationCoordinator _activation = FeedActivationCoordinator();
 
@@ -140,7 +168,19 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     if (_scrubberVerticalFeedSettled != settled) {
       _scrubberVerticalFeedSettled = settled;
       if (mounted) {
-        setState(() {});
+        // Remount / jumpToPage can deliver scroll metrics during layout;
+        // never setState mid-frame (Cap 22.5 bridge commit).
+        final phase = SchedulerBinding.instance.schedulerPhase;
+        if (phase == SchedulerPhase.idle ||
+            phase == SchedulerPhase.postFrameCallbacks) {
+          setState(() {});
+        } else {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {});
+            }
+          });
+        }
       }
     }
     ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(settled);
@@ -315,12 +355,60 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _pageController = PageController(
-      // Second line of defense if Feed State is ever recreated. Primary
-      // fix is the unconditional IndexedStack Theme wrap in the shell.
-      initialPage: ref.read(mainBrowseFeedIndexProvider),
-    );
+    // Controller is created on first session build with the correct epoch /
+    // landing page (see [_ensurePageControllerForEpoch]).
     WidgetsBinding.instance.addPostFrameCallback((_) => _attachRestore());
+  }
+
+  void _ensurePageControllerForEpoch({
+    required int roundEpoch,
+    required int initialPage,
+  }) {
+    if (_pageController != null && _pageControllerEpoch == roundEpoch) {
+      return;
+    }
+    final previous = _pageController;
+    _pageControllerEpoch = roundEpoch;
+    _pageController = PageController(initialPage: initialPage);
+    if (previous != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        previous.dispose();
+      });
+    }
+  }
+
+  Future<void> _showNewRoundToastAfterAdvance({
+    required AppLocalizations l10n,
+    required int remountGen,
+  }) async {
+    // Slightly after jump/remount paint so toast is not same-frame as swap.
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    if (!mounted || remountGen != _roundAdvanceGen) {
+      return;
+    }
+    final enabled =
+        await ref.read(newRoundToastPreferencesProvider).isNewRoundToastEnabled();
+    if (!mounted || !enabled) {
+      return;
+    }
+    // Scheme A always lands on feedIndex 0 after advance.
+    if (ref.read(mainBrowseFeedIndexProvider) != 0) {
+      return;
+    }
+    const toastKey = Key('mainBrowseNewRoundToast');
+    _newRoundToastDismissArmed = true;
+    _newRoundToastLandingFeedIndex = 0;
+    showCap19BrowseToast(
+      context,
+      message: l10n.mainBrowseNewRoundToast,
+      toastKey: toastKey,
+    );
+    Future<void>.delayed(kCap19BrowseToastDuration, () {
+      if (mounted && _newRoundToastLandingFeedIndex == 0) {
+        _newRoundToastDismissArmed = false;
+        _newRoundToastLandingFeedIndex = null;
+      }
+    });
   }
 
   void _attachRestore() {
@@ -343,6 +431,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
 
   @override
   void dispose() {
+    _roundAdvanceGen++;
     WidgetsBinding.instance.removeObserver(this);
     _restoreSub?.cancel();
     _pageController?.dispose();
@@ -493,24 +582,152 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     }
   }
 
-  void _tryAdvanceEndlessRound({
-    required int feedIndex,
-    required int queueLength,
-  }) {
-    if (_advancingRound || queueLength <= 1 || feedIndex != queueLength - 1) {
+  /// Cap 22.5 scheme A: clear Cap19 drag, leave current, reshuffle + remount
+  /// at index 0, then toast. Shared by placeholder ScrollEnd settle and
+  /// true trailing overscroll.
+  void _advanceEndlessRound({required AppLocalizations l10n}) {
+    if (_advancingRound) {
+      return;
+    }
+    final queueLength =
+        ref.read(browseSessionProvider).asData?.value.orderedAssetIds.length ??
+            0;
+    if (queueLength <= 1) {
       return;
     }
     _advancingRound = true;
+    _endlessPlaceholderArmed = false;
+    final remountGen = ++_roundAdvanceGen;
+    _clearCap19LeftSwipeBeforeFeedRemount();
     unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
     ref.read(browseSessionProvider.notifier).advanceToNextRound();
     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _advancingRound = false;
+      if (!mounted || remountGen != _roundAdvanceGen) {
+        return;
+      }
       final controller = _pageController;
       if (controller != null && controller.hasClients) {
         controller.jumpToPage(0);
       }
+      _advancingRound = false;
+      unawaited(
+        _showNewRoundToastAfterAdvance(
+          l10n: l10n,
+          remountGen: remountGen,
+        ),
+      );
     });
+  }
+
+  /// Cap 22.5: drop in-flight Cap 19 left-swipe drag before page tree
+  /// swaps (roundEpoch remount). Complements mounted guards on
+  /// [Cap19LeftSwipeGesture] — remount can dispose the Listener while a
+  /// pointer is still tracked.
+  void _clearCap19LeftSwipeBeforeFeedRemount() {
+    ref.read(cap19LeftSwipeDragProvider.notifier).reset();
+  }
+
+  /// Test seam: arm + show starting-over toast (skips prefs / remount delay).
+  @visibleForTesting
+  void debugShowNewRoundToastArmed(AppLocalizations l10n, {int landingIndex = 0}) {
+    _newRoundToastDismissArmed = true;
+    _newRoundToastLandingFeedIndex = landingIndex;
+    showCap19BrowseToast(
+      context,
+      message: l10n.mainBrowseNewRoundToast,
+      toastKey: const Key('mainBrowseNewRoundToast'),
+    );
+  }
+
+  @visibleForTesting
+  bool get debugNewRoundToastDismissOnLeaveHead => _newRoundToastDismissArmed;
+
+  @visibleForTesting
+  int? get debugNewRoundToastLandingFeedIndex => _newRoundToastLandingFeedIndex;
+
+  void _dismissNewRoundToastIfLeavingLanding(int previousIndex, int nextIndex) {
+    if (!_newRoundToastDismissArmed) {
+      return;
+    }
+    final landing = _newRoundToastLandingFeedIndex;
+    if (landing == null) {
+      return;
+    }
+    if (previousIndex == landing && nextIndex != landing) {
+      _newRoundToastDismissArmed = false;
+      _newRoundToastLandingFeedIndex = null;
+      if (cap19BrowseToastActiveKey == const Key('mainBrowseNewRoundToast')) {
+        hideCap19BrowseToast();
+      }
+    }
+  }
+
+  void _dismissNewRoundToastBecauseLeftBrowse() {
+    if (!_newRoundToastDismissArmed) {
+      return;
+    }
+    _newRoundToastDismissArmed = false;
+    _newRoundToastLandingFeedIndex = null;
+    if (cap19BrowseToastActiveKey == const Key('mainBrowseNewRoundToast')) {
+      hideCap19BrowseToast();
+    }
+  }
+
+  void _noteLayer1Seed(String assetId, FeedPageMedia media) {
+    final display = media.display;
+    if (display == null || display.assetIdentifier != assetId) {
+      return;
+    }
+    // Still L1 or video poster — enough to cover remount for stills pools.
+    if (media.kind != FeedPageMediaKind.still &&
+        media.kind != FeedPageMediaKind.video) {
+      return;
+    }
+    _layer1Seeds[assetId] = media;
+  }
+
+  @visibleForTesting
+  void debugPutLayer1Seed(String assetId, FeedPageMedia media) {
+    _noteLayer1Seed(assetId, media);
+  }
+
+  @visibleForTesting
+  FeedPageMedia? debugLayer1Seed(String assetId) => _layer1Seeds[assetId];
+
+  /// Cap 22.5 scheme A: advance only on true [ScrollEndNotification] while
+  /// the placeholder page is settled ([verticalFeedPageSettled]).
+  void _maybeAdvanceOnPlaceholderSettle({
+    required ScrollNotification notification,
+    required double page,
+    required int sessionLength,
+    required AppLocalizations l10n,
+  }) {
+    if (!_endlessPlaceholderArmed || _advancingRound) {
+      return;
+    }
+    if (notification is! ScrollEndNotification) {
+      return;
+    }
+    if (sessionLength <= 1) {
+      return;
+    }
+    final placeholderIndex = sessionLength;
+    if (!verticalFeedPageSettled(
+      pageOffset: page,
+      feedIndex: placeholderIndex,
+    )) {
+      return;
+    }
+    _advanceEndlessRound(l10n: l10n);
+  }
+
+  /// Test seam: Cap 22.5 scheme A advance (same as placeholder ScrollEnd /
+  /// trailing overscroll). Prefer this when widget-test ScrollEnd settle is
+  /// flaky.
+  @visibleForTesting
+  void debugAdvanceEndlessRound(AppLocalizations l10n) {
+    _advanceEndlessRound(l10n: l10n);
   }
 
   Set<int> _preheatWindow(int feedIndex, int n, bool browseActive) {
@@ -615,11 +832,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       if (previous != next) {
         ref.read(pvTransitionGuardProvider.notifier).onFeedIndexChanged(next);
       }
+      if (previous != null && previous != next) {
+        _dismissNewRoundToastIfLeavingLanding(previous, next);
+      }
     });
     ref.listen(mainBrowseDestinationProvider, (previous, next) {
       if (previous == MainBrowseDestination.browse &&
           next != MainBrowseDestination.browse) {
         _clearMagnificationSession();
+        _dismissNewRoundToastBecauseLeftBrowse();
         unawaited(
           ref
               .read(pvTransitionGuardProvider.notifier)
@@ -727,9 +948,14 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
           final snapshot = view.session.snapshot;
           final ids = view.orderedAssetIds;
           final previousDataSourceId = _lastDataSourceId;
+          // ADR-039: delay only on All/Photos/Videos/pool origin change
+          // ([feedDataSourceId]). roundEpoch remount from
+          // [advanceToNextRound] keeps the same origin — must not arm.
           final delayInitialLayer1CenterLabel =
               previousDataSourceId != null &&
               previousDataSourceId != feedDataSourceId;
+          debugLastDelayInitialLayer1CenterLabel =
+              delayInitialLayer1CenterLabel;
           if (previousDataSourceId != null &&
               previousDataSourceId != feedDataSourceId) {
             // Build path — mutate local only; publish after frame (no setState).
@@ -778,6 +1004,12 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
             });
           }
           final safeIndex = feedIndex.clamp(0, ids.length - 1);
+          // Cap 22.5 scheme A: recreate PageController when roundEpoch bumps
+          // so remount lands on index 0, not a stale initialPage.
+          _ensurePageControllerForEpoch(
+            roundEpoch: view.roundEpoch,
+            initialPage: safeIndex,
+          );
           final currentId = ids[safeIndex];
           // Sync activate in this build so the current page receives
           // assignedDisplayGeneration before its first _startLoad.
@@ -798,15 +1030,26 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
               _activeDisplayGeneration == null) {
             _beginCurrentItemActivation(currentId, source: 'build_sync');
           }
+          final pageItemCount =
+              ids.length > 1 ? ids.length + 1 : ids.length;
           return Stack(
             fit: StackFit.expand,
             children: [
               NotificationListener<ScrollNotification>(
                 onNotification: (notification) {
+                  if (_advancingRound) {
+                    return false;
+                  }
                   if (isEndlessRoundAdvanceScroll(notification)) {
-                    _tryAdvanceEndlessRound(
-                      feedIndex: feedIndex,
-                      queueLength: ids.length,
+                    _advanceEndlessRound(l10n: l10n);
+                  }
+                  final page = _pageController?.page;
+                  if (page != null) {
+                    _maybeAdvanceOnPlaceholderSettle(
+                      notification: notification,
+                      page: page,
+                      sessionLength: ids.length,
+                      l10n: l10n,
                     );
                   }
                   _handlePvTransitionScroll(notification);
@@ -825,13 +1068,51 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   // This SDK's PageView.builder has no cacheExtent; true sets
                   // Viewport cacheExtent to 1.0 viewport (±1 pages).
                   allowImplicitScrolling: true,
-                  itemCount: ids.length,
+                  itemCount: pageItemCount,
                   onPageChanged: (i) {
                     _clearMagnificationSession();
+                    if (ids.length > 1 &&
+                        i == ids.length &&
+                        !_advancingRound) {
+                      // Scheme A: arm placeholder only — wait for ScrollEnd
+                      // settle. Do not setIndex(placeholder).
+                      _endlessPlaceholderArmed = true;
+                      return;
+                    }
+                    _endlessPlaceholderArmed = false;
+                    if (i >= ids.length) {
+                      return;
+                    }
                     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(i);
                     _publishVerticalFeedSettled(true);
                   },
                   itemBuilder: (context, index) {
+                    if (index >= ids.length) {
+                      // Scheme A forge: center "Loading item" only — not a
+                      // real Layer-1 miss/`_loading` page. Corner gold
+                      // spinner would read as live work on a fake page.
+                      return AbsorbPointer(
+                        key: const Key('mainBrowseEndlessRoundPlaceholder'),
+                        child: ColoredBox(
+                          color: tokens.feedBackground,
+                          child: _UsableRegionCenter(
+                            child: ExcludeSemantics(
+                              child: Text(
+                                l10n.mainBrowseFeedLayer1Loading,
+                                key: const Key(
+                                  'mainBrowseFeedCoverlessWaitLabel',
+                                ),
+                                textAlign: TextAlign.center,
+                                style: tokens.labelOnMedia.copyWith(
+                                  color: tokens.onMedia,
+                                  shadows: tokens.onMediaLabelShadows,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    }
                     final isCurrent = browseActive && index == feedIndex;
                     final isPreheatNeighbor =
                         browseActive &&
@@ -866,6 +1147,8 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                       onCurrentLayer2MediaReady: isCurrent
                           ? _onCurrentLayer2MediaReady
                           : null,
+                      initialLayer1: _layer1Seeds[ids[index]],
+                      onLayer1Available: _noteLayer1Seed,
                     );
                   },
                 ),
@@ -1006,6 +1289,8 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     this.delayInitialLayer1CenterLabel = false,
     this.foregroundResumeSyncEpoch = 0,
     this.onCurrentLayer2MediaReady,
+    this.initialLayer1,
+    this.onLayer1Available,
   });
 
   final String assetIdentifier;
@@ -1036,6 +1321,12 @@ class MediaFeedPage extends ConsumerStatefulWidget {
 
   /// Current page only. Parent reads metadata generation at callback time.
   final void Function(String assetId)? onCurrentLayer2MediaReady;
+
+  /// Cap 22.5: seed still/poster Layer 1 across roundEpoch remount.
+  final FeedPageMedia? initialLayer1;
+
+  /// Notifies parent when a still (or video poster) Layer 1 is available.
+  final void Function(String assetId, FeedPageMedia media)? onLayer1Available;
 
   static const String playbackViewType = 'waketok/playback_surface';
   static const String livePhotoViewType = 'waketok/live_photo_surface';
@@ -1140,6 +1431,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   FeedPageMedia? get debugMedia => _media;
 
   @visibleForTesting
+  bool get debugLoading => _loading;
+
+  @visibleForTesting
   bool get debugSurfaceReady => _surfaceReady;
 
   @visibleForTesting
@@ -1150,9 +1444,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @visibleForTesting
   bool get debugLayer2InFlight => _layer2InFlight;
-
-  @visibleForTesting
-  bool get debugLoading => _loading;
 
   @visibleForTesting
   int? get debugLayer2InFlightGeneration => _layer2InFlightGeneration;
@@ -1780,6 +2071,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _armInitialLayer1CenterLabelDelay();
     if (widget.isCurrent) {
       _armLayer2DwellTimer();
+    }
+    final seed = widget.initialLayer1;
+    final seedDisplay = seed?.display;
+    if (seedDisplay != null &&
+        seedDisplay.assetIdentifier == widget.assetIdentifier) {
+      // Cap 22.5: remount with prior still/poster so round-head does not
+      // flash bare feedBackground between peek L1 and L2.
+      _media = seed;
+      _loading = false;
     }
     _startLoad();
   }
@@ -2687,6 +2987,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _armLayer2InFlight(layer2Generation);
       }
     });
+    widget.onLayer1Available?.call(widget.assetIdentifier, layer1!);
   }
 
   Future<void> _runLayer2AfterJoinedLayer1({
@@ -3724,6 +4025,28 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
     final media = _media;
     if (media == null) {
+      // Current without media — show miss chrome (never empty SizedBox under
+      // current). Peek neighbours may stay empty expand.
+      if (widget.isCurrent) {
+        final l10nLoading = AppLocalizations.of(context)!;
+        final tokensLoading = Theme.of(context).extension<WakeTokTokens>()!;
+        return ColoredBox(
+          key: const Key('mainBrowseFeedPageLoading'),
+          color: tokensLoading.feedBackground,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _FeedCornerChrome(
+                color: tokensLoading.brandGold,
+                showSpinner: true,
+                rowKey: const Key('mainBrowseFeedPageLoadingChrome'),
+                spinnerKey: const Key('mainBrowseFeedPageLoadingSpinner'),
+                semanticsLabel: l10nLoading.mainBrowseFeedLayer1Loading,
+              ),
+            ],
+          ),
+        );
+      }
       return const SizedBox.expand();
     }
 

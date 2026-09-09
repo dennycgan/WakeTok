@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
@@ -5,6 +6,7 @@ import 'package:waketok/domain/source/pool_capacity.dart';
 import 'package:waketok/domain/source/saved_pool_display_name.dart';
 import 'package:waketok/domain/source/saved_pool_failure.dart';
 import 'package:waketok/domain/source/saved_pool_record.dart';
+import 'package:waketok/domain/source/saved_pool_recipe.dart';
 import 'package:waketok/domain/source/saved_pool_repository.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
@@ -35,6 +37,91 @@ final class SavedPoolNamingAtCapacity extends SavedPoolNamingOutcome {
 /// Build / Cap 19 half-sheet pattern). Light Appearance must not pair white
 /// [WakeTokTokens.surface] with white [WakeTokTokens.onMedia].
 ThemeData _browseImmersiveDarkTheme() => waketokTheme(Brightness.dark);
+
+/// Title metrics matching composition peek (`labelOnMedia`, inherit false).
+///
+/// [AlertDialog] applies Theme [titleLarge] as a DefaultTextStyle around the
+/// title; with `inherit: true` (TextStyle default) that inflates size/weight
+/// vs peek. All browse Saved dialogs must use this helper — not a raw
+/// `labelOnMedia.copyWith(color: …)`.
+@visibleForTesting
+TextStyle browseSavedPoolDialogTitleStyle(WakeTokTokens tokens) {
+  return tokens.labelOnMedia.copyWith(
+    color: tokens.onMedia,
+    inherit: false,
+  );
+}
+
+@visibleForTesting
+TextStyle browseSavedPoolDialogBodyStyle(WakeTokTokens tokens) {
+  return tokens.bodyOnMedia.copyWith(
+    color: tokens.onMediaMuted,
+    inherit: false,
+  );
+}
+
+@visibleForTesting
+TextStyle browseSavedPoolDialogAccentLabelStyle(WakeTokTokens tokens) {
+  return tokens.labelOnMedia.copyWith(
+    color: tokens.accent,
+    inherit: false,
+  );
+}
+
+@visibleForTesting
+TextStyle browseSavedPoolDialogMutedLabelStyle(WakeTokTokens tokens) {
+  return tokens.labelOnMedia.copyWith(
+    color: tokens.onMediaMuted,
+    inherit: false,
+  );
+}
+
+/// Balanced vs Material Dialog defaults (too airy) and over-tight 8px insets
+/// (hard to tap). Shared by Info / Capacity / Delete / Naming.
+@visibleForTesting
+const EdgeInsets browseSavedPoolDialogTitlePadding =
+    EdgeInsets.fromLTRB(20, 18, 20, 10);
+
+@visibleForTesting
+const EdgeInsets browseSavedPoolDialogContentPadding =
+    EdgeInsets.fromLTRB(20, 0, 20, 12);
+
+@visibleForTesting
+const EdgeInsets browseSavedPoolDialogActionsPadding =
+    EdgeInsets.fromLTRB(12, 4, 12, 14);
+
+ButtonStyle _browseSavedPoolDialogActionStyle({required Color foreground}) {
+  return TextButton.styleFrom(
+    foregroundColor: foreground,
+    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    minimumSize: const Size(48, 40),
+    tapTargetSize: MaterialTapTargetSize.padded,
+  );
+}
+
+/// Shared AlertDialog shell for browse Saved surfaces (Info / Capacity /
+/// Delete / Naming) — same title token as composition peek.
+AlertDialog browseSavedPoolAlertDialog({
+  Key? key,
+  required WakeTokTokens tokens,
+  required Widget title,
+  Widget? content,
+  required List<Widget> actions,
+}) {
+  return AlertDialog(
+    key: key,
+    backgroundColor: tokens.surface,
+    titleTextStyle: browseSavedPoolDialogTitleStyle(tokens),
+    contentTextStyle: browseSavedPoolDialogBodyStyle(tokens),
+    titlePadding: browseSavedPoolDialogTitlePadding,
+    contentPadding: browseSavedPoolDialogContentPadding,
+    actionsPadding: browseSavedPoolDialogActionsPadding,
+    buttonPadding: const EdgeInsets.symmetric(horizontal: 4),
+    title: title,
+    content: content,
+    actions: actions,
+  );
+}
 
 /// Shared naming dialog (Build Save, peek Save; Rename uses [renamePoolId]).
 Future<SavedPoolNamingOutcome> showSavedPoolNamingDialog({
@@ -79,32 +166,32 @@ Future<bool> showSavedPoolDeleteConfirmDialog({
     builder: (dialogContext) {
       return Theme(
         data: darkTheme,
-        child: AlertDialog(
+        child: browseSavedPoolAlertDialog(
           key: const Key('mainBrowseSavedPoolDeleteDialog'),
-          backgroundColor: tokens.surface,
-          title: Text(
-            l10n.mainBrowseSavedPoolDeleteTitle,
-            style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
-          ),
-          content: Text(
-            l10n.mainBrowseSavedPoolDeleteBody(displayName),
-            style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
-          ),
+          tokens: tokens,
+          title: Text(l10n.mainBrowseSavedPoolDeleteTitle),
+          content: Text(l10n.mainBrowseSavedPoolDeleteBody(displayName)),
           actions: [
             TextButton(
               key: const Key('mainBrowseSavedPoolDeleteCancel'),
               onPressed: () => Navigator.of(dialogContext).pop(false),
+              style: _browseSavedPoolDialogActionStyle(
+                foreground: tokens.onMediaMuted,
+              ),
               child: Text(
                 l10n.mainBrowseSavedPoolDeleteCancel,
-                style: tokens.labelOnMedia.copyWith(color: tokens.onMediaMuted),
+                style: browseSavedPoolDialogMutedLabelStyle(tokens),
               ),
             ),
             TextButton(
               key: const Key('mainBrowseSavedPoolDeleteConfirm'),
               onPressed: () => Navigator.of(dialogContext).pop(true),
+              style: _browseSavedPoolDialogActionStyle(
+                foreground: tokens.accent,
+              ),
               child: Text(
                 l10n.mainBrowseSavedPoolDeleteConfirm,
-                style: tokens.labelOnMedia.copyWith(color: tokens.accent),
+                style: browseSavedPoolDialogAccentLabelStyle(tokens),
               ),
             ),
           ],
@@ -126,24 +213,21 @@ Future<void> showSavedPoolCapacityDialog(BuildContext context) {
     builder: (dialogContext) {
       return Theme(
         data: darkTheme,
-        child: AlertDialog(
+        child: browseSavedPoolAlertDialog(
           key: const Key('mainBrowseSavedPoolCapacityDialog'),
-          backgroundColor: tokens.surface,
-          title: Text(
-            l10n.mainBrowseSavedPoolCapacityTitle,
-            style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
-          ),
-          content: Text(
-            l10n.mainBrowseSavedPoolCapacityBody,
-            style: tokens.bodyOnMedia.copyWith(color: tokens.onMediaMuted),
-          ),
+          tokens: tokens,
+          title: Text(l10n.mainBrowseSavedPoolCapacityTitle),
+          content: Text(l10n.mainBrowseSavedPoolCapacityBody),
           actions: [
             TextButton(
               key: const Key('mainBrowseSavedPoolCapacityConfirm'),
               onPressed: () => Navigator.of(dialogContext).pop(),
+              style: _browseSavedPoolDialogActionStyle(
+                foreground: tokens.accent,
+              ),
               child: Text(
                 l10n.mainBrowseSavedPoolCapacityConfirm,
-                style: tokens.labelOnMedia.copyWith(color: tokens.accent),
+                style: browseSavedPoolDialogAccentLabelStyle(tokens),
               ),
             ),
           ],
@@ -192,23 +276,9 @@ class _SavedPoolInfoDialog extends ConsumerWidget {
     final access = ref.watch(photosAuthorizationProvider).value;
     final refs = definition.orderedSourceReferences;
 
-    return AlertDialog(
+    return browseSavedPoolAlertDialog(
       key: const Key('mainBrowseSavedPoolInfoDialog'),
-      backgroundColor: tokens.surface,
-      // Match composition peek title exactly (peek has no Dialog titleLarge
-      // DefaultTextStyle). Tight padding so OK sits near bottom-trailing.
-      titleTextStyle: tokens.labelOnMedia.copyWith(
-        color: tokens.onMedia,
-        inherit: false,
-      ),
-      contentTextStyle: tokens.bodyOnMedia.copyWith(
-        color: tokens.onMediaMuted,
-        inherit: false,
-      ),
-      titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      contentPadding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-      actionsPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
-      buttonPadding: const EdgeInsets.symmetric(horizontal: 8),
+      tokens: tokens,
       title: Text(l10n.mainBrowseSavedPoolSourcesTitle(displayName)),
       content: SizedBox(
         width: double.maxFinite,
@@ -251,19 +321,10 @@ class _SavedPoolInfoDialog extends ConsumerWidget {
         TextButton(
           key: const Key('mainBrowseSavedPoolInfoClose'),
           onPressed: () => Navigator.of(context).pop(),
-          style: TextButton.styleFrom(
-            foregroundColor: tokens.accent,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-          ),
+          style: _browseSavedPoolDialogActionStyle(foreground: tokens.accent),
           child: Text(
             l10n.mainBrowseSavedPoolInfoClose,
-            style: tokens.labelOnMedia.copyWith(
-              color: tokens.accent,
-              inherit: false,
-            ),
+            style: browseSavedPoolDialogAccentLabelStyle(tokens),
           ),
         ),
       ],
@@ -293,6 +354,11 @@ class _SavedPoolNamingDialog extends StatefulWidget {
 class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
   late final TextEditingController _controller;
   String? _error;
+  /// Display-name key that already failed uniqueness; same key + Save must
+  /// not clear/restore [_error] (AlertDialog height jump looks like flicker).
+  String? _blockedDuplicateKey;
+  /// True after a same-recipe block on create — renaming cannot clear it.
+  bool _blockedDuplicateRecipe = false;
   bool _submitting = false;
 
   @override
@@ -314,21 +380,49 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
     final l10n = AppLocalizations.of(context)!;
     final trimmed = normalizeSavedPoolDisplayName(_controller.text);
     if (trimmed == null) {
-      setState(() => _error = l10n.mainBrowseSavedPoolNamingEmpty);
+      setState(() {
+        _error = l10n.mainBrowseSavedPoolNamingEmpty;
+        _blockedDuplicateKey = null;
+      });
       return;
     }
-    setState(() {
-      _submitting = true;
-      _error = null;
-    });
+    final nameKey = savedPoolDisplayNameKey(trimmed);
+    final renaming = widget.renamePoolId != null;
+    // Same colliding name already surfaced — skip async re-check / setState.
+    if (_blockedDuplicateKey == nameKey) {
+      return;
+    }
+    // Same-recipe block on create — any name still refused; avoid flicker.
+    if (!renaming && _blockedDuplicateRecipe) {
+      return;
+    }
+    setState(() => _submitting = true);
     try {
       final existing = await widget.repository.loadAll();
-      final renaming = widget.renamePoolId != null;
       if (!renaming && existing.length >= PoolCapacity.maxSavedPoolPresets) {
         if (mounted) {
           Navigator.of(context).pop(const SavedPoolNamingAtCapacity());
         }
         return;
+      }
+      if (!renaming) {
+        final recipeClash = findSavedPoolWithSameRecipe(
+          candidate: widget.orderedSourceReferences,
+          existing: existing,
+        );
+        if (recipeClash != null) {
+          if (mounted) {
+            setState(() {
+              _submitting = false;
+              _error = l10n.mainBrowseSavedPoolNamingDuplicateRecipe(
+                recipeClash.displayName,
+              );
+              _blockedDuplicateRecipe = true;
+              _blockedDuplicateKey = null;
+            });
+          }
+          return;
+        }
       }
       if (savedPoolDisplayNameTaken(
         trimmedName: trimmed,
@@ -339,6 +433,7 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
           setState(() {
             _submitting = false;
             _error = l10n.mainBrowseSavedPoolNamingDuplicate;
+            _blockedDuplicateKey = nameKey;
           });
         }
         return;
@@ -355,11 +450,23 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
       if (mounted) {
         Navigator.of(context).pop(SavedPoolNamingSaved(record));
       }
+    } on SavedPoolDuplicateRecipe catch (e) {
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          _error = l10n.mainBrowseSavedPoolNamingDuplicateRecipe(
+            e.existingDisplayName,
+          );
+          _blockedDuplicateRecipe = true;
+          _blockedDuplicateKey = null;
+        });
+      }
     } on SavedPoolDuplicateName {
       if (mounted) {
         setState(() {
           _submitting = false;
           _error = l10n.mainBrowseSavedPoolNamingDuplicate;
+          _blockedDuplicateKey = nameKey;
         });
       }
     } on SavedPoolCapacityExceeded {
@@ -378,40 +485,43 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return AlertDialog(
+    return browseSavedPoolAlertDialog(
       key: const Key('mainBrowseSavedPoolNamingDialog'),
-      backgroundColor: tokens.surface,
-      title: Text(
-        l10n.mainBrowseSavedPoolNamingTitle,
-        style: tokens.labelOnMedia.copyWith(color: tokens.onMedia),
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TextField(
-            key: const Key('mainBrowseSavedPoolNamingField'),
-            controller: _controller,
-            enabled: !_submitting,
-            autofocus: true,
-            style: tokens.bodyOnMedia.copyWith(color: tokens.onMedia),
-            cursorColor: tokens.accent,
-            decoration: InputDecoration(
-              hintText: l10n.mainBrowseSavedPoolNamingHint,
-              hintStyle: tokens.bodyOnMedia.copyWith(
-                color: tokens.onMediaMuted,
-              ),
-              errorText: _error,
-              errorStyle: tokens.bodyOnMedia.copyWith(color: tokens.accent),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: tokens.onMediaMuted),
-              ),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: tokens.accent),
-              ),
+      tokens: tokens,
+      title: Text(l10n.mainBrowseSavedPoolNamingTitle),
+      content: SizedBox(
+        // Wider than Material AlertDialog default so recipe-duplicate copy
+        // can wrap to two lines instead of single-line ellipsis.
+        width: 320,
+        child: TextField(
+          key: const Key('mainBrowseSavedPoolNamingField'),
+          controller: _controller,
+          enabled: !_submitting,
+          autofocus: true,
+          style: tokens.bodyOnMedia.copyWith(color: tokens.onMedia),
+          cursorColor: tokens.accent,
+          decoration: InputDecoration(
+            hintText: l10n.mainBrowseSavedPoolNamingHint,
+            hintStyle: tokens.bodyOnMedia.copyWith(
+              color: tokens.onMediaMuted,
+            ),
+            errorText: _error,
+            errorMaxLines: 2,
+            errorStyle: tokens.bodyOnMedia.copyWith(color: tokens.accent),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: tokens.onMediaMuted),
+            ),
+            focusedBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: tokens.accent),
+            ),
+            errorBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: tokens.accent),
+            ),
+            focusedErrorBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: tokens.accent),
             ),
           ),
-        ],
+        ),
       ),
       actions: [
         TextButton(
@@ -420,17 +530,21 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
               ? null
               : () =>
                     Navigator.of(context).pop(const SavedPoolNamingCancelled()),
+          style: _browseSavedPoolDialogActionStyle(
+            foreground: tokens.onMediaMuted,
+          ),
           child: Text(
             l10n.mainBrowseSavedPoolNamingCancel,
-            style: tokens.labelOnMedia.copyWith(color: tokens.onMediaMuted),
+            style: browseSavedPoolDialogMutedLabelStyle(tokens),
           ),
         ),
         TextButton(
           key: const Key('mainBrowseSavedPoolNamingConfirm'),
           onPressed: _submitting ? null : _confirm,
+          style: _browseSavedPoolDialogActionStyle(foreground: tokens.accent),
           child: Text(
             l10n.mainBrowseSavedPoolNamingConfirm,
-            style: tokens.labelOnMedia.copyWith(color: tokens.accent),
+            style: browseSavedPoolDialogAccentLabelStyle(tokens),
           ),
         ),
       ],

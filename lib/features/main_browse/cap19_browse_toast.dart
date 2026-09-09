@@ -7,9 +7,18 @@ import 'package:waketok/l10n/app_localizations.dart';
 
 OverlayEntry? _cap19BrowseToastEntry;
 Timer? _cap19BrowseToastTimer;
+Key? _cap19BrowseToastActiveKey;
+
+/// Currently visible Cap 19 toast key, or null if none.
+Key? get cap19BrowseToastActiveKey => _cap19BrowseToastActiveKey;
 
 double cap19BrowseToastTopInset(BuildContext context) {
-  return MediaQuery.paddingOf(context).top +
+  // SafeArea zeroes both MediaQuery.padding and MediaQuery.viewPadding for
+  // descendants (BrowseTopChrome). Read the FlutterView so feed vs chrome
+  // callers share the same Y under the status bar.
+  final topInset =
+      MediaQueryData.fromView(View.of(context)).viewPadding.top;
+  return topInset +
       kCap19BrowseTopChromeBodyHeight +
       kCap19BrowseToastBelowTopChromeGap;
 }
@@ -25,6 +34,7 @@ void showCap19BrowseToast(
   final tokens = Theme.of(context).extension<WakeTokTokens>()!;
   final top = cap19BrowseToastTopInset(context);
 
+  _cap19BrowseToastActiveKey = toastKey;
   _cap19BrowseToastEntry = OverlayEntry(
     builder: (overlayContext) => Positioned(
       top: top,
@@ -66,6 +76,7 @@ void hideCap19BrowseToast() {
   _cap19BrowseToastTimer = null;
   _cap19BrowseToastEntry?.remove();
   _cap19BrowseToastEntry = null;
+  _cap19BrowseToastActiveKey = null;
 }
 
 void showCap19AddToAlbumSuccessToast(

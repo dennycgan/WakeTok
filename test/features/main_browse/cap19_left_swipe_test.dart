@@ -363,4 +363,61 @@ void main() {
     expect(find.text(l10n.cap19LeftSwipeDragHintArmed), findsOneWidget);
     expect(find.text(l10n.cap19LeftSwipeDragHintContinue), findsNothing);
   });
+
+  testWidgets(
+    'W-22.5b advance remount with unfinished left-swipe pointer does not throw',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final albumStore = FakeWakeTokAlbumStore()..albumId = _wakeTokAlbumId;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _assetSourcesForLeftSwipe(
+            allIds: const ['a', 'b', 'c', 'd', 'e'],
+          ),
+          wakeTokAlbumStore: albumStore,
+          browseShuffleSeed: 0,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('cap19LeftSwipeGesture')), findsOneWidget);
+
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+      final epochBefore =
+          container.read(browseSessionProvider).requireValue.roundEpoch;
+
+      // Hold a pointer on the left-swipe Listener, then force scheme A
+      // advance remount (clears Cap19 drag before page-tree swap).
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('cap19LeftSwipeGesture'))),
+      );
+      await gesture.moveBy(const Offset(-40, 2));
+      await tester.pump();
+
+      final feedState = tester.state<VerticalMediaFeedState>(
+        find.byType(VerticalMediaFeed),
+      );
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      feedState.debugAdvanceEndlessRound(l10n);
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        container.read(browseSessionProvider).requireValue.roundEpoch,
+        greaterThan(epochBefore),
+      );
+
+      // Pointer up after remount disposed the prior Listener — must not throw.
+      await gesture.up();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(container.read(cap19LeftSwipeDragProvider).offsetX, 0);
+
+      await tester.pump(const Duration(milliseconds: 200));
+      hideCap19BrowseToast();
+      await tester.pump(kCap19BrowseToastDuration);
+    },
+  );
 }

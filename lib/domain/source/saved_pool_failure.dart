@@ -26,6 +26,14 @@ final class SavedPoolInvalidRecipe extends SavedPoolException {
   const SavedPoolInvalidRecipe();
 }
 
+/// Ordered source recipe matches another Saved preset (create refused).
+final class SavedPoolDuplicateRecipe extends SavedPoolException {
+  const SavedPoolDuplicateRecipe({required this.existingDisplayName});
+
+  /// Display name of the first matching preset ([loadAll] order).
+  final String existingDisplayName;
+}
+
 /// [SavedPoolRepository.rename] target id is not in the store.
 final class SavedPoolNotFound extends SavedPoolException {
   const SavedPoolNotFound();

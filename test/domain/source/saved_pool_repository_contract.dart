@@ -142,6 +142,55 @@ void savedPoolRepositoryContract(
       expect(await repo.loadAll(), hasLength(1));
     });
 
+    test('same ordered recipe different name is DuplicateRecipe', () async {
+      await repo.save(
+        displayName: 'Alpha',
+        orderedSourceReferences: [_album('a'), _album('b')],
+      );
+      expect(
+        () => repo.save(
+          displayName: 'Beta',
+          orderedSourceReferences: [_album('a'), _album('b')],
+        ),
+        throwsA(
+          isA<SavedPoolDuplicateRecipe>().having(
+            (e) => e.existingDisplayName,
+            'existingDisplayName',
+            'Alpha',
+          ),
+        ),
+      );
+      expect(await repo.loadAll(), hasLength(1));
+    });
+
+    test('reversed recipe order is allowed as distinct', () async {
+      await repo.save(
+        displayName: 'Forward',
+        orderedSourceReferences: [_album('a'), _album('b')],
+      );
+      final second = await repo.save(
+        displayName: 'Reverse',
+        orderedSourceReferences: [_album('b'), _album('a')],
+      );
+      expect(second.displayName, 'Reverse');
+      expect(await repo.loadAll(), hasLength(2));
+    });
+
+    test('rename keeps recipe; does not throw DuplicateRecipe', () async {
+      final saved = await repo.save(
+        displayName: 'Alpha',
+        orderedSourceReferences: [_album('a'), _album('b')],
+      );
+      await repo.save(
+        displayName: 'Other',
+        orderedSourceReferences: [_album('x')],
+      );
+      now = now.add(const Duration(seconds: 1));
+      final renamed = await repo.rename(id: saved.id, displayName: 'Alpha2');
+      expect(renamed.displayName, 'Alpha2');
+      expect(renamed.orderedSourceReferences, saved.orderedSourceReferences);
+    });
+
     test('rename excludes self; case-only change is allowed', () async {
       final saved = await repo.save(
         displayName: 'Foo',

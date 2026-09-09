@@ -120,12 +120,14 @@
   "mainBrowseBuildPoolSaveSuccess": "已保存。",
   "mainBrowseBuildPoolSaveAndBrowse": "保存并浏览",
   "mainBrowseBuildPoolBrowseWithoutSaving": "不保存直接浏览",
+  "mainBrowseNewRoundToast": "已浏览一遍，重新开始",
   "mainBrowseSavedPoolNamingTitle": "给这个片库命名",
   "mainBrowseSavedPoolNamingHint": "名称",
   "mainBrowseSavedPoolNamingConfirm": "保存",
   "mainBrowseSavedPoolNamingCancel": "取消",
   "mainBrowseSavedPoolNamingEmpty": "请输入名称。",
   "mainBrowseSavedPoolNamingDuplicate": "这个名称已被使用。",
+  "mainBrowseSavedPoolNamingDuplicateRecipe": "你已创建过相同配方的片库 — 「{name}」。",
   "mainBrowseSavedPoolCapacityTitle": "已保存片库已满",
   "mainBrowseSavedPoolCapacityBody": "最多保存 10 个片库。请到「已保存」中删除一个后再试。",
   "mainBrowseSavedPoolCapacityConfirm": "OK",
@@ -223,5 +225,8 @@
   "cap19SettingsLeftSwipeAddTitle": "左滑添加到 WakeTok",
   "cap19SettingsLeftSwipeAddSubtitle": "将当前项目添加到你的 WakeTok 相册",
   "cap19SettingsLeftSwipeGuideTitle": "显示左滑提示",
-  "cap19SettingsLeftSwipeGuideSubtitle": "每次启动在浏览就绪时显示一次"
+  "cap19SettingsLeftSwipeGuideSubtitle": "每次启动在浏览就绪时显示一次",
+  "browseSettingsSectionTitle": "浏览提示",
+  "browseSettingsNewRoundToastTitle": "重新开始提示",
+  "browseSettingsNewRoundToastSubtitle": "当你把当前列表刷完、从头再看时，浏览页顶部会短暂出现一条提示，大约 1.5 秒。一划走就会立刻消失。"
 }

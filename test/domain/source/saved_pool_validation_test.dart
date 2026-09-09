@@ -69,6 +69,49 @@ void main() {
     });
   });
 
+  group('saved pool recipe equality', () {
+    const a = SourceReference(kind: AssetSourceKind.album, id: 'a');
+    const b = SourceReference(kind: AssetSourceKind.album, id: 'b');
+
+    test('same order equal; reverse order not equal', () {
+      expect(savedPoolRecipesEqual([a, b], [a, b]), isTrue);
+      expect(savedPoolRecipesEqual([a, b], [b, a]), isFalse);
+      expect(savedPoolRecipesEqual([a], [a, b]), isFalse);
+    });
+
+    test('findSavedPoolWithSameRecipe returns first match', () {
+      final at = DateTime.utc(2026, 9, 1);
+      final first = SavedPoolRecord(
+        id: 'p1',
+        displayName: 'First',
+        createdAt: at,
+        updatedAt: at,
+        orderedSourceReferences: const [a, b],
+      );
+      final second = SavedPoolRecord(
+        id: 'p2',
+        displayName: 'Second',
+        createdAt: at,
+        updatedAt: at,
+        orderedSourceReferences: const [a, b],
+      );
+      expect(
+        findSavedPoolWithSameRecipe(
+          candidate: const [a, b],
+          existing: [first, second],
+        ),
+        first,
+      );
+      expect(
+        findSavedPoolWithSameRecipe(
+          candidate: const [b, a],
+          existing: [first],
+        ),
+        isNull,
+      );
+    });
+  });
+
   test('SavedPoolRecord.toDefinition maps a valid record to saved SPD', () {
     final at = DateTime.utc(2026, 9, 1);
     final record = SavedPoolRecord(

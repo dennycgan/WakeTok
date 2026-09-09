@@ -107,6 +107,7 @@
     "mainBrowseSavedPoolNamingCancel",
     "mainBrowseSavedPoolNamingEmpty",
     "mainBrowseSavedPoolNamingDuplicate",
+    "mainBrowseSavedPoolNamingDuplicateRecipe",
     "mainBrowseSavedPoolCapacityTitle",
     "mainBrowseSavedPoolCapacityBody",
     "mainBrowseSavedPoolCapacityConfirm",
@@ -130,6 +131,7 @@
     "mainBrowseFeedPlaceholder",
     "mainBrowseFeedLoading",
     "mainBrowseFeedEmpty",
+    "mainBrowseNewRoundToast",
     "mainBrowseFeedResolveFailed",
     "mainBrowseFeedRetry",
     "mainBrowseFeedMediaFailed",
@@ -204,6 +206,9 @@
     "cap19SettingsLeftSwipeAddTitle",
     "cap19SettingsLeftSwipeAddSubtitle",
     "cap19SettingsLeftSwipeGuideTitle",
-    "cap19SettingsLeftSwipeGuideSubtitle"
+    "cap19SettingsLeftSwipeGuideSubtitle",
+    "browseSettingsSectionTitle",
+    "browseSettingsNewRoundToastTitle",
+    "browseSettingsNewRoundToastSubtitle"
   ]
 }

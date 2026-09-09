@@ -201,15 +201,98 @@ void main() {
         find.text(l10n.mainBrowseSavedPoolNamingDuplicate),
         findsOneWidget,
       );
+      expect(l10n.mainBrowseSavedPoolNamingDuplicate, 'This name is already used.');
       expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsOneWidget);
     });
+
+    testWidgets('duplicate recipe shows inline error with existing name', (
+      tester,
+    ) async {
+      final pools = FakeSavedPoolRepository();
+      await pools.save(
+        displayName: 'Travel pack',
+        orderedSourceReferences: [_albumRef('alb-1')],
+      );
+      await _pumpHarness(tester, savedPools: pools);
+      await _openBuild(tester);
+      await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(BuildPoolScaffoldPage.saveKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('mainBrowseSavedPoolNamingField')),
+        'Another name',
+      );
+      await tester.tap(
+        find.byKey(const Key('mainBrowseSavedPoolNamingConfirm')),
+      );
+      await tester.pump();
+      await tester.pump();
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final fullError =
+          l10n.mainBrowseSavedPoolNamingDuplicateRecipe('Travel pack');
+      expect(find.text(fullError), findsOneWidget);
+      final field = tester.widget<TextField>(
+        find.byKey(const Key('mainBrowseSavedPoolNamingField')),
+      );
+      expect(field.decoration?.errorMaxLines, 2);
+      expect(field.decoration?.errorText, fullError);
+      expect(await pools.loadAll(), hasLength(1));
+      expect(find.byKey(BuildPoolScaffoldPage.pageKey), findsOneWidget);
+    });
+
+    testWidgets(
+      'U-22.5 re-Save on unchanged duplicate keeps dialog center stable',
+      (tester) async {
+        final pools = FakeSavedPoolRepository();
+        await pools.save(
+          displayName: 'Trip',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
+        await _pumpHarness(tester, savedPools: pools);
+        await _openBuild(tester);
+        await tester.tap(find.byKey(_catalogKey(_albumRef('alb-1'))));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(BuildPoolScaffoldPage.saveKey));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('mainBrowseSavedPoolNamingField')),
+          'Trip',
+        );
+        await tester.tap(
+          find.byKey(const Key('mainBrowseSavedPoolNamingConfirm')),
+        );
+        await tester.pump();
+        await tester.pump();
+        final dialog = find.byKey(const Key('mainBrowseSavedPoolNamingDialog'));
+        expect(dialog, findsOneWidget);
+        final centerAfterFirst = tester.getCenter(dialog);
+
+        await tester.tap(
+          find.byKey(const Key('mainBrowseSavedPoolNamingConfirm')),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(dialog, findsOneWidget);
+        final centerAfterSecond = tester.getCenter(dialog);
+        expect(centerAfterSecond.dy, closeTo(centerAfterFirst.dy, 0.5));
+        expect(centerAfterSecond.dx, closeTo(centerAfterFirst.dx, 0.5));
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        expect(
+          find.text(l10n.mainBrowseSavedPoolNamingDuplicate),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('capacity at 10 shows capacity dialog', (tester) async {
       final pools = FakeSavedPoolRepository();
       for (var i = 0; i < PoolCapacity.maxSavedPoolPresets; i++) {
         await pools.save(
           displayName: 'Seed $i',
-          orderedSourceReferences: const [SourceReference.photos],
+          orderedSourceReferences: [
+            SourceReference(kind: AssetSourceKind.album, id: 'seed-$i'),
+          ],
         );
       }
       await _pumpHarness(tester, savedPools: pools);
@@ -361,7 +444,9 @@ void main() {
         for (var i = 0; i < PoolCapacity.maxSavedPoolPresets; i++) {
           await pools.save(
             displayName: 'Seed $i',
-            orderedSourceReferences: const [SourceReference.photos],
+            orderedSourceReferences: [
+              SourceReference(kind: AssetSourceKind.album, id: 'seed-$i'),
+            ],
           );
         }
         await _pumpHarness(

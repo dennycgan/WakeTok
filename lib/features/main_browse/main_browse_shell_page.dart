@@ -6,6 +6,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/browse_top_chrome.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
+import 'package:waketok/features/main_browse/browse_notifications_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -132,7 +133,10 @@ class _MainBrowseBottomBar extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final labelStyle = tokens.labelChrome.copyWith(fontSize: 11, height: 1.0);
+    // Match top source chrome label size/weight (labelOnMedia 12 / w600);
+    // keep compact height for the icon+label strip.
+    final labelStyle = tokens.labelOnMedia.copyWith(height: 1.0);
+
 
     // Do not use Material 3 [NavigationBar]: its SafeArea lives *inside*
     // Material, so height+Home Indicator paints a tall grey block even when
@@ -308,6 +312,8 @@ class _SettingsStubPane extends StatelessWidget {
           Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
           const SizedBox(height: 20),
           const Cap19GesturesSettingsSection(),
+          const SizedBox(height: 28),
+          const BrowseNotificationsSettingsSection(),
           if (kDebugMode) ...[
             const SizedBox(height: 28),
             FilledButton(
