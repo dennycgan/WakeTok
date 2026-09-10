@@ -436,6 +436,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - ADR-048: Browse Snapshot cache — invalidate on successful in-app
       album membership writes — **Accepted** (2026-09-10), anchor
       `fbf2e82`
+- ADR-049: Cap 23 current-asset still-in-library mutation gate —
+      **Proposed** (Cap 23.1; Accept + anchor after implementing work)
 - Cap 22 Saved Pool persistence: `lib/domain/source/saved_pool_repository.dart`
       + Drift `lib/data/local/` (work `d62e962`); Save UX 22.3
       (`4db65ec`); 22.4 chrome + ADR-047 polish (`0ca1198`, `0b68e01`);
