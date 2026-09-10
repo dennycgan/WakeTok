@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
+import 'package:waketok/domain/library/still_in_library.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/media_display_repository.dart';
 import 'package:waketok/domain/playback/playback_intent.dart';
@@ -1359,6 +1360,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool _layer2Failed = false;
   FeedFailureReason? _layer2FailureReason;
 
+  /// Still/poster [Image] decode/read failed — hide Meta until a healthy
+  /// cover is applied (orthogonal to [_layer2InFlight]).
+  bool _stillCoverDecodeBroken = false;
+
+  /// True after [Image.frameBuilder] reports a decoded frame for the current
+  /// cover path. False while FileImage is still resolving (black shell) so
+  /// Meta / gold spinner cannot paint over an empty cover before
+  /// [errorBuilder] or a successful frame (device: deleted-item flash).
+  bool _stillCoverReady = false;
+
+  /// Path [_stillCoverReady] / broken tracking is armed for.
+  String? _stillCoverTrackedPath;
+
   /// Cap 21.6: Host `assetUnavailable` fail chrome (page-failed or coverless).
   bool get _isAssetUnavailableFailure {
     if (_media?.kind == FeedPageMediaKind.failed &&
@@ -1369,14 +1383,68 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _layer2FailureReason == FeedFailureReason.assetUnavailable;
   }
 
+  /// After Host Case B, next become-current must not [reuseLayer1] /
+  /// `_retryLayer2Only` (neighbour preheat L1 can stick forever when Photos
+  /// restores the asset). Cleared only on L2 success. Staying parked on B
+  /// does not auto-retry (owner-accepted).
+  bool _needsFullReloadAfterHostUnavailable = false;
+
+  /// Hide Meta + corner wait spinner while a still/poster cover is mounted
+  /// but unresolved or broken. Coverless / pendingVideo wait chrome (Cap 17)
+  /// must keep the corner spinner — do not suppress when there is no display.
+  bool get _suppressStillCoverChrome {
+    if (_media?.display == null) {
+      return false;
+    }
+    return !_stillCoverReady || _stillCoverDecodeBroken;
+  }
+
   /// Hide Cap 8 Overlay while Host reports the asset is gone (contradicts
   /// date/size chrome). Also hide during page `_loading` ("Loading item") so
   /// a prior-visit Overlay cache cannot flash one frame before L2 fail.
-  /// Download / generic fails (with media on screen) may still show Overlay.
+  /// Hide while still/poster has no decoded frame yet or decode is broken —
+  /// not tied to [_layer2InFlight] (normal L2 wait with a painted cover keeps
+  /// Overlay + spinner). Download / generic fails (with media on screen) may
+  /// still show Overlay.
   bool get _showMediaInfoOverlayEffective =>
       widget.showMediaInfoOverlay &&
       !_loading &&
-      !_isAssetUnavailableFailure;
+      !_isAssetUnavailableFailure &&
+      !_suppressStillCoverChrome;
+
+  /// When [path] changes, mark cover unresolved until frameBuilder / broken.
+  void _trackStillCoverPath(String? path, {bool clearBroken = true}) {
+    if (path != _stillCoverTrackedPath) {
+      _stillCoverTrackedPath = path;
+      _stillCoverReady = false;
+    }
+    if (clearBroken) {
+      _stillCoverDecodeBroken = false;
+    }
+  }
+
+  void _clearStillCoverTracking() {
+    _stillCoverTrackedPath = null;
+    _stillCoverReady = false;
+    _stillCoverDecodeBroken = false;
+  }
+
+  void _onStillCoverFrameReady() {
+    if (!mounted) {
+      return;
+    }
+    final path = _media?.display?.localFilePath;
+    if (path == null || path != _stillCoverTrackedPath) {
+      return;
+    }
+    if (_stillCoverReady && !_stillCoverDecodeBroken) {
+      return;
+    }
+    setState(() {
+      _stillCoverReady = true;
+      _stillCoverDecodeBroken = false;
+    });
+  }
 
   void _publishHostUnavailableGate() {
     if (!mounted || !widget.isCurrent) {
@@ -1385,6 +1453,33 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     ref
         .read(mainBrowseCurrentAssetHostUnavailableProvider.notifier)
         .setUnavailable(_isAssetUnavailableFailure);
+  }
+
+  /// When L2/page fail is not already Case B, re-check Photos existence
+  /// (same predicate as Cap 23). Missing → [FeedFailureReason.assetUnavailable]
+  /// so actionable dims and Retry is hidden (revisit A/B unification).
+  Future<FeedFailureReason> _coerceUnavailableFeedFailure(
+    FeedFailureReason reason,
+  ) async {
+    if (reason == FeedFailureReason.assetUnavailable) {
+      return reason;
+    }
+    final id = widget.assetIdentifier;
+    try {
+      final map = await ref
+          .read(assetSourceRepositoryProvider)
+          .getAssetAvailabilities([id]);
+      if (!mounted || widget.assetIdentifier != id) {
+        return reason;
+      }
+      final availability = map[id] ?? AssetAvailability.unavailable;
+      if (!isAssetStillInLibrary(availability)) {
+        return FeedFailureReason.assetUnavailable;
+      }
+    } catch (_) {
+      // Keep Host/Dart fail reason if the existence probe itself fails.
+    }
+    return reason;
   }
 
   void _clearHostUnavailableGate() {
@@ -1444,6 +1539,43 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @visibleForTesting
   bool get debugLayer2InFlight => _layer2InFlight;
+
+  @visibleForTesting
+  bool get debugStillCoverDecodeBroken => _stillCoverDecodeBroken;
+
+  @visibleForTesting
+  bool get debugStillCoverReady => _stillCoverReady;
+
+  @visibleForTesting
+  bool get debugNeedsFullReloadAfterHostUnavailable =>
+      _needsFullReloadAfterHostUnavailable;
+
+  /// Test seam: set/clear still-cover decode-broken Overlay hide bit.
+  /// When [broken] is true, also arms [_previewReloadTriedPath] from the
+  /// current cover so [debugRunReloadPreviewFile] exercises A-class clear.
+  @visibleForTesting
+  void debugForceStillCoverDecodeBroken(bool broken) {
+    void apply() {
+      _stillCoverDecodeBroken = broken;
+      if (broken) {
+        _stillCoverReady = false;
+        _previewReloadTriedPath = _media?.display?.localFilePath;
+        _previewReloadInFlight = false;
+      } else {
+        _stillCoverReady = true;
+      }
+    }
+
+    if (!mounted) {
+      apply();
+      return;
+    }
+    setState(apply);
+  }
+
+  /// Test seam: run production [_reloadPreviewFile] (A-class clear path).
+  @visibleForTesting
+  Future<void> debugRunReloadPreviewFile() => _reloadPreviewFile();
 
   @visibleForTesting
   int? get debugLayer2InFlightGeneration => _layer2InFlightGeneration;
@@ -1524,14 +1656,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       } else if (mediaKind == FeedPageMediaKind.pendingVideo) {
         _media = FeedPageMedia.pendingVideo(widget.assetIdentifier);
       } else if (mediaKind == FeedPageMediaKind.still) {
+        const stillPath = '/tmp/cap173_chrome_still.png';
         _media = FeedPageMedia.still(
           DisplayAsset(
             assetIdentifier: widget.assetIdentifier,
             mediaKind: stillPlaybackKind,
-            localFilePath: '/tmp/cap173_chrome_still.png',
+            localFilePath: stillPath,
           ),
           layer: FeedDisplayLayer.preview,
         );
+        // Covered wait-chrome seams assume a painted cover; do not wait on
+        // FileImage.frameBuilder (suppress would hide spinner/reassure).
+        _stillCoverTrackedPath = stillPath;
+        _stillCoverReady = true;
+        _stillCoverDecodeBroken = false;
       }
       _scheduleLayer2ReassureIfNeeded();
     }
@@ -2080,6 +2218,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // flash bare feedBackground between peek L1 and L2.
       _media = seed;
       _loading = false;
+      _trackStillCoverPath(seedDisplay.localFilePath);
     }
     _startLoad();
   }
@@ -2216,7 +2355,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (gen != null) {
         _holdVideoSurfaceForL2ReloadIfNeeded(gen);
       }
-      _publishHostUnavailableGate();
+      // Defer: feed-index rebuild can call didUpdateWidget during build.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !widget.isCurrent) {
+          return;
+        }
+        _publishHostUnavailableGate();
+      });
     }
     if (leftCurrent) {}
     if (oldWidget.isCurrent != widget.isCurrent ||
@@ -2233,7 +2378,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
     // pause because _startLoad runs and skips the isCurrent-only branch.
     if (leftCurrent) {
-      _clearHostUnavailableGate();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || widget.isCurrent) {
+          return;
+        }
+        _clearHostUnavailableGate();
+      });
       _cancelInitialLayer1CenterLabelDelay(revealImmediately: true);
       final coordinator = ref.read(playbackCoordinatorProvider);
       _playbackRepo ??= ref.read(playbackRepositoryProvider);
@@ -2313,6 +2463,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             widget.assignedDisplayGeneration) {
       _previewReloadInFlight = false;
       _previewReloadTriedPath = null;
+      if (oldWidget.assetIdentifier != widget.assetIdentifier) {
+        _clearStillCoverTracking();
+      }
     }
 
     if (oldWidget.assetIdentifier != widget.assetIdentifier ||
@@ -2331,7 +2484,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     } else if (!leftCurrent && oldWidget.isCurrent != widget.isCurrent) {
       // Became current without identity/generation change (rare).
       if (widget.isCurrent) {
-        if (_media?.kind == FeedPageMediaKind.pendingVideo ||
+        if (_needsFullReloadAfterHostUnavailable ||
+            _media?.kind == FeedPageMediaKind.pendingVideo ||
             _media?.kind == FeedPageMediaKind.video) {
           _startLoad();
         } else {
@@ -2719,6 +2873,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
     _previewReloadTriedPath = path;
     _previewReloadInFlight = true;
+    // Sync Overlay/spinner hide — do not wait for requestPreview.
+    setState(() {
+      _stillCoverDecodeBroken = true;
+      _stillCoverReady = false;
+      _stillCoverTrackedPath = path;
+    });
     if (widget.isCurrent) {
       unawaited(_reloadPreviewFile());
       return;
@@ -2769,6 +2929,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             preview,
             layer: FeedDisplayLayer.preview,
           );
+        }
+        // Heal only when path actually changed (same missing path ≠ recover).
+        if (preview.localFilePath != _previewReloadTriedPath) {
+          _trackStillCoverPath(preview.localFilePath);
         }
         _previewReloadInFlight = false;
       });
@@ -2826,6 +2990,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             preview,
             layer: FeedDisplayLayer.preview,
           );
+        }
+        // Heal only when path actually changed (same missing path ≠ recover).
+        if (preview.localFilePath != _previewReloadTriedPath) {
+          _trackStillCoverPath(preview.localFilePath);
         }
         _previewReloadInFlight = false;
       });
@@ -2983,6 +3151,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _media = layer1;
       _loading = false;
+      _trackStillCoverPath(layer1?.display?.localFilePath);
       if (layer2Follows && layer2Generation != null) {
         _armLayer2InFlight(layer2Generation);
       }
@@ -3065,6 +3234,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         setState(() {
           _loading = true;
           _media = null;
+          _clearStillCoverTracking();
           _surfaceReady = false;
           _liveMotionMounted = false;
           // Cap 17.3: avoid a1 miss gold during gate-not-ready if Session
@@ -3081,6 +3251,22 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     if (!startedOffCurrent) {
+      final forceFullAfterHostUnavailable =
+          _needsFullReloadAfterHostUnavailable;
+      if (forceFullAfterHostUnavailable) {
+        // Drop neighbour-preheat L1 / pendingVideo from Case B leave so we
+        // cannot reuseLayer1 → `_retryLayer2Only` and stick on preview.
+        setState(() {
+          _layer2Failed = false;
+          _layer2FailureReason = null;
+          _clearLayer2InFlightUnconditional();
+          _surfaceReady = false;
+          _liveMotionMounted = false;
+          _loading = true;
+          _media = null;
+          _clearStillCoverTracking();
+        });
+      }
       final sessionToken = ref
           .read(browseL2ReadySessionProvider.notifier)
           .lookup(widget.assetIdentifier);
@@ -3096,22 +3282,26 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
         }
       }
-      final l2Ready = await ref
-          .read(browseL2ReadySessionProvider.notifier)
-          .lookupIfCoverOnDisk(widget.assetIdentifier);
-      if (l2Ready != null) {
-        if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
-            l2Ready.kind == FeedL2ReadyKind.video) {
-          // Video L2-ready-with-cover uses a4 band (a5 fold); still hit is a3.
-          _layer2WaitPath = l2Ready.kind == FeedL2ReadyKind.video
-              ? WaitChromePathClass.a4L2ReadyEvict
-              : WaitChromePathClass.a3L2ReadyHit;
-          await _startLoadFromL2Ready(
-            l2Ready: l2Ready,
-            gate: gate!,
-            generation: generation!,
-          );
-          return;
+      // After Case B, skip Session L2-ready even if a token reappears — force
+      // Host path so a Photos restore is observed.
+      if (!forceFullAfterHostUnavailable) {
+        final l2Ready = await ref
+            .read(browseL2ReadySessionProvider.notifier)
+            .lookupIfCoverOnDisk(widget.assetIdentifier);
+        if (l2Ready != null) {
+          if (l2Ready.kind == FeedL2ReadyKind.stillFull ||
+              l2Ready.kind == FeedL2ReadyKind.video) {
+            // Video L2-ready-with-cover uses a4 band (a5 fold); still hit is a3.
+            _layer2WaitPath = l2Ready.kind == FeedL2ReadyKind.video
+                ? WaitChromePathClass.a4L2ReadyEvict
+                : WaitChromePathClass.a3L2ReadyHit;
+            await _startLoadFromL2Ready(
+              l2Ready: l2Ready,
+              gate: gate!,
+              generation: generation!,
+            );
+            return;
+          }
         }
       }
 
@@ -3120,7 +3310,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           ? WaitChromePathClass.a4L2ReadyEvict
           : WaitChromePathClass.a2WaitToPlayable;
 
-      if (!bypassDeviceLocalFastPath) {
+      if (!bypassDeviceLocalFastPath && !forceFullAfterHostUnavailable) {
         // Cap 15.15: prefer snapshot inject (tests); else on-demand Host probe
         // for the current id only. Probe failure / leave → conservative L1.
         final currentGate = gate!;
@@ -3214,6 +3404,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     final reuseLayer1 =
+        !_needsFullReloadAfterHostUnavailable &&
         widget.isCurrent &&
         _media?.display != null &&
         _media!.display!.assetIdentifier == widget.assetIdentifier;
@@ -3246,6 +3437,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _liveMotionMounted = false;
           _loading = true;
           _media = null;
+          _clearStillCoverTracking();
         });
       }
       final joined = await _layer1Future;
@@ -3297,6 +3489,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (_media?.display == null) {
         _loading = true;
         _media = null;
+        _clearStillCoverTracking();
       }
     });
 
@@ -3328,6 +3521,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       setState(() {
         _media = layer1;
         _loading = false;
+        _trackStillCoverPath(layer1.display?.localFilePath);
         _armLayer2InFlight(currentGeneration);
       });
     } else {
@@ -3433,10 +3627,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             widget.assetIdentifier,
             poster: existingDisplay,
           );
+          _trackStillCoverPath(existingDisplay.localFilePath);
         }
       } else {
         _loading = true;
         _media = null;
+        _clearStillCoverTracking();
       }
     });
 
@@ -3490,12 +3686,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               widget.assetIdentifier,
               poster: preview,
             );
+            _trackStillCoverPath(preview.localFilePath);
             _armLayer2InFlight(generation);
           });
         } else if (layer1 != null) {
+          final cover = layer1;
           setState(() {
             _loading = false;
-            _media = layer1;
+            _media = cover;
+            _trackStillCoverPath(cover.display?.localFilePath);
             _armLayer2InFlight(generation);
           });
         } else {
@@ -3562,7 +3761,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     bool armPosterHoldOnL2Apply = false,
   }) async {
     if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
-      // A: drop — this attempt no longer owns the page; clear only if owner.      _abandonLayer2Attempt(generation, reason: 'l2-result-stale');
+      // A: drop — this attempt no longer owns the page; clear only if owner.
+      _abandonLayer2Attempt(generation, reason: 'l2-result-stale');
       return;
     }
     if (layer2 == null) {
@@ -3572,19 +3772,45 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     if (layer2.kind == FeedPageMediaKind.failed) {
+      // Revisit model: if Photos says not still-in-library, never leave the
+      // page on Case A (generic + Retry + actionable). Coerce to Cap 21.6 B.
+      final rawReason = layer2.failureReason ?? FeedFailureReason.generic;
+      final reason = await _coerceUnavailableFeedFailure(rawReason);
+      if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+        _abandonLayer2Attempt(generation, reason: 'l2-fail-coerce-stale');
+        return;
+      }
       setState(() {
         _clearLayer2InFlightUnconditional();
-        _layer2FailureReason =
-            layer2.failureReason ?? FeedFailureReason.generic;
-        if (_media?.display != null || layer1?.display != null) {
+        _layer2FailureReason = reason;
+        if (reason == FeedFailureReason.assetUnavailable) {
+          // Case B: Host confirmed gone — drop residual cover / L1. Keep-cover
+          // under unavailable copy contradicted Cap 21.6 B chrome (owner device).
+          _media = FeedPageMedia.failed(reason: reason);
+          _loading = false;
+          _layer2Failed = false;
+          _clearStillCoverTracking();
+          // Next become-current (after leave) must full-reload — not
+          // reuseLayer1. Parked-on-B restore without leave stays accepted.
+          _needsFullReloadAfterHostUnavailable = true;
+        } else if (_media?.display != null || layer1?.display != null) {
+          // Recoverable fails: keep painted cover; Overlay may remain.
+          _stillCoverDecodeBroken = false;
           _layer2Failed = true;
           _loading = false;
         } else {
-          _media = layer2;
+          _media = FeedPageMedia.failed(reason: reason);
           _loading = false;
           _layer2Failed = false;
         }
       });
+      if (reason == FeedFailureReason.assetUnavailable) {
+        // Avoid Session L2-ready revisit re-painting the deleted JPEG (456a
+        // limb after Host already told the truth this visit).
+        ref
+            .read(browseL2ReadySessionProvider.notifier)
+            .evict(widget.assetIdentifier);
+      }
       _publishHostUnavailableGate();
       return;
     }
@@ -3595,6 +3821,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           poster: layer1?.display ?? _media?.display,
         );
         _loading = false;
+        _trackStillCoverPath(
+          (layer1?.display ?? _media?.display)?.localFilePath,
+        );
         // I: WIP — success clears inFlight so canMountVideo may mount.
         // Do NOT keep true until surface-ready (HEAD) — that deadlocks
         // canMountVideo. Cap 17.3: L2 success clears wait chrome with
@@ -3602,6 +3831,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _completeLayer2InFlightForSuccess();
         _layer2Failed = false;
         _layer2FailureReason = null;
+        _needsFullReloadAfterHostUnavailable = false;
         // Cap 15.14b/c: DEVICE_LOCAL / L2-ready close the gap where canMount
         // becomes true before build's null→non-null hold arm.
         if (armPosterHoldOnL2Apply) {
@@ -3622,11 +3852,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _media = layer2;
       _loading = false;
+      _trackStillCoverPath(layer2.display?.localFilePath);
       // Capture before L2 clear — latch is for this inFlight only.
       final latchedL2WaitChrome = _layer2WaitChromeLatched;
       _completeLayer2InFlightForSuccess();
       _layer2Failed = false;
       _layer2FailureReason = null;
+      _needsFullReloadAfterHostUnavailable = false;
       // 14.6b: same-frame handoff so the Live spinner does not drop while
       // [_prepareLiveMotion] awaits LiveHostOpSerial.
       // ADR-037: if L2 wait chrome already painted, skip F1 <T on motion.
@@ -3720,6 +3952,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _surfaceReady = false;
         _liveMotionMounted = false;
         _loading = false;
+        _trackStillCoverPath(l2Ready.cover?.localFilePath);
         _armLayer2InFlight(generation);
         _media = FeedPageMedia.video(
           widget.assetIdentifier,
@@ -3749,10 +3982,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       setState(() {
         _layer2Failed = false;
         _layer2FailureReason = null;
+        _needsFullReloadAfterHostUnavailable = false;
         _clearLayer2InFlightUnconditional();
         _surfaceReady = false;
         _liveMotionMounted = false;
         _loading = false;
+        _trackStillCoverPath(l2Ready.cover!.localFilePath);
         _media = FeedPageMedia.still(
           l2Ready.cover!,
           layer: FeedDisplayLayer.full,
@@ -4057,7 +4292,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
     // One wait-chrome evaluation per build. ADR-039 removed the separate
     // coverless center Layer2Waiting copy; corner feedback remains.
-    final showLayer2WaitSpinner = _evaluateShowLayer2WaitChrome();
+    // Still/poster decode-broken: hide Meta + corner spinner (owner: empty
+    // chrome OK; date/size Meta on a deleted/broken cover is not).
+    final showLayer2WaitSpinner =
+        !_suppressStillCoverChrome && _evaluateShowLayer2WaitChrome();
     if (showLayer2WaitSpinner) {
       // ADR-037: latch real paint, not wall-clock ≥ T alone.
       _layer2WaitChromeLatched = true;
@@ -4107,6 +4345,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                 color: tokens.feedBackground,
                 fit: BoxFit.fill,
                 onFileBroken: _onPreviewFileBroken,
+                onFileReady: _onStillCoverFrameReady,
               );
               // Always the same binder runtimeType — only [persistent] flips
               // on L1↔L2 (Cap 20 black-flash / debt 450).
@@ -4128,8 +4367,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
           showLoadSpinner:
               widget.isCurrent &&
+              !_suppressStillCoverChrome &&
               (showLayer2WaitSpinner || _showLiveLoadSpinner),
-          reassureLabel: cornerReassureLabel,
+          reassureLabel:
+              _suppressStillCoverChrome ? null : cornerReassureLabel,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
                   assetIdentifier: widget.assetIdentifier,
@@ -4301,6 +4542,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                           color: tokens.feedBackground,
                           fit: BoxFit.fill,
                           onFileBroken: _onPreviewFileBroken,
+                          onFileReady: _onStillCoverFrameReady,
                         ),
                       ),
                     ),
@@ -4312,7 +4554,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
                   showLoadSpinner:
                       showLayer2WaitSpinner && !deferVideoForHandoff,
-                  reassureLabel: cornerReassureLabel,
+                  reassureLabel:
+                      _suppressStillCoverChrome ? null : cornerReassureLabel,
                 )
               : null,
           deferVideoForHandoff: deferVideoForHandoff,
@@ -4755,7 +4998,7 @@ class _FeedCornerChrome extends StatelessWidget {
                     children: [
                       if (showReassure) ...[
                         // Intrinsic width — do not fade-clip EN
-                        // "Still loading" / ZH「仍在加载」under a tight
+                        // "Still loading" / zh-Hans reassure under a tight
                         // maxWidth (device smoke).
                         Text(
                           reassureLabel!,
@@ -4810,12 +5053,14 @@ class _ReloadableFileImage extends StatefulWidget {
     required this.path,
     required this.color,
     this.onFileBroken,
+    this.onFileReady,
     this.fit = BoxFit.contain,
   });
 
   final String path;
   final Color color;
   final VoidCallback? onFileBroken;
+  final VoidCallback? onFileReady;
   final BoxFit fit;
 
   @override
@@ -4824,12 +5069,14 @@ class _ReloadableFileImage extends StatefulWidget {
 
 class _ReloadableFileImageState extends State<_ReloadableFileImage> {
   bool _postedBroken = false;
+  bool _postedReady = false;
 
   @override
   void didUpdateWidget(covariant _ReloadableFileImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.path != widget.path) {
       _postedBroken = false;
+      _postedReady = false;
     }
   }
 
@@ -4862,15 +5109,37 @@ class _ReloadableFileImageState extends State<_ReloadableFileImage> {
           ),
           gaplessPlayback: true,
           fit: widget.fit,
+          frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+            if (!_postedReady &&
+                (wasSynchronouslyLoaded || frame != null)) {
+              _postedReady = true;
+              final readyPath = widget.path;
+              final onReady = widget.onFileReady;
+              if (onReady != null) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (!mounted || widget.path != readyPath) {
+                    return;
+                  }
+                  onReady();
+                });
+              }
+            }
+            return child;
+          },
           errorBuilder: (context, error, stackTrace) {
             if (!_postedBroken) {
               _postedBroken = true;
+              final brokenPath = widget.path;
               final onBroken = widget.onFileBroken;
               if (onBroken != null) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (mounted) {
-                    onBroken();
+                  // Stale: path already swapped (e.g. Cap 21.6 reload heal)
+                  // before this callback ran — do not re-arm broken on the
+                  // new cover.
+                  if (!mounted || widget.path != brokenPath) {
+                    return;
                   }
+                  onBroken();
                 });
               }
             }

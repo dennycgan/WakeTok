@@ -217,7 +217,7 @@
   "cap19CurrentMediaNotReady": "媒体尚未就绪。",
   "stillInLibraryUnavailableTitle": "无法使用此项",
   "stillInLibraryUnavailableBody": "它已不在你的照片图库中。",
-  "stillInLibraryUnavailableConfirm": "好",
+  "stillInLibraryUnavailableConfirm": "OK",
   "cap19LeftSwipeGuideTitle": "左滑添加到 WakeTok",
   "cap19LeftSwipeGuideSubtitle": "保存到 WakeTok 相册，当作稍后在「照片」里查找的标记 — 不会移动或删除原文件",
   "cap19LeftSwipeAppendSuccess": "已添加到 WakeTok",

@@ -749,11 +749,23 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
-  /// Cap 15.12 / 15.15: on-demand KVC probe for specific ids (become-current).
+  /// Cap 15.12 / 15.15: on-demand KVC probe for specific ids (become-current
+  /// and Cap 23 still-in-library mutation gate).
   ///
   /// Work runs on a background queue (same pattern as [resolveSource] id
   /// enumeration), then completes on main — never blocks the UI isolate with
   /// `PHAssetResource.assetResources` / KVC.
+  ///
+  /// Id fetch uses `PHAsset.fetchAssets(withLocalIdentifiers:options:)` with
+  /// default options — unlike [makeLibraryFetchOptions] catalog/paging paths,
+  /// that API still returns assets in **Recently Deleted**. Cap 23 / ADR-049
+  /// treat soft-deleted assets as not still-in-library (mutation must not
+  /// proceed to Host and fail with late "Couldn't add…" copy). Before
+  /// [mapAvailability], membership in the Recently Deleted smart album
+  /// (`smartAlbumRecentlyDeletedRawValue`) maps to `.unavailable`. **Hidden**
+  /// is intentionally not excluded here — Hidden means default-timeline
+  /// visibility, not absence from the library (unlike Cap 11.2 album-catalog
+  /// exclusion).
   func getAssetAvailabilities(
     assetIdentifiers: [String],
     completion: @escaping (Result<[AssetAvailabilityDto], Error>) -> Void
@@ -772,6 +784,12 @@ final class PhotoLibraryService: PhotoLibraryApi {
             availabilities.append(.unavailable)
             continue
           }
+          // Cap 23.4: RD pre-check owns soft-delete → unavailable. Do not fold
+          // into [mapAvailability] (kept as resource/locality mapping only).
+          if self.isInRecentlyDeletedSmartAlbum(asset) {
+            availabilities.append(.unavailable)
+            continue
+          }
           availabilities.append(self.mapAvailability(asset))
         }
         DispatchQueue.main.async {
@@ -781,6 +799,29 @@ final class PhotoLibraryService: PhotoLibraryApi {
     } catch {
       completion(.failure(error))
     }
+  }
+
+  /// True when [asset] is in the Recently Deleted smart album.
+  ///
+  /// Soft-delete gate for [getAssetAvailabilities], [requestDisplayAsset],
+  /// and [requestPreview] (revisit Case B / Cap 23 alignment). Does not
+  /// change [mapAvailability] or Hidden handling.
+  private func isInRecentlyDeletedSmartAlbum(_ asset: PHAsset) -> Bool {
+    let collections = PHAssetCollection.fetchAssetCollectionsContaining(
+      asset,
+      with: .smartAlbum,
+      options: nil
+    )
+    var inRecentlyDeleted = false
+    collections.enumerateObjects { collection, _, stop in
+      if collection.assetCollectionSubtype.rawValue
+        == Self.smartAlbumRecentlyDeletedRawValue
+      {
+        inRecentlyDeleted = true
+        stop.pointee = true
+      }
+    }
+    return inRecentlyDeleted
   }
 
   func requestDisplayAsset(
@@ -797,6 +838,19 @@ final class PhotoLibraryService: PhotoLibraryApi {
         completion(
           .failure(
             fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
+          )
+        )
+        return
+      }
+      // Soft-delete (Recently Deleted): still fetchable by id, but not
+      // still-in-library — same Case B as hard-missing (revisit model).
+      if isInRecentlyDeletedSmartAlbum(asset) {
+        completion(
+          .failure(
+            fail(
+              .assetUnavailable,
+              message: "Asset in Recently Deleted: \(assetIdentifier)"
+            )
           )
         )
         return
@@ -930,6 +984,17 @@ final class PhotoLibraryService: PhotoLibraryApi {
         completion(
           .failure(
             fail(.assetUnavailable, message: "Asset not found: \(assetIdentifier)")
+          )
+        )
+        return
+      }
+      if isInRecentlyDeletedSmartAlbum(asset) {
+        completion(
+          .failure(
+            fail(
+              .assetUnavailable,
+              message: "Asset in Recently Deleted: \(assetIdentifier)"
+            )
           )
         )
         return

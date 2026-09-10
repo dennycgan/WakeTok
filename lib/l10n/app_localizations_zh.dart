@@ -1531,7 +1531,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get stillInLibraryUnavailableBody => '它已不在你的照片图库中。';
 
   @override
-  String get stillInLibraryUnavailableConfirm => '好';
+  String get stillInLibraryUnavailableConfirm => 'OK';
 
   @override
   String get cap19LeftSwipeGuideTitle => '左滑添加到 WakeTok';
