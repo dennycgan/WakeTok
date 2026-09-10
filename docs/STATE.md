@@ -175,7 +175,7 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Current-asset still-in-library gate for mutation chrome
-Contract: ADR-049 Proposed (this docs commit)
+Contract: ADR-049 Proposed (Accepted at Cap 23 close / 23.5)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 23.1 Contract freeze — ADR-049 Proposed
@@ -187,11 +187,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       immersive dark shell; entry in-flight latch (not wall-clock
       debounce); left-swipe probe once immediately before append
       only (not on arm); Out: **456a**, Share UI, library observer,
-      Delete-original (**464**). Docs (this commit). Debt table:
-      bare **456** retired → **456a** / **456b**.
-- [ ] 23.2 Still-in-library provider + probe seam
-      Domain/app provider + composition-root wiring; predicate
-      helpers; unit tests (U-23-pred / U-23-AND). No UI dialog yet.
+      Delete-original (**464**). Docs `25689b0` / Contract pointer
+      `3c40499`. Debt table: bare **456** retired → **456a** /
+      **456b**.
+- [x] 23.2 Still-in-library provider + probe seam
+      Domain predicates + `mainBrowseCurrentAssetStillInLibraryProvider`
+      / on-demand probe (stale-guard + in-flight latch); U-23-pred /
+      U-23-AND / S1–S6. No UI dialog yet. Work `4004ad1`.
 - [ ] 23.3 Shared dialog + mutation entry wiring
       l10n; dialog shell reuse; Cap 19 entry tap / Favorites /
       Add-to-Album / left-swipe append; in-flight latch; widget
@@ -204,11 +206,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       snapshot; confirm ADR-049 Accepted + **456b** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 23.2 Still-in-library provider + probe seam
-- Sub-steps done: 23.1 contract — ADR-049 Proposed; debt **456**
-      split to **456a** / **456b** (this docs commit)
-- Next step: implement still-in-library provider +
-      `getAssetAvailabilities` probe seam + unit tests (no dialog UI)
+- Goal (one line): 23.3 Shared dialog + mutation entry wiring
+- Sub-steps done: 23.1 contract; 23.2 provider + probe seam
+      (`4004ad1`)
+- Next step: shared unavailable dialog (Cap 22 shell) + Cap 19
+      entry / Favorites / Add-to-Album / left-swipe append wiring +
+      in-flight latch / W-23-*
 - Related decisions: ADR-049 Proposed; ADR-042 actionable AND;
       ADR-033 availabilities API; **456a** Open; **456b** Open →
       Cap 23 close; **457** Open; Cap 20 **449** / **452** Open;
