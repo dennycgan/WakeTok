@@ -5,6 +5,7 @@ import 'package:waketok/domain/authorization/photos_authorization_repository.dar
 import 'package:waketok/domain/library/album_cover_repository.dart';
 import 'package:waketok/domain/library/album_mutation_repository.dart';
 import 'package:waketok/domain/library/asset_favorite_repository.dart';
+import 'package:waketok/domain/library/asset_soft_delete_repository.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/library/library_asset.dart';
 import 'package:waketok/domain/library/library_catalog_repository.dart';
@@ -239,7 +240,8 @@ class PhotoLibraryGateway
         PresentationMetadataRepository,
         AlbumMutationRepository,
         AlbumCoverRepository,
-        AssetFavoriteRepository {
+        AssetFavoriteRepository,
+        AssetSoftDeleteRepository {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
       : _api = api ?? pigeon.PhotoLibraryApi();
 
@@ -438,4 +440,8 @@ class PhotoLibraryGateway
     required bool favorite,
   }) =>
       _api.setAssetFavorite(assetIdentifier, favorite);
+
+  @override
+  Future<void> softDeleteAsset(String assetIdentifier) =>
+      _api.softDeleteAsset(assetIdentifier);
 }

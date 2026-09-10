@@ -2121,6 +2121,81 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  /// Cap 24: soft-delete into system Recently Deleted (never Empty RD).
+  func softDeleteAsset(
+    assetIdentifier: String,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !assetIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset identifier is empty")
+        )
+      )
+      return
+    }
+    let assets = PHAsset.fetchAssets(
+      withLocalIdentifiers: [assetIdentifier],
+      options: nil
+    )
+    guard let asset = assets.firstObject else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset not found")
+        )
+      )
+      return
+    }
+    // Cap 24 / ADR-050 Q2: already in Recently Deleted → unavailable; do not
+    // call deleteAssets again. Reuses Cap 23.4 RD helper.
+    if isInRecentlyDeletedSmartAlbum(asset) {
+      completion(
+        .failure(
+          fail(
+            .assetUnavailable,
+            message: "Asset is already in Recently Deleted"
+          )
+        )
+      )
+      return
+    }
+    PHPhotoLibrary.shared().performChanges({
+      PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
+    }) { success, error in
+      DispatchQueue.main.async {
+        if success {
+          completion(.success(()))
+          return
+        }
+        if let error {
+          completion(
+            .failure(
+              self.mapPhotoKitAlbumMutationError(
+                error,
+                fallback: .assetUnavailable
+              )
+            )
+          )
+          return
+        }
+        completion(
+          .failure(
+            self.fail(
+              .assetUnavailable,
+              message: "Failed to soft-delete asset"
+            )
+          )
+        )
+      }
+    }
+  }
+
   /// Maps PhotoKit write failures to stable Pigeon [ErrorCode] values.
   private func mapPhotoKitAlbumMutationError(
     _ error: Error,

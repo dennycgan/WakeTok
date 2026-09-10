@@ -2032,6 +2032,30 @@ class PhotoLibraryApi {
     )
     ;
   }
+
+  /// Cap 24: soft-delete into system Recently Deleted.
+  ///
+  /// Host: `PHAssetChangeRequest.deleteAssets`. Never empties Recently
+  /// Deleted. Missing asset or already in Recently Deleted →
+  /// [ErrorCode.assetUnavailable]. User cancel of a system confirm →
+  /// [ErrorCode.operationCancelled] (cancel ≠ failure for App toast).
+  Future<void> softDeleteAsset(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.softDeleteAsset$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
 }
 
 /// App-scoped playback service contract (ADR-006).

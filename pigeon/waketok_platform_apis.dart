@@ -583,6 +583,15 @@ abstract class PhotoLibraryApi {
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   @async
   void addAssetToAlbum(String assetIdentifier, String albumIdentifier);
+
+  /// Cap 24: soft-delete into system Recently Deleted.
+  ///
+  /// Host: `PHAssetChangeRequest.deleteAssets`. Never empties Recently
+  /// Deleted. Missing asset or already in Recently Deleted →
+  /// [ErrorCode.assetUnavailable]. User cancel of a system confirm →
+  /// [ErrorCode.operationCancelled] (cancel ≠ failure for App toast).
+  @async
+  void softDeleteAsset(String assetIdentifier);
 }
 
 /// App-scoped playback service contract (ADR-006).

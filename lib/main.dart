@@ -18,6 +18,7 @@ import 'package:waketok/features/authorization/photos_authorization_notifier.dar
 import 'package:waketok/features/library_smoke/album_cover_providers.dart';
 import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_favorite_providers.dart';
+import 'package:waketok/features/library_smoke/asset_soft_delete_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
@@ -61,6 +62,7 @@ Future<void> main() async {
         }),
         albumCoverRepositoryProvider.overrideWithValue(gateway),
         assetFavoriteRepositoryProvider.overrideWithValue(gateway),
+        assetSoftDeleteRepositoryProvider.overrideWithValue(gateway),
         wakeTokAlbumStoreProvider.overrideWithValue(wakeTokAlbumStore),
         cap19LeftSwipePreferencesProvider.overrideWithValue(
           cap19LeftSwipePreferences,

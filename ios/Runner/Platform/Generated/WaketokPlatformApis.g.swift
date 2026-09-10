@@ -1508,6 +1508,13 @@ protocol PhotoLibraryApi {
   func albumContainsAsset(albumIdentifier: String, assetIdentifier: String, completion: @escaping (Result<Bool, Error>) -> Void)
   /// 4.3 empty stub MUST fail with [ErrorCode.albumNotWritable].
   func addAssetToAlbum(assetIdentifier: String, albumIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Cap 24: soft-delete into system Recently Deleted.
+  ///
+  /// Host: `PHAssetChangeRequest.deleteAssets`. Never empties Recently
+  /// Deleted. Missing asset or already in Recently Deleted →
+  /// [ErrorCode.assetUnavailable]. User cancel of a system confirm →
+  /// [ErrorCode.operationCancelled] (cancel ≠ failure for App toast).
+  func softDeleteAsset(assetIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -2044,6 +2051,29 @@ class PhotoLibraryApiSetup {
       }
     } else {
       addAssetToAlbumChannel.setMessageHandler(nil)
+    }
+    /// Cap 24: soft-delete into system Recently Deleted.
+    ///
+    /// Host: `PHAssetChangeRequest.deleteAssets`. Never empties Recently
+    /// Deleted. Missing asset or already in Recently Deleted →
+    /// [ErrorCode.assetUnavailable]. User cancel of a system confirm →
+    /// [ErrorCode.operationCancelled] (cancel ≠ failure for App toast).
+    let softDeleteAssetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.softDeleteAsset\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      softDeleteAssetChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.softDeleteAsset(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      softDeleteAssetChannel.setMessageHandler(nil)
     }
   }
 }
