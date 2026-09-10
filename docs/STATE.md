@@ -221,7 +221,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       candidates; layout notes Action Column indices; widget tests
       W-24.3-1…16 + cover-read `FileSystemException` IO unit test.
       ADR-050 remains Proposed until Cap 24 close.
-- [ ] 24.4 Session Queue remove + advance on success
+- [x] 24.4 Session Queue remove + advance on success
+      Work `52b6c39`: domain `removeAssetFromSessionQueue` (mid-list
+      keeps feedIndex; last → newLength-1; sole → empty; missing id
+      no-op); `BrowseSessionNotifier.removeAssetAndLand` (no
+      roundEpoch bump; Snapshot untouched); success path
+      onLeaveCurrent → remove → L2 evict → setIndex → unconditional
+      settled=true → pop sheet (intentional force-settle after queue
+      kick; rationale in code comment — mid-list setIndex is no-op,
+      no gesture settle to await); fail/cancel zero Queue mutate;
+      widget tests W-24.4-1…7 + U-24.4-1…4. ADR-050 remains
+      Proposed until Cap 24 close.
 - [ ] 24.5 Device acceptance
       (incl. Decision 4 resolve RD exclusion / restore reappearance;
       note system second confirm if observed)
@@ -232,18 +242,20 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 24.6 Cap close-out
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.4 Session Queue remove + advance on success
-- Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed; Cap 23 closed
-      (`158a21c`); **456b** Closed at 23.4; 24.2 Host soft-delete write
-      path work `32d4bd1`; 24.3 more-sheet chrome work `f4928b6`
-- Next step: Design / implement Session Queue remove + advance on
-      Host soft-delete success (fail-closed; no Snapshot invalidation)
+- Goal (one line): 24.5 Device acceptance
+- Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed; Cap 23
+      closed (`158a21c`); **456b** Closed at 23.4; 24.2 Host
+      soft-delete write path work `32d4bd1` (+ harness align
+      `1fcdbd1`); 24.3 more-sheet chrome work `f4928b6`; 24.4 Session
+      Queue kick work `52b6c39`
+- Next step: Device acceptance (ADR-050 D4 force-quit resolve /
+      restore reappearance; note system second confirm if observed)
 - Related decisions: ADR-050 Proposed; ADR-049 Accepted; ADR-042 /
       ADR-044 D3; debt **464** Open until Cap 24 Accept split;
       **456a** / **457** Open; **458** Monitoring; **463** Accepted
       (permanent); Q4′ = A (no Snapshot hook; 24.5 force-quit resolve
-      protocol in acceptance notes); harness debts **465** / **466** /
-      **467** scheduled **24.5.5**
+      protocol in `docs/acceptance/cap24-24.5-notes.md`); harness
+      debts **465** / **466** / **467** scheduled **24.5.5**
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
