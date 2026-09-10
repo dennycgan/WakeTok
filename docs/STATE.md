@@ -194,10 +194,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Domain predicates + `mainBrowseCurrentAssetStillInLibraryProvider`
       / on-demand probe (stale-guard + in-flight latch); U-23-pred /
       U-23-AND / S1–S6. No UI dialog yet. Work `4004ad1`.
-- [ ] 23.3 Shared dialog + mutation entry wiring
-      l10n; dialog shell reuse; Cap 19 entry tap / Favorites /
-      Add-to-Album / left-swipe append; in-flight latch; widget
-      guards (W-23-*).
+- [x] 23.3 Shared dialog + mutation entry wiring
+      Shared unavailable dialog (Cap 22 shell) + ARB; `dialogVisible` /
+      `isBusy` latch; ensure gate for entry / Favorites / Add-to-Album;
+      left-swipe append probe + `notInLibrary`; W-23-* incl. barrier
+      re-probe. Work `32a3617`.
 - [ ] 23.4 Device acceptance
       Matrix P-23-A…G on Kafka + i17; notes under
       `docs/acceptance/cap23-*`; debt **456b** Closed on PASS.
@@ -206,12 +207,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       snapshot; confirm ADR-049 Accepted + **456b** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 23.3 Shared dialog + mutation entry wiring
-- Sub-steps done: 23.1 contract; 23.2 provider + probe seam
-      (`4004ad1`)
-- Next step: shared unavailable dialog (Cap 22 shell) + Cap 19
-      entry / Favorites / Add-to-Album / left-swipe append wiring +
-      in-flight latch / W-23-*
+- Goal (one line): 23.4 Device acceptance
+- Sub-steps done: 23.1 contract; 23.2 probe seam (`4004ad1`); 23.3
+      shared dialog + mutation entry wiring (`32a3617`)
+- Next step: P-23-A…G on Kafka + i17; write
+      `docs/acceptance/cap23-*`; close **456b** on PASS
 - Related decisions: ADR-049 Proposed; ADR-042 actionable AND;
       ADR-033 availabilities API; **456a** Open; **456b** Open →
       Cap 23 close; **457** Open; Cap 20 **449** / **452** Open;
