@@ -1162,3 +1162,33 @@ Known debt at close: **455** Closed by Cap 22; **456** / **457** Open
 **458** Monitoring; **463** Accepted (permanent); **464** Open
 (delete-original intent park). Do not flip **456** / **457** / **464**
 in this close-out.
+
+---
+
+## Current-asset still-in-library gate for mutation chrome (Cap 23) — 2026-09-10
+
+- [x] 23.1 Contract freeze — ADR-049 Proposed
+      — docs `25689b0` / Contract pointer `3c40499`; bare **456** →
+        **456a** / **456b**
+- [x] 23.2 Still-in-library provider + probe seam
+      — work `4004ad1`; docs `95f5119`
+- [x] 23.3 Shared dialog + mutation entry wiring
+      — work `32a3617`; docs `de0ed78`
+- [x] 23.4 Device acceptance
+      — work `893c8fb`; docs `0ba5f22`; notes
+        `docs/acceptance/cap23-23.4-notes.md`; full A–G PASS Kafka +
+        i17; debt **456b** Closed
+- [x] 23.5 Cap close-out: Cap 23 `[x]`; YOU ARE HERE → Soft-delete
+      current asset to Photos Recently Deleted…; PHASE_HISTORY this
+      snapshot; ADR-049 Accepted; **456b** already Closed at 23.4
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-049 Accepted): (this commit)
+
+Related ADR: ADR-049 (`32a3617`; related `4004ad1`, `893c8fb`;
+Proposed `25689b0`).
+Known debt at close: **456b** Closed by Cap 23.4; **456a** / **457**
+Open; Cap 20 **449** / **452** Open; **458** Monitoring; **463**
+Accepted (permanent); **464** Open (soft-delete Cap next — intent
+park until ADR-050). Do not flip **456a** / **457** / **464** in this
+close-out.

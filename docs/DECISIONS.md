@@ -5610,8 +5610,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-049: Cap 23 current-asset still-in-library mutation gate
 
-- Status: Proposed
-- Commit/PR anchor: (fill on Accept after implementing work commit)
+- Status: Accepted (2026-09-10)
+- Commit/PR anchor: `32a3617` (Cap 23.3 shared dialog + mutation
+  wiring); related `4004ad1` (23.2 provider/probe), `893c8fb` (23.4
+  feed Case B harden + device notes)
 - Plain summary (owner reads this):
   Before Favorites, Add to Album, or left-swipe-into-album runs, WakeTok
   checks once whether the current photo or video still exists in the
@@ -5687,8 +5689,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Keep bare **456** until Cap close — rejected; unclear Open/Closed
     status during Cap 23 execution.
 - Consequences / constraints accepted:
-  - Status remains **Proposed** until Cap 23 implementing work lands;
-    then Accepted with real anchor / `git log -1 --format=%cs`.
+  - Accepted with implementing anchors above
+    (`git log -1 --format=%cs 32a3617` → 2026-09-10).
   - Cap 21.6 feed Host-unavailable dimming stays as interim chrome for
     the already-failed feed path; Cap 23 covers proactive gates when
     feed may still show content (**456a** residual possible).
@@ -5697,4 +5699,5 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Relationship:
   Extends ADR-042 (orthogonal existence axis). Uses ADR-033
   `getAssetAvailabilities`. Does not amend ADR-044 D3 feed-only remap.
-  Closes STATE debt **456b** when Cap 23 ships; leaves **456a** Open.
+  Closed STATE debt **456b** at Cap 23.4 (`0ba5f22` / work `893c8fb`);
+  leaves **456a** Open.
