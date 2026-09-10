@@ -7,6 +7,7 @@ import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
+import 'package:waketok/domain/session/remove_asset_from_session_queue.dart';
 import 'package:waketok/domain/session/session_queue.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
@@ -404,6 +405,36 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     state = AsyncData(
       BrowseSessionView(session: next, roundEpoch: _roundEpoch),
     );
+  }
+
+  /// Cap 24.4 / ADR-050 D4: remove [assetId] from the in-memory Queue and
+  /// return the landing feed index. Does **not** bump [roundEpoch], reshuffle,
+  /// or touch [browseSnapshotCacheProvider].
+  ///
+  /// Returns `null` when no session data is loaded.
+  int? removeAssetAndLand({
+    required String assetId,
+    required int feedIndex,
+  }) {
+    final current = state.asData?.value;
+    if (current == null) {
+      return null;
+    }
+    final result = removeAssetFromSessionQueue(
+      session: current.session,
+      assetId: assetId,
+      feedIndex: feedIndex,
+    );
+    if (!result.removed) {
+      return feedIndex;
+    }
+    state = AsyncData(
+      BrowseSessionView(
+        session: result.session,
+        roundEpoch: current.roundEpoch,
+      ),
+    );
+    return result.feedIndex;
   }
 
   /// Cap 14.4e / ADR-027 strength C: new Consumption Session on the current

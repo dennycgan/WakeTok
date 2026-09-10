@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/browse/browse_l2_ready_session.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap24_browse_toast.dart';
@@ -10,6 +13,7 @@ import 'package:waketok/features/main_browse/cap24_more_panel_open.dart';
 import 'package:waketok/features/main_browse/cap24_panel_host_context.dart';
 import 'package:waketok/features/main_browse/cap24_soft_delete_dialogs.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Opens the Cap 24 more half-sheet (Delete + minute landmark).
@@ -113,6 +117,10 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
     }
     switch (outcome) {
       case Cap24SoftDeleteConfirmOutcome.success:
+        await _applySuccessQueueKick();
+        if (!mounted) {
+          return;
+        }
         Navigator.of(context).pop();
       case Cap24SoftDeleteConfirmOutcome.failed:
         final l10n = AppLocalizations.of(context)!;
@@ -121,6 +129,34 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
       case Cap24SoftDeleteConfirmOutcome.dismissed:
         break;
     }
+  }
+
+  /// Cap 24.4: Host already succeeded — remove id from Queue and land playhead.
+  Future<void> _applySuccessQueueKick() async {
+    final deletedId = ref.read(mainBrowseCurrentAssetIdProvider);
+    final feedIndex = ref.read(mainBrowseFeedIndexProvider);
+    if (deletedId == null || deletedId.isEmpty) {
+      return;
+    }
+
+    unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
+
+    final landed = ref.read(browseSessionProvider.notifier).removeAssetAndLand(
+          assetId: deletedId,
+          feedIndex: feedIndex,
+        );
+    if (landed == null) {
+      return;
+    }
+
+    ref.read(browseL2ReadySessionProvider.notifier).evict(deletedId);
+    ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(landed);
+    // Cap 24.4 / ADR-042 D8: intentional unconditional settled=true — not a
+    // TODO. Mid-list land keeps the same feedIndex so setIndex is a no-op and
+    // no gesture ScrollEnd / settle event will fire. Do not "fix" this by
+    // waiting for PageController settle; that needs a separate mid-list signal
+    // first — deleting this line alone would strand trailing chrome.
+    ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(true);
   }
 
   @override
