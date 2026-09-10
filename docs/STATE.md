@@ -192,7 +192,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       kickoff P1–P5 + §1.7 Media Actions Sheet; on Accept split **464**
       (soft-delete Closed by Cap 24 / permanent Empty Accepted
       permanent). Favorite Cap 19 historical #4 gap recorded only.
-- [ ] 24.2 Host soft-delete write + Pigeon (if needed)
+- [x] 24.2 Host soft-delete write + Pigeon
+      Work `32d4bd1`: Pigeon `softDeleteAsset` (single id; no batch);
+      Host access → fetch → Cap 23.4 `isInRecentlyDeletedSmartAlbum`
+      pre-check → `PHAssetChangeRequest.deleteAssets`; domain
+      `AssetSoftDeleteRepository` + `PhotoLibraryGateway` +
+      composition-root override; zero Snapshot invalidation hook;
+      Dart gateway/provider tests (incl. `operationCancelled` + four
+      other ErrorCode propagations); control `flutter test` 954/-28
+      pre-existing fail set verified identical vs pre-diff HEAD.
 - [ ] 24.3 Action Column "…" + half-sheet chrome + confirm dialog
 - [ ] 24.4 Session Queue remove + advance on success
 - [ ] 24.5 Device acceptance
@@ -201,15 +209,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 24.6 Cap close-out
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.2 Host soft-delete write + Pigeon (if needed)
-- Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed (this docs
-      commit); Cap 23 closed (`158a21c`); **456b** Closed at 23.4
-- Next step: Owner review of 24.1 docs; then design/implement Host
-      soft-delete write path (no code until owner says start)
+- Goal (one line): 24.3 Action Column "…" + half-sheet chrome + confirm dialog
+- Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed; Cap 23 closed
+      (`158a21c`); **456b** Closed at 23.4; 24.2 Host soft-delete write
+      path work `32d4bd1`
+- Next step: Owner review of 24.2 diff; design half-sheet + confirm +
+      Cap 23 gate wiring (not started)
 - Related decisions: ADR-050 Proposed; ADR-049 Accepted; ADR-042 /
       ADR-044 D3; debt **464** Open until Cap 24 Accept split;
       **456a** / **457** Open; **458** Monitoring; **463** Accepted
-      (permanent)
+      (permanent); Q4′ = A (no Snapshot hook; 24.5 force-quit resolve
+      protocol in acceptance notes)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -440,6 +450,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Proposed** (Cap 24.1; Accept + anchor at Cap 24 close)
 - Cap 24 soft-delete locked copy candidates (pre-ARB; EN + zh-Hans):
       `docs/reference/cap24-soft-delete-copy-candidates.md`
+- Cap 24.5 device acceptance notes (protocol template only — no device
+      matrix results yet): `docs/acceptance/cap24-24.5-notes.md`
+      (locks ADR-050 D4 (a)(b) force-quit → real PhotoKit resolve;
+      same-process tab switch must not be the sole gate)
 - Cap 23.4 device acceptance notes:
       `docs/acceptance/cap23-23.4-notes.md` (Kafka + i17 PASS; **456b**
       Closed)
