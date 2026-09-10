@@ -1123,3 +1123,42 @@ Known debt at close: **444** Closed by Cap 21.6; **454** Closed;
 still-in-library Cap after Cap 22 (456 Part B); Cap 20 residuals
 **449** / **452** Open. Do not flip **455** / **456** / **457** in
 this close-out.
+
+---
+
+## Saved Pool persistence, reopen, management, and capacity limits (Cap 22) — 2026-09-10
+
+- [x] 22.1 Contract freeze — ADR-046 Proposed
+      — docs `1b34901`; D1–D9 locked
+- [x] 22.2 Drift/SQLite baseline + SavedPoolRepository
+      — work `d62e962`; ADR-046 Accepted (docs `69c6fd5`)
+- [x] 22.3 Save UX
+      — work `4db65ec`; docs `028bbc4`; ADR: D3–D5 (later narrowly
+        superseded in part by ADR-047)
+- [x] 22.4 Saved chrome
+      — work `0ca1198` + supplemental `0b68e01`; ADR-047 Accepted
+        (docs `d775523`); debt **455** refresh on list/Info; debt
+        **458** Monitoring (Live page-snap; not Saved causal)
+- [x] 22.5 Misc polish
+      — work `7350f67` + `fd662c1`; ADR-048 work `fbf2e82` Accepted
+        docs `0e87b5b`; debts **459**–**462** Closed; **463**
+        Accepted (permanent); **464** Open; notes
+        `cap22-22.5-endless-round-bridge-notes.md`; docs `bdf2fc4`
+- [x] 22.6 Device acceptance
+      — work `862ceba` (U-22.6-H); docs `f846396`; notes
+        `cap22-22.6-notes.md`; full A–I PASS Kafka + i17 (2026-09-10);
+        debt **455** verified (Status flip in 22.7)
+- [x] 22.7 Cap close-out: Cap 22 `[x]`; YOU ARE HERE → still-in-library
+      gate…; PHASE_HISTORY this snapshot; debt **455** Closed; ADR-046
+      / ADR-047 / ADR-048 already Accepted
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-046 (`d62e962`); ADR-047 (`0b68e01`); ADR-048
+(`fbf2e82`).
+Known debt at close: **455** Closed by Cap 22; **456** / **457** Open
+(still-in-library Cap = **456** Part B); Cap 20 **449** / **452** Open;
+**458** Monitoring; **463** Accepted (permanent); **464** Open
+(delete-original intent park). Do not flip **456** / **457** / **464**
+in this close-out.

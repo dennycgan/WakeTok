@@ -111,7 +111,9 @@
       D5=4×; `docs/acceptance/cap20-*.md`; PHASE_HISTORY)
 - [x] Build a Pool, Ephemeral Pool, and Source ordering (Cap 21 /
       ADR-044…045; `docs/acceptance/cap21-*.md`; PHASE_HISTORY)
-- [ ] Saved Pool persistence, reopen, management, and capacity limits <-- YOU ARE HERE
+- [x] Saved Pool persistence, reopen, management, and capacity limits
+      (Cap 22 / ADR-046…048; `docs/acceptance/cap22-*.md`;
+      PHASE_HISTORY)
 - [ ] Current-asset still-in-library gate for mutation chrome
       (canonical Photos-existence signal for Favorites / Cap 19
       Add-to-Album / left-swipe; shared unavailable dialog; same
@@ -121,7 +123,7 @@
       iCloudNotDownloaded remains still-in-library; default: on-demand
       single-id probe at mutation trigger (no continuous polling);
       future Share must watch the same provider — no Share UI in this
-      Cap; debt **456** Part B only; after Saved Pool)
+      Cap; debt **456** Part B only; after Saved Pool) <-- YOU ARE HERE
 - [ ] Auto-play Presets and Mode Eligibility Rule
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
@@ -172,71 +174,22 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Saved Pool persistence, reopen, management, and capacity limits
-Contract: ADR-046 Accepted (work `d62e962`); ADR-047 Accepted (work `0b68e01`)
-Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+Active capability: Current-asset still-in-library gate for mutation chrome
 
-- [x] 22.1 Contract freeze — ADR-046 Proposed
-      D1–D9 locked: Drift SQLite (owner-approved stack; kickoff =
-      SQLite only); Save/Start decoupling + fingerprint gate; peek
-      promote / Start-after-Save clear `parkedEphemeralPool`; unique
-      displayName (trim + case-insensitive; Rename excludes self);
-      capacity dialog at 10; Saved pools menu; chip when `savedPool`
-      active; debt **455** close criterion; Out: recipe edit /
-      Checkpoint / Clip / **456**/**457**. Docs (this commit).
-- [x] 22.2 Drift/SQLite baseline + SavedPoolRepository
-      Domain repository + Drift schema (pool + ordered refs);
-      save/load/rename/delete; enforce max 10; composition-root
-      wiring. Work `d62e962`. ADR-046 Accepted this docs commit.
-      ADR: D1, D2.
-- [x] 22.3 Save UX
-      Shared naming dialog (+ unique-name inline error); Build Save
-      (stay on Build); ephemeral peek Save + promote clear park;
-      shared capacity dialog; Start↔fingerprint→`savedPool`.
-      `BrowseOriginSavedPool` identity is `poolId` only (definition
-      snapshot does not participate in `==`). Failed Save does not
-      overwrite `lastSaved*`. Q1 chrome gap: after promote /
-      Start-after-Save, no Temp chip and no Saved chip until 22.4.
-      Work `4db65ec`. ADR: D3, D4, D5.
-- [x] 22.4 Saved chrome
-      Saved pools menu: list / open / Info / Rename / Delete(+confirm);
-      control label Saved pools; chip when `savedPool` active; debt
-      **455** refresh on list/Info; drop Coming-soon gray stubs.
-      ADR-047: Save & browse / Browse without saving; entry-point
-      recipe shells (chip peek / menu i center dialog); already-active
-      row toast. Work `0ca1198` + supplemental `0b68e01`. ADR-047
-      Accepted this docs commit. ADR: D6–D8 (via ADR-046) + ADR-047.
-- [x] 22.5 Misc polish
-      Scheme A endless-round placeholder + ScrollEnd advance
-      (`7350f67`); Saved naming weight / chrome / Create cover pause
-      polish (`fd662c1`); ADR-048 Snapshot membership invalidation
-      after in-app album writes (`fbf2e82`, Accepted docs `0e87b5b`).
-      Debts **459**–**462** Closed; **463** Accepted (permanent);
-      **464** Open (delete-original intent park). Notes
-      `docs/acceptance/cap22-22.5-endless-round-bridge-notes.md`.
-      Must not absorb debt **456** Part B, recipe edit, or
-      SessionCheckpoint.
-- [x] 22.6 Device acceptance
-      Dual Save; capacity-10; rename uniqueness; reopen; process death
-      keeps Saved; album-removed honesty (455 verify); Limited;
-      Leave Browse × Saved; ADR-048 device gate. Full A–I PASS on
-      Kafka + i17 (2026-09-10). Guard `U-22.6-H` (`862ceba`). Notes
-      `docs/acceptance/cap22-22.6-notes.md`. Debt **455** Status flip
-      deferred to 22.7.
-- [ ] 22.7 Cap close-out
-      Cap `[x]`; YOU ARE HERE → still-in-library gate…; PHASE_HISTORY
-      snapshot; debt **455** Closed.
+> Cap internal phases are not yet owner-approved in STATE. Expand this
+> section after kickoff / scope review — do not invent phases here.
+> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 22.7 Cap close-out
-- Sub-steps done: 22.1–22.6 (device notes
-      `docs/acceptance/cap22-22.6-notes.md`; guard work this phase)
-- Next step: Cap `[x]`; YOU ARE HERE → still-in-library gate;
-      PHASE_HISTORY snapshot; debt **455** Closed
-- Related decisions: ADR-046 Accepted (`d62e962`); ADR-047 Accepted
-      (`0b68e01`); ADR-048 Accepted (`fbf2e82`); debt **455** → close
-      in 22.7; **456** / **457** Open (after Cap 22 for Part B);
-      Cap 20 **449** / **452** Open; Cap 22.4 **458** Monitoring;
+- Goal (one line): Still-in-library gate scope — owner-approved Phase
+      Roadmap TBD
+- Sub-steps done: Cap 22 complete (`docs/PHASE_HISTORY.md`; acceptance
+      `docs/acceptance/cap22-*.md`; ADR-046 / ADR-047 / ADR-048; debt
+      **455** Closed by Cap 22)
+- Next step: owner kickoff / scope review for still-in-library phases
+      before coding (debt **456** Part B)
+- Related decisions: Cap 22 close — **455** Closed; **456** / **457**
+      Open; Cap 20 **449** / **452** Open; Cap 22.4 **458** Monitoring;
       Cap 22.5 **463** Accepted (permanent); **464** Open
 
 ## Contract pointers (don't memorize, go read the source)
@@ -277,16 +230,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   Built-ins stay omitted from the Build list (Accepted deviation vs
   ADR-044 §11). Boundary table:
   `docs/reference/cap21-smart-album-boundary.md`.
-- **`assetSourcesProvider` list lag (Cap 21.5 / Cap 22 design memo):**
+- **`assetSourcesProvider` list lag (Cap 21.5 / Cap 22):**
   Album-catalog data updates only when the FutureProvider is actively
   (re)read after invalidate — it does **not** auto-observe Photos library
-  mutations. Composition peek “album removed” honesty therefore appears
-  only after a list refresh (Cap 21.5 triggers invalidate when opening
-  Create). This is **list-layer lag**, not Session/Queue lag
-  (ADR-027 / ADR-023 D7). Cap 22 Saved composition / detail UIs that
-  reuse `assetSourcesProvider` **must** plan explicit refresh timing;
-  do not assume a persisted recipe detects deleted albums by itself.
-  Debt **455**.
+  mutations. Cap 21.5 invalidates on Build open. Cap 22 Saved list /
+  Info / chip peek also invalidate on open (ADR-046 D8) — debt **455**
+  **Closed by Cap 22**. Session/Queue lag remains ADR-027 / ADR-023 D7
+  (orthogonal).
 - **Cap 21.4b smart-album boundary (live maintenance):** dead whitelist /
   exclude table + live emptiness / brute-enum rules —
   `docs/reference/cap21-smart-album-boundary.md`. New iOS subtypes do
@@ -615,7 +565,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 452 | Open | Main Browse Screen | Cap 20.6 | Missing or ≤0 `pixelWidth`/`pixelHeight` on display still → letterbox shell falls back to viewport size → `BoxFit.fill` stretches | Production Host normally writes PHAsset / decoded dims. Dart fields stay nullable (Pigeon optional). Shell treats null OR ≤0 as fitted=viewport — then fill WOULD stretch. PHAsset can report 0 / wrong dims (iCloud / incomplete metadata). Healthy-path guard is `W-14.6c` (`bc15517`); this Open row tracks the degenerate-dims residual. | Unassigned | ADR-028; Cap 20 letterbox; `cap20-20.6-notes.md` |
 | 453 | Closed | Live Photo (Cap 9) | Cap 20.6 | App leave / lock mid Live motion left a mid-frame PV; pinch dead | **Lifecycle gap itself is Cap 9 legacy** (no AppLifecycle → Live unload from Cap 9 landing). **Became user-visible only after Cap 20.5** wired `_liveMotionMounted` to `MagnificationHostMode.none` (stuck mid-motion frame + pinch failure = same root cause, two faces). Pinch recovery **depends on** Live unload — not a separate debt. **Not an ADR-043 product decision** (lifecycle fix under Cap 9 / ADR-019 shape; Host-mode gate only made the gap visible). Discovered during Cap 20.6 soak; does **not** block 20.6 close-out. **Closed by** `7f43863` (2026-09-05): leave `inactive`/`paused`/`hidden` + resume heal → same unload as `playbackEnded`, then best-effort `stopPlayback`; unload claims dirty before Host stop (stacked leave idempotent). i17 Profile PASS: static cover + pinch. | Closed by Cap 20.6 soak (`7f43863`) | ADR-019 |
 | 454 | Closed | Main Browse Screen | Cap 21.2 | `W-14.6b-L4` / `W-15.3` corner-chrome bottom inset assert expects ~12; product bottom is ~7.2 since media chrome layout | **Discovered during Cap 21.2; not introduced by 21.2.** Stash of all Cap 21.2 Origin/ChromeState work still failed identically on clean HEAD. Root cause: `81904e1` (2026-09-05) changed `_FeedCornerChrome` bottom from fixed inset 12 to `mainBrowseLiveStatusBottomInset` (≈7.2, aligned with Overlay; see `media-chrome-layout-notes.md`); widget asserts still used `closeTo(12, 1)` on `feed.bottom - chrome.bottom` (trailing inset 12 remained correct). Distinct from closed debt **440** (timing/strut reds, fixed `6682582`). **Closed by test-only fix:** `W-14.6b-L4` / `W-15.3` now assert trailing via `kMediaChromeTrailingInset` and bottom via `mainBrowseLiveStatusBottomInset(tokens)` — aligns asserts with the product value already shipped in `81904e1`; **no `lib/` product change**. Full `flutter test` green. | Closed by debt-454 test align | —; `81904e1`; `docs/reference/media-chrome-layout-notes.md` |
-| 455 | Open | Saved Pool persistence | Cap 21.5 | Cap 22 Saved composition/detail must plan `assetSourcesProvider` refresh; list does not auto-detect deleted albums | **Logged Cap 21.5 device soak.** Peek “album removed” suffixes read the current `assetSourcesProvider` value; that list refreshes only on explicit invalidate (Build open in Cap 21.5). Session/Queue keep deleted-album asset ids until process death (ADR-027 / ADR-023 D7) — orthogonal. Cap 22 Saved peek/detail that reuse the same provider will look “healthy” after an external album delete until something refreshes the list. Design must schedule invalidate (or equivalent) when opening Saved composition UI — not assume persistence observes PhotoKit. | Cap 22 (Saved Pool) design | ADR-044 / ADR-045; Contract pointers list-lag note |
+| 455 | Closed | Saved Pool persistence | Cap 21.5 | Cap 22 Saved composition/detail must plan `assetSourcesProvider` refresh; list does not auto-detect deleted albums | **Closed by Cap 22:** Saved list / Info / chip peek invalidate `assetSourcesProvider` on open (ADR-046 D8 / 22.4 `0ca1198`); Cap 22.6 matrix **P-22.6-F** owner PASS on Kafka + i17 (real Photos album-removed honesty; notes `cap22-22.6-notes.md`). Session/Queue lag remains ADR-027 / ADR-023 D7 — orthogonal. | Closed by Cap 22 (22.4 refresh + 22.6 F) | ADR-044 / ADR-045 / ADR-046 D8; Contract pointers list-lag note |
 | 456 | Open | Main Browse Screen / Cap 19 | Cap 21.6 | L2-ready still path skips PHAsset liveness; panel needs a primary “still in Photos” gate | **Logged Cap 21.6 device soak (`a448989`). Two limbs (same row):** **(A) L2-ready:** Session still L2-ready + on-disk temp → `FeedPageMedia.still(cover)` without `requestDisplayAsset`; external delete can keep showing the JPEG until temp eviction / origin change — Cap 21.6 feed copy never fires until Host is hit. Out of ADR-044 D3. Future: Host existence check / tighter L2-ready. **(B) Panel liveness (primary UX):** Prefer proactive “asset still in library” checks **before** Favorites / existing Cap 19.5 Add-to-Album picker / left-swipe / future Share — so users learn unavailability at the interaction moment, not only after cache+Host exhaustion. Distinct from Cap 19.8 `mainBrowseCurrentAssetActionableProvider` (has-current); AND with that provider — do not merge axes. Existence predicate is PHAsset present (`AssetAvailability != unavailable`), not deviceLocal — `iCloudNotDownloaded` remains still-in-library. Cap 21.6 Overlay hide + Cap 19 entry dim (phase 21.6 notes; Closed debt **444**) reuse the feed `assetUnavailable` fail signal as a simplified interim before Part B's still-in-library Cap — not a Photos-existence probe. Feed `mainBrowseFeedUnavailable` remains the last-resort chrome when cache cannot serve. **Possible future Delete** in the half-sheet would need the same gate class but is **not product-approved** (kickoff no move/copy/delete/modify originals) — requires a full separate product discussion; do not treat as scheduled. Out of this debt: “details” vs Cap 8 Overlay info-architecture. | (A) later Host / L2-ready tighten; (B) Roadmap: Current-asset still-in-library gate (after Saved Pool / Cap 22) | ADR-044 D3; Cap 15.10; Cap 19.5 / 19.8; ADR-042; ADR-033 (probe path only) |
 | 457 | Open | Main Browse Screen | Cap 21.6 | Host `layer2Failure` collapses missing-PHAsset and pre-transfer L2 failure into the same `assetUnavailable` wire code | Cap 21.6 remaps that code to `FeedFailureReason.assetUnavailable` + hides manual Retry (ADR-044 D3 feed-display only). Pre-transfer / China-SKU wireless users therefore lose wireless-specific copy and the Retry button, but retain: (1) debt **406** lifecycle auto-retry on resume (`_retryFailedLayer2AfterResume` ignores reason); (2) swipe to another feed item and back — leave clears fail chrome, activation bumps display generation, `_startLoad` re-requests L2 because fail never minted an L2-ready token. Splitting the Host bucket needs a new Pigeon/Host capability outside D3. Mid-transfer fail remains `iCloudDownloadFailed` (download copy + Retry). | Later Host / Pigeon capability | ADR-044 D3; debt **406** / **435**; Cap 21.6 |
 | 458 | Monitoring | Main Browse Screen / Cap 20 | Cap 22.4 | After Live motion + gesture attempt: vertical feed lost page-snap (continuous slow drag; adjacent peeks L1→L2); kill-app recovers, leave-Browse does not | **Logged Cap 22.4 i17 Profile soak (`0ca1198`).** One unreproduced incident during offline Live play-once: pinch/other gestures had **no** magnification visual (Live motion Host `mode == none` behaved as designed), then vertical paging became continuous strip drag (neighbor pages half-visible; peeks still advanced L1→L2) instead of snap page-change. **Not Cap 22.4 Saved chrome** (no causal link). Same fragility **family** as Project facts Host pinch / `DragScrollActivity.shouldIgnorePointer` re-verify note (Platform View + outer pinch Listener + PageView) — first **observable symptom**, not a prior prediction of this exact failure mode. Leave Browse / return did **not** heal (IndexedStack keep-alive retains `PageController` / `ScrollPosition`); force-quit did. Code review of mag `NeverScrollable` lock, Live rising-edge `forceFit`, and leave-Browse clear paths matches existing tests — no definite product bug found; do **not** change PageView physics without a repro. External factors not ruled out (accidental multi-touch); no thermal / low-battery / heavy multitasking reported. **Not** Cap 22.5. | Primary: next Flutter SDK upgrade pinch/scroll re-verify (with Project facts note). Secondary: Cap 22.6 device time opportunistic Live+gesture probes only (not on 22.6 must-pass list). Escalate to Cap discussion only if ≥1 further observable recurrence. | ADR-043 / ADR-040 / ADR-019; Project facts pinch/`DragScrollActivity` note |
