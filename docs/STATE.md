@@ -115,15 +115,15 @@
       (Cap 22 / ADR-046…048; `docs/acceptance/cap22-*.md`;
       PHASE_HISTORY)
 - [ ] Current-asset still-in-library gate for mutation chrome
-      (canonical Photos-existence signal for Favorites / Cap 19
-      Add-to-Album / left-swipe; shared unavailable dialog; same
-      Cap 19.8 single-provider discipline as actionable — do not
-      invent per-entry probes; AND with actionable (has-current), do
-      not merge axes; existence ≠ deviceLocal —
+      (Cap 23 / ADR-049 Proposed; canonical Photos-existence signal for
+      Favorites / Cap 19 Add-to-Album / left-swipe; shared unavailable
+      dialog; same Cap 19.8 single-provider discipline as actionable —
+      do not invent per-entry probes; AND with actionable (has-current),
+      do not merge axes; existence ≠ deviceLocal —
       iCloudNotDownloaded remains still-in-library; default: on-demand
       single-id probe at mutation trigger (no continuous polling);
       future Share must watch the same provider — no Share UI in this
-      Cap; debt **456** Part B only; after Saved Pool) <-- YOU ARE HERE
+      Cap; debt **456b** only; after Saved Pool) <-- YOU ARE HERE
 - [ ] Auto-play Presets and Mode Eligibility Rule
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
@@ -175,22 +175,44 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Current-asset still-in-library gate for mutation chrome
+Contract: ADR-049 Proposed (this docs commit)
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-> Cap internal phases are not yet owner-approved in STATE. Expand this
-> section after kickoff / scope review — do not invent phases here.
-> Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+- [x] 23.1 Contract freeze — ADR-049 Proposed
+      D1–D8 locked: single still-in-library provider; AND with
+      actionable (do not merge); predicate
+      `AssetAvailability != unavailable`; on-demand
+      `getAssetAvailabilities([id])` at mutation trigger; shared
+      unavailable dialog reuses Cap 22 `browseSavedPoolAlertDialog`
+      immersive dark shell; entry in-flight latch (not wall-clock
+      debounce); left-swipe probe once immediately before append
+      only (not on arm); Out: **456a**, Share UI, library observer,
+      Delete-original (**464**). Docs (this commit). Debt table:
+      bare **456** retired → **456a** / **456b**.
+- [ ] 23.2 Still-in-library provider + probe seam
+      Domain/app provider + composition-root wiring; predicate
+      helpers; unit tests (U-23-pred / U-23-AND). No UI dialog yet.
+- [ ] 23.3 Shared dialog + mutation entry wiring
+      l10n; dialog shell reuse; Cap 19 entry tap / Favorites /
+      Add-to-Album / left-swipe append; in-flight latch; widget
+      guards (W-23-*).
+- [ ] 23.4 Device acceptance
+      Matrix P-23-A…G on Kafka + i17; notes under
+      `docs/acceptance/cap23-*`; debt **456b** Closed on PASS.
+- [ ] 23.5 Cap close-out
+      Cap `[x]`; YOU ARE HERE → next Capability; PHASE_HISTORY
+      snapshot; confirm ADR-049 Accepted + **456b** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Still-in-library gate scope — owner-approved Phase
-      Roadmap TBD
-- Sub-steps done: Cap 22 complete (`docs/PHASE_HISTORY.md`; acceptance
-      `docs/acceptance/cap22-*.md`; ADR-046 / ADR-047 / ADR-048; debt
-      **455** Closed by Cap 22)
-- Next step: owner kickoff / scope review for still-in-library phases
-      before coding (debt **456** Part B)
-- Related decisions: Cap 22 close — **455** Closed; **456** / **457**
-      Open; Cap 20 **449** / **452** Open; Cap 22.4 **458** Monitoring;
-      Cap 22.5 **463** Accepted (permanent); **464** Open
+- Goal (one line): 23.2 Still-in-library provider + probe seam
+- Sub-steps done: 23.1 contract — ADR-049 Proposed; debt **456**
+      split to **456a** / **456b** (this docs commit)
+- Next step: implement still-in-library provider +
+      `getAssetAvailabilities` probe seam + unit tests (no dialog UI)
+- Related decisions: ADR-049 Proposed; ADR-042 actionable AND;
+      ADR-033 availabilities API; **456a** Open; **456b** Open →
+      Cap 23 close; **457** Open; Cap 20 **449** / **452** Open;
+      **458** Monitoring; **463** Accepted (permanent); **464** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -566,7 +588,8 @@ Active capability: Current-asset still-in-library gate for mutation chrome
 | 453 | Closed | Live Photo (Cap 9) | Cap 20.6 | App leave / lock mid Live motion left a mid-frame PV; pinch dead | **Lifecycle gap itself is Cap 9 legacy** (no AppLifecycle → Live unload from Cap 9 landing). **Became user-visible only after Cap 20.5** wired `_liveMotionMounted` to `MagnificationHostMode.none` (stuck mid-motion frame + pinch failure = same root cause, two faces). Pinch recovery **depends on** Live unload — not a separate debt. **Not an ADR-043 product decision** (lifecycle fix under Cap 9 / ADR-019 shape; Host-mode gate only made the gap visible). Discovered during Cap 20.6 soak; does **not** block 20.6 close-out. **Closed by** `7f43863` (2026-09-05): leave `inactive`/`paused`/`hidden` + resume heal → same unload as `playbackEnded`, then best-effort `stopPlayback`; unload claims dirty before Host stop (stacked leave idempotent). i17 Profile PASS: static cover + pinch. | Closed by Cap 20.6 soak (`7f43863`) | ADR-019 |
 | 454 | Closed | Main Browse Screen | Cap 21.2 | `W-14.6b-L4` / `W-15.3` corner-chrome bottom inset assert expects ~12; product bottom is ~7.2 since media chrome layout | **Discovered during Cap 21.2; not introduced by 21.2.** Stash of all Cap 21.2 Origin/ChromeState work still failed identically on clean HEAD. Root cause: `81904e1` (2026-09-05) changed `_FeedCornerChrome` bottom from fixed inset 12 to `mainBrowseLiveStatusBottomInset` (≈7.2, aligned with Overlay; see `media-chrome-layout-notes.md`); widget asserts still used `closeTo(12, 1)` on `feed.bottom - chrome.bottom` (trailing inset 12 remained correct). Distinct from closed debt **440** (timing/strut reds, fixed `6682582`). **Closed by test-only fix:** `W-14.6b-L4` / `W-15.3` now assert trailing via `kMediaChromeTrailingInset` and bottom via `mainBrowseLiveStatusBottomInset(tokens)` — aligns asserts with the product value already shipped in `81904e1`; **no `lib/` product change**. Full `flutter test` green. | Closed by debt-454 test align | —; `81904e1`; `docs/reference/media-chrome-layout-notes.md` |
 | 455 | Closed | Saved Pool persistence | Cap 21.5 | Cap 22 Saved composition/detail must plan `assetSourcesProvider` refresh; list does not auto-detect deleted albums | **Closed by Cap 22:** Saved list / Info / chip peek invalidate `assetSourcesProvider` on open (ADR-046 D8 / 22.4 `0ca1198`); Cap 22.6 matrix **P-22.6-F** owner PASS on Kafka + i17 (real Photos album-removed honesty; notes `cap22-22.6-notes.md`). Session/Queue lag remains ADR-027 / ADR-023 D7 — orthogonal. | Closed by Cap 22 (22.4 refresh + 22.6 F) | ADR-044 / ADR-045 / ADR-046 D8; Contract pointers list-lag note |
-| 456 | Open | Main Browse Screen / Cap 19 | Cap 21.6 | L2-ready still path skips PHAsset liveness; panel needs a primary “still in Photos” gate | **Logged Cap 21.6 device soak (`a448989`). Two limbs (same row):** **(A) L2-ready:** Session still L2-ready + on-disk temp → `FeedPageMedia.still(cover)` without `requestDisplayAsset`; external delete can keep showing the JPEG until temp eviction / origin change — Cap 21.6 feed copy never fires until Host is hit. Out of ADR-044 D3. Future: Host existence check / tighter L2-ready. **(B) Panel liveness (primary UX):** Prefer proactive “asset still in library” checks **before** Favorites / existing Cap 19.5 Add-to-Album picker / left-swipe / future Share — so users learn unavailability at the interaction moment, not only after cache+Host exhaustion. Distinct from Cap 19.8 `mainBrowseCurrentAssetActionableProvider` (has-current); AND with that provider — do not merge axes. Existence predicate is PHAsset present (`AssetAvailability != unavailable`), not deviceLocal — `iCloudNotDownloaded` remains still-in-library. Cap 21.6 Overlay hide + Cap 19 entry dim (phase 21.6 notes; Closed debt **444**) reuse the feed `assetUnavailable` fail signal as a simplified interim before Part B's still-in-library Cap — not a Photos-existence probe. Feed `mainBrowseFeedUnavailable` remains the last-resort chrome when cache cannot serve. **Possible future Delete** in the half-sheet would need the same gate class but is **not product-approved** (kickoff no move/copy/delete/modify originals) — requires a full separate product discussion; do not treat as scheduled. Out of this debt: “details” vs Cap 8 Overlay info-architecture. | (A) later Host / L2-ready tighten; (B) Roadmap: Current-asset still-in-library gate (after Saved Pool / Cap 22) | ADR-044 D3; Cap 15.10; Cap 19.5 / 19.8; ADR-042; ADR-033 (probe path only) |
+| 456a | Open | Main Browse Screen / Cap 19 | Cap 21.6 | L2-ready still path skips PHAsset liveness (ex-456 Part A) | **Split from bare 456 at Cap 23.1.** Session still L2-ready + on-disk temp → `FeedPageMedia.still(cover)` without `requestDisplayAsset`; external delete can keep showing the JPEG until temp eviction / origin change — Cap 21.6 feed copy never fires until Host is hit. Out of ADR-044 D3. Future: Host existence check / tighter L2-ready. Not Cap 23 (still-in-library mutation gate). | later Host / L2-ready tighten | ADR-044 D3; Cap 15.10; ADR-033 |
+| 456b | Open | Main Browse Screen / Cap 19 | Cap 21.6 | Panel / mutation still-in-library gate (ex-456 Part B) | **Split from bare 456 at Cap 23.1.** Prefer proactive “asset still in Photos” checks **before** Favorites / Cap 19.5 Add-to-Album / left-swipe / future Share. Distinct from Cap 19.8 `mainBrowseCurrentAssetActionableProvider`; **AND** — do not merge axes. Predicate: `AssetAvailability != unavailable` (iCloudNotDownloaded remains still-in-library). Cap 21.6 Overlay hide + Cap 19 entry dim reuse feed `assetUnavailable` as interim — not this probe. Cap 23 / ADR-049 implements the gate. Half-sheet Delete / delete-original → debt **464**, not this row. | Cap 23 (still-in-library gate) | ADR-049; ADR-042; ADR-033; ADR-044 D3; Cap 19.5 / 19.8 |
 | 457 | Open | Main Browse Screen | Cap 21.6 | Host `layer2Failure` collapses missing-PHAsset and pre-transfer L2 failure into the same `assetUnavailable` wire code | Cap 21.6 remaps that code to `FeedFailureReason.assetUnavailable` + hides manual Retry (ADR-044 D3 feed-display only). Pre-transfer / China-SKU wireless users therefore lose wireless-specific copy and the Retry button, but retain: (1) debt **406** lifecycle auto-retry on resume (`_retryFailedLayer2AfterResume` ignores reason); (2) swipe to another feed item and back — leave clears fail chrome, activation bumps display generation, `_startLoad` re-requests L2 because fail never minted an L2-ready token. Splitting the Host bucket needs a new Pigeon/Host capability outside D3. Mid-transfer fail remains `iCloudDownloadFailed` (download copy + Retry). | Later Host / Pigeon capability | ADR-044 D3; debt **406** / **435**; Cap 21.6 |
 | 458 | Monitoring | Main Browse Screen / Cap 20 | Cap 22.4 | After Live motion + gesture attempt: vertical feed lost page-snap (continuous slow drag; adjacent peeks L1→L2); kill-app recovers, leave-Browse does not | **Logged Cap 22.4 i17 Profile soak (`0ca1198`).** One unreproduced incident during offline Live play-once: pinch/other gestures had **no** magnification visual (Live motion Host `mode == none` behaved as designed), then vertical paging became continuous strip drag (neighbor pages half-visible; peeks still advanced L1→L2) instead of snap page-change. **Not Cap 22.4 Saved chrome** (no causal link). Same fragility **family** as Project facts Host pinch / `DragScrollActivity.shouldIgnorePointer` re-verify note (Platform View + outer pinch Listener + PageView) — first **observable symptom**, not a prior prediction of this exact failure mode. Leave Browse / return did **not** heal (IndexedStack keep-alive retains `PageController` / `ScrollPosition`); force-quit did. Code review of mag `NeverScrollable` lock, Live rising-edge `forceFit`, and leave-Browse clear paths matches existing tests — no definite product bug found; do **not** change PageView physics without a repro. External factors not ruled out (accidental multi-touch); no thermal / low-battery / heavy multitasking reported. **Not** Cap 22.5. | Primary: next Flutter SDK upgrade pinch/scroll re-verify (with Project facts note). Secondary: Cap 22.6 device time opportunistic Live+gesture probes only (not on 22.6 must-pass list). Escalate to Cap discussion only if ≥1 further observable recurrence. | ADR-043 / ADR-040 / ADR-019; Project facts pinch/`DragScrollActivity` note |
 | 459 | Closed | Main Browse Screen | Cap 22.5 | Endless round remount H0: when H1 Layer-1 seed misses, &lt;150 ms may show silent `feedBackground` (no gold spinner) before L1/L2 | **Closed:** Cap 22.5b real-bridge / soft-commit / H1–H0 remount path **reverted** to scheme A (static placeholder). Mechanism no longer exists. | Closed by Cap 22.5 scheme A revert | Cap 22.5; `cap22-22.5-endless-round-bridge-notes.md` |
@@ -574,7 +597,7 @@ Active capability: Current-asset still-in-library gate for mutation chrome
 | 461 | Closed | Main Browse Screen | Cap 22.5b | Fling past prepared[0] **and** prepared[1] can still hit a later last-page wall | **Closed:** prepared bridge pages **removed** with bridge revert (scheme A). | Closed by Cap 22.5 scheme A revert | Cap 22.5b; `cap22-22.5-endless-round-bridge-notes.md` |
 | 462 | Closed | Main Browse Screen / Cap 19 | Cap 22.5b | Round-bridge remount disposed Cap19 left-swipe Listener while pointer still tracked → Unhandled `ref` after unmount | **Closed in Cap 22.5b follow-up:** remount clears `cap19LeftSwipeDragProvider`; gesture `mounted` guards on all `ref` / animation paths; `W-22.5b` remount with unfinished left-swipe pointer. Pattern retained on scheme A `advanceToNextRound` remount. | Closed by Cap 22.5b (pointer harden); retained on scheme A | Cap 22.5; ADR-041; `cap22-22.5-endless-round-bridge-notes.md` |
 | 463 | Accepted (permanent) | Main Browse Screen | Cap 22.5 | Cross-round zero-hitch doom-scroll is impossible under finite-round table + boundary data-source swap | **Architectural floor (same Status class as debt 445).** Device soak under soft-commit bridge showed data-source identity swap overlapping in-flight `DragScrollActivity` / Ballistic on the common fast-scroll path — a discrete swap cannot be guaranteed never to collide with continuous scroll. Cap 22.5 ships scheme A (static placeholder + ScrollEnd → `advanceToNextRound` remount + jump) and **accepts** a hard cut. **Only path to a true zero floor:** scheme D (monotonic infinite index space + domain virtual mapping + product decision on cross-round back-scroll) — **independent Cap**, not misc polish. **Final product framing:** the residual pause is no longer an unpredictable defect surface — it now presents to the user as a legible, self-explanatory round boundary (placeholder page, then a brief deliberate pause before the next round starts), not as a stall or bug. This resolves the earlier concern that the pause read as broken/unexplained. It does **not** resolve, and was never intended to resolve, the original product ask for true endless zero-hitch doom-scroll continuity across round boundaries — that remains exclusively scheme D's territory. What changed across Cap 22.5's iteration was not the technical floor (still architectural, still non-zero), but the framing of the residual pause from "unexplained hitch" to "an accepted, consistent, user-legible boundary marker." Full retrospective + scheme D seed: `cap22-22.5-endless-round-bridge-notes.md` (see **Scheme D — future Cap seed**). | Scheme D only (future Cap; not scheduled) | Cap 22.5; `cap22-22.5-endless-round-bridge-notes.md` |
-| 464 | Open | Photo Library / Kickoff scope | Cap 22 ADR-048 | Delete-original-asset (purge PHAsset from Photos library — not remove-from-album) conflicts with kickoff scope; owner has informal future intent only | **Intent park only — does not approve the feature or overturn kickoff.** Kickoff excludes move/copy/delete/modify of originals (same boundary cited under debt **456**’s half-sheet Delete note: not product-approved, needs a full product discussion; **456** tracks existence-gate / panel liveness, not this Cap). Owner has expressed an informal desire for a future “delete this asset from Photos” capability; that intent lived only in chat until this row — purpose is not to lose it when a real design/ADR starts. **Not a decision to build; kickoff boundary remains binding.** Tech cue: if ever designed, reuse ADR-048’s **composition-root shared invalidation discipline** after successful library writes — do **not** invent a parallel bus. Library-wide delete is harder than ADR-048’s “new album member missing” case: existing Session/Snapshot entries become **dangling ids**, and built-in fingerprints (All/Photos/Videos) can stale — design with debt **456** existence-gate class, not album-scoped `invalidateEntriesContainingAlbum` alone. **Remove-from-album is not planned**; ADR-048’s `removeAssetFromAlbum` wording is illustrative membership-API completeness only. | Owner-led: formal kickoff revision or ADR before any Cap scheduling — **not scheduled** | debt **456**; ADR-048; kickoff (no move/copy/delete/modify originals) |
+| 464 | Open | Photo Library / Kickoff scope | Cap 22 ADR-048 | Delete-original-asset (purge PHAsset from Photos library — not remove-from-album) conflicts with kickoff scope; owner has informal future intent only | **Intent park only — does not approve the feature or overturn kickoff.** Kickoff excludes move/copy/delete/modify of originals (same boundary cited under historical debt **456** / now **456b** half-sheet Delete note: not product-approved, needs a full product discussion). Owner has expressed an informal desire for a future “delete this asset from Photos” capability; that intent lived only in chat until this row — purpose is not to lose it when a real design/ADR starts. **Not a decision to build; kickoff boundary remains binding.** Tech cue: if ever designed, reuse ADR-048’s **composition-root shared invalidation discipline** after successful library writes — do **not** invent a parallel bus. Library-wide delete is harder than ADR-048’s “new album member missing” case: existing Session/Snapshot entries become **dangling ids**, and built-in fingerprints (All/Photos/Videos) can stale — design with debt **456b** existence-gate class, not album-scoped `invalidateEntriesContainingAlbum` alone. **Remove-from-album is not planned**; ADR-048’s `removeAssetFromAlbum` wording is illustrative membership-API completeness only. | Owner-led: formal kickoff revision or ADR before any Cap scheduling — **not scheduled** | debt **456b**; ADR-048; ADR-049; kickoff (no move/copy/delete/modify originals) |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
@@ -584,3 +607,8 @@ Active capability: Current-asset still-in-library gate for mutation chrome
 > Bare Known debt ID **403** is retired as a single row (split into **403a** /
 > **403b-progress** / **403b-wallclock**). Do not reuse bare 403. Logged stays
 > empty on the split rows: first logged as 403 before Cap 18.
+>
+> Bare Known debt ID **456** is retired as a single row (split into **456a** /
+> **456b** at Cap 23.1). Do not reuse bare 456. Logged on both split rows
+> remains Cap 21.6 (original row). Historical notes may still say “456”;
+> new references use **456a** / **456b**.

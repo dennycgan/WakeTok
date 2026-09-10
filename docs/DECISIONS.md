@@ -5607,3 +5607,94 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   ADR-027, ADR-045 binding as stated. Orthogonal to debt **455**
   (`assetSourcesProvider` catalog lag). Cross-ref debt **464**
   (delete-original intent park).
+
+## ADR-049: Cap 23 current-asset still-in-library mutation gate
+
+- Status: Proposed
+- Commit/PR anchor: (fill on Accept after implementing work commit)
+- Plain summary (owner reads this):
+  Before Favorites, Add to Album, or left-swipe-into-album runs, WakeTok
+  checks once whether the current photo or video still exists in the
+  Photos library. If it is gone, a shared centered dialog says so and
+  the action does not run. This is separate from “is there a current
+  item?” (Cap 19 actionable). iCloud items that are not downloaded yet
+  still count as in the library.
+- Context / what problem forced this:
+  Debt **456** (Cap 21.6) Part B: users could engage Cap 19 mutation
+  chrome while the Session still listed an asset that Photos had already
+  deleted; failure arrived late (Host error / wrong copy). Cap 21.6
+  closed debt **444** with feed-only `assetUnavailable` remap and dimmed
+  the Cap 19 entry when feed fail chrome was already up — that is **not**
+  a proactive Photos-existence probe. Cap 22 delivered Saved Pool; the
+  Roadmap Cap “Current-asset still-in-library gate…” (Cap 23) now owns
+  Part B. Part A (L2-ready still showing a deleted asset’s JPEG) remains
+  **456a** and is out of this ADR.
+- Decision (what was chosen):
+  1. **Canonical existence signal.** One Browse provider (name locked in
+     23.2) is the sole Photos-existence gate for current-asset mutation
+     entries. New mutation chrome (including future Share) must use it —
+     no per-entry parallel probes.
+  2. **AND with actionable — do not merge.** Keep
+     `mainBrowseCurrentAssetActionableProvider` (ADR-042; Cap 21.6 may
+     still treat feed Host-unavailable as not-actionable). Still-in-
+     library is a **second** axis. Do not fold existence into
+     actionable.
+  3. **Predicate.** Still-in-library iff
+     `AssetAvailability != unavailable`. Thus `deviceLocal`,
+     `iCloudNotDownloaded`, and `downloading` (if ever returned) all
+     count as in-library. Existence ≠ device-local.
+  4. **Probe API and timing.** On-demand
+     `AssetSourceRepository.getAssetAvailabilities([currentId])`
+     (ADR-033 / existing Pigeon). **No** continuous polling and **no**
+     `PHPhotoLibraryChangeObserver` in this Cap (ADR-044 D3).
+     - Cap 19 entry tap: probe before opening the half-sheet.
+     - Favorites toggle / Add-to-Album append: probe before Host
+       mutation.
+     - Left-swipe: probe **once immediately before append**
+       (`addAssetToAlbum` / WakeTok append path) — **not** on arm
+       (arm may fire repeatedly in one gesture; membership cannot
+       change in that millisecond window in a way that justifies
+       re-probe).
+  5. **Shared unavailable dialog.** One centered dialog for all Cap 23
+     mutation gates. **Reuse** the Cap 22 Saved immersive-dark
+     `AlertDialog` shell (`browseSavedPoolAlertDialog` /
+     `saved_pool_dialogs.dart` family) — do not invent a second visual
+     system. New ARB keys for copy (EN + zh-Hans); do not reuse
+     wireless Layer-2 failure strings.
+  6. **Entry re-entry — in-flight latch.** While a still-in-library
+     probe is in flight, or while the unavailable dialog is visible,
+     ignore further Cap 19 entry taps (and equivalent re-entry into the
+     same gated action). **Not** a wall-clock debounce: fixed delays
+     reopen the race when async work outlasts the timer (same class of
+     defect as fixed-delay vs state-driven round handling). Latch clears
+     when the probe finishes and any dialog is dismissed.
+  7. **Debt split (STATE).** Bare Known debt **456** is retired at Cap
+     23.1 (same pattern as bare **403** → **403a** / **403b-***).
+     **456a** = L2-ready limb (Open; out of Cap 23). **456b** = this
+     gate (Open until Cap 23 device PASS, then Closed).
+  8. **Out of scope.** Debt **456a**; Share UI; delete-original (**464**);
+     library change observer / Session Queue rebuild; merging existence
+     into actionable; closing **457**.
+- Rejected alternatives (why not):
+  - Probe on every left-swipe arm update — rejected; conflicts with
+    on-demand / anti-churn spirit; append-boundary probe is enough.
+  - Wall-clock tap debounce — rejected; state-driven in-flight latch.
+  - Merge existence into `mainBrowseCurrentAssetActionableProvider` —
+    rejected; Roadmap / debt **456b** require AND, not merge.
+  - Continuous poll or Photos library observer — rejected; Cap scope +
+    ADR-044 D3.
+  - New dialog visual language — rejected; reuse Cap 22 Saved shell.
+  - Keep bare **456** until Cap close — rejected; unclear Open/Closed
+    status during Cap 23 execution.
+- Consequences / constraints accepted:
+  - Status remains **Proposed** until Cap 23 implementing work lands;
+    then Accepted with real anchor / `git log -1 --format=%cs`.
+  - Cap 21.6 feed Host-unavailable dimming stays as interim chrome for
+    the already-failed feed path; Cap 23 covers proactive gates when
+    feed may still show content (**456a** residual possible).
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009 / ADR-010 / ADR-012).
+- Relationship:
+  Extends ADR-042 (orthogonal existence axis). Uses ADR-033
+  `getAssetAvailabilities`. Does not amend ADR-044 D3 feed-only remap.
+  Closes STATE debt **456b** when Cap 23 ships; leaves **456a** Open.
