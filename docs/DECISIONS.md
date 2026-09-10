@@ -5470,3 +5470,140 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     (ADR-009/010/012).
   - SnackBar ban for Browse toasts is STATE + architecture guard
     (ADR-009 Enforcement); not a new ADR number.
+
+## ADR-048: Browse Snapshot cache — invalidate on successful in-app album membership writes
+
+- Status: Accepted (2026-09-10)
+- Commit/PR anchor: fbf2e82
+- Plain summary (owner reads this):
+  After WakeTok successfully adds a photo or video to a user album
+  (left-swipe or the add-to-album panel), it forgets only the Browse
+  Snapshot cache entries that include that album. Switching to a Saved
+  pool that uses that album then reloads fresh membership — no
+  force-quit. Everyday switching among All and other Saved pools that
+  do not use that album stays on the existing in-memory cache. Changes
+  made outside WakeTok (system Photos, other apps, iCloud) still may
+  need a force-quit until a later observer exists. If you stay on the
+  same pool you are already browsing, the feed does not reshuffle just
+  because you appended; leave and re-open (or switch origin) to see
+  membership updates.
+- Context / what problem forced this:
+  In one process lifetime: browse All → left-swipe append into the
+  WakeTok album → immediately open a Saved pool whose recipe includes
+  that album → the new asset is missing until process death. Root cause:
+  successful `addAssetToAlbum` did not invalidate
+  `browseSnapshotCacheProvider`. Origin switch rebuilds a Session but
+  `_snapshotFor` returns a process-lifetime hit keyed by ordered
+  `SourceReference` fingerprint (ADR-014 Decision 5 / ADR-044 D6.2;
+  empty-never-cache remains ADR-024; partial non-empty cache remains
+  ADR-045). Cap 19.5 notes intentionally skipped automatic
+  Snapshot/Session rebuild after album mutation; that omission is now
+  product-visible for the All→Saved closed loop and must be corrected
+  with an explicit invalidation rule — not a silent UI-local patch, and
+  not by disabling process-lifetime caching on every Origin enter.
+- Decision (what was chosen):
+  1. **Trigger (narrow membership writes only).** Invalidate only after
+     a **successful** Host call that **changes membership of an existing
+     user album**, through the single `AlbumMutationRepository`
+     (or equivalent sole write façade) surface. Today that is
+     `addAssetToAlbum`. Future membership APIs (e.g.
+     `removeAssetFromAlbum`) **must** use the same surface so the rule
+     applies automatically (illustrative only — remove-from-album is
+     **not** on the product roadmap). Do **not** trigger on: failed
+     writes; read `albumContainsAsset`; `createAlbum` alone (catalog /
+     identity — does not stale existing fingerprint coalesced ids;
+     catalog freshness remains ADR-045 / debt **455**). Favorites or
+     other non-album membership APIs are out of this ADR.
+  2. **Shared invalidation hook.** Implement invalidation once at the
+     composition-root repository wrapper / sole use-case (ADR-010).
+     Feature callers (left-swipe append, panel add-to-album, future
+     paths) must not each call `BrowseSnapshotCache` directly. Both
+     known Cap 19 write paths go through the same hook.
+  3. **Invalidation granularity — per album, not whole-cache clear.**
+     On success for `albumIdentifier`, remove every
+     `browseSnapshotCacheProvider` entry whose ordered-refs fingerprint
+     **includes** `SourceReference(kind: album, id: albumIdentifier)`
+     (single-album and multi-source keys; ADR-045 partial entries
+     included). Leave entries that do not reference that album
+     (e.g. All / Photos / Videos and unrelated Saved fingerprints)
+     intact so unrelated Origin revisits keep process-lifetime hits.
+  4. **Cache hit policy otherwise unchanged.** Successful non-empty
+     Snapshots remain process-lifetime until invalidated as above;
+     Leave Browse does not clear the cache (ADR-027); empty / hard-fail
+     never cached (ADR-024); partial non-empty may still be cached
+     (ADR-045) until a membership write removes the affected keys.
+  5. **Active Session — no automatic restart (option B).** Membership
+     write success **does not** call `restartSession()` and does not
+     rebuild the in-memory Session for the current `activeOrigin`.
+     Fresh membership appears on the **next** Session build that needs
+     a Snapshot for an affected fingerprint (typical: switch Origin to
+     a pool that includes the album → cache miss → resolve; may show
+     “Loading library…” once for that Origin). This fully covers the
+     reported All→append→open Saved pool loop.
+  6. **Out of scope / Accepted boundaries.**
+     - **External library changes** (system Photos app, other apps,
+       iCloud sync) are **not** guaranteed visible in-process; no Photos
+       library observer in this ADR. Same recording style as ADR-044
+       D6.3 “Process death drops in-memory chrome state (Accepted
+       boundary until SessionCheckpoint Cap)” — known cost, not denied.
+     - **Same-Origin live refresh (option A rejected):** while the user
+       remains on an `activeOrigin` whose recipe already includes the
+       mutated album, the current feed is **not** restarted/reshuffled
+       on append. Unexpected `restartSession` would reorder an in-flight
+       browse after an action (append) that users do not mentally link
+       to “rebuild this queue.” Leave/re-enter or switch Origin to see
+       updates. Not solved here.
+     - **Force re-resolve on every Origin enter** — rejected (below).
+     - **Whole-cache `clear()`** — rejected (below).
+     - **App-wide internal-action event bus / router** — rejected
+       (below); membership writes have one consumer today (Snapshot
+       cache); hook at the repository wrapper. Revisit only when a
+       second, different in-app action→module notify case appears.
+  7. **Cost statement.** Paying resolve / possible “Loading library…”
+     is acceptable **only** for Origins whose fingerprints were
+     invalidated by a **known in-app membership write**, and only on
+     the next Session build that needs them. This is not “disable
+     process-lifetime cache,” and must not be implemented as a broader
+     invalidation than Decision 1–3.
+- Rejected alternatives (why not):
+  - Re-resolve / skip Snapshot cache on every Origin enter — rejected;
+    destroys All ↔ Saved everyday fast switching for a low-frequency
+    append→switch loop.
+  - Whole-map `browseSnapshotCache.clear()` after membership write —
+    rejected; forces unrelated Origins to reload; exceeds minimal
+    correction boundary.
+  - Patch only left-swipe (or only panel) at the call site — rejected;
+    third membership path would reintroduce the hole; violates shared
+    hook.
+  - Auto `restartSession` when `activeOrigin` includes the album
+    (option A) — rejected for this ADR; unexpected reshuffle of an
+    in-progress feed (see Decision 6).
+  - Photos change observer / syncing external edits — rejected; separate
+    capability-sized scope.
+  - Pretending external staleness does not exist — rejected; must remain
+    an explicit Accepted boundary.
+  - Generic in-app action event bus before a second consumer exists —
+    rejected; YAGNI / premature abstraction.
+- Consequences / constraints accepted:
+  - Amends the **invalidation** contract of the Browse Snapshot
+    process-lifetime cache (ADR-014 Decision 5 / ADR-044 D6.2). Does
+    **not** overturn ADR-024 empty-never-cache, ADR-027 Leave Browse,
+    or ADR-045 partial-cache rules except that affected keys are dropped
+    on membership write.
+  - Cap 19.5 “no automatic Snapshot/Session rebuild on album mutation”
+    is superseded **for in-app membership writes via the shared hook**
+    by this ADR; external mutation and same-Origin live restart remain
+    as in Decision 6.
+  - Implementation + tests: wrapper invalidates only matching keys;
+    left-swipe and panel both exercise the hook; unrelated keys survive;
+    no `restartSession` on success.
+  - Accepted date/anchor = work `fbf2e82` (`git log -1 --format=%cs`
+    → 2026-09-10); this docs commit is separate per two-commit
+    discipline. Informal owner intent to someday delete original Photos
+    assets (not remove-from-album) is parked as STATE debt **464** —
+    not approved by this ADR and does not overturn kickoff scope.
+- Relationship:
+  Amends ADR-014 D5 / ADR-044 D6.2 (invalidation). Leaves ADR-024,
+  ADR-027, ADR-045 binding as stated. Orthogonal to debt **455**
+  (`assetSourcesProvider` catalog lag). Cross-ref debt **464**
+  (delete-original intent park).
