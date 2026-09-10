@@ -9,6 +9,8 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/still_in_library_dialogs.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Full-width left-swipe append overlay (Cap 19.6 / ADR-041 D2=B).
@@ -217,6 +219,11 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
         .read(cap19LeftSwipeAppendProvider.notifier)
         .appendCurrentAssetToWakeTokAlbum();
     if (!context.mounted) {
+      if (outcome == Cap19LeftSwipeAppendOutcome.notInLibrary) {
+        ref
+            .read(mainBrowseCurrentAssetStillInLibraryProvider.notifier)
+            .setDialogVisible(false);
+      }
       return;
     }
     switch (outcome) {
@@ -228,6 +235,10 @@ class _Cap19LeftSwipeGestureState extends ConsumerState<Cap19LeftSwipeGesture>
         showCap19CurrentMediaNotReadyToast(context, l10n);
       case Cap19LeftSwipeAppendOutcome.failed:
         showCap19LeftSwipeAppendErrorToast(context, l10n);
+      case Cap19LeftSwipeAppendOutcome.notInLibrary:
+        await showStillInLibraryUnavailableDialog(ref: ref, context: context);
+      case Cap19LeftSwipeAppendOutcome.ignored:
+        break;
     }
   }
 }

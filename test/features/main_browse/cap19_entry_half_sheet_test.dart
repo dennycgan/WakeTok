@@ -44,7 +44,7 @@ void main() {
   testWidgets('W-19.4-4 tap entry icon opens cap19 actions half-sheet',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-    final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+    final sources = FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']));
     await tester.pumpWidget(
       permissionUiHarness(repo: repo, assetSources: sources),
     );
@@ -61,7 +61,7 @@ void main() {
     (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
-      final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+      final sources = FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']));
       await tester.pumpWidget(
         permissionUiHarness(repo: repo, assetSources: sources),
       );
@@ -92,6 +92,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final sources = FakeAssetSourceRepository(
         allIds: const ['a1'],
+        availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
         extraSources: [
           AssetSource(
             kind: AssetSourceKind.album,
@@ -123,7 +124,7 @@ void main() {
     var opened = false;
     final repo =
         ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
-    final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+    final sources = FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']));
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,

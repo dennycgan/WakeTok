@@ -49,6 +49,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
       extraSources: [
         _writableAlbum(id: 'album-b', displayName: 'Beta Album'),
         _writableAlbum(id: 'album-a', displayName: 'Alpha Album'),
@@ -79,6 +80,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
       extraSources: [
         _writableAlbum(id: 'writable', displayName: 'Writable'),
         _writableAlbum(
@@ -102,7 +104,7 @@ void main() {
   testWidgets('W-19.5-3 Limited keeps D4 row without list', (tester) async {
     final repo =
         ControllablePhotosAuthorizationRepository(PhotosAccess.limited);
-    final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+    final sources = FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']));
     await tester.pumpWidget(
       permissionUiHarness(repo: repo, assetSources: sources),
     );
@@ -120,6 +122,9 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['asset-current'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+        const ['asset-current'],
+      ),
       extraSources: [
         _writableAlbum(id: 'target-album', displayName: 'Target'),
       ],
@@ -149,6 +154,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
       extraSources: [
         _writableAlbum(id: 'album-1', displayName: 'Vacation'),
       ],
@@ -177,6 +183,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
       extraSources: [
         _writableAlbum(id: 'album-1', displayName: 'Vacation'),
       ],
@@ -207,6 +214,9 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1', 'a2'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+        const ['a1', 'a2'],
+      ),
       extraSources: [
         _writableAlbum(id: 'album-1', displayName: 'Vacation'),
       ],
@@ -240,6 +250,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
       extraSources: [
         _writableAlbum(
           id: 'readonly',

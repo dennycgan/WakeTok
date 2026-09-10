@@ -100,7 +100,7 @@ void main() {
     'T-19.8-entry actionable session enables icon and opens half-sheet',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final sources = FakeAssetSourceRepository(allIds: const ['a1']);
+      final sources = FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']));
       await tester.pumpWidget(
         permissionUiHarness(repo: repo, assetSources: sources),
       );

@@ -745,6 +745,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
 
   @override
+  String get stillInLibraryUnavailableTitle => 'This item isn\'t available';
+
+  @override
+  String get stillInLibraryUnavailableBody =>
+      'It\'s no longer in your Photos library.';
+
+  @override
+  String get stillInLibraryUnavailableConfirm => 'OK';
+
+  @override
   String get cap19LeftSwipeGuideTitle => 'Swipe left to add to WakeTok';
 
   @override
@@ -1513,6 +1523,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap19CurrentMediaNotReady => '媒体尚未就绪。';
+
+  @override
+  String get stillInLibraryUnavailableTitle => '无法使用此项';
+
+  @override
+  String get stillInLibraryUnavailableBody => '它已不在你的照片图库中。';
+
+  @override
+  String get stillInLibraryUnavailableConfirm => '好';
 
   @override
   String get cap19LeftSwipeGuideTitle => '左滑添加到 WakeTok';

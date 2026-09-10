@@ -10,6 +10,16 @@ import 'package:waketok/domain/source/source_reference.dart';
 
 /// Test double for [AssetSourceRepository] (Cap 6.4 / Cap 11.2–11.3 tests).
 class FakeAssetSourceRepository implements AssetSourceRepository {
+
+  /// Cap 19 / Cap 23 harness: explicit deviceLocal map for known ids so
+  /// mutation gates pass without changing the Host-contract default
+  /// (missing map key → unavailable) used by feed L2 path tests.
+  static Map<String, AssetAvailability> deviceLocalForIds(Iterable<String> ids) {
+    return {
+      for (final id in ids) id: AssetAvailability.deviceLocal,
+    };
+  }
+
   FakeAssetSourceRepository({
     this.allIds = const <String>[],
     this.photosIds = const <String>[],

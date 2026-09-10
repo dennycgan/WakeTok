@@ -25,7 +25,7 @@ void main() {
       addTearDown(container.dispose);
 
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.unknown,
       );
 
@@ -35,7 +35,7 @@ void main() {
 
       expect(ok, isTrue);
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.inLibrary,
       );
       expect(fake.getAssetAvailabilitiesCalls, 1);
@@ -62,7 +62,7 @@ void main() {
 
       expect(ok, isFalse);
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.missing,
       );
       expect(fake.getAssetAvailabilitiesCalls, 1);
@@ -88,7 +88,7 @@ void main() {
 
       expect(ok, isFalse);
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.missing,
       );
       expect(fake.getAssetAvailabilitiesCalls, 0);
@@ -115,7 +115,7 @@ void main() {
       final first = notifier.probeCurrentAssetStillInLibrary();
       await pumpEventQueue();
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.probing,
       );
       expect(fake.getAssetAvailabilitiesCalls, 1);
@@ -127,7 +127,7 @@ void main() {
       gate.complete();
       expect(await first, isTrue);
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.inLibrary,
       );
     });
@@ -153,7 +153,7 @@ void main() {
           .probeCurrentAssetStillInLibrary();
       expect(ok, isTrue);
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.inLibrary,
       );
 
@@ -162,7 +162,7 @@ void main() {
       await pumpEventQueue();
 
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.unknown,
       );
     });
@@ -191,7 +191,7 @@ void main() {
             .probeCurrentAssetStillInLibrary();
         await pumpEventQueue();
         expect(
-          container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+          container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
           StillInLibraryStatus.probing,
         );
 
@@ -199,14 +199,14 @@ void main() {
         container.invalidate(mainBrowseCurrentAssetIdProvider);
         await pumpEventQueue();
         expect(
-          container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+          container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
           StillInLibraryStatus.unknown,
         );
 
         gate.complete();
         expect(await probe, isFalse);
         expect(
-          container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+          container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
           StillInLibraryStatus.unknown,
         );
         expect(fake.getAssetAvailabilitiesCalls, 1);
@@ -234,7 +234,7 @@ void main() {
 
       expect(ok, isFalse);
       expect(
-        container.read(mainBrowseCurrentAssetStillInLibraryProvider),
+        container.read(mainBrowseCurrentAssetStillInLibraryProvider).status,
         StillInLibraryStatus.missing,
       );
     });

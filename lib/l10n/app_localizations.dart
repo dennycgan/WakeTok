@@ -1386,6 +1386,24 @@ abstract class AppLocalizations {
   /// **'Media isn\'t ready yet.'**
   String get cap19CurrentMediaNotReady;
 
+  /// Cap 23 shared dialog title when current asset is gone from Photos
+  ///
+  /// In en, this message translates to:
+  /// **'This item isn\'t available'**
+  String get stillInLibraryUnavailableTitle;
+
+  /// Cap 23 shared dialog body for still-in-library miss
+  ///
+  /// In en, this message translates to:
+  /// **'It\'s no longer in your Photos library.'**
+  String get stillInLibraryUnavailableBody;
+
+  /// Cap 23 shared unavailable dialog dismiss action
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get stillInLibraryUnavailableConfirm;
+
   /// Cap 19.6 one-shot coach mark title
   ///
   /// In en, this message translates to:

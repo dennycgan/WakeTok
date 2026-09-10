@@ -17,6 +17,10 @@ enum Cap19LeftSwipeAppendOutcome {
   alreadyInAlbum,
   mediaNotReady,
   failed,
+  /// Cap 23: probe reported Photos missing — gesture shows shared dialog.
+  notInLibrary,
+  /// Cap 23: gate busy / stale — silent ignore (no toast).
+  ignored,
 }
 
 class Cap19LeftSwipeAppendState {
@@ -85,9 +89,26 @@ class Cap19LeftSwipeAppendNotifier extends Notifier<Cap19LeftSwipeAppendState> {
     if (!state.leftSwipeAddEnabled || state.appending) {
       return Cap19LeftSwipeAppendOutcome.failed;
     }
+    final stillGate = ref.read(
+      mainBrowseCurrentAssetStillInLibraryProvider.notifier,
+    );
+    if (stillGate.isBusy) {
+      return Cap19LeftSwipeAppendOutcome.ignored;
+    }
     final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
     if (assetId == null || assetId.isEmpty) {
       return Cap19LeftSwipeAppendOutcome.mediaNotReady;
+    }
+    final stillIn = await stillGate.probeCurrentAssetStillInLibrary();
+    if (!stillIn) {
+      if (ref.read(mainBrowseCurrentAssetStillInLibraryProvider).status ==
+          StillInLibraryStatus.missing) {
+        // Arm shared latch before returning so entry cannot re-enter while
+        // the gesture awaits showDialog (ADR-049 D6).
+        stillGate.setDialogVisible(true);
+        return Cap19LeftSwipeAppendOutcome.notInLibrary;
+      }
+      return Cap19LeftSwipeAppendOutcome.ignored;
     }
     final access = ref.read(photosAuthorizationProvider).value;
     if (access == null) {

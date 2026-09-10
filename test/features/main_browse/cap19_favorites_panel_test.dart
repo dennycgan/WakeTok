@@ -31,8 +31,10 @@ AssetSource _writableAlbum({
   );
 }
 
-FakeAssetSourceRepository _feedSources() =>
-    FakeAssetSourceRepository(allIds: const ['a1']);
+FakeAssetSourceRepository _feedSources() => FakeAssetSourceRepository(
+      allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+    );
 
 Future<void> _openFullSheet(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('cap19EntryIcon')));
@@ -59,6 +61,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
       extraSources: [
         _writableAlbum(id: 'album-a', displayName: 'Alpha Album'),
       ],

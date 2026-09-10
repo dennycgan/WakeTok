@@ -25,6 +25,7 @@ const _wakeTokAlbumId = 'waketok-album-1';
 FakeAssetSourceRepository _sources({List<String> allIds = const ['asset-1']}) {
   return FakeAssetSourceRepository(
     allIds: allIds,
+    availabilityById: FakeAssetSourceRepository.deviceLocalForIds(allIds),
     extraSources: [
       AssetSource(
         kind: AssetSourceKind.album,

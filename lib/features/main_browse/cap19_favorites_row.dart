@@ -7,6 +7,7 @@ import 'package:waketok/features/main_browse/cap19_favorites_controller.dart';
 import 'package:waketok/features/main_browse/cap19_favorites_platform_icon.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_panel_host_context.dart';
+import 'package:waketok/features/main_browse/still_in_library_gate.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 19.5b — synthetic Quick action row (Full Access only).
@@ -148,6 +149,13 @@ class _FavoritesToggleRow extends ConsumerWidget {
   Future<void> _onTap(BuildContext context, WidgetRef ref) async {
     final l10n = AppLocalizations.of(context)!;
     final hostContext = Cap19PanelHostContext.of(context);
+    final allowed = await ensureCurrentAssetStillInLibraryForMutation(
+      ref: ref,
+      context: context,
+    );
+    if (!context.mounted || !allowed) {
+      return;
+    }
     final wasFavorite = isFavorite;
     final success =
         await ref.read(cap19FavoritesProvider.notifier).toggleFavorite();

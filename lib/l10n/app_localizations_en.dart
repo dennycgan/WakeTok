@@ -748,6 +748,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
 
   @override
+  String get stillInLibraryUnavailableTitle => 'This item isn\'t available';
+
+  @override
+  String get stillInLibraryUnavailableBody =>
+      'It\'s no longer in your Photos library.';
+
+  @override
+  String get stillInLibraryUnavailableConfirm => 'OK';
+
+  @override
   String get cap19LeftSwipeGuideTitle => 'Swipe left to add to WakeTok';
 
   @override

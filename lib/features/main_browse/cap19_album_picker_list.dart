@@ -7,6 +7,7 @@ import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_album_cover_thumbnail.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_panel_host_context.dart';
+import 'package:waketok/features/main_browse/still_in_library_gate.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Full Access Add-to-Album picker (Cap 19.5).
@@ -157,6 +158,13 @@ class _AlbumList extends ConsumerWidget {
   ) async {
     final l10n = AppLocalizations.of(context)!;
     final hostContext = Cap19PanelHostContext.of(context);
+    final allowed = await ensureCurrentAssetStillInLibraryForMutation(
+      ref: ref,
+      context: context,
+    );
+    if (!context.mounted || !allowed) {
+      return;
+    }
     final outcome = await ref
         .read(cap19AlbumPickerProvider.notifier)
         .appendToAlbum(album.id);

@@ -167,41 +167,75 @@ final mainBrowseCurrentAssetActionableProvider = Provider<bool>((ref) {
 /// sites via [mutationChromeMayProceed]; do not merge axes.
 enum StillInLibraryStatus { unknown, probing, inLibrary, missing }
 
+/// Probe status plus shared mutation-gate latch (ADR-049 D6).
+class StillInLibraryGateState {
+  const StillInLibraryGateState({
+    this.status = StillInLibraryStatus.unknown,
+    this.dialogVisible = false,
+  });
+
+  final StillInLibraryStatus status;
+  final bool dialogVisible;
+
+  /// True while a probe is in flight or the shared unavailable dialog is up.
+  bool get isBusy =>
+      status == StillInLibraryStatus.probing || dialogVisible;
+
+  StillInLibraryGateState copyWith({
+    StillInLibraryStatus? status,
+    bool? dialogVisible,
+  }) {
+    return StillInLibraryGateState(
+      status: status ?? this.status,
+      dialogVisible: dialogVisible ?? this.dialogVisible,
+    );
+  }
+}
+
 final mainBrowseCurrentAssetStillInLibraryProvider = NotifierProvider<
   MainBrowseCurrentAssetStillInLibrary,
-  StillInLibraryStatus
+  StillInLibraryGateState
 >(MainBrowseCurrentAssetStillInLibrary.new);
 
 class MainBrowseCurrentAssetStillInLibrary
-    extends Notifier<StillInLibraryStatus> {
+    extends Notifier<StillInLibraryGateState> {
   @override
-  StillInLibraryStatus build() {
+  StillInLibraryGateState build() {
     ref.listen<String?>(mainBrowseCurrentAssetIdProvider, (prev, next) {
       if (prev == next) {
         return;
       }
-      state = StillInLibraryStatus.unknown;
+      state = const StillInLibraryGateState();
     });
-    return StillInLibraryStatus.unknown;
+    return const StillInLibraryGateState();
+  }
+
+  bool get isBusy => state.isBusy;
+
+  void setDialogVisible(bool visible) {
+    if (state.dialogVisible == visible) {
+      return;
+    }
+    state = state.copyWith(dialogVisible: visible);
   }
 
   /// On-demand single-id [AssetSourceRepository.getAssetAvailabilities] probe.
   ///
   /// Returns whether the **captured** current id is still in Photos. Does not
-  /// consult actionable. While [StillInLibraryStatus.probing], further calls
-  /// return `false` (in-flight latch hook for Cap 23.3). Stale completions
-  /// (current id changed during await) discard results and return `false`.
+  /// consult actionable. While [StillInLibraryGateState.isBusy], further calls
+  /// return `false` (in-flight / dialog latch). Stale completions (current id
+  /// changed during await) discard results and return `false`.
   Future<bool> probeCurrentAssetStillInLibrary() async {
-    if (state == StillInLibraryStatus.probing) {
+    if (state.isBusy) {
       return false;
     }
     final capturedId = ref.read(mainBrowseCurrentAssetIdProvider);
     if (capturedId == null || capturedId.isEmpty) {
-      state = StillInLibraryStatus.missing;
+      state = state.copyWith(status: StillInLibraryStatus.missing);
       return false;
     }
 
-    state = StillInLibraryStatus.probing;
+    state = state.copyWith(status: StillInLibraryStatus.probing);
     try {
       final map = await ref
           .read(assetSourceRepositoryProvider)
@@ -212,15 +246,17 @@ class MainBrowseCurrentAssetStillInLibrary
       final availability =
           map[capturedId] ?? AssetAvailability.unavailable;
       final stillIn = isAssetStillInLibrary(availability);
-      state = stillIn
-          ? StillInLibraryStatus.inLibrary
-          : StillInLibraryStatus.missing;
+      state = state.copyWith(
+        status: stillIn
+            ? StillInLibraryStatus.inLibrary
+            : StillInLibraryStatus.missing,
+      );
       return stillIn;
     } catch (_) {
       if (ref.read(mainBrowseCurrentAssetIdProvider) != capturedId) {
         return false;
       }
-      state = StillInLibraryStatus.missing;
+      state = state.copyWith(status: StillInLibraryStatus.missing);
       return false;
     }
   }

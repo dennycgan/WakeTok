@@ -46,6 +46,7 @@ PageView _pageView(WidgetTester tester) {
 FakeAssetSourceRepository _sourcesWithWakeTokAlbum(List<String> allIds) {
   return FakeAssetSourceRepository(
     allIds: allIds,
+    availabilityById: FakeAssetSourceRepository.deviceLocalForIds(allIds),
     extraSources: [
       AssetSource(
         kind: AssetSourceKind.album,

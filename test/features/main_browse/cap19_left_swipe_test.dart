@@ -34,6 +34,7 @@ FakeAssetSourceRepository _assetSourcesForLeftSwipe({
 }) {
   return FakeAssetSourceRepository(
     allIds: allIds,
+    availabilityById: FakeAssetSourceRepository.deviceLocalForIds(allIds),
     extraSources: [
       _waketokAlbum(albumId: _wakeTokAlbumId),
     ],
@@ -111,7 +112,7 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['asset-1']),
+        assetSources: FakeAssetSourceRepository(allIds: const ['asset-1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['asset-1'])),
         albumMutations: mutations,
         cap19LeftSwipePreferences: prefs,
       ),
@@ -176,7 +177,7 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1', 'v2'])),
       ),
     );
     await _pumpAsyncWork(tester);
@@ -235,7 +236,7 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1'])),
         cap19LeftSwipePreferences: prefs,
       ),
     );
@@ -265,7 +266,7 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          assetSources: FakeAssetSourceRepository(allIds: const ['a1'], availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1'])),
           albumMutations: mutations,
           cap19LeftSwipePreferences: prefs,
         ),
