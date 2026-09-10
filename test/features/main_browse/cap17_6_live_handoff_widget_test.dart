@@ -70,7 +70,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
-          assetSources: FakeAssetSourceRepository(allIds: const [id]),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const [id],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [id]),
+          ),
           mediaDisplay: display,
           livePhoto: live,
           browseLayer2Dwell: Duration.zero,
@@ -135,7 +138,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
-          assetSources: FakeAssetSourceRepository(allIds: const [id]),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const [id],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [id]),
+          ),
           mediaDisplay: display,
           livePhoto: live,
           browseLayer2Dwell: Duration.zero,
@@ -192,7 +198,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
-          assetSources: FakeAssetSourceRepository(allIds: const [id]),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const [id],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [id]),
+          ),
           mediaDisplay: display,
           livePhoto: live,
           browseLayer2Dwell: Duration.zero,
@@ -240,7 +249,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
-          assetSources: FakeAssetSourceRepository(allIds: const [id]),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const [id],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [id]),
+          ),
           mediaDisplay: display,
           livePhoto: live,
           browseLayer2Dwell: Duration.zero,

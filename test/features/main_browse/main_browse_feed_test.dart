@@ -847,6 +847,7 @@ void main() {
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['v1', 'cloud'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1', 'cloud']),
           ),
           mediaDisplay: display,
           playback: playback,
@@ -1210,7 +1211,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
         mediaDisplay: display,
         browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
@@ -1237,7 +1241,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
         mediaDisplay: display,
         browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
@@ -1437,7 +1444,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
         presentationMetadata: presentation,
       ),
     );
@@ -1497,7 +1507,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1', 'a2'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
+          ),
           presentationMetadata: presentation,
         ),
       );
@@ -1578,7 +1591,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
           mediaDisplay: display,
           presentationMetadata: presentation,
         ),
@@ -1626,7 +1642,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
           mediaDisplay: display,
         ),
       );
@@ -1712,6 +1731,7 @@ void main() {
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['cloud', 'bad'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['cloud']),
           ),
           mediaDisplay: display,
           presentationMetadata: presentation,
@@ -1777,7 +1797,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['loc1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['loc1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['loc1']),
+          ),
           presentationMetadata: presentation,
         ),
       );
@@ -2357,7 +2380,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2387,7 +2413,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2458,7 +2487,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2507,7 +2539,8 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['live-1', 'still-2'],
-        ),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1', 'still-2']),
+          ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2555,7 +2588,8 @@ void main() {
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['live-1', 'still-2'],
-        ),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1', 'still-2']),
+          ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2663,7 +2697,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
           mediaDisplay: display,
           livePhoto: live,
         ),
@@ -2709,7 +2746,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
           mediaDisplay: display,
           livePhoto: live,
           browseLayer2Dwell: Duration.zero,
@@ -2781,7 +2821,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
           mediaDisplay: display,
           livePhoto: live,
           presentationMetadata: presentation,
@@ -2821,7 +2864,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
           mediaDisplay: display,
         ),
       );
@@ -3659,7 +3705,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['v1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1']),
+          ),
         mediaDisplay: display,
         playback: playback,
       ),
@@ -3742,7 +3791,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
           mediaDisplay: display,
         ),
       );
@@ -3814,7 +3866,10 @@ void main() {
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
           presentationMetadata: presentation,
         ),
       );
@@ -3884,7 +3939,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1', 'a2'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
+          ),
         presentationMetadata: presentation,
       ),
     );
@@ -3917,7 +3975,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
         mediaDisplay: display,
         presentationMetadata: presentation,
       ),
@@ -3961,7 +4022,10 @@ void main() {
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
-        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        assetSources: FakeAssetSourceRepository(
+            allIds: const ['v1'],
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1']),
+          ),
         mediaDisplay: display,
         playback: playback,
         presentationMetadata: presentation,
