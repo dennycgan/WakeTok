@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/app/browse/snapshot_invalidating_album_mutation_repository.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
@@ -47,7 +49,16 @@ Future<void> main() async {
         photosAuthorizationRepositoryProvider.overrideWithValue(gateway),
         libraryCatalogRepositoryProvider.overrideWithValue(gateway),
         assetSourceRepositoryProvider.overrideWithValue(gateway),
-        albumMutationRepositoryProvider.overrideWithValue(gateway),
+        albumMutationRepositoryProvider.overrideWith((ref) {
+          return SnapshotInvalidatingAlbumMutationRepository(
+            inner: gateway,
+            onMembershipChanged: (albumId) {
+              ref
+                  .read(browseSnapshotCacheProvider.notifier)
+                  .invalidateEntriesContainingAlbum(albumId);
+            },
+          );
+        }),
         albumCoverRepositoryProvider.overrideWithValue(gateway),
         assetFavoriteRepositoryProvider.overrideWithValue(gateway),
         wakeTokAlbumStoreProvider.overrideWithValue(wakeTokAlbumStore),

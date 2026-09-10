@@ -287,6 +287,28 @@ class BrowseSnapshotCache extends Notifier<Map<String, ResolvedPoolSnapshot>> {
   }
 
   void clear() => state = const {};
+
+  /// ADR-048: drop entries whose fingerprint includes [albumId] as an album
+  /// ref. Exact segment match (`album:<id>`); does not clear unrelated keys.
+  void invalidateEntriesContainingAlbum(String albumId) {
+    if (albumId.isEmpty || state.isEmpty) {
+      return;
+    }
+    final needle = 'album:$albumId';
+    final next = <String, ResolvedPoolSnapshot>{};
+    var removed = false;
+    for (final entry in state.entries) {
+      final keep = !entry.key.split('|').contains(needle);
+      if (keep) {
+        next[entry.key] = entry.value;
+      } else {
+        removed = true;
+      }
+    }
+    if (removed) {
+      state = next;
+    }
+  }
 }
 
 /// Ephemeral single-source SPD id for a Browse tab (not a Saved Pool).
