@@ -6,6 +6,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/browse_top_chrome.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
+import 'package:waketok/features/main_browse/cap24_more_entry_icon.dart';
 import 'package:waketok/features/main_browse/browse_notifications_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
@@ -83,8 +84,10 @@ class MainBrowseShellPage extends ConsumerWidget {
               fit: StackFit.expand,
               children: [
                 body,
-                if (destination == MainBrowseDestination.browse)
+                if (destination == MainBrowseDestination.browse) ...[
+                  const Cap24MoreEntryIconSlot(),
                   Cap19EntryIconSlot(access: access),
+                ],
               ],
             ),
           ),

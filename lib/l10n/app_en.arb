@@ -1048,5 +1048,71 @@
   "browseSettingsNewRoundToastSubtitle": "When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.",
   "@browseSettingsNewRoundToastSubtitle": {
     "description": "Cap 22.5 toggle subtitle: where, when, duration, early dismiss"
+  },
+  "cap24MoreEntryIconSemantics": "More actions",
+  "@cap24MoreEntryIconSemantics": {
+    "description": "Cap 24.3 Action Column ellipsis entry accessibility label"
+  },
+  "cap24SoftDeleteSheetDelete": "Delete",
+  "@cap24SoftDeleteSheetDelete": {
+    "description": "Cap 24.3 more half-sheet Delete row (short verb; confirm carries this-item wording)"
+  },
+  "cap24SoftDeleteConfirmTitle": "Delete this item?",
+  "@cap24SoftDeleteConfirmTitle": {
+    "description": "Cap 24 soft-delete App confirm title (media-neutral)"
+  },
+  "cap24SoftDeleteConfirmBody": "This item will be deleted from iCloud Photos on all your devices. It will stay in Recently Deleted for 30 days.",
+  "@cap24SoftDeleteConfirmBody": {
+    "description": "Cap 24 soft-delete App confirm body (Recently Deleted / iCloud Photos class)"
+  },
+  "cap24SoftDeleteConfirm": "Delete",
+  "@cap24SoftDeleteConfirm": {
+    "description": "Cap 24 soft-delete App confirm primary action"
+  },
+  "cap24SoftDeleteConfirmCancel": "Cancel",
+  "@cap24SoftDeleteConfirmCancel": {
+    "description": "Cap 24 soft-delete App confirm cancel"
+  },
+  "cap24SoftDeleteSheetMinuteTimezoneNote": "For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.",
+  "@cap24SoftDeleteSheetMinuteTimezoneNote": {
+    "description": "Cap 24.3 half-sheet minute landmark honesty note (ADR-050 D7)"
+  },
+  "cap24SoftDeleteSheetExactMinute": "{year}-{month}-{day} {hour}:{minute}:{second}",
+  "@cap24SoftDeleteSheetExactMinute": {
+    "description": "Cap 24.3 bare EXIF/TIFF civil clock with seconds",
+    "placeholders": {
+      "year": { "type": "String" },
+      "month": { "type": "String" },
+      "day": { "type": "String" },
+      "hour": { "type": "String" },
+      "minute": { "type": "String" },
+      "second": { "type": "String" }
+    }
+  },
+  "cap24SoftDeleteSheetExactMinuteNoSeconds": "{year}-{month}-{day} {hour}:{minute}",
+  "@cap24SoftDeleteSheetExactMinuteNoSeconds": {
+    "description": "Cap 24.3 bare EXIF/TIFF civil clock without seconds",
+    "placeholders": {
+      "year": { "type": "String" },
+      "month": { "type": "String" },
+      "day": { "type": "String" },
+      "hour": { "type": "String" },
+      "minute": { "type": "String" }
+    }
+  },
+  "cap24SoftDeleteSheetExactMinuteApprox": "~ {year}-{month}-{day} {hour}:{minute}",
+  "@cap24SoftDeleteSheetExactMinuteApprox": {
+    "description": "Cap 24.3 Instant→device-local minute landmark with honesty tilde",
+    "placeholders": {
+      "year": { "type": "String" },
+      "month": { "type": "String" },
+      "day": { "type": "String" },
+      "hour": { "type": "String" },
+      "minute": { "type": "String" }
+    }
+  },
+  "cap24SoftDeleteFailed": "Couldn't delete. Try again.",
+  "@cap24SoftDeleteFailed": {
+    "description": "Cap 24 soft-delete Host failure toast (same style family as Cap 19 add-to-album error; new key)"
   }
 }

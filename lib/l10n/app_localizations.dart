@@ -1493,6 +1493,91 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.'**
   String get browseSettingsNewRoundToastSubtitle;
+
+  /// Cap 24.3 Action Column ellipsis entry accessibility label
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get cap24MoreEntryIconSemantics;
+
+  /// Cap 24.3 more half-sheet Delete row (short verb; confirm carries this-item wording)
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get cap24SoftDeleteSheetDelete;
+
+  /// Cap 24 soft-delete App confirm title (media-neutral)
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this item?'**
+  String get cap24SoftDeleteConfirmTitle;
+
+  /// Cap 24 soft-delete App confirm body (Recently Deleted / iCloud Photos class)
+  ///
+  /// In en, this message translates to:
+  /// **'This item will be deleted from iCloud Photos on all your devices. It will stay in Recently Deleted for 30 days.'**
+  String get cap24SoftDeleteConfirmBody;
+
+  /// Cap 24 soft-delete App confirm primary action
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get cap24SoftDeleteConfirm;
+
+  /// Cap 24 soft-delete App confirm cancel
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cap24SoftDeleteConfirmCancel;
+
+  /// Cap 24.3 half-sheet minute landmark honesty note (ADR-050 D7)
+  ///
+  /// In en, this message translates to:
+  /// **'For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.'**
+  String get cap24SoftDeleteSheetMinuteTimezoneNote;
+
+  /// Cap 24.3 bare EXIF/TIFF civil clock with seconds
+  ///
+  /// In en, this message translates to:
+  /// **'{year}-{month}-{day} {hour}:{minute}:{second}'**
+  String cap24SoftDeleteSheetExactMinute(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+    String second,
+  );
+
+  /// Cap 24.3 bare EXIF/TIFF civil clock without seconds
+  ///
+  /// In en, this message translates to:
+  /// **'{year}-{month}-{day} {hour}:{minute}'**
+  String cap24SoftDeleteSheetExactMinuteNoSeconds(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  );
+
+  /// Cap 24.3 Instant→device-local minute landmark with honesty tilde
+  ///
+  /// In en, this message translates to:
+  /// **'~ {year}-{month}-{day} {hour}:{minute}'**
+  String cap24SoftDeleteSheetExactMinuteApprox(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  );
+
+  /// Cap 24 soft-delete Host failure toast (same style family as Cap 19 add-to-album error; new key)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete. Try again.'**
+  String get cap24SoftDeleteFailed;
 }
 
 class _AppLocalizationsDelegate

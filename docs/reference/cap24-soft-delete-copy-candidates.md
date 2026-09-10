@@ -13,6 +13,28 @@ Related: ADR-050 Decisions 3, 4, 7.
 
 ---
 
+## 1b. More half-sheet Delete row (ADR-050 Decision 3 / Cap 24.3)
+
+Suggested key: `cap24SoftDeleteSheetDelete`.
+
+### EN
+
+```
+Delete
+```
+
+### zh-Hans
+
+```
+删除
+```
+
+Notes: short verb only (no “this item”); confirm title carries
+media-neutral disambiguation. Half-sheet has **no** title row (grabber →
+optional minute landmark → Delete).
+
+---
+
 ## 1. Confirm dialog (ADR-050 Decision 3)
 
 Suggested keys: `cap24SoftDeleteConfirmTitle` /

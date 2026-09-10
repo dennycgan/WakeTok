@@ -18,6 +18,7 @@ import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/features/library_smoke/album_cover_providers.dart';
 import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_favorite_providers.dart';
+import 'package:waketok/features/library_smoke/asset_soft_delete_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
@@ -25,6 +26,7 @@ import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
+import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../domain/library/fake_waketok_album_store.dart';
@@ -32,6 +34,7 @@ import '../../domain/source/fake_saved_pool_repository.dart';
 import '../../library_smoke/fake_album_cover_repository.dart';
 import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_favorite_repository.dart';
+import '../../library_smoke/fake_asset_soft_delete_repository.dart';
 import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
 import '../../library_smoke/fake_new_round_toast_preferences.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
@@ -85,6 +88,7 @@ Widget permissionUiHarness({
   FakeAlbumMutationRepository? albumMutations,
   FakeAlbumCoverRepository? albumCovers,
   FakeAssetFavoriteRepository? assetFavorites,
+  FakeAssetSoftDeleteRepository? assetSoftDelete,
   FakeCap19LeftSwipePreferences? cap19LeftSwipePreferences,
   FakeNewRoundToastPreferences? newRoundToastPreferences,
   FakeWakeTokAlbumStore? wakeTokAlbumStore,
@@ -113,12 +117,16 @@ Widget permissionUiHarness({
 
   /// Cap 20.2: force still-magnified signal true for widget tests.
   bool forceStillMagnified = false,
+
+  /// Cap 24.3: override minute-landmark loader (flash / mounted tests).
+  Cap24MinuteLandmarkLoader? minuteLandmarkLoader,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
   final mutations = albumMutations ?? FakeAlbumMutationRepository();
   final covers = albumCovers ?? FakeAlbumCoverRepository();
   final favorites = assetFavorites ?? FakeAssetFavoriteRepository();
+  final softDelete = assetSoftDelete ?? FakeAssetSoftDeleteRepository();
   final leftSwipePrefs =
       cap19LeftSwipePreferences ?? FakeCap19LeftSwipePreferences();
   final newRoundPrefs =
@@ -133,6 +141,7 @@ Widget permissionUiHarness({
       albumMutationRepositoryProvider.overrideWithValue(mutations),
       albumCoverRepositoryProvider.overrideWithValue(covers),
       assetFavoriteRepositoryProvider.overrideWithValue(favorites),
+      assetSoftDeleteRepositoryProvider.overrideWithValue(softDelete),
       cap19LeftSwipePreferencesProvider.overrideWithValue(leftSwipePrefs),
       newRoundToastPreferencesProvider.overrideWithValue(newRoundPrefs),
       wakeTokAlbumStoreProvider.overrideWithValue(albumStore),
@@ -164,6 +173,10 @@ Widget permissionUiHarness({
         sharedMuteProvider.overrideWith(_HarnessMutedTrueSharedMute.new),
       if (forceStillMagnified)
         browseStillMagnifiedProvider.overrideWith((ref) => true),
+      if (minuteLandmarkLoader != null)
+        cap24MinuteLandmarkLoaderProvider.overrideWithValue(
+          minuteLandmarkLoader,
+        ),
     ],
     child: MaterialApp(
       locale: locale,

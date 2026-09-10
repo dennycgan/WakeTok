@@ -805,6 +805,66 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get browseSettingsNewRoundToastSubtitle =>
       'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
+
+  @override
+  String get cap24MoreEntryIconSemantics => 'More actions';
+
+  @override
+  String get cap24SoftDeleteSheetDelete => 'Delete';
+
+  @override
+  String get cap24SoftDeleteConfirmTitle => 'Delete this item?';
+
+  @override
+  String get cap24SoftDeleteConfirmBody =>
+      'This item will be deleted from iCloud Photos on all your devices. It will stay in Recently Deleted for 30 days.';
+
+  @override
+  String get cap24SoftDeleteConfirm => 'Delete';
+
+  @override
+  String get cap24SoftDeleteConfirmCancel => 'Cancel';
+
+  @override
+  String get cap24SoftDeleteSheetMinuteTimezoneNote =>
+      'For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.';
+
+  @override
+  String cap24SoftDeleteSheetExactMinute(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+    String second,
+  ) {
+    return '$year-$month-$day $hour:$minute:$second';
+  }
+
+  @override
+  String cap24SoftDeleteSheetExactMinuteNoSeconds(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String cap24SoftDeleteSheetExactMinuteApprox(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '~ $year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String get cap24SoftDeleteFailed => 'Couldn\'t delete. Try again.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1579,4 +1639,64 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String get browseSettingsNewRoundToastSubtitle =>
       '当你把当前列表刷完、从头再看时，浏览页顶部会短暂出现一条提示，大约 1.5 秒。一划走就会立刻消失。';
+
+  @override
+  String get cap24MoreEntryIconSemantics => '更多操作';
+
+  @override
+  String get cap24SoftDeleteSheetDelete => '删除';
+
+  @override
+  String get cap24SoftDeleteConfirmTitle => '删除此项？';
+
+  @override
+  String get cap24SoftDeleteConfirmBody =>
+      '此项目将从你所有设备上的「iCloud 照片」中删除。它会在「最近删除」中保留 30 天。';
+
+  @override
+  String get cap24SoftDeleteConfirm => '删除';
+
+  @override
+  String get cap24SoftDeleteConfirmCancel => '取消';
+
+  @override
+  String get cap24SoftDeleteSheetMinuteTimezoneNote =>
+      '跨时区保存的照片或视频，显示的小时可能不准确；极少数情况下，日期也可能相差一天左右。';
+
+  @override
+  String cap24SoftDeleteSheetExactMinute(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+    String second,
+  ) {
+    return '$year-$month-$day $hour:$minute:$second';
+  }
+
+  @override
+  String cap24SoftDeleteSheetExactMinuteNoSeconds(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '$year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String cap24SoftDeleteSheetExactMinuteApprox(
+    String year,
+    String month,
+    String day,
+    String hour,
+    String minute,
+  ) {
+    return '~ $year-$month-$day $hour:$minute';
+  }
+
+  @override
+  String get cap24SoftDeleteFailed => '无法删除，请重试。';
 }

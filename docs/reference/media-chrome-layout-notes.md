@@ -203,10 +203,11 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 | Hit size | **48** | `kActionColumnHitSize` |
 | Item spacing | **16** | between hit boxes (lower top ↔ upper bottom) |
 | Trailing | **12** | `kMediaChromeTrailingInset` |
-| Lowest = album | Cap 19 entry | `Cap19EntryIcon` / `cap19EntryIconBottomInset` |
+| Lowest = `"…"` | Cap 24 more | `Cap24MoreEntryIcon` / `mainBrowseActionColumnLowestBottomInset` |
+| Index 1 = album | Cap 19 entry | `Cap19EntryIcon` / `cap19EntryIconBottomInset` → `actionColumnBottomInsetForIndex(1, …)` |
 | Lowest **icon** bottom | = Reset visual bottom | see formula below |
 | Index `i` bottom | `lowest + i×(48+16)` | `actionColumnBottomInsetForIndex` |
-| Share (placeholder) | `i = 1` when shown | not product-shipped yet |
+| Share (placeholder) | `i = 2` when shown | not product-shipped yet |
 
 ```
 resetBottom = overlayBottom + 3×20 + kResetAboveMetaGap
