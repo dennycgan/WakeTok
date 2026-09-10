@@ -210,7 +210,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Known debt **465** / **466** / **467**; scheduled for **24.5.5**
       (not before; not Unassigned) — out of Cap 24 product scope but
       must resolve before Cap 24 close-out.
-- [ ] 24.3 Action Column "…" + half-sheet chrome + confirm dialog
+- [x] 24.3 Action Column "…" + half-sheet chrome + confirm dialog
+      Work `f4928b6`: Action Column ellipsis at index 0 (Cap 19 →
+      index 1); more half-sheet (no title; Delete row; minute landmark
+      one-paint EXIF/Instant); App confirm stacked on sheet with
+      Host-await busy spinner (Q6=A); Cap 23 gates before open and
+      before write; `cap24SoftDeleteFailed` toast (host context);
+      `operationCancelled` silent + keep sheet; success dismisses
+      confirm+sheet without Queue mutate (24.4); ARB from copy
+      candidates; layout notes Action Column indices; widget tests
+      W-24.3-1…16 + cover-read `FileSystemException` IO unit test.
+      ADR-050 remains Proposed until Cap 24 close.
 - [ ] 24.4 Session Queue remove + advance on success
 - [ ] 24.5 Device acceptance
       (incl. Decision 4 resolve RD exclusion / restore reappearance;
@@ -222,17 +232,18 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 24.6 Cap close-out
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.3 Action Column "…" + half-sheet chrome + confirm dialog
+- Goal (one line): 24.4 Session Queue remove + advance on success
 - Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed; Cap 23 closed
       (`158a21c`); **456b** Closed at 23.4; 24.2 Host soft-delete write
-      path work `32d4bd1`
-- Next step: Owner review of 24.2 diff; design half-sheet + confirm +
-      Cap 23 gate wiring (not started)
+      path work `32d4bd1`; 24.3 more-sheet chrome work `f4928b6`
+- Next step: Design / implement Session Queue remove + advance on
+      Host soft-delete success (fail-closed; no Snapshot invalidation)
 - Related decisions: ADR-050 Proposed; ADR-049 Accepted; ADR-042 /
       ADR-044 D3; debt **464** Open until Cap 24 Accept split;
       **456a** / **457** Open; **458** Monitoring; **463** Accepted
       (permanent); Q4′ = A (no Snapshot hook; 24.5 force-quit resolve
-      protocol in acceptance notes)
+      protocol in acceptance notes); harness debts **465** / **466** /
+      **467** scheduled **24.5.5**
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
