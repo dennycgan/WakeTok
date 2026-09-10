@@ -5701,3 +5701,177 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   `getAssetAvailabilities`. Does not amend ADR-044 D3 feed-only remap.
   Closed STATE debt **456b** at Cap 23.4 (`0ba5f22` / work `893c8fb`);
   leaves **456a** Open.
+
+## ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted
+
+- Status: Proposed
+- Commit/PR anchor: (fill on Accept after implementing work commit)
+- Plain summary (owner reads this):
+  From Browse, the user can open a bottom "…" action, see a small
+  half-sheet with an exact-minute time teaser, confirm, and soft-delete
+  the current photo or video into the system Recently Deleted album.
+  WakeTok immediately removes that item from the current Session Queue
+  so it cannot be revisited in this session. Restoring it in Photos only
+  brings it back on the next Pool enter (a new Session resolve). WakeTok
+  never empties Recently Deleted.
+- Context / what problem forced this:
+  Doom-scroll organization without soft-delete feels incomplete. Cap 23
+  already ships still-in-library mutation gates and Host Recently Deleted
+  → unavailable mapping. Kickoff Do Not Build #4 still bans delete UI /
+  Doom Scroll delete; debt **464** only parks informal intent and must
+  not be read as approval. Owner directed Cap 24 after Cap 23 close;
+  Auto-play / queue-order roadmap items may move later (owner plan;
+  not decided in this ADR).
+- Decision (what was chosen):
+  1. **Soft-delete only.** Host uses `PHAssetChangeRequest.deleteAssets`
+     (or equivalent). Assets go to system Recently Deleted. Permanent
+     purge / Empty Recently Deleted is never in product scope.
+  2. **Single entry.** Action Column lowest icon is "…" (index 0). Cap 19
+     Add-to-Album entry moves to index 1 via
+     `actionColumnBottomInsetForIndex`. Share placeholder, if documented,
+     shifts to index 2. Horizontal `kMediaChromeOverlayTrailingInset`
+     unchanged. Update
+     `docs/reference/media-chrome-layout-notes.md` when Cap 24 ships.
+  3. **Half-sheet + confirm.** "…" opens a half-sheet (reuse Cap 19
+     visual constants: tint/blur tokens in `cap19_entry_layout.dart`).
+     Tapping Delete shows a confirm dialog (Cap 22
+     `browseSavedPoolAlertDialog` immersive dark shell) before any Host
+     write. Copy class: iOS Photos soft-delete / Recently Deleted ~30
+     days / iCloud Photos wording; use “this item” / media-neutral
+     phrasing (same family as `stillInLibraryUnavailableDialog`), never
+     photo-only. App confirm is mandatory. If PhotoKit / the system shows
+     a second confirm after the App dialog, accept that stack — do not
+     invent a third in-app confirm. Device acceptance notes the system
+     layer if observed.
+  4. **Session semantics (success, failure, evidence).**
+     - **Success:** on successful Host delete callback, remove that asset
+       id from the in-memory Session Queue and advance to the next item.
+       No in-session revisit. Restore in Photos does not re-inject into
+       the current Session; reappearance requires a later Pool enter /
+       new resolve.
+     - **Failure:** on Host delete failure (permission change, PhotoKit
+       error, `performChanges` `success=false`, or Pigeon failure): do
+       **not** remove from Queue, do **not** advance; show an in-place
+       non-blocking error toast in the **same feedback style** as Cap 19
+       add-to-album failure (non-blocking; “didn’t succeed — try again”
+       tone). Use a **new** ARB key (e.g. `cap24SoftDeleteFailed`) — do
+       **not** reuse `cap19PanelAddToAlbumError` (that copy is
+       album-add-specific). Fail-closed — no optimistic Session mutation.
+     - **Evidence (not “Verified in WakeTok code”):**
+       `makeLibraryFetchOptions()` only sets `creationDate`
+       sortDescriptors; it does **not** set inclusion flags. Product
+       relies on PhotoKit defaults for catalog / paging / resolve fetches
+       (nearby comment claims Hidden + Recently Deleted excluded;
+       `includeHiddenAssets` left at Apple default `false`). By-id fetch
+       in `getAssetAvailabilities` (`options: nil`) still returns
+       Recently Deleted assets and uses
+       `isInRecentlyDeletedSmartAlbum` — a **different** path; Hidden is
+       intentionally **not** excluded on that by-id path. Cap 24 does
+       **not** invent a second Recently Deleted detector for Session
+       surgery after a successful in-app delete (Queue removal is the
+       Session source of truth for that id). Cap 24 **device acceptance
+       MUST confirm**: (a) after App soft-delete, while the asset remains
+       in system Recently Deleted, a **new** Session resolve of the same
+       Pool does not include that id; (b) after the user restores it in
+       Photos, a **later** new Session resolve may include it again. If
+       either fails on device, add an explicit filter (see Rejected
+       alternatives escape). Hidden exclusion is **not** used as product
+       justification for soft-delete Session semantics.
+  5. **Reuse Cap 23 Recently Deleted recognition; no library observer.**
+     Cap 23.4 `isInRecentlyDeletedSmartAlbum` on
+     `getAssetAvailabilities` / `requestDisplayAsset` /
+     `requestPreview` remains the Host gate when an id is still probed
+     (delete-before probe, races, external delete). No
+     `PHPhotoLibraryChangeObserver` — App-owned success path via Host
+     completion only (aligns ADR-044 D3).
+  6. **"…" shares Cap 19 slot-family chrome.** Visibility and dimming
+     follow ADR-042 Decision 7 (not-actionable dim) and Decision 8 (hide
+     under peek / PV-covering), **and** Cap 23 still-in-library /
+     feed-unavailable rules already applied to the Cap 19 entry — not
+     probe-on-tap-only. Cap 23 still-in-library gate remains required
+     before the Host delete write.
+  7. **Exact-minute teaser in the half-sheet.** Restore Cap 17.7 archive
+     Host parse (`docs/private/cap17-7-minute-wall-clock-archive/`:
+     EXIF/TIFF naked local for still/Live; AVAsset creation-date
+     **string** for video; no Instant→device-TZ). Disclaimer must state
+     the concrete failure mode: for assets saved across time zones, the
+     **hour** shown may be wrong (calendar day is usually fine) — not a
+     vague “timezone may be inaccurate.” Separate ARB key from Overlay
+     day-level `mediaInfoExactDateApprox` (e.g.
+     `cap24SoftDeleteSheetExactMinuteApprox`).
+  8. **MVP Out (slots only):** location row; second Add-to-Album entry
+     inside the "…" sheet. No permanent Empty Recently Deleted UI. No
+     swipe-to-delete. No top-right trash. No in-app Recently Deleted
+     browser / batch delete. No Hide mapping. No library observer.
+  9. **Kickoff Do Not Build #4 — narrow supersede (line-by-line).**
+     This ADR does **not** vaguely “revise kickoff.” It narrowly
+     supersedes only the Delete-related bans below for Cap 24
+     soft-delete UX. Hide remains forbidden. **Historical fact:**
+     Favorite was already product-shipped in Cap 19 without a
+     line-by-line supersede of Do Not Build #4; this ADR records that
+     gap and does **not** re-ban Favorite or backfill ADR-042.
+
+     | Kickoff #4 ban (English gloss of local kickoff; still-forbidden list) | Cap 24 effect |
+     |---|---|
+     | No swipe-to-delete | Remains **in force** (no swipe-delete). |
+     | Do not show a delete button | **Narrowly superseded:** Delete may appear **only** inside the "…" half-sheet (and its confirm). No always-on feed Delete button; no top-right trash control. |
+     | Do not show a top-right trash control | Remains **in force**. |
+     | Do not implement an in-app pending-deletion area or batch delete | Remains **in force** for in-app trash area / batch. Soft-delete into **system** Recently Deleted is allowed; WakeTok does not implement its own trash UI or batch delete. |
+     | Do not run Favorite, Delete, or Hide directly in Doom Scroll | **Narrowly superseded for Delete only:** soft-delete may run from Doom Scroll via "…" → half-sheet → confirm → Host. Favorite remains as Cap 19 already ships. Hide remains forbidden. |
+
+     Introducing the "…" half-sheet is the Do Not Build #4 re-freeze path
+     for a Media Actions Sheet when a second organize action exists
+     (kickoff §1.7 foreshadowed this). Cap 24’s sheet is that minimal
+     sheet (Delete + reserved slots only).
+  10. **Parallel kickoff “no delete / modify originals” wording —
+      named coverage (local kickoff; not rewritten in-repo).**
+      Same narrow reading as Decision 9: soft-delete-to-system-Recently-
+      Deleted is allowed; permanent Empty Recently Deleted, Hide, batch,
+      and content edit of originals are not. Add-to-Album remains
+      append-only.
+
+      | ID | Kickoff locus | Cap 24 effect |
+      |---|---|---|
+      | P1 | MVP Scope §14 Add to Album (~“append only; no move / copy / delete / modify of originals”) | §14 **Add-to-Album contract unchanged** (membership append only). Narrowly supersedes the implication that the App never soft-deletes originals — Cap 24 is a **separate** Native Action Mapping. |
+      | P2 | Module / iOS App linkage → Add to Album (~same append-only sentence) | Same as P1. |
+      | P3 | C: MVP organization-duty boundary (~append-only; Favorite/Delete/Hide/batch stay in Photos; further mapping needs #4 ADR) | Narrowly supersedes for Cap 24 soft-delete-to-RD from Doom Scroll; Hide / batch / permanent purge remain out. Favorite already Cap 19. |
+      | P4 | §1.7 Long-press media area — extension list (Favorite / Hide / Delete; v1.0 UI must not appear) | Same treatment as Do Not Build #4 table (Decision 9): Delete only via "…" half-sheet + confirm; Hide stays banned; Favorite historical Cap 19 fact. |
+      | P5 | §3.4 MVP-invisible extension components (Delete Button / Swipe to Delete / Trash Icon / Pending Deletion Area / Favorite / Hide / …) | Same UI bans as #4. Half-sheet Delete is **not** an always-visible rail Delete button or top-right trash icon. Swipe-delete, in-app pending-deletion area, and top-right trash remain banned. Favorite already Cap 19. |
+
+  11. **Debt 464 on Accept (implementing work).** Do **not** write a
+      blanket “464 Closed.” Split: soft-delete intent → **Closed by Cap
+      24**; permanent Empty Recently Deleted / purge → remain
+      **Accepted (permanent)** never. Until Accept, **464** stays Open
+      as intent park.
+- Rejected alternatives (why not):
+  - Bolt soft-delete onto Cap 23.5 (docs-only close) — rejected; medium
+    Cap.
+  - Permanent purge / Empty Recently Deleted — rejected.
+  - Swipe-delete or always-visible Delete / top-right trash — rejected
+    (#4 remains for those).
+  - Second Add-to-Album or location in MVP "…" sheet — deferred.
+  - Library observer to sync deletes — rejected (ADR-044 D3).
+  - Re-invent Recently Deleted detection after Cap 23.4 Host helper —
+    rejected.
+  - Treat `makeLibraryFetchOptions` comment as code-verified RD
+    exclusion without device proof — rejected; Decision 4 evidence
+    downgrade + device-acceptance gate.
+  - New resolve filter “exclude RD” beyond PhotoKit defaults — rejected
+    **unless** device acceptance proves default exclusion fails.
+  - Reuse `cap19PanelAddToAlbumError` for delete failure — rejected;
+    wrong literal meaning; new key, same toast style.
+  - Optimistic Queue remove before Host success — rejected; fail-closed.
+- Consequences / constraints accepted:
+  - Status remains **Proposed** until Cap 24 implementing work lands;
+    then Accepted with real anchor / `git log -1 --format=%cs`.
+  - Cap 23 ADR-049 gates remain required before the Host delete write.
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009 / ADR-010 / ADR-012).
+  - On Accept: split debt **464** as Decision 11; update Action Column
+    indices in layout notes.
+- Relationship:
+  Builds on ADR-049 / Cap 23.4 Recently Deleted mapping; ADR-042 D7/D8
+  chrome; ADR-044 D3 (no observer); Cap 19 half-sheet tokens; Cap 22
+  alert shell. Narrowly supersedes kickoff Do Not Build #4
+  Delete-related lines and parallel loci P1–P5 as tabled. Does not
+  authorize Hide, batch delete, or permanent purge.

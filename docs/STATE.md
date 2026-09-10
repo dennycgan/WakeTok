@@ -118,10 +118,10 @@
       (Cap 23 / ADR-049 Accepted; `docs/acceptance/cap23-*.md`;
       PHASE_HISTORY; debt **456b** Closed at 23.4)
 - [ ] Soft-delete current asset to Photos Recently Deleted
-      (Cap 24 / ADR-050 Proposed — awaiting owner ADR freeze;
-      App soft-delete only; kick Session Queue on success;
-      narrow-supersede kickoff Do Not Build #4 delete bans;
-      after still-in-library gate) <-- YOU ARE HERE
+      (Cap 24 / ADR-050 Proposed; App soft-delete only; kick Session
+      Queue on success; fail-closed on Host failure; narrow-supersede
+      kickoff Do Not Build #4 delete bans + P1–P5; after still-in-library
+      gate) <-- YOU ARE HERE
 - [ ] Auto-play Presets and Mode Eligibility Rule
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
@@ -173,30 +173,41 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Soft-delete current asset to Photos Recently Deleted
-Contract: ADR-050 Proposed (awaiting owner freeze; not yet in DECISIONS)
+Contract: ADR-050 Proposed (24.1 freeze; Accept + anchor at Cap 24 close)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] 24.1 Contract freeze — ADR-050 Proposed
-      Owner-approved decisions for soft-delete-to-Recently-Deleted only;
-      Action Column "…" entry + half-sheet; Session Queue kick on
-      success; kickoff Do Not Build #4 narrow supersedes (line-by-line);
-      Out: permanent purge, Recently Deleted browser, batch delete,
-      swipe-to-delete, location row, second Add-to-Album entry in "…"
-      sheet. Phases below are placeholders until ADR freeze.
+- [x] 24.1 Contract freeze — ADR-050 Proposed
+      D1–D11 locked: soft-delete-to-RD only; "…" Action Column i=0 +
+      Cap 19 → i=1 (Share placeholder → i=2); half-sheet + confirm
+      (Cap 22 shell; media-neutral copy); Session success = Queue kick +
+      advance; Session failure = no Queue mutate + new ARB
+      `cap24SoftDeleteFailed` (toast style family, not
+      `cap19PanelAddToAlbumError` key); Decision 4 evidence =
+      PhotoKit-default assumption + **device-must-verify** resolve
+      RD exclusion / restore reappearance; reuse Cap 23 RD Host helper;
+      no library observer (ADR-044 D3); "…" shares Cap 19 D7/D8 + Cap 23
+      chrome; exact-minute teaser from Cap 17.7 archive + separate ARB
+      `cap24SoftDeleteSheetExactMinuteApprox`; MVP Out location + second
+      Add-to-Album in sheet; Do Not Build #4 line-by-line + parallel
+      kickoff P1–P5 + §1.7 Media Actions Sheet; on Accept split **464**
+      (soft-delete Closed by Cap 24 / permanent Empty Accepted
+      permanent). Favorite Cap 19 historical #4 gap recorded only.
 - [ ] 24.2 Host soft-delete write + Pigeon (if needed)
 - [ ] 24.3 Action Column "…" + half-sheet chrome + confirm dialog
 - [ ] 24.4 Session Queue remove + advance on success
 - [ ] 24.5 Device acceptance
+      (incl. Decision 4 resolve RD exclusion / restore reappearance;
+      note system second confirm if observed)
 - [ ] 24.6 Cap close-out
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.1 Contract freeze — ADR-050 Proposed
-- Sub-steps done: Cap 23 closed (`0ba5f22` / this close-out);
-      **456b** Closed at 23.4; ADR-049 Accepted
-- Next step: Owner review ADR-050 draft (chat); on approval append
-      DECISIONS + lock 24.x phases
-- Related decisions: ADR-049 Accepted; ADR-050 Proposed (draft);
-      ADR-042 / ADR-044 D3; debt **464** Open (intent → this Cap);
+- Goal (one line): 24.2 Host soft-delete write + Pigeon (if needed)
+- Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed (this docs
+      commit); Cap 23 closed (`158a21c`); **456b** Closed at 23.4
+- Next step: Owner review of 24.1 docs; then design/implement Host
+      soft-delete write path (no code until owner says start)
+- Related decisions: ADR-050 Proposed; ADR-049 Accepted; ADR-042 /
+      ADR-044 D3; debt **464** Open until Cap 24 Accept split;
       **456a** / **457** Open; **458** Monitoring; **463** Accepted
       (permanent)
 
@@ -425,6 +436,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - ADR-049: Cap 23 current-asset still-in-library mutation gate —
       **Accepted** (2026-09-10), anchors `32a3617` (23.3) + `4004ad1`
       (23.2) + `893c8fb` (23.4 Case B harden); Proposed `25689b0`
+- ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted —
+      **Proposed** (Cap 24.1; Accept + anchor at Cap 24 close)
 - Cap 23.4 device acceptance notes:
       `docs/acceptance/cap23-23.4-notes.md` (Kafka + i17 PASS; **456b**
       Closed)
