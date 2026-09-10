@@ -438,6 +438,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (23.2) + `893c8fb` (23.4 Case B harden); Proposed `25689b0`
 - ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted —
       **Proposed** (Cap 24.1; Accept + anchor at Cap 24 close)
+- Cap 24 soft-delete locked copy candidates (pre-ARB; EN + zh-Hans):
+      `docs/reference/cap24-soft-delete-copy-candidates.md`
 - Cap 23.4 device acceptance notes:
       `docs/acceptance/cap23-23.4-notes.md` (Kafka + i17 PASS; **456b**
       Closed)

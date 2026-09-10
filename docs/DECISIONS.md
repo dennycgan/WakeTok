@@ -5708,12 +5708,13 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Commit/PR anchor: (fill on Accept after implementing work commit)
 - Plain summary (owner reads this):
   From Browse, the user can open a bottom "…" action, see a small
-  half-sheet with an exact-minute time teaser, confirm, and soft-delete
-  the current photo or video into the system Recently Deleted album.
-  WakeTok immediately removes that item from the current Session Queue
-  so it cannot be revisited in this session. Restoring it in Photos only
-  brings it back on the next Pool enter (a new Session resolve). WakeTok
-  never empties Recently Deleted.
+  half-sheet with a Photos-finder time landmark (EXIF when available,
+  otherwise an approximate `~` time from the library date), confirm, and
+  soft-delete the current photo or video into the system Recently Deleted
+  album. WakeTok immediately removes that item from the current Session
+  Queue so it cannot be revisited in this session. Restoring it in Photos
+  only brings it back on the next Pool enter (a new Session resolve).
+  WakeTok never empties Recently Deleted.
 - Context / what problem forced this:
   Doom-scroll organization without soft-delete feels incomplete. Cap 23
   already ships still-in-library mutation gates and Host Recently Deleted
@@ -5790,15 +5791,101 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      feed-unavailable rules already applied to the Cap 19 entry — not
      probe-on-tap-only. Cap 23 still-in-library gate remains required
      before the Host delete write.
-  7. **Exact-minute teaser in the half-sheet.** Restore Cap 17.7 archive
-     Host parse (`docs/private/cap17-7-minute-wall-clock-archive/`:
-     EXIF/TIFF naked local for still/Live; AVAsset creation-date
-     **string** for video; no Instant→device-TZ). Disclaimer must state
-     the concrete failure mode: for assets saved across time zones, the
-     **hour** shown may be wrong (calendar day is usually fine) — not a
-     vague “timezone may be inaccurate.” Separate ARB key from Overlay
-     day-level `mediaInfoExactDateApprox` (e.g.
-     `cap24SoftDeleteSheetExactMinuteApprox`).
+  7. **Exact-minute Photos-finder landmark in the half-sheet (complements
+     Overlay Meta row 2 — does not copy it).** Overlay row 2 is
+     **passive**, day-only, deliberately fuzzy (`~ Y-M-D` from
+     `creationDate`→device local — ADR-038). The half-sheet row is
+     **user-initiated**: give the most precise civil clock WakeTok can
+     show as a landmark to find the same item in iOS Photos — “as precise
+     as possible; wrong hour on cross-timezone edges is acceptable.” A
+     sometimes-wrong minute landmark beats no landmark. Disclaimer + UI
+     source marking (below) carry honesty — not blankness.
+
+     **Source priority (MVP):**
+     1. **EXIF/TIFF naked wall** (still/Live only) → display **without**
+        `~` (true container civil clock).
+     2. Else **`PHAsset.creationDate` → device local** (Instant fallback)
+        → display **with** `~` prefix (same honesty mark as Overlay
+        approximate row — Instant must not look identical to EXIF).
+     3. Else no `creationDate` → **omit** the minute row.
+
+     **Display shape (locked):** include **calendar date + time** (Photos
+     find needs both; half-sheet may cover Overlay row 2). EXIF:
+     `yyyy-MM-dd HH:mm[:ss]` bare. Instant fallback:
+     `~ yyyy-MM-dd HH:mm` (minute precision; seconds optional only on
+     EXIF when present). ARB: bare formatter vs approx formatter (e.g.
+     `cap24SoftDeleteSheetExactMinute` / 
+     `cap24SoftDeleteSheetExactMinuteApprox`) — not
+     `mediaInfoExactDateApprox`.
+
+     **vs Overlay row 2 — accepted mismatch:** A bare EXIF half-sheet
+     date may differ from Overlay Meta row 2’s `~ y-m-d` for the same
+     asset. EXIF is capture-local civil clock from the container; row 2
+     is `creationDate` reinterpreted in the **device** time zone
+     (ADR-038 honesty boundary: rows / Photos are not required to
+     cross-check as one formula). That divergence is **expected and
+     accepted** — not a Cap 24 acceptance FAIL and not a new bug to
+     “fix” by forcing the two surfaces onto one source.
+
+     **Disclaimer (locked copy; covers both sources):** ARB
+     `cap24SoftDeleteSheetMinuteTimezoneNote` —
+     EN: “For photos or videos saved across time zones, the hour shown
+     may be wrong, and in rare cases the date may be off by up to a
+     day.” zh-Hans: as locked in Cap 24 copy freeze (English gloss:
+     cross-timezone photos/videos — hour may be wrong; in rare cases the
+     date may differ by about a day).
+
+     **"…" affordance vs minute row — decouple.** The "…" icon stays on
+     Cap 19 slot-family rules (Decision 6 / ADR-042 D7–D8 + Cap 23
+     still-in-library). **Do not** require Layer 2 ready to tap "…".
+     Gating delete on L2 success would block soft-delete for assets that
+     never mint L2-ready (e.g. STATE debt **400** iCloud/optimized-storage
+     video: black + spinner, no L1 poster) — rejected product regression.
+
+     **Half-sheet interaction + no Instant→EXIF flash:** shell + Delete
+     (and confirm path) interactive immediately. The minute row must
+     **not** paint Instant/`~` first and later jump to bare EXIF. Still/
+     Live: await `lookupIfCoverOnDisk` (and local EXIF parse if any),
+     **then** choose EXIF bare vs Instant `~` vs omit — **one** paint.
+     Video: no EXIF attempt — paint Instant `~` when `creationDate`
+     exists (no wait on L2). Minute row may stay empty briefly on stills
+     until that resolve; must not block Delete.
+
+     **Stale async result (Cap 23.2 class):** Cap 24 "…" reuses Cap 19
+     `showModalBottomSheet` modality (barrier; underlying feed does not
+     receive browse gestures while open — current asset cannot change via
+     doom-scroll under the sheet). After any `await` on the minute path,
+     paint only if the half-sheet widget is still **mounted** (sheet not
+     dismissed / disposed). If a future Cap ever opens a non-modal "…"
+     surface that can leave current while open, add capture-id-then-compare
+     (same class as Cap 23.2 probe stale-guard) before paint — not required
+     while modality matches Cap 19.
+
+     **Still / Live data path:** After the sheet opens, await
+     `browseL2ReadySessionProvider.lookupIfCoverOnDisk(currentId)` (a
+     `Future` — not sync `lookup` alone). On `FeedL2ReadyKind.stillFull`
+     with on-disk `cover.localFilePath`, parse naked wall **locally**
+     from that Layer 2 display temp (ImageIO EXIF `DateTimeOriginal` /
+     else TIFF `DateTime`; archive field rules; Host/gateway boundary —
+     Pigeon shape deferred). Temps are raw
+     `requestImageDataAndOrientation` bytes (not UIImage re-encode); EXIF
+     **may** be absent. If EXIF/TIFF datetime present → bare value. If
+     lookup miss / eviction / no datetime → Instant→local with `~` when
+     `creationDate` is available (reuse existing presentation /
+     Overlay metadata source — e.g. Cap 8.3
+     `requestPresentationMetadata` / held snapshot — **no new network**).
+     **No** half-sheet network escalate; Cap 17.7 archive “local fail →
+     network retry” is **not** inherited.
+
+     **Video (MVP):** Do **not** parse AVAsset creation-date strings and
+     do **not** issue a new `requestAVAsset` from the half-sheet.
+     `PlaybackApi.load` already downloads AVAsset for play but does not
+     report wall-clock strings; L2-ready video cover is poster-only.
+     MVP video minute row = Instant→local with `~` from existing
+     `creationDate` (zero extra Host cost). Omit row only if
+     `creationDate` is nil. Optional later (out of MVP): piggyback
+     string parse at prepare success into Session cache for bare
+     (non-`~`) video landmark.
   8. **MVP Out (slots only):** location row; second Add-to-Album entry
      inside the "…" sheet. No permanent Empty Recently Deleted UI. No
      swipe-to-delete. No top-right trash. No in-app Recently Deleted
@@ -5861,6 +5948,26 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Reuse `cap19PanelAddToAlbumError` for delete failure — rejected;
     wrong literal meaning; new key, same toast style.
   - Optimistic Queue remove before Host success — rejected; fail-closed.
+  - Gate "…" on Layer 2 ready — rejected; blocks soft-delete when L2
+    never succeeds (debt **400** class).
+  - Show Instant/`~` first then upgrade to bare EXIF — rejected; one
+    paint after still EXIF attempt resolves.
+  - Paint Instant fallback **without** `~` (looks like EXIF) — rejected;
+    UI source mark required, not disclaimer-only.
+  - Use Instant→local as the **primary** still landmark when EXIF is
+    available — rejected; EXIF bare wins when present.
+  - Omit still/video landmark whenever EXIF/AVAsset string is missing
+    (no Instant fallback) — rejected; user-initiated half-sheet prefers
+    Instant+`~` over blank when `creationDate` exists.
+  - New half-sheet `requestAVAsset` / network escalate for video (or
+    still) minute — rejected for MVP; video uses Instant+`~` only.
+  - Inherit Cap 17.7 archive network escalate for still minute —
+    rejected; still EXIF reads existing L2 display temp only.
+  - Force half-sheet EXIF civil date to match Overlay row 2 `~ y-m-d`
+    (or treat mismatch as FAIL) — rejected; ADR-038 multi-source
+    honesty; accepted Cap 24 divergence.
+  - Weak non-time placeholder copy when both EXIF and Instant are
+    missing — rejected; omit the minute row.
 - Consequences / constraints accepted:
   - Status remains **Proposed** until Cap 24 implementing work lands;
     then Accepted with real anchor / `git log -1 --format=%cs`.
