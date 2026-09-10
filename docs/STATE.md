@@ -216,25 +216,26 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       `docs/acceptance/cap22-22.5-endless-round-bridge-notes.md`.
       Must not absorb debt **456** Part B, recipe edit, or
       SessionCheckpoint.
-- [ ] 22.6 Device acceptance
-      Dual Save entries; capacity-10 dialog; rename uniqueness;
-      reopen; process death keeps Saved; album-removed honesty;
-      Limited. Notes under `docs/acceptance/cap22-*`.
+- [x] 22.6 Device acceptance
+      Dual Save; capacity-10; rename uniqueness; reopen; process death
+      keeps Saved; album-removed honesty (455 verify); Limited;
+      Leave Browse × Saved; ADR-048 device gate. Full A–I PASS on
+      Kafka + i17 (2026-09-10). Guard `U-22.6-H` (`862ceba`). Notes
+      `docs/acceptance/cap22-22.6-notes.md`. Debt **455** Status flip
+      deferred to 22.7.
 - [ ] 22.7 Cap close-out
       Cap `[x]`; YOU ARE HERE → still-in-library gate…; PHASE_HISTORY
       snapshot; debt **455** Closed.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 22.6 Device acceptance
-- Sub-steps done: 22.1 contract; 22.2 Drift SavedPoolRepository
-      `d62e962`; 22.3 Save UX `4db65ec`; 22.4 Saved chrome `0ca1198`
-      + `0b68e01`; 22.5 Misc polish `7350f67` + `fd662c1` + ADR-048
-      `fbf2e82`
-- Next step: Cap 22.6 device acceptance matrix (Kafka primary; notes
-      under `docs/acceptance/cap22-*`)
+- Goal (one line): 22.7 Cap close-out
+- Sub-steps done: 22.1–22.6 (device notes
+      `docs/acceptance/cap22-22.6-notes.md`; guard work this phase)
+- Next step: Cap `[x]`; YOU ARE HERE → still-in-library gate;
+      PHASE_HISTORY snapshot; debt **455** Closed
 - Related decisions: ADR-046 Accepted (`d62e962`); ADR-047 Accepted
-      (`0b68e01`); ADR-048 Accepted (`fbf2e82`); debt **455** → Cap 22
-      close (22.7); **456** / **457** Open (after Cap 22 for Part B);
+      (`0b68e01`); ADR-048 Accepted (`fbf2e82`); debt **455** → close
+      in 22.7; **456** / **457** Open (after Cap 22 for Part B);
       Cap 20 **449** / **452** Open; Cap 22.4 **458** Monitoring;
       Cap 22.5 **463** Accepted (permanent); **464** Open
 
@@ -466,7 +467,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Cap 22 Saved Pool persistence: `lib/domain/source/saved_pool_repository.dart`
       + Drift `lib/data/local/` (work `d62e962`); Save UX 22.3
       (`4db65ec`); 22.4 chrome + ADR-047 polish (`0ca1198`, `0b68e01`);
-      22.5 Misc polish (`7350f67`, `fd662c1`) + ADR-048 (`fbf2e82`)
+      22.5 Misc polish (`7350f67`, `fd662c1`) + ADR-048 (`fbf2e82`);
+      22.6 device acceptance notes
+      `docs/acceptance/cap22-22.6-notes.md`
 - Acceptance notes (Cap 5.5): docs/acceptance/cap5-5.5-notes.md
 - Acceptance notes (Cap 6.5): docs/acceptance/cap6-6.5-notes.md
 - Acceptance notes (Cap 11.2 list / Limited omit):
