@@ -56,6 +56,12 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
   final List<SourceReference> resolveHistory = <SourceReference>[];
   final List<List<String>> getAssetAvailabilitiesHistory = <List<String>>[];
 
+  /// Cap 23.2: awaited after the call is recorded, before returning.
+  Future<void> Function(int callIndex)? beforeEachGetAssetAvailabilities;
+
+  /// When set, [getAssetAvailabilities] throws after the optional before-hook.
+  Exception? getAssetAvailabilitiesException;
+
   /// Cap 15.15: when true, [resolve] returns an empty availability map
   /// (production Host contract). Tests that need become-current probe
   /// coverage set this; default false keeps W-15.12* inject-at-resolve.
@@ -154,6 +160,12 @@ class FakeAssetSourceRepository implements AssetSourceRepository {
   ) async {
     getAssetAvailabilitiesCalls += 1;
     getAssetAvailabilitiesHistory.add(List<String>.unmodifiable(ids));
+    final callIndex = getAssetAvailabilitiesCalls - 1;
+    await beforeEachGetAssetAvailabilities?.call(callIndex);
+    final thrown = getAssetAvailabilitiesException;
+    if (thrown != null) {
+      throw thrown;
+    }
     return {
       for (final id in ids)
         id: availabilityById[id] ?? AssetAvailability.unavailable,

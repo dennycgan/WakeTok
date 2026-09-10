@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/domain/library/asset_availability.dart';
+import 'package:waketok/domain/library/still_in_library.dart';
+import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 
 export 'package:waketok/app/browse/browse_l2_ready_session.dart'
     show
@@ -148,8 +151,8 @@ final mainBrowseCurrentAssetIdProvider = Provider<String?>((ref) {
 /// feed page is not in Cap 21.6 Host-`assetUnavailable` fail chrome.
 ///
 /// Cap 19 entry / left-swipe arm / future share (ADR-042 Decision 7).
-/// Distinct from debt **456** Part B (proactive Photos-liveness probe before
-/// panel actions) — this limb only mirrors an already-known feed fail reason.
+/// Distinct from debt **456b** / ADR-049 still-in-library — this limb only
+/// mirrors an already-known feed fail reason (has-current axis).
 final mainBrowseCurrentAssetActionableProvider = Provider<bool>((ref) {
   final id = ref.watch(mainBrowseCurrentAssetIdProvider);
   if (id == null || id.isEmpty) {
@@ -158,11 +161,76 @@ final mainBrowseCurrentAssetActionableProvider = Provider<bool>((ref) {
   return !ref.watch(mainBrowseCurrentAssetHostUnavailableProvider);
 });
 
+/// Cap 23 / ADR-049: last known Photos-existence probe for the current asset.
+///
+/// Orthogonal to [mainBrowseCurrentAssetActionableProvider] — AND at call
+/// sites via [mutationChromeMayProceed]; do not merge axes.
+enum StillInLibraryStatus { unknown, probing, inLibrary, missing }
+
+final mainBrowseCurrentAssetStillInLibraryProvider = NotifierProvider<
+  MainBrowseCurrentAssetStillInLibrary,
+  StillInLibraryStatus
+>(MainBrowseCurrentAssetStillInLibrary.new);
+
+class MainBrowseCurrentAssetStillInLibrary
+    extends Notifier<StillInLibraryStatus> {
+  @override
+  StillInLibraryStatus build() {
+    ref.listen<String?>(mainBrowseCurrentAssetIdProvider, (prev, next) {
+      if (prev == next) {
+        return;
+      }
+      state = StillInLibraryStatus.unknown;
+    });
+    return StillInLibraryStatus.unknown;
+  }
+
+  /// On-demand single-id [AssetSourceRepository.getAssetAvailabilities] probe.
+  ///
+  /// Returns whether the **captured** current id is still in Photos. Does not
+  /// consult actionable. While [StillInLibraryStatus.probing], further calls
+  /// return `false` (in-flight latch hook for Cap 23.3). Stale completions
+  /// (current id changed during await) discard results and return `false`.
+  Future<bool> probeCurrentAssetStillInLibrary() async {
+    if (state == StillInLibraryStatus.probing) {
+      return false;
+    }
+    final capturedId = ref.read(mainBrowseCurrentAssetIdProvider);
+    if (capturedId == null || capturedId.isEmpty) {
+      state = StillInLibraryStatus.missing;
+      return false;
+    }
+
+    state = StillInLibraryStatus.probing;
+    try {
+      final map = await ref
+          .read(assetSourceRepositoryProvider)
+          .getAssetAvailabilities([capturedId]);
+      if (ref.read(mainBrowseCurrentAssetIdProvider) != capturedId) {
+        return false;
+      }
+      final availability =
+          map[capturedId] ?? AssetAvailability.unavailable;
+      final stillIn = isAssetStillInLibrary(availability);
+      state = stillIn
+          ? StillInLibraryStatus.inLibrary
+          : StillInLibraryStatus.missing;
+      return stillIn;
+    } catch (_) {
+      if (ref.read(mainBrowseCurrentAssetIdProvider) != capturedId) {
+        return false;
+      }
+      state = StillInLibraryStatus.missing;
+      return false;
+    }
+  }
+}
+
 /// Cap 21.6: current feed page reports Host `assetUnavailable` fail chrome.
 ///
 /// Written by [MediaFeedPage] while current; cleared on leave-current /
 /// successful L2. Drives Cap 19 entry dim + Overlay hide — not a Photos
-/// existence probe (debt **456** Part B).
+/// existence probe (debt **456b** / ADR-049).
 final mainBrowseCurrentAssetHostUnavailableProvider =
     NotifierProvider<MainBrowseCurrentAssetHostUnavailable, bool>(
       MainBrowseCurrentAssetHostUnavailable.new,
