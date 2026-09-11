@@ -240,7 +240,16 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       cache untouched (Q4′); U-24.4b-1…5 (multi-round, Order, n=1–2,
       empty, feedIndex-independent). Device: same-Pool start-over PASS
       (Kafka). ADR-050 remains Proposed.
-- [ ] 24.4c Process soft-delete exclusion across cached Session starts
+- [x] 24.4c Process soft-delete exclusion across cached Session starts
+      Work `0b6c7c6`: in-memory `processSoftDeletedAssetIds` (process
+      lifetime; not persisted); filter on `build` / `restartSession`
+      Session starts from Cap 7.6 cache without mutating cache body
+      (Q4′=A); `removeAssetAndLand` success records id; U-24.4c-1…5
+      (leave/return ≥3, multi-Origin, cache purity, no soft-delete
+      unchanged, fresh empty set / D4-b); notes residual narrowed to
+      restore-without-force-quit boundary. Device: Pool/Origin
+      leave-return ghost closed (Kafka Profile). ADR-050 remains
+      Proposed.
 - [ ] 24.5 Device acceptance
       (incl. Decision 4 resolve RD exclusion / restore reappearance;
       note system second confirm if observed)
@@ -251,20 +260,22 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 24.6 Cap close-out
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.4c Process soft-delete exclusion across cached Session starts
+- Goal (one line): 24.5 Device acceptance
 - Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed; Cap 23
       closed (`158a21c`); **456b** Closed at 23.4; 24.2 Host
       soft-delete write path work `32d4bd1` (+ harness align
       `1fcdbd1`); 24.3 more-sheet chrome work `f4928b6`; 24.4 Session
       Queue kick work `52b6c39`; 24.4b working-set rebuilds work
-      `0ccc8fa`
-- Next step: Implement `processSoftDeletedAssetIds` (in-memory process
-      filter on Session start from cached Snapshot; no cache invalidate)
+      `0ccc8fa`; 24.4c process soft-delete exclusion work `0b6c7c6`
+- Next step: Run Cap 24.5 device matrix (Kafka + i17) per
+      `docs/acceptance/cap24-24.5-notes.md` (force-quit D4-a/b; SYS;
+      SUCCESS / CANCEL / FAIL). Optional: restore runbook / SYS
+      checklist expansions as a separate notes commit before the run.
 - Related decisions: ADR-050 Proposed; ADR-049 Accepted; ADR-042 /
       ADR-044 D3; debt **464** Open until Cap 24 Accept split;
       **456a** / **457** Open; **458** / **468** Monitoring; **463**
       Accepted (permanent); Q4′ = A (no Snapshot invalidate; 24.4c
-      process filter closes same-process Pool-switch ghost; 24.5
+      process filter closed same-process Pool-switch ghost; 24.5
       force-quit resolve protocol in
       `docs/acceptance/cap24-24.5-notes.md`); harness debts **465** /
       **466** / **467** scheduled **24.5.5**
@@ -670,7 +681,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 465 | Open | Main Browse Screen | Cap 24.2 | Widget tests W-16.4d / W-16.4e: after Fake `deviceLocalForIds`, `displayCalls` is `['a1','a1']` where tests expect a single `requestDisplayAsset` | **Two-step resolution required at 24.5.5, not a plain test fix.** Step 1: read become-current / deviceLocal fast-path call sites and determine whether the double call is (a) an explainable harmless duplicate (project bar: duplicate network/display requests must be explainable — ADR-034 D5 spirit) or (b) a real extra `requestDisplayAsset` that should stay single-flight. Report finding before touching any code. If (a): relax the assertion in 24.5.5 and close 465. If (b): do **not** fix product code inside 24.5.5 — close 465 as "diagnosed, transferred," open a **new** debt ID for the product-level finding, and that new debt follows normal ADR-before-product-change discipline; does not block Cap 24 close-out. Diagnosed during Cap 24.2 control-group run; out of Cap 24 product scope. | **24.5.5 (mandatory; diagnosis before fix; may transfer to a new debt ID if root cause is product-level)** | ADR-034 D5; Cap 15 deviceLocal path; Cap 16.4; Cap 23.4 |
 | 466 | Open | Main Browse Screen | Cap 24.2 | Widget tests W-L6 / W-O-* / W-Loc2 / S-1 / S-3 / S-5 (and kin): `mediaInfoOverlay` or size copy `Found 0` while fail/Retry chrome may already be correct | Cap 21.x `_suppressStillCoverChrome` hides Overlay until still/poster cover is decode-ready. Typical harness paths never supply a real decodable file / never wait for `frameBuilder`, so Overlay stays suppressed. Root cause located; fix = fixture PNG + pump-to-ready (or harness helper). Test-infra only. Diagnosed during Cap 24.2 control-group run; out of Cap 24 product scope. | **24.5.5 (mandatory; must resolve before Cap 24 close-out)** | Cap 21 Overlay/cover discipline; Cap 8 Overlay |
 | 467 | Open | Main Browse Screen | Cap 24.2 | Widget tests Cap 17.3 (W-17.3a/l) / Cap 17.6 (W-17.6-*) / Live L-S* preparing: `mainBrowseFeedLayer3Spinner` or `mainBrowseFeedLivePreparing_*` `Found 0` | `debugForceLayer2WaitChrome` with default `mediaKind == null` does not enter the still branch that forces cover-ready flags; combined with wait-chrome / cover suppress, forced spinner/preparing keys may never paint. Root cause located; exact fix undecided (pass `mediaKind: still`, broaden debugForce, or other) — decide during 24.5.5, not now. Test-infra only. Diagnosed during Cap 24.2 control-group run; out of Cap 24 product scope. | **24.5.5 (mandatory; must resolve before Cap 24 close-out)** | ADR-034; Cap 17.3/17.6; Cap 14.6b Live chrome |
-| 468 | Monitoring | Main Browse Screen / Cap 24 | Cap 24.4b | After Endless start-over, first queue item occasionally stuck on Layer 1 (never promotes to L2); seen once on Kafka Profile | **Logged Cap 24.4b Kafka Profile soak** after soft-delete working-set fix (`0ccc8fa`). One unreproduced incident: post start-over, round head stayed on Layer 1 without Layer 2. **Not** attributed to `sessionWorkingAssetIds`. **On recurrence record:** (1) iCloud vs device-local; (2) whether soft-delete just happened in the same Session; (3) whether leave-current + return self-heals. | Unassigned (observe) | ADR-025 / Cap 15–17 L2; Cap 22.5 |
+| 468 | Monitoring | Main Browse Screen / Cap 24 | Cap 24.4b | Occasional first-page Layer 1 stall (never promotes to L2); heal by swipe away + revisit | **Seen twice on Kafka Profile (device-local stills, not iCloud):** (1) Cap 24.4b after Endless start-over (`0ccc8fa`); (2) Cap 24.4c after Pool/Origin leave-return (`0b6c7c6`). **Not** attributed to `sessionWorkingAssetIds` or `processSoftDeletedAssetIds` (those only shape Session id lists). **Photos side-channel (suspected co-factor, not proven):** owner also deleted/restored assets in system Photos while WakeTok stayed alive. Code: no `PHPhotoLibraryChangeObserver` (ADR-044 D3) — external delete/restore does **not** mutate Session Queue, Snapshot cache, or `processSoftDeletedAssetIds` (App soft-delete only). Leave→Photos→resume only auto-retries **already-failed** L2 (`_retryFailedLayer2AfterResume`); in-flight / never-started L2 is not restarted. Plausible race with lifecycle + next Host display request after PhotoKit mutation; causal link still unclear. **On recurrence record:** (1) iCloud vs device-local; (2) App soft-delete and/or Photos delete+restore in same process without force-quit; (3) start-over vs Pool leave-return; (4) leave-current + return / swipe+revisit self-heals. | Unassigned (observe) | ADR-025 / Cap 15–17 L2; Cap 22.5; ADR-044 D3; debt **444** / **456a** |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
