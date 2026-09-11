@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:waketok/domain/session/build_session_queue.dart';
-import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/session/repeat_policy.dart';
 import 'package:waketok/domain/session/session_configuration.dart';
 import 'package:waketok/domain/session/session_queue.dart';
@@ -82,6 +81,26 @@ class ConsumptionSession {
       );
 }
 
+/// Cap 24.4b: this Session's working asset id set, in Snapshot coalesced
+/// order among survivors.
+///
+/// Equals the set of [ConsumptionSession.queue.orderedAssetIds] (not the
+/// unconsumed tail after [ConsumptionSession.currentIndex]). Soft-delete
+/// shrinks the set; feed progress does not. Mid-session Queue rebuilds
+/// (round advance, Order Continuity) must use this list — not the full
+/// Snapshot — so soft-deleted ids cannot revive (ADR-050 no in-session
+/// revisit). New Sessions still start from the full Snapshot.
+List<String> sessionWorkingAssetIds(ConsumptionSession session) {
+  final working = session.queue.orderedAssetIds.toSet();
+  if (working.isEmpty) {
+    return const [];
+  }
+  return [
+    for (final id in session.snapshot.coalescedAssetIds)
+      if (working.contains(id)) id,
+  ];
+}
+
 /// Starts an in-memory session: builds a [SessionQueue] from [snapshot] +
 /// [configuration], clamps [initialIndex], stores optional playback position.
 ConsumptionSession startConsumptionSession({
@@ -124,6 +143,9 @@ ConsumptionSession startConsumptionSession({
 /// asset id is remapped into the new queue when present; playback position
 /// is preserved. Does not implement Manual↔Auto Eligibility mapping or
 /// cross-tab Continuity.
+///
+/// Cap 24.4b: Order rebuild uses [sessionWorkingAssetIds], not the full
+/// Snapshot coalesced list.
 ConsumptionSession applySessionConfiguration({
   required ConsumptionSession session,
   required SessionConfiguration newConfiguration,
@@ -149,11 +171,12 @@ ConsumptionSession applySessionConfiguration({
     );
   }
 
-  // Order Policy changed — rebuild permutation on the same Snapshot.
+  // Order Policy changed — rebuild permutation on the Session working set.
   final newQueue = buildSessionQueue(
     snapshot: session.snapshot,
     configuration: newConfiguration,
     random: random,
+    workingAssetIds: sessionWorkingAssetIds(session),
   );
   final newIndex = _remapIndex(
     previousAssetId: session.currentAssetId,
@@ -195,12 +218,15 @@ int _remapIndex({
 ///
 /// No-ops (returns [session] unchanged) when:
 /// - [repeatPolicy] is not [RepeatPolicy.repeatAll], or
-/// - the queue length is ≤ 1 (nothing to reshuffle meaningfully).
+/// - the working set length is ≤ 1 (nothing to reshuffle meaningfully;
+///   includes empty Queue after soft-delete-all — Cap 24.4b).
 ///
 /// Implemented via [prepareNextRoundQueue] + [commitPreparedNextRound]
 /// (single shuffle, no second draw). Cap 22.5 scheme A feed UI advances via
 /// the browse-session `advanceToNextRound` path; prepare/commit remain
 /// domain helpers for this helper (not a feed bridge UI).
+///
+/// Cap 24.4b: reshuffles [sessionWorkingAssetIds], not full Snapshot.
 ConsumptionSession startNextShuffleRound({
   required ConsumptionSession session,
   Random? random,
@@ -214,8 +240,9 @@ ConsumptionSession startNextShuffleRound({
 
 /// Builds the next Endless Shuffle round queue **without** mutating [session].
 ///
-/// Returns `null` when Repeat All does not apply or the queue length is ≤ 1.
-/// Uses [previousRoundLastId] = current round last (ADR-023 first≠last).
+/// Returns `null` when Repeat All does not apply or the working set length
+/// is ≤ 1. Uses [previousRoundLastId] = current round last (ADR-023
+/// first≠last). Cap 24.4b: source pool is [sessionWorkingAssetIds].
 ///
 /// Domain helper for [startNextShuffleRound] (and PREP-* tests) — not Cap
 /// 22.5 feed bridge UI.
@@ -227,15 +254,17 @@ SessionQueue? prepareNextRoundQueue({
   if (config.repeatPolicy != RepeatPolicy.repeatAll) {
     return null;
   }
-  final ids = session.queue.orderedAssetIds;
-  if (ids.length <= 1) {
+  final roundIds = session.queue.orderedAssetIds;
+  final working = sessionWorkingAssetIds(session);
+  if (working.length <= 1) {
     return null;
   }
   return buildSessionQueue(
     snapshot: session.snapshot,
     configuration: config,
     random: random,
-    previousRoundLastId: ids.last,
+    previousRoundLastId: roundIds.last,
+    workingAssetIds: working,
   );
 }
 

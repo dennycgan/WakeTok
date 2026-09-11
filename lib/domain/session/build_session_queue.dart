@@ -12,36 +12,44 @@ const int kShuffleFirstLastAvoidMaxAttempts = 32;
 /// Builds a finite [SessionQueue] from a Snapshot + Configuration
 /// (ADR-022 Sequential; ADR-023 Endless Shuffle).
 ///
-/// **Sequential:** `orderedAssetIds == snapshot.coalescedAssetIds` (no
-/// re-sort; no segmentIndex Queue-layer step — ADR-022 D4/D5).
+/// **Sequential:** `orderedAssetIds` follows [workingAssetIds] when set,
+/// otherwise `snapshot.coalescedAssetIds` (no re-sort; ADR-022 D4/D5).
 ///
-/// **Shuffle (ADR-023 D4/D5):** Fisher–Yates over the full Snapshot id
-/// list (no Eligibility). [random] defaults to [Random] when omitted.
-/// Retries (advancing the **same** [Random] instance — do not re-seed per
-/// attempt) when [previousRoundLastId] is set, `n > 1`, and the shuffle
+/// **Shuffle (ADR-023 D4/D5):** Fisher–Yates over the working id list (or
+/// full Snapshot when [workingAssetIds] is omitted). No Eligibility.
+/// [random] defaults to [Random] when omitted. Retries (same [Random]
+/// instance) when [previousRoundLastId] is set, `n > 1`, and the shuffle
 /// would start with that id. Cap [kShuffleFirstLastAvoidMaxAttempts]; if
-/// still colliding, accept the last attempt.
+/// still colliding, accept the last attempt (including n=2 pools where
+/// first≠last is often unsatisfiable — never spins forever).
+///
+/// Cap 24.4b: mid-session rebuilds pass [workingAssetIds] =
+/// [sessionWorkingAssetIds] so soft-deleted ids stay out of the Queue.
+/// New Sessions omit it (full Snapshot).
 ///
 /// Advance Mode and Repeat Policy are stored on the queue but do not change
-/// the id list within a round (Glossary §11: Queue stays finite). Round
-/// boundary reshuffle is a new call with [previousRoundLastId] set.
+/// the id list within a round. Round boundary reshuffle is a new call with
+/// [previousRoundLastId] set.
 SessionQueue buildSessionQueue({
   required ResolvedPoolSnapshot snapshot,
   required SessionConfiguration configuration,
   Random? random,
   String? previousRoundLastId,
+  List<String>? workingAssetIds,
 }) {
+  final source = workingAssetIds ?? snapshot.coalescedAssetIds;
   switch (configuration.orderPolicy) {
     case OrderPolicy.sequential:
       return SessionQueue(
         snapshotId: snapshot.id,
         configuration: configuration,
-        orderedAssetIds: snapshot.coalescedAssetIds,
+        orderedAssetIds: List<String>.from(source),
       );
     case OrderPolicy.shuffle:
       return _buildShuffleQueue(
-        snapshot: snapshot,
+        snapshotId: snapshot.id,
         configuration: configuration,
+        source: source,
         random: random ?? Random(),
         previousRoundLastId: previousRoundLastId,
       );
@@ -49,12 +57,12 @@ SessionQueue buildSessionQueue({
 }
 
 SessionQueue _buildShuffleQueue({
-  required ResolvedPoolSnapshot snapshot,
+  required String snapshotId,
   required SessionConfiguration configuration,
+  required List<String> source,
   required Random random,
   required String? previousRoundLastId,
 }) {
-  final source = snapshot.coalescedAssetIds;
   final n = source.length;
   final avoidFirst = previousRoundLastId != null && n > 1;
 
@@ -70,7 +78,7 @@ SessionQueue _buildShuffleQueue({
   }
 
   return SessionQueue(
-    snapshotId: snapshot.id,
+    snapshotId: snapshotId,
     configuration: configuration,
     orderedAssetIds: ordered,
   );
