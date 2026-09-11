@@ -250,9 +250,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       restore-without-force-quit boundary. Device: Pool/Origin
       leave-return ghost closed (Kafka Profile). ADR-050 remains
       Proposed.
+- [x] 24.4d Soft-delete: system consent only (drop App confirm)
+      Work `6c5f39a`: half-sheet Delete → Cap 23 gate → Host
+      softDelete immediately; PhotoKit system consent is the only user
+      confirm UI; busy/latch + non-dismiss on sheet during Host;
+      cancel/fail reset interactive; remove confirm ARB keys; W-24.3 /
+      W-24.4 rewritten; notes SYS/CANCEL = system UI only. ADR-050
+      Decision 3 revised (Photo-App-A evidence; P0 if system consent
+      absent). Device Kafka Profile PASS. ADR-050 remains Proposed.
 - [ ] 24.5 Device acceptance
       (incl. Decision 4 resolve RD exclusion / restore reappearance;
-      note system second confirm if observed)
+      SYS = system PhotoKit consent only per Decision 3 revised)
 - [ ] 24.5.5 Feed / wait-chrome widget-test harness align
       (test-infra only; not Cap 24 product scope; resolves Known debt
       465 / 466 / 467 diagnosed during 24.2 control-group run; must
@@ -266,17 +274,19 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       soft-delete write path work `32d4bd1` (+ harness align
       `1fcdbd1`); 24.3 more-sheet chrome work `f4928b6`; 24.4 Session
       Queue kick work `52b6c39`; 24.4b working-set rebuilds work
-      `0ccc8fa`; 24.4c process soft-delete exclusion work `0b6c7c6`
+      `0ccc8fa`; 24.4c process soft-delete exclusion work `0b6c7c6`;
+      24.4d system-consent-only soft-delete chrome work `6c5f39a`
 - Next step: Run Cap 24.5 device matrix (Kafka + i17) per
-      `docs/acceptance/cap24-24.5-notes.md` (force-quit D4-a/b; SYS;
-      SUCCESS / CANCEL / FAIL). Optional: restore runbook / SYS
-      checklist expansions as a separate notes commit before the run.
-- Related decisions: ADR-050 Proposed; ADR-049 Accepted; ADR-042 /
-      ADR-044 D3; debt **464** Open until Cap 24 Accept split;
-      **456a** / **457** Open; **458** / **468** Monitoring; **463**
-      Accepted (permanent); Q4′ = A (no Snapshot invalidate; 24.4c
-      process filter closed same-process Pool-switch ghost; 24.5
-      force-quit resolve protocol in
+      `docs/acceptance/cap24-24.5-notes.md` (force-quit D4-a/b; SYS
+      system consent; SUCCESS / CANCEL / FAIL). Optional: restore
+      runbook / SYS checklist expansions as a separate notes commit
+      before the run.
+- Related decisions: ADR-050 Proposed (Decision 3 revised at
+      `6c5f39a`); ADR-049 Accepted; ADR-042 / ADR-044 D3; debt **464**
+      Open until Cap 24 Accept split; **456a** / **457** Open; **458** /
+      **468** Monitoring; **463** Accepted (permanent); Q4′ = A (no
+      Snapshot invalidate; 24.4c process filter closed same-process
+      Pool-switch ghost; 24.5 force-quit resolve protocol in
       `docs/acceptance/cap24-24.5-notes.md`); harness debts **465** /
       **466** / **467** scheduled **24.5.5**
 

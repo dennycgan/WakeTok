@@ -5709,12 +5709,14 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Plain summary (owner reads this):
   From Browse, the user can open a bottom "…" action, see a small
   half-sheet with a Photos-finder time landmark (EXIF when available,
-  otherwise an approximate `~` time from the library date), confirm, and
-  soft-delete the current photo or video into the system Recently Deleted
-  album. WakeTok immediately removes that item from the current Session
-  Queue so it cannot be revisited in this session. Restoring it in Photos
-  only brings it back on the next Pool enter (a new Session resolve).
-  WakeTok never empties Recently Deleted.
+  otherwise an approximate `~` time from the library date), tap Delete,
+  and soft-delete the current photo or video into the system Recently
+  Deleted album after the **system** PhotoKit consent UI (no separate
+  App confirm AlertDialog — see Decision 3 revised). WakeTok immediately
+  removes that item from the current Session Queue so it cannot be
+  revisited in this session. Restoring it in Photos only brings it back
+  on the next Pool enter (a new Session resolve). WakeTok never empties
+  Recently Deleted.
 - Context / what problem forced this:
   Doom-scroll organization without soft-delete feels incomplete. Cap 23
   already ships still-in-library mutation gates and Host Recently Deleted
@@ -5744,6 +5746,37 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      a second confirm after the App dialog, accept that stack — do not
      invent a third in-app confirm. Device acceptance notes the system
      layer if observed.
+
+     **Decision 3 revised (2026-09-11; work `6c5f39a`):** Device evidence
+     on Cap 24 Profile builds: PhotoKit
+     presents the system delete-consent UI (“Allow WakeTok to delete…”,
+     Recently Deleted ~30 days). Stacking a separate App AlertDialog on
+     that system confirm is redundant. Peer **Photo-App-A** also routes
+     overflow / half-sheet Delete straight into the system consent UI
+     without a second in-app confirm. Therefore Decision 3’s
+     App-confirm-mandatory limb is superseded for Cap 24 chrome as
+     follows:
+
+     - “…” still opens the half-sheet (unchanged visual contract).
+     - Tapping Delete runs Cap 23 still-in-library, then Host
+       `softDeleteAsset` immediately — **no** App AlertDialog.
+     - The **only** user consent surface is the system PhotoKit UI.
+     - While Host awaits, the half-sheet stays open with Delete-row busy
+       (ex-Q6=A busy semantics move to the sheet Delete control);
+       an in-flight latch also covers the Cap 23 gate window (no busy
+       spinner there) and blocks barrier / system-back dismiss until the
+       full Delete attempt finishes (success / cancel / fail / gate deny).
+     - Cap 24.5 notes SYS / CANCEL describe the system UI only.
+     - Decision 9 table glosses that say “half-sheet + confirm” now mean
+       half-sheet Delete → system PhotoKit consent (not an App
+       AlertDialog).
+
+     **Assumption (explicit; P0 if broken):** This revision assumes
+     `PHAssetChangeRequest.deleteAssets` presents a system-level user
+     consent UI on every iOS version WakeTok supports. If that
+     assumption is ever falsified on a supported device / OS / Screen
+     Time / MDM configuration, treat as **P0** — do not demote to
+     Monitoring debt.
   4. **Session semantics (success, failure, evidence).**
      - **Success:** on successful Host delete callback, remove that asset
        id from the in-memory Session Queue and advance to the next item.
