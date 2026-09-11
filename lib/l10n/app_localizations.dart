@@ -1386,10 +1386,10 @@ abstract class AppLocalizations {
   /// **'Media isn\'t ready yet.'**
   String get cap19CurrentMediaNotReady;
 
-  /// Cap 23 shared dialog title when current asset is gone from Photos
+  /// Cap 23 shared dialog title (action-focused; item reason stays in body)
   ///
   /// In en, this message translates to:
-  /// **'This item isn\'t available'**
+  /// **'This action isn\'t available'**
   String get stillInLibraryUnavailableTitle;
 
   /// Cap 23 shared dialog body for still-in-library miss

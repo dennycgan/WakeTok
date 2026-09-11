@@ -745,7 +745,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
 
   @override
-  String get stillInLibraryUnavailableTitle => 'This item isn\'t available';
+  String get stillInLibraryUnavailableTitle => 'This action isn\'t available';
 
   @override
   String get stillInLibraryUnavailableBody =>
@@ -1572,7 +1572,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19CurrentMediaNotReady => '媒体尚未就绪。';
 
   @override
-  String get stillInLibraryUnavailableTitle => '无法使用此项';
+  String get stillInLibraryUnavailableTitle => '无法执行此操作';
 
   @override
   String get stillInLibraryUnavailableBody => '它已不在你的照片图库中。';

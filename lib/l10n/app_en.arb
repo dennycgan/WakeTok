@@ -977,9 +977,9 @@
   "@cap19CurrentMediaNotReady": {
     "description": "Cap 19 when current asset id is unset (panel row or toast; may split later)"
   },
-  "stillInLibraryUnavailableTitle": "This item isn't available",
+  "stillInLibraryUnavailableTitle": "This action isn't available",
   "@stillInLibraryUnavailableTitle": {
-    "description": "Cap 23 shared dialog title when current asset is gone from Photos"
+    "description": "Cap 23 shared dialog title (action-focused; item reason stays in body)"
   },
   "stillInLibraryUnavailableBody": "It's no longer in your Photos library.",
   "@stillInLibraryUnavailableBody": {

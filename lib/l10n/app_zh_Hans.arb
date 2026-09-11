@@ -215,7 +215,7 @@
   "cap19PanelFavoritesRemovedSuccess": "已从个人收藏移除",
   "cap19PanelFavoritesError": "无法更新个人收藏，请重试。",
   "cap19CurrentMediaNotReady": "媒体尚未就绪。",
-  "stillInLibraryUnavailableTitle": "无法使用此项",
+  "stillInLibraryUnavailableTitle": "无法执行此操作",
   "stillInLibraryUnavailableBody": "它已不在你的照片图库中。",
   "stillInLibraryUnavailableConfirm": "OK",
   "cap19LeftSwipeGuideTitle": "左滑添加到 WakeTok",

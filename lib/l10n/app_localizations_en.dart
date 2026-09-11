@@ -748,7 +748,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
 
   @override
-  String get stillInLibraryUnavailableTitle => 'This item isn\'t available';
+  String get stillInLibraryUnavailableTitle => 'This action isn\'t available';
 
   @override
   String get stillInLibraryUnavailableBody =>
