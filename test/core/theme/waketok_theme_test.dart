@@ -146,6 +146,16 @@ void main() {
     expect(light.accent, isNot(dark.accent));
   });
 
+  test('T-destructive iOS systemRed #FF3B30 Light equals Dark', () {
+    final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
+    final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+
+    expect(light.destructive, const Color(0xFFFF3B30));
+    expect(dark.destructive, const Color(0xFFFF3B30));
+    expect(light.destructive, dark.destructive);
+    expect(light.destructive, isNot(light.accent));
+  });
+
   test('T-brandGold Light equals Dark #E0C590', () {
     final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;

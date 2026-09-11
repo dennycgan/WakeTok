@@ -1506,10 +1506,10 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get cap24SoftDeleteSheetDelete;
 
-  /// Cap 24.3 half-sheet minute landmark honesty note (ADR-050 D7)
+  /// Cap 24 half-sheet honesty note (file vs library + device TZ; hour common, date rare vs Overlay ~ day)
   ///
   /// In en, this message translates to:
-  /// **'For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.'**
+  /// **'Time zone differences can shift this time by a few hours, in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and converted for your current time zone, neither is guaranteed to match the exact moment this item was created or saved.'**
   String get cap24SoftDeleteSheetMinuteTimezoneNote;
 
   /// Cap 24.3 bare EXIF/TIFF civil clock with seconds
@@ -1537,11 +1537,11 @@ abstract class AppLocalizations {
     String minute,
   );
 
-  /// Cap 24.3 Instant→device-local minute landmark with honesty tilde
+  /// Cap 24 Instant→device-local minute landmark (no tilde; library-sourced)
   ///
   /// In en, this message translates to:
-  /// **'~ {year}-{month}-{day} {hour}:{minute}'**
-  String cap24SoftDeleteSheetExactMinuteApprox(
+  /// **'{year}-{month}-{day} {hour}:{minute}'**
+  String cap24SoftDeleteSheetExactMinuteLibrary(
     String year,
     String month,
     String day,

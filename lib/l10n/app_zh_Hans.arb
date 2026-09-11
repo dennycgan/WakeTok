@@ -235,9 +235,9 @@
   "browseSettingsNewRoundToastSubtitle": "当你把当前列表刷完、从头再看时，浏览页顶部会短暂出现一条提示，大约 1.5 秒。一划走就会立刻消失。",
   "cap24MoreEntryIconSemantics": "更多操作",
   "cap24SoftDeleteSheetDelete": "删除",
-  "cap24SoftDeleteSheetMinuteTimezoneNote": "跨时区保存的照片或视频，显示的小时可能不准确；极少数情况下，日期也可能相差一天左右。",
+  "cap24SoftDeleteSheetMinuteTimezoneNote": "跨时区可能导致这里的时间有几小时的偏差，极端情况下，连日期也可能和浏览页上带「~」的日期对不上。由于文件和图库记录时间的方式不同，再按你当前时区换算，两边都不保证与此文件实际创建或保存的时间完全一致。",
   "cap24SoftDeleteSheetExactMinute": "{year}-{month}-{day} {hour}:{minute}:{second}",
   "cap24SoftDeleteSheetExactMinuteNoSeconds": "{year}-{month}-{day} {hour}:{minute}",
-  "cap24SoftDeleteSheetExactMinuteApprox": "~ {year}-{month}-{day} {hour}:{minute}",
+  "cap24SoftDeleteSheetExactMinuteLibrary": "{year}-{month}-{day} {hour}:{minute}",
   "cap24SoftDeleteFailed": "无法删除，请重试。"
 }

@@ -814,7 +814,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
-      'For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.';
+      'Time zone differences can shift this time by a few hours, in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and converted for your current time zone, neither is guaranteed to match the exact moment this item was created or saved.';
 
   @override
   String cap24SoftDeleteSheetExactMinute(
@@ -840,14 +840,14 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String cap24SoftDeleteSheetExactMinuteApprox(
+  String cap24SoftDeleteSheetExactMinuteLibrary(
     String year,
     String month,
     String day,
     String hour,
     String minute,
   ) {
-    return '~ $year-$month-$day $hour:$minute';
+    return '$year-$month-$day $hour:$minute';
   }
 
   @override
@@ -1635,7 +1635,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
-      '跨时区保存的照片或视频，显示的小时可能不准确；极少数情况下，日期也可能相差一天左右。';
+      '跨时区可能导致这里的时间有几小时的偏差，极端情况下，连日期也可能和浏览页上带「~」的日期对不上。由于文件和图库记录时间的方式不同，再按你当前时区换算，两边都不保证与此文件实际创建或保存的时间完全一致。';
 
   @override
   String cap24SoftDeleteSheetExactMinute(
@@ -1661,14 +1661,14 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String cap24SoftDeleteSheetExactMinuteApprox(
+  String cap24SoftDeleteSheetExactMinuteLibrary(
     String year,
     String month,
     String day,
     String hour,
     String minute,
   ) {
-    return '~ $year-$month-$day $hour:$minute';
+    return '$year-$month-$day $hour:$minute';
   }
 
   @override

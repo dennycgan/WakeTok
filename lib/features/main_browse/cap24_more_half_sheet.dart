@@ -191,12 +191,29 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: tokens.onMediaMuted,
+    final timeStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+          color: tokens.onMedia,
         );
-    final deleteStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: tokens.accent,
-        );
+    // One step below labelSmall (12 → 11); still on-media muted token color.
+    final labelSmall = Theme.of(context).textTheme.labelSmall;
+    final timezoneNoteStyle = labelSmall?.copyWith(
+      color: tokens.onMediaMuted,
+      fontSize: (labelSmall.fontSize ?? 12) - 1,
+    );
+    // Cap 24 half-sheet Delete: outlined destructive (iOS systemRed via
+    // tokens.destructive), not brand accent fill. Overturns the brief
+    // "accept accent filled" draft. Cap 24 destructive #FF3B30 and Cap 22
+    // accent delete-label text (#FC2555 Light) are two independent decisions —
+    // coexistence is intentional until a future design-system pass; not a bug.
+    final deleteButtonStyle = OutlinedButton.styleFrom(
+      foregroundColor: tokens.destructive,
+      disabledForegroundColor: tokens.destructive,
+      side: BorderSide(color: tokens.destructive),
+      minimumSize: const Size(double.infinity, 48),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
     final maxSheetHeight =
         MediaQuery.sizeOf(context).height * kCap19ActionsHalfSheetMaxHeightFactor;
     final busy = _hostBusy;
@@ -229,42 +246,40 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
                   Text(
                     _landmark!.displayText,
                     key: Key(
-                      _landmark!.isApproximate
-                          ? 'cap24SoftDeleteSheetMinuteApprox'
+                      _landmark!.fromLibrary
+                          ? 'cap24SoftDeleteSheetMinuteLibrary'
                           : 'cap24SoftDeleteSheetMinuteBare',
                     ),
-                    style: bodyStyle,
+                    style: timeStyle,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
                     key: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
-                    style: bodyStyle,
+                    style: timezoneNoteStyle,
                   ),
                   const SizedBox(height: 16),
                 ],
-                InkWell(
+                OutlinedButton(
                   key: const Key('cap24SoftDeleteSheetDelete'),
-                  onTap: latch ? null : _onDelete,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: busy
-                        ? Center(
-                            child: SizedBox(
-                              key: const Key('cap24SoftDeleteSheetDeleteBusy'),
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: tokens.accent,
-                              ),
-                            ),
-                          )
-                        : Text(
-                            l10n.cap24SoftDeleteSheetDelete,
-                            style: deleteStyle,
+                  onPressed: latch ? null : _onDelete,
+                  style: deleteButtonStyle,
+                  child: busy
+                      ? SizedBox(
+                          key: const Key('cap24SoftDeleteSheetDeleteBusy'),
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: tokens.destructive,
                           ),
-                  ),
+                        )
+                      : Text(
+                          l10n.cap24SoftDeleteSheetDelete,
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                color: tokens.destructive,
+                              ),
+                        ),
                 ),
               ],
             ),

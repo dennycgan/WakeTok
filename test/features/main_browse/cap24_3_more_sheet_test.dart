@@ -174,8 +174,8 @@ void main() {
       expect(find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')), findsNothing);
       expect(
         tester
-            .widget<InkWell>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
-            .onTap,
+            .widget<OutlinedButton>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
+            .onPressed,
         isNotNull,
       );
     },
@@ -235,8 +235,8 @@ void main() {
       expect(find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')), findsNothing);
       expect(
         tester
-            .widget<InkWell>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
-            .onTap,
+            .widget<OutlinedButton>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
+            .onPressed,
         isNotNull,
       );
 
@@ -272,8 +272,8 @@ void main() {
       expect(find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')), findsNothing);
       expect(
         tester
-            .widget<InkWell>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
-            .onTap,
+            .widget<OutlinedButton>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
+            .onPressed,
         isNotNull,
       );
       hideCap19BrowseToast();
@@ -285,7 +285,7 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-9 Instant approx minute row when loader returns approximate',
+    'W-24.3-9 Instant library minute row + timezone note',
     (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -298,14 +298,14 @@ void main() {
             required assetIdentifier,
           }) async {
             return Cap24MinuteLandmark(
-              displayText: l10n.cap24SoftDeleteSheetExactMinuteApprox(
+              displayText: l10n.cap24SoftDeleteSheetExactMinuteLibrary(
                 '2024',
                 '06',
                 '01',
                 '12',
                 '00',
               ),
-              isApproximate: true,
+              fromLibrary: true,
             );
           },
         ),
@@ -315,13 +315,20 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const Key('cap24SoftDeleteSheetMinuteApprox')),
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
         findsOneWidget,
       );
       expect(
         find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
         findsOneWidget,
       );
+      // Instant time row stays bare (no leading ~); note may cite Browse "~".
+      final timeText = tester
+          .widget<Text>(
+            find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
+          )
+          .data!;
+      expect(timeText.contains('~'), isFalse);
     },
   );
 
@@ -379,7 +386,7 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-12 one-paint: never shows approx then bare',
+    'W-24.3-12 one-paint: never shows library then bare',
     (tester) async {
       final gate = Completer<void>();
       final texts = <String>[];
@@ -402,7 +409,7 @@ void main() {
                 '03',
                 '04',
               ),
-              isApproximate: false,
+              fromLibrary: false,
             );
           },
         ),
@@ -413,7 +420,7 @@ void main() {
       await tester.pump();
 
       // While loading: no minute keys yet.
-      expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteApprox')),
+      expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
           findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteBare')), findsNothing);
 
@@ -421,10 +428,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteBare')), findsOneWidget);
-      expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteApprox')),
+      expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
           findsNothing);
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsOneWidget,
+      );
 
-      // Scan all Text under sheet — no approx prefix appeared.
+      // No tilde honesty mark on EXIF bare path.
       for (final text in tester.widgetList<Text>(find.byType(Text))) {
         final data = text.data;
         if (data != null && data.startsWith('~ ')) {
@@ -460,7 +471,7 @@ void main() {
             await gate.future;
             return const Cap24MinuteLandmark(
               displayText: 'SHOULD_NOT_PAINT',
-              isApproximate: false,
+              fromLibrary: false,
             );
           },
         ),
@@ -550,7 +561,7 @@ void main() {
       await _openMoreSheet(tester);
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteApprox')),
+      expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
           findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteBare')), findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetDelete')), findsOneWidget);

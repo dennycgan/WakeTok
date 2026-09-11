@@ -15,6 +15,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.surface,
     required this.onSurface,
     required this.accent,
+    required this.destructive,
     required this.brandGold,
     required this.feedBackground,
     required this.mediaScrim,
@@ -45,6 +46,12 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
 
   /// Formal brand accent (CTA, selected chrome). Cap 7.8 freeze.
   final Color accent;
+
+  /// Irreversible / destructive actions (e.g. Cap 24 soft-delete control).
+  /// iOS systemRed `#FF3B30`. Distinct from [accent] (brand CTA / Cap 22
+  /// delete-label text `#FC2555` Light) — two independent color decisions;
+  /// unifying them is a future design-system discussion, not a Cap 24 bug.
+  final Color destructive;
 
   /// Brand gold for loading indicators (not CTAs). Light/Dark same. Cap 7.8.
   final Color brandGold;
@@ -128,6 +135,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     surface: Color(0xFFFFFFFF),
     onSurface: Color(0xFF1A1A1A),
     accent: Color(0xFFFC2555),
+    destructive: Color(0xFFFF3B30),
     brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
     mediaScrim: Color(0x99000000),
@@ -180,6 +188,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     surface: Color(0xFF1E1E1E),
     onSurface: Color(0xFFF5F5F5),
     accent: Color(0xFFFF6B8A),
+    destructive: Color(0xFFFF3B30),
     brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
     mediaScrim: Color(0x99000000),
@@ -233,6 +242,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? surface,
     Color? onSurface,
     Color? accent,
+    Color? destructive,
     Color? brandGold,
     Color? feedBackground,
     Color? mediaScrim,
@@ -256,6 +266,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       surface: surface ?? this.surface,
       onSurface: onSurface ?? this.onSurface,
       accent: accent ?? this.accent,
+      destructive: destructive ?? this.destructive,
       brandGold: brandGold ?? this.brandGold,
       feedBackground: feedBackground ?? this.feedBackground,
       mediaScrim: mediaScrim ?? this.mediaScrim,
@@ -289,6 +300,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       surface: Color.lerp(surface, other.surface, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
       accent: Color.lerp(accent, other.accent, t)!,
+      destructive: Color.lerp(destructive, other.destructive, t)!,
       brandGold: Color.lerp(brandGold, other.brandGold, t)!,
       feedBackground: Color.lerp(feedBackground, other.feedBackground, t)!,
       mediaScrim: Color.lerp(mediaScrim, other.mediaScrim, t)!,

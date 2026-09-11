@@ -219,7 +219,7 @@
     "cap24SoftDeleteSheetMinuteTimezoneNote",
     "cap24SoftDeleteSheetExactMinute",
     "cap24SoftDeleteSheetExactMinuteNoSeconds",
-    "cap24SoftDeleteSheetExactMinuteApprox",
+    "cap24SoftDeleteSheetExactMinuteLibrary",
     "cap24SoftDeleteFailed"
   ]
 }

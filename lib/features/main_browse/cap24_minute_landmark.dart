@@ -14,11 +14,13 @@ import 'package:waketok/l10n/app_localizations.dart';
 class Cap24MinuteLandmark {
   const Cap24MinuteLandmark({
     required this.displayText,
-    required this.isApproximate,
+    required this.fromLibrary,
   });
 
   final String displayText;
-  final bool isApproximate;
+
+  /// `true` = Instant / Photos library date path; `false` = EXIF/TIFF file path.
+  final bool fromLibrary;
 }
 
 /// Loads the half-sheet minute row **once** (no Instant→EXIF flash).
@@ -56,7 +58,7 @@ Future<Cap24MinuteLandmark?> loadCap24MinuteLandmark({
   final kind = meta.mediaKind;
 
   if (kind == PresentationMediaKind.video) {
-    return _instantLandmark(l10n, meta.createdAt);
+    return _libraryLandmark(l10n, meta.createdAt);
   }
 
   final entry = await ref
@@ -74,13 +76,13 @@ Future<Cap24MinuteLandmark?> loadCap24MinuteLandmark({
       if (wall != null) {
         return Cap24MinuteLandmark(
           displayText: _formatBare(l10n, wall),
-          isApproximate: false,
+          fromLibrary: false,
         );
       }
     }
   }
 
-  return _instantLandmark(l10n, meta.createdAt);
+  return _libraryLandmark(l10n, meta.createdAt);
 }
 
 /// Reads L2 cover bytes for EXIF. IO failure → null (Instant fallback);
@@ -101,7 +103,7 @@ Future<Uint8List?> readCoverBytesForMinuteLandmark(String path) async {
   }
 }
 
-Cap24MinuteLandmark? _instantLandmark(
+Cap24MinuteLandmark? _libraryLandmark(
   AppLocalizations l10n,
   DateTime? createdAt,
 ) {
@@ -110,14 +112,14 @@ Cap24MinuteLandmark? _instantLandmark(
   }
   final local = createdAt.toLocal();
   return Cap24MinuteLandmark(
-    displayText: l10n.cap24SoftDeleteSheetExactMinuteApprox(
+    displayText: l10n.cap24SoftDeleteSheetExactMinuteLibrary(
       _pad4(local.year),
       _pad2(local.month),
       _pad2(local.day),
       _pad2(local.hour),
       _pad2(local.minute),
     ),
-    isApproximate: true,
+    fromLibrary: true,
   );
 }
 
@@ -127,8 +129,8 @@ String _formatBare(AppLocalizations l10n, ExifNakedWallClock wall) {
   final d = _pad2(wall.day);
   final h = _pad2(wall.hour);
   final min = _pad2(wall.minute);
-  final second = wall.second;
-  if (second == null) {
+  final sec = wall.second;
+  if (sec == null) {
     return l10n.cap24SoftDeleteSheetExactMinuteNoSeconds(y, m, d, h, min);
   }
   return l10n.cap24SoftDeleteSheetExactMinute(
@@ -137,9 +139,10 @@ String _formatBare(AppLocalizations l10n, ExifNakedWallClock wall) {
     d,
     h,
     min,
-    _pad2(second),
+    _pad2(sec),
   );
 }
 
 String _pad2(int n) => n.toString().padLeft(2, '0');
+
 String _pad4(int n) => n.toString().padLeft(4, '0');
