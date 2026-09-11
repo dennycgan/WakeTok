@@ -1055,23 +1055,7 @@
   },
   "cap24SoftDeleteSheetDelete": "Delete",
   "@cap24SoftDeleteSheetDelete": {
-    "description": "Cap 24.3 more half-sheet Delete row (short verb; confirm carries this-item wording)"
-  },
-  "cap24SoftDeleteConfirmTitle": "Delete this item?",
-  "@cap24SoftDeleteConfirmTitle": {
-    "description": "Cap 24 soft-delete App confirm title (media-neutral)"
-  },
-  "cap24SoftDeleteConfirmBody": "This item will be deleted from iCloud Photos on all your devices. It will stay in Recently Deleted for 30 days.",
-  "@cap24SoftDeleteConfirmBody": {
-    "description": "Cap 24 soft-delete App confirm body (Recently Deleted / iCloud Photos class)"
-  },
-  "cap24SoftDeleteConfirm": "Delete",
-  "@cap24SoftDeleteConfirm": {
-    "description": "Cap 24 soft-delete App confirm primary action"
-  },
-  "cap24SoftDeleteConfirmCancel": "Cancel",
-  "@cap24SoftDeleteConfirmCancel": {
-    "description": "Cap 24 soft-delete App confirm cancel"
+    "description": "Cap 24.3 more half-sheet Delete row (system PhotoKit consent is the only confirm)"
   },
   "cap24SoftDeleteSheetMinuteTimezoneNote": "For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.",
   "@cap24SoftDeleteSheetMinuteTimezoneNote": {

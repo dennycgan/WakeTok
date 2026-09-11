@@ -816,19 +816,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cap24SoftDeleteSheetDelete => 'Delete';
 
   @override
-  String get cap24SoftDeleteConfirmTitle => 'Delete this item?';
-
-  @override
-  String get cap24SoftDeleteConfirmBody =>
-      'This item will be deleted from iCloud Photos on all your devices. It will stay in Recently Deleted for 30 days.';
-
-  @override
-  String get cap24SoftDeleteConfirm => 'Delete';
-
-  @override
-  String get cap24SoftDeleteConfirmCancel => 'Cancel';
-
-  @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
       'For photos or videos saved across time zones, the hour shown may be wrong, and in rare cases the date may be off by up to a day.';
 

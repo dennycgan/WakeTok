@@ -37,8 +37,6 @@ Future<void> _openMoreSheet(WidgetTester tester) async {
 Future<void> _confirmSoftDelete(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
-  await tester.pumpAndSettle();
 }
 
 List<String> _queueIds(ProviderContainer container) {
@@ -139,7 +137,7 @@ void main() {
           PlatformException(code: AppError.unknown.name);
       await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
+      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pumpAndSettle();
 
       expect(_queueIds(container), beforeIds);

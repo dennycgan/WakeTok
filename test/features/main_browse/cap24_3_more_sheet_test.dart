@@ -135,38 +135,6 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-4 Cancel confirm does not call softDelete; sheet remains',
-    (tester) async {
-      final softDelete = FakeAssetSoftDeleteRepository();
-      final repo =
-          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: _localSources(),
-          assetSoftDelete: softDelete,
-        ),
-      );
-      await tester.pumpAndSettle();
-      await _openMoreSheet(tester);
-
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const Key('cap24SoftDeleteConfirmDialog')),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirmCancel')));
-      await tester.pumpAndSettle();
-
-      expect(softDelete.callCount, 0);
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsNothing);
-      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
-    },
-  );
-
-  testWidgets(
     'W-24.3-5 write-before Cap 23 fail: no softDelete; sheet remains',
     (tester) async {
       final softDelete = FakeAssetSoftDeleteRepository();
@@ -187,33 +155,34 @@ void main() {
       await tester.pumpAndSettle();
       await _openMoreSheet(tester);
 
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
-      await tester.pumpAndSettle();
-
       sources.availabilityById['a1'] = AssetAvailability.unavailable;
 
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
+      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pumpAndSettle();
 
       expect(softDelete.callCount, 0);
       expect(find.byKey(const Key('stillInLibraryUnavailableDialog')),
           findsOneWidget);
-      // Confirm stays until Cap 23 dialog is dismissed (ensure awaits it).
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsOneWidget);
 
       await tester.tap(
         find.byKey(const Key('stillInLibraryUnavailableDialogDismiss')),
       );
       await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsNothing);
       expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
       expect(find.byKey(const Key('cap24SoftDeleteFailedToast')), findsNothing);
+      expect(find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')), findsNothing);
+      expect(
+        tester
+            .widget<InkWell>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
+            .onTap,
+        isNotNull,
+      );
     },
   );
 
   testWidgets(
-    'W-24.3-6 success: softDelete once; sheet+dialog gone; no success toast',
+    'W-24.3-6 success: softDelete once; sheet gone; no success toast',
     (tester) async {
       final softDelete = FakeAssetSoftDeleteRepository();
       final repo =
@@ -230,19 +199,16 @@ void main() {
 
       await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
-      await tester.pumpAndSettle();
 
       expect(softDelete.callCount, 1);
       expect(softDelete.lastAssetId, 'a1');
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsNothing);
       expect(find.byKey(const Key('cap24MoreHalfSheet')), findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteFailedToast')), findsNothing);
     },
   );
 
   testWidgets(
-    'W-24.3-7 operationCancelled: no failure toast; sheet remains',
+    'W-24.3-7 operationCancelled: no failure toast; sheet interactive again',
     (tester) async {
       final softDelete = FakeAssetSoftDeleteRepository()
         ..exception = PlatformException(
@@ -262,18 +228,27 @@ void main() {
 
       await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
-      await tester.pumpAndSettle();
 
       expect(softDelete.callCount, 1);
       expect(find.byKey(const Key('cap24SoftDeleteFailedToast')), findsNothing);
       expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsNothing);
+      expect(find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')), findsNothing);
+      expect(
+        tester
+            .widget<InkWell>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
+            .onTap,
+        isNotNull,
+      );
+
+      // Dismissibility restored after cancel.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsNothing);
     },
   );
 
   testWidgets(
-    'W-24.3-8 Host unknown: failure toast; sheet remains',
+    'W-24.3-8 Host unknown: failure toast; sheet interactive again',
     (tester) async {
       final softDelete = FakeAssetSoftDeleteRepository()
         ..exception = PlatformException(code: AppError.unknown.name);
@@ -291,12 +266,21 @@ void main() {
 
       await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
-      await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('cap24SoftDeleteFailedToast')), findsOneWidget);
       expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+      expect(find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')), findsNothing);
+      expect(
+        tester
+            .widget<InkWell>(find.byKey(const Key('cap24SoftDeleteSheetDelete')))
+            .onTap,
+        isNotNull,
+      );
       hideCap19BrowseToast();
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsNothing);
     },
   );
 
@@ -342,7 +326,7 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-10 busy latch: double Confirm → softDelete once',
+    'W-24.3-10 busy latch: double Delete → softDelete once',
     (tester) async {
       final hold = Completer<void>();
       final softDelete = FakeAssetSoftDeleteRepository()..hold = hold;
@@ -359,14 +343,15 @@ void main() {
       await _openMoreSheet(tester);
 
       await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
       await tester.pump();
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmBusy')), findsOneWidget);
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsOneWidget);
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
+      // Second tap while busy must not fire another Host call.
+      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       await tester.pump();
 
       expect(softDelete.callCount, 1);
@@ -499,48 +484,7 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-14 dual modal: Cancel pops dialog only; popRoute order',
-    (tester) async {
-      final softDelete = FakeAssetSoftDeleteRepository();
-      final repo =
-          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: _localSources(),
-          assetSoftDelete: softDelete,
-        ),
-      );
-      await tester.pumpAndSettle();
-      await _openMoreSheet(tester);
-
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsOneWidget);
-      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
-
-      // Simulated Android back — first pop closes dialog only.
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsNothing);
-      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
-
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirmCancel')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
-
-      // Second back closes sheet.
-      await tester.binding.handlePopRoute();
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsNothing);
-      expect(softDelete.callCount, 0);
-    },
-  );
-
-  testWidgets(
-    'W-24.3-15 Host in-flight: confirm dialog Key still present (Q6=A)',
+    'W-24.3-15 Host in-flight: sheet stays + Delete busy; pop blocked',
     (tester) async {
       final hold = Completer<void>();
       final softDelete = FakeAssetSoftDeleteRepository()..hold = hold;
@@ -557,17 +501,23 @@ void main() {
       await _openMoreSheet(tester);
 
       await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('cap24SoftDeleteConfirm')));
       await tester.pump();
 
       expect(softDelete.callCount, 1);
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsOneWidget);
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmBusy')), findsOneWidget);
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')),
+        findsOneWidget,
+      );
+
+      // Host in-flight: system back must not dismiss the sheet.
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
 
       hold.complete();
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key('cap24SoftDeleteConfirmDialog')), findsNothing);
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsNothing);
     },
   );
 

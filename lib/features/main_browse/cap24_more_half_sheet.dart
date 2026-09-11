@@ -29,6 +29,10 @@ Future<void> showCap24MoreHalfSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
+    // Drag-dismiss off: PopScope on the sheet owns Host-busy non-dismiss.
+    // Idle dismiss = barrier tap / system back (when !hostBusy).
+    enableDrag: false,
+    isDismissible: true,
     barrierColor: tokens.feedBackground.withValues(
       alpha: kCap19ActionsHalfSheetBarrierOpacity,
     ),
@@ -67,6 +71,8 @@ class Cap24MoreHalfSheet extends ConsumerStatefulWidget {
 class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   Cap24MinuteLandmark? _landmark;
   var _landmarkResolved = false;
+  var _hostBusy = false;
+  var _deleteLatch = false;
 
   @override
   void initState() {
@@ -107,27 +113,49 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   }
 
   Future<void> _onDelete() async {
-    final hostContext = Cap24PanelHostContext.of(context);
-    final outcome = await showCap24SoftDeleteConfirmDialog(
-      context: context,
-      ref: ref,
-    );
-    if (!mounted) {
+    if (_deleteLatch) {
       return;
     }
-    switch (outcome) {
-      case Cap24SoftDeleteConfirmOutcome.success:
-        await _applySuccessQueueKick();
-        if (!mounted) {
-          return;
-        }
-        Navigator.of(context).pop();
-      case Cap24SoftDeleteConfirmOutcome.failed:
-        final l10n = AppLocalizations.of(context)!;
-        showCap24SoftDeleteFailedToast(hostContext, l10n);
-      case Cap24SoftDeleteConfirmOutcome.operationCancelled:
-      case Cap24SoftDeleteConfirmOutcome.dismissed:
-        break;
+    _deleteLatch = true;
+    // Latch alone blocks dismiss during Cap 23 gate; busy spinner only for Host.
+    setState(() {});
+
+    final hostContext = Cap24PanelHostContext.of(context);
+    var clearBusy = true;
+    try {
+      final outcome = await runCap24SoftDelete(
+        context: context,
+        ref: ref,
+        onHostStarting: () {
+          if (mounted) {
+            setState(() => _hostBusy = true);
+          }
+        },
+      );
+      if (!mounted) {
+        return;
+      }
+      switch (outcome) {
+        case Cap24SoftDeleteOutcome.success:
+          await _applySuccessQueueKick();
+          if (!mounted) {
+            return;
+          }
+          // Keep busy through pop so dismiss cannot race the kick.
+          clearBusy = false;
+          Navigator.of(context).pop();
+        case Cap24SoftDeleteOutcome.failed:
+          final l10n = AppLocalizations.of(context)!;
+          showCap24SoftDeleteFailedToast(hostContext, l10n);
+        case Cap24SoftDeleteOutcome.operationCancelled:
+        case Cap24SoftDeleteOutcome.dismissed:
+          break;
+      }
+    } finally {
+      _deleteLatch = false;
+      if (clearBusy && mounted) {
+        setState(() => _hostBusy = false);
+      }
     }
   }
 
@@ -171,58 +199,75 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
         );
     final maxSheetHeight =
         MediaQuery.sizeOf(context).height * kCap19ActionsHalfSheetMaxHeightFactor;
+    final busy = _hostBusy;
+    final latch = _deleteLatch;
 
-    return KeyedSubtree(
-      key: const Key('cap24MoreHalfSheet'),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxSheetHeight),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: tokens.onMedia.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(2),
+    return PopScope(
+      canPop: !latch,
+      child: KeyedSubtree(
+        key: const Key('cap24MoreHalfSheet'),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxSheetHeight),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: tokens.onMedia.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-              ),
-              if (_landmarkResolved && _landmark != null) ...[
-                Text(
-                  _landmark!.displayText,
-                  key: Key(
-                    _landmark!.isApproximate
-                        ? 'cap24SoftDeleteSheetMinuteApprox'
-                        : 'cap24SoftDeleteSheetMinuteBare',
+                if (_landmarkResolved && _landmark != null) ...[
+                  Text(
+                    _landmark!.displayText,
+                    key: Key(
+                      _landmark!.isApproximate
+                          ? 'cap24SoftDeleteSheetMinuteApprox'
+                          : 'cap24SoftDeleteSheetMinuteBare',
+                    ),
+                    style: bodyStyle,
                   ),
-                  style: bodyStyle,
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
+                    key: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
+                    style: bodyStyle,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                InkWell(
+                  key: const Key('cap24SoftDeleteSheetDelete'),
+                  onTap: latch ? null : _onDelete,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: busy
+                        ? Center(
+                            child: SizedBox(
+                              key: const Key('cap24SoftDeleteSheetDeleteBusy'),
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: tokens.accent,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            l10n.cap24SoftDeleteSheetDelete,
+                            style: deleteStyle,
+                          ),
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
-                  key: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
-                  style: bodyStyle,
-                ),
-                const SizedBox(height: 16),
               ],
-              InkWell(
-                key: const Key('cap24SoftDeleteSheetDelete'),
-                onTap: _onDelete,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Text(
-                    l10n.cap24SoftDeleteSheetDelete,
-                    style: deleteStyle,
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
