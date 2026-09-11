@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
+import 'package:waketok/app/browse/process_soft_deleted_asset_ids.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
 import 'package:waketok/domain/session/remove_asset_from_session_queue.dart';
@@ -373,17 +374,27 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     if (!_isCurrentLoad(gen)) {
       return _parkStaleBuild();
     }
+    final forSession = _snapshotForNewSession(snapshot);
     final configuration = deriveDefaultSessionProfile(
       definition: definition,
-      snapshot: snapshot,
+      snapshot: forSession,
     );
     final session = startConsumptionSession(
-      snapshot: snapshot,
+      snapshot: forSession,
       configuration: configuration,
       random: _random(),
     );
     _roundEpoch += 1;
     return BrowseSessionView(session: session, roundEpoch: _roundEpoch);
+  }
+
+  /// Cap 24.4c: filter process soft-deletes for Session start only — never
+  /// mutates [browseSnapshotCacheProvider].
+  ResolvedPoolSnapshot _snapshotForNewSession(ResolvedPoolSnapshot snapshot) {
+    return snapshotExcludingProcessSoftDeletes(
+      snapshot: snapshot,
+      excluded: ref.read(processSoftDeletedAssetIdsProvider),
+    );
   }
 
   /// Endless Shuffle: reshuffle immediately on the same Snapshot and bump
@@ -428,6 +439,8 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     if (!result.removed) {
       return feedIndex;
     }
+    // Cap 24.4c: process-lifetime exclusion for later Session starts.
+    ref.read(processSoftDeletedAssetIdsProvider.notifier).add(assetId);
     state = AsyncData(
       BrowseSessionView(
         session: result.session,
@@ -459,12 +472,13 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       if (!_isCurrentLoad(gen)) {
         return;
       }
+      final forSession = _snapshotForNewSession(snapshot);
       final configuration = deriveDefaultSessionProfile(
         definition: definition,
-        snapshot: snapshot,
+        snapshot: forSession,
       );
       final session = startConsumptionSession(
-        snapshot: snapshot,
+        snapshot: forSession,
         configuration: configuration,
         random: _random(),
       );
