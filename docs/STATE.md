@@ -265,25 +265,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       revised system-consent-only confirmed on device. ADR-050 remains
       Proposed until Cap 24 close. Acceptance-window chrome polish:
       half-sheet honesty / i-bubble `8577cf8` / `aa35391`; gray sheet
-      surface + more-icon weight `c9d186e`. Open follow-up **24.5.1**
-      (frosted Meta crush over Platform View — record-only).
-- [ ] 24.5.1 Frosted half-sheet fails to crush Meta Overlay over
-      Platform View backdrops (Live playing / video all-time)
-      Root cause: BackdropFilter does not reliably blur Hybrid
-      Composition UiKitView content; tint alpha 0.78 alone is
-      insufficient without blur — so the documented crush intent
-      (cap19_entry_layout: crush bottom-left MediaInfoOverlay) fails
-      whenever the sheet backdrop is a platform view.
-      Affects when: Cap 19 + Cap 24 half-sheets open over video
-      (UiKitView mounted for the page lifetime) or Live while
-      `_liveMotionMounted` (live_photo_surface UiKitView).
-      Does not affect when: sheet backdrop is a Flutter still
-      (ordinary stills; Live after playback ends / motion surface
-      torn down) — blur works and Meta is crushed as designed.
-      Fix TBD (opaque-on-open / raise opacity / pause underlying
-      playback / other); needs product go-ahead. Record-only —
-      do not implement in this phase. Separate from 24.5.5
-      (test-infra harness; debts 465/466/467).
+      surface + more-icon weight `c9d186e`. Follow-up **24.5.1** closed
+      (half-sheet tint 0.96 / no BDF; PV/still panel unify).
+- [x] 24.5.1 Half-sheet panel crush over Platform View (tint 0.96)
+      Cap 19 + Cap 24 half-sheet: `mediaSheetSurface` alpha **0.96**
+      (aligned with top-chrome expanded menu); **no** BackdropFilter;
+      barrier 0.28; playback continues; toast / left-swipe guide keep
+      frosted 0.78 + blur (`kCap19FrostChromeTintOpacity`). i17 Profile
+      smoke PASS — panel region look + under-sheet Meta unreadability
+      match across video / Live-playing / still.
 - [ ] 24.5.5 Feed / wait-chrome widget-test harness align
       (test-infra only; not Cap 24 product scope; resolves Known debt
       465 / 466 / 467 diagnosed during 24.2 control-group run; must
@@ -292,13 +282,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): 24.5.5 Feed / wait-chrome widget-test harness align
-- Sub-steps done: Cap 24 through 24.5 device matrix PASS (notes
-      `cap24-24.5-notes.md`); 24.5.1 recorded open (frosted Meta /
-      Platform View — no implement yet); chrome polish
-      `8577cf8` / `aa35391` / `c9d186e`
+- Sub-steps done: Cap 24 through 24.5 device matrix PASS; 24.5.1
+      i17 Profile PASS (tint 0.96, no half-sheet BDF)
 - Next step: 24.5.5 two-step resolution for debts **465** / **466** /
-      **467** (test-infra; must complete before 24.6 close-out). Do not
-      treat 24.5.1 as the next coding task until owner product go-ahead.
+      **467** (test-infra; must complete before 24.6 close-out).
 - Related decisions: ADR-050 Proposed (Decision 3 revised; Decision 4
       (a)(b) device evidence PASS at 24.5); ADR-049 Accepted; debt
       **464** Open until Cap 24 Accept split; **456a** / **457** Open;
