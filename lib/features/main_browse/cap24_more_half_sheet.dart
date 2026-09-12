@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,17 +43,11 @@ Future<void> showCap24MoreHalfSheet(BuildContext context) {
         data: darkTheme,
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: kCap19ActionsHalfSheetBlurSigma,
-              sigmaY: kCap19ActionsHalfSheetBlurSigma,
+          child: ColoredBox(
+            color: tokens.mediaSheetSurface.withValues(
+              alpha: kCap19ActionsHalfSheetTintOpacity,
             ),
-            child: ColoredBox(
-              color: tokens.mediaSheetSurface.withValues(
-                alpha: kCap19ActionsHalfSheetTintOpacity,
-              ),
-              child: const Cap24MoreHalfSheet(),
-            ),
+            child: const Cap24MoreHalfSheet(),
           ),
         ),
       ),

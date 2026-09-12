@@ -13,14 +13,20 @@ const double kCap19EntryIconTrailingInset = 12;
 /// page would make the icon jump while scrolling.
 const double kCap19EntryIconAboveScrubberGap = 40;
 
-/// Frosted tint over [BackdropFilter] — dark enough to crush bottom-left
-/// [MediaInfoOverlay] glyphs under the sheet (readable bleed was overlap).
-const double kCap19ActionsHalfSheetTintOpacity = 0.78;
+/// Panel fill opacity for Cap 19 / Cap 24 half-sheets ([mediaSheetSurface]).
+/// Cap 24.5.1: no BackdropFilter — crush under-sheet Meta without relying on
+/// blur (which does not apply over Platform View backdrops). Aligned with
+/// top-chrome expanded menu panel alpha (`browse_top_chrome` 0.96).
+const double kCap19ActionsHalfSheetTintOpacity = 0.96;
+
+/// Frosted chrome tint for Cap 19 toast / left-swipe guide (not half-sheets).
+const double kCap19FrostChromeTintOpacity = 0.78;
 
 /// Barrier dim behind the sheet (feed still visible; lighter than full scrim).
 const double kCap19ActionsHalfSheetBarrierOpacity = 0.28;
 
-/// Gaussian blur sigma for the sheet frosted glass (device-tunable in notes).
+/// Gaussian blur sigma for frosted chrome that still uses [BackdropFilter]
+/// (toast / left-swipe guide). Half-sheets no longer blur.
 const double kCap19ActionsHalfSheetBlurSigma = 22;
 
 /// Cap 19 panel max height as a fraction of screen (Video-App-B–class half-sheet).

@@ -123,7 +123,7 @@ class _Cap19LeftSwipeGuideHostState extends ConsumerState<Cap19LeftSwipeGuideHos
                 key: const Key('cap19LeftSwipeGuide'),
                 decoration: BoxDecoration(
                   color: tokens.feedBackground.withValues(
-                    alpha: kCap19ActionsHalfSheetTintOpacity,
+                    alpha: kCap19FrostChromeTintOpacity,
                   ),
                   borderRadius: BorderRadius.circular(16),
                 ),

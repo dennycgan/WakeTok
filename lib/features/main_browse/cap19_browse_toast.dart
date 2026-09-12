@@ -47,7 +47,7 @@ void showCap19BrowseToast(
             key: toastKey,
             decoration: BoxDecoration(
               color: tokens.feedBackground.withValues(
-                alpha: kCap19ActionsHalfSheetTintOpacity,
+                alpha: kCap19FrostChromeTintOpacity,
               ),
               borderRadius: BorderRadius.circular(8),
             ),
