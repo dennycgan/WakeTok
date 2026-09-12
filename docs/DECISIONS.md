@@ -5704,8 +5704,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted
 
-- Status: Proposed
-- Commit/PR anchor: (fill on Accept after implementing work commit)
+- Status: Accepted (2026-09-10)
+- Commit/PR anchor: 32d4bd1
 - Plain summary (owner reads this):
   From Browse, the user can open a bottom "…" action, see a small
   half-sheet with a Photos-finder time landmark (EXIF when available,
@@ -6009,13 +6009,18 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Weak non-time placeholder copy when both EXIF and Instant are
     missing — rejected; omit the minute row.
 - Consequences / constraints accepted:
-  - Status remains **Proposed** until Cap 24 implementing work lands;
-    then Accepted with real anchor / `git log -1 --format=%cs`.
+  - Accepted with implementing anchor `32d4bd1`
+    (`git log -1 --format=%cs 32d4bd1` → 2026-09-10). Related Cap 24
+    work: `f4928b6` / `52b6c39` / `0ccc8fa` / `0b6c7c6` / `6c5f39a` /
+    `ae8d8cd` / `d62ad70` (and polish commits cited in PHASE_HISTORY).
   - Cap 23 ADR-049 gates remain required before the Host delete write.
   - Architecture / localization guards remain mandatory on `lib/` work
     (ADR-009 / ADR-010 / ADR-012).
-  - On Accept: split debt **464** as Decision 11; update Action Column
-    indices in layout notes.
+  - On Accept: debt **464** Closed (soft-delete intent); permanent Empty
+    / purge → new debt **469** Accepted (permanent). Action Column
+    indices were updated in Cap 24.3 layout notes (`f4928b6`); Cap 24
+    close-out also fixed stale Zone-overview / §2 wording that still
+    named Cap 19 as lowest.
 - Relationship:
   Builds on ADR-049 / Cap 23.4 Recently Deleted mapping; ADR-042 D7/D8
   chrome; ADR-044 D3 (no observer); Cap 19 half-sheet tokens; Cap 22

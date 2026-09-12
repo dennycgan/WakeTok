@@ -1192,3 +1192,48 @@ Open; Cap 20 **449** / **452** Open; **458** Monitoring; **463**
 Accepted (permanent); **464** Open (soft-delete Cap next — intent
 park until ADR-050). Do not flip **456a** / **457** / **464** in this
 close-out.
+
+## Soft-delete current asset to Photos Recently Deleted (Cap 24) — 2026-09-12
+
+- [x] 24.1 Contract freeze — ADR-050 Proposed
+      — docs `39b20c1` / Decision 7 refine `809ba6f`
+- [x] 24.2 Host soft-delete write + Pigeon
+      — work `32d4bd1`; docs `166faf7`; Fake availability align
+        `1fcdbd1` (schedules **465** / **466** / **467** → 24.5.5)
+- [x] 24.3 Action Column "…" + half-sheet chrome + confirm dialog
+      — work `f4928b6`; docs `b7c3b8f`; layout-notes §7 indices
+- [x] 24.4 Session Queue remove + advance on success
+      — work `52b6c39`; docs `e16ffd8`
+- [x] 24.4b Soft-delete session working set survives Queue rebuilds
+      — work `0ccc8fa`; docs `f2ae076`
+- [x] 24.4c Process soft-delete exclusion across cached Session starts
+      — work `0b6c7c6`; docs `6f1a953`
+- [x] 24.4d Soft-delete: system consent only (drop App confirm)
+      — work `6c5f39a`; docs `baa7be6`; Decision 3 revised
+- [x] 24.5 Device acceptance
+      — docs `84960b0`; notes `docs/acceptance/cap24-24.5-notes.md`;
+        Kafka + i17 PASS; chrome polish `8577cf8` / `aa35391` /
+        `c9d186e`; Meta-crush gap note `c1c4a87`
+- [x] 24.5.1 Half-sheet panel crush over Platform View (tint 0.96)
+      — work `ae8d8cd`; docs `9c12947`
+- [x] 24.5.5 Feed / wait-chrome widget-test harness align
+      — work `d62ad70`; docs `f5f45a6`; debts **465** / **466** /
+        **467** Closed; full `flutter test` green
+- [x] 24.6 Cap close-out: Cap 24 `[x]`; YOU ARE HERE → Share current
+      asset from Action Column…; PHASE_HISTORY this snapshot;
+      ADR-050 Accepted (`32d4bd1`); debt **464** Closed + **469**
+      Accepted (permanent); layout-notes Zone overview / §2 wording
+      aligned with Cap 24.3 indices
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-050 Accepted + layout
+notes L51/L70): (this commit)
+
+Related ADR: ADR-050 (`32d4bd1`; related `f4928b6`, `52b6c39`,
+`0ccc8fa`, `0b6c7c6`, `6c5f39a`, `ae8d8cd`, `d62ad70`; Proposed
+`39b20c1`).
+Known debt at close: **464** Closed (soft-delete intent); **469**
+Accepted (permanent) Empty/purge; **465** / **466** / **467** Closed
+by Cap 24.5.5; **456a** / **457** Open; **458** / **468** Monitoring;
+**463** Accepted (permanent). Do not flip **456a** / **457** / **469**
+in this close-out.

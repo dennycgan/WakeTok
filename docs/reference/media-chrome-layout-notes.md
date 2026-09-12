@@ -48,7 +48,7 @@
 | **1 Meta** | Fixed **3** rows bottom-leading: relative / exact / characteristics | `media_info_overlay.dart` |
 | **2 Reset** | Magnification force-fit pill; visible only while still magnified | `magnification_reset_button.dart` |
 | **3 LIVE** | Live Photo status capsule trailing; **future:** replay control to the **left** of LIVE | `vertical_media_feed.dart` `_LiveBadge` / `_FeedCornerChrome` |
-| **4 Action column** | Bottom-up stack; lowest = Cap 19 add-to-album; share later above | `cap19_entry_icon.dart` |
+| **4 Action column** | Bottom-up stack; lowest = Cap 24 `"…"`; Cap 19 album at i=1; Share later at i=2 | `cap24_more_entry_icon.dart` / `cap19_entry_icon.dart` |
 
 **MVP exclusions (locked):**
 
@@ -67,7 +67,7 @@ All vertical positions below are **feed-bottom insets** unless noted (larger = h
 | Meta row-3 **text** bottom | Same as column bottom (glyphs **bottom-aligned** in each 20pt row) | row box bottom |
 | LIVE capsule **outer** bottom | Align with meta row-3 text bottom | `mainBrowseLiveStatusBottomInset` ≡ overlay bottom inset |
 | Reset visual bottom | `overlayBottom + 3×rowHeight + gap` | see §5 |
-| Album **icon** bottom | Align with Reset visual bottom | `mainBrowseActionColumnLowestBottomInset` (hit box bottom = that − 8; see §7) |
+| Lowest action **icon** bottom (Cap 24 `"…"`) | Align with Reset visual bottom | `mainBrowseActionColumnLowestBottomInset` (hit box bottom = that − 8; see §7) |
 | Reset ↔ meta gap | Reset bottom → Overlay row-1 **top** | `kResetAboveMetaGap` (**12**) |
 | Leading content | Meta text left; Reset pill outer left | `kMediaChromeLeadingInset` (**16**) |
 | Trailing chrome | Action + LIVE | `kMediaChromeTrailingInset` (**12**) |

@@ -117,11 +117,15 @@
 - [x] Current-asset still-in-library gate for mutation chrome
       (Cap 23 / ADR-049 Accepted; `docs/acceptance/cap23-*.md`;
       PHASE_HISTORY; debt **456b** Closed at 23.4)
-- [ ] Soft-delete current asset to Photos Recently Deleted
-      (Cap 24 / ADR-050 Proposed; App soft-delete only; kick Session
+- [x] Soft-delete current asset to Photos Recently Deleted
+      (Cap 24 / ADR-050 Accepted; App soft-delete only; kick Session
       Queue on success; fail-closed on Host failure; narrow-supersede
       kickoff Do Not Build #4 delete bans + P1–P5; after still-in-library
-      gate) <-- YOU ARE HERE
+      gate; PHASE_HISTORY)
+- [ ] Share current asset from Action Column
+      (last MVP Action Column chrome; index 2 above Cap 19 album;
+      Cap 23 still-in-library gate; system share sheet; phases
+      awaiting owner scope) <-- YOU ARE HERE
 - [ ] Auto-play Presets and Mode Eligibility Rule
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
@@ -140,8 +144,9 @@
       and Generated Clip Source
 - [ ] Clip export progress/result UI,
       failed-segment retry, cancellation, and resume UX
-- [ ] Share, Mute, Fit / Fill / 9:16 Crop, 2x gesture
-      (tap-to-pause/resume moved to Cap 18; MVP 2x = left **or**
+- [ ] Mute, Fit / Fill / 9:16 Crop, 2x gesture
+      (Share split out to its own Capability Roadmap item above;
+      tap-to-pause/resume moved to Cap 18; MVP 2x = left **or**
       right edge hold for temporary 2x, release → 1x; no
       slide-down lock; Cap 18 freezes both-edge hold slots and
       edge-hold vs left-swipe album arbitration only — no 2x
@@ -172,127 +177,23 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Soft-delete current asset to Photos Recently Deleted
-Contract: ADR-050 Proposed (24.1 freeze; Accept + anchor at Cap 24 close)
+Active capability: Share current asset from Action Column
+Contract: awaiting owner scope / kickoff (no ADR yet)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 24.1 Contract freeze — ADR-050 Proposed
-      D1–D11 locked: soft-delete-to-RD only; "…" Action Column i=0 +
-      Cap 19 → i=1 (Share placeholder → i=2); half-sheet + confirm
-      (Cap 22 shell; media-neutral copy); Session success = Queue kick +
-      advance; Session failure = no Queue mutate + new ARB
-      `cap24SoftDeleteFailed` (toast style family, not
-      `cap19PanelAddToAlbumError` key); Decision 4 evidence =
-      PhotoKit-default assumption + **device-must-verify** resolve
-      RD exclusion / restore reappearance; reuse Cap 23 RD Host helper;
-      no library observer (ADR-044 D3); "…" shares Cap 19 D7/D8 + Cap 23
-      chrome; exact-minute teaser from Cap 17.7 archive + separate ARB
-      `cap24SoftDeleteSheetExactMinuteApprox`; MVP Out location + second
-      Add-to-Album in sheet; Do Not Build #4 line-by-line + parallel
-      kickoff P1–P5 + §1.7 Media Actions Sheet; on Accept split **464**
-      (soft-delete Closed by Cap 24 / permanent Empty Accepted
-      permanent). Favorite Cap 19 historical #4 gap recorded only.
-- [x] 24.2 Host soft-delete write + Pigeon
-      Work `32d4bd1`: Pigeon `softDeleteAsset` (single id; no batch);
-      Host access → fetch → Cap 23.4 `isInRecentlyDeletedSmartAlbum`
-      pre-check → `PHAssetChangeRequest.deleteAssets`; domain
-      `AssetSoftDeleteRepository` + `PhotoLibraryGateway` +
-      composition-root override; zero Snapshot invalidation hook;
-      Dart gateway/provider tests (incl. `operationCancelled` + four
-      other ErrorCode propagations). Control `flutter test` vs pre-diff
-      HEAD: identical 28-fail set (not Cap 24 product). Of those 28:
-      **5 fixed** in harness by `deviceLocalForIds` / selective
-      availability map — root cause Cap 23.4
-      `_coerceUnavailableFeedFailure` × Fake
-      `getAssetAvailabilities` default `unavailable` (this
-      commit); fixed names: W-F8c, W-L2, W-L3,
-      W-14.4b overlay-fail retry, S-4. **23 remain** — split into
-      Known debt **465** / **466** / **467**; scheduled for **24.5.5**
-      (not before; not Unassigned) — out of Cap 24 product scope but
-      must resolve before Cap 24 close-out.
-- [x] 24.3 Action Column "…" + half-sheet chrome + confirm dialog
-      Work `f4928b6`: Action Column ellipsis at index 0 (Cap 19 →
-      index 1); more half-sheet (no title; Delete row; minute landmark
-      one-paint EXIF/Instant); App confirm stacked on sheet with
-      Host-await busy spinner (Q6=A); Cap 23 gates before open and
-      before write; `cap24SoftDeleteFailed` toast (host context);
-      `operationCancelled` silent + keep sheet; success dismisses
-      confirm+sheet without Queue mutate (24.4); ARB from copy
-      candidates; layout notes Action Column indices; widget tests
-      W-24.3-1…16 + cover-read `FileSystemException` IO unit test.
-      ADR-050 remains Proposed until Cap 24 close.
-- [x] 24.4 Session Queue remove + advance on success
-      Work `52b6c39`: domain `removeAssetFromSessionQueue` (mid-list
-      keeps feedIndex; last → newLength-1; sole → empty; missing id
-      no-op); `BrowseSessionNotifier.removeAssetAndLand` (no
-      roundEpoch bump; Snapshot untouched); success path
-      onLeaveCurrent → remove → L2 evict → setIndex → unconditional
-      settled=true → pop sheet (intentional force-settle after queue
-      kick; rationale in code comment — mid-list setIndex is no-op,
-      no gesture settle to await); fail/cancel zero Queue mutate;
-      widget tests W-24.4-1…7 + U-24.4-1…4. ADR-050 remains
-      Proposed until Cap 24 close.
-- [x] 24.4b Soft-delete session working set survives Queue rebuilds
-      Work `0ccc8fa`: `sessionWorkingAssetIds` (Session working set ≠
-      unconsumed feed tail); `prepareNextRoundQueue` + Order Continuity
-      `applySessionConfiguration` rebuild from that set so ADR-050 no
-      in-session revisit survives start-over and Order changes; Snapshot
-      cache untouched (Q4′); U-24.4b-1…5 (multi-round, Order, n=1–2,
-      empty, feedIndex-independent). Device: same-Pool start-over PASS
-      (Kafka). ADR-050 remains Proposed.
-- [x] 24.4c Process soft-delete exclusion across cached Session starts
-      Work `0b6c7c6`: in-memory `processSoftDeletedAssetIds` (process
-      lifetime; not persisted); filter on `build` / `restartSession`
-      Session starts from Cap 7.6 cache without mutating cache body
-      (Q4′=A); `removeAssetAndLand` success records id; U-24.4c-1…5
-      (leave/return ≥3, multi-Origin, cache purity, no soft-delete
-      unchanged, fresh empty set / D4-b); notes residual narrowed to
-      restore-without-force-quit boundary. Device: Pool/Origin
-      leave-return ghost closed (Kafka Profile). ADR-050 remains
-      Proposed.
-- [x] 24.4d Soft-delete: system consent only (drop App confirm)
-      Work `6c5f39a`: half-sheet Delete → Cap 23 gate → Host
-      softDelete immediately; PhotoKit system consent is the only user
-      confirm UI; busy/latch + non-dismiss on sheet during Host;
-      cancel/fail reset interactive; remove confirm ARB keys; W-24.3 /
-      W-24.4 rewritten; notes SYS/CANCEL = system UI only. ADR-050
-      Decision 3 revised (Photo-App-A evidence; P0 if system consent
-      absent). Device Kafka Profile PASS. ADR-050 remains Proposed.
-- [x] 24.5 Device acceptance
-      Notes `docs/acceptance/cap24-24.5-notes.md` — Kafka + i17 **PASS**
-      (D4-a/b force-quit → real PhotoKit resolve; SYS / CANCEL /
-      SUCCESS; FAIL SKIP harness W-24.3-8 / W-24.4-2). Decision 3
-      revised system-consent-only confirmed on device. ADR-050 remains
-      Proposed until Cap 24 close. Acceptance-window chrome polish:
-      half-sheet honesty / i-bubble `8577cf8` / `aa35391`; gray sheet
-      surface + more-icon weight `c9d186e`. Follow-up **24.5.1** closed
-      (half-sheet tint 0.96 / no BDF; PV/still panel unify).
-- [x] 24.5.1 Half-sheet panel crush over Platform View (tint 0.96)
-      Cap 19 + Cap 24 half-sheet: `mediaSheetSurface` alpha **0.96**
-      (aligned with top-chrome expanded menu); **no** BackdropFilter;
-      barrier 0.28; playback continues; toast / left-swipe guide keep
-      frosted 0.78 + blur (`kCap19FrostChromeTintOpacity`). i17 Profile
-      smoke PASS — panel region look + under-sheet Meta unreadability
-      match across video / Live-playing / still.
-- [x] 24.5.5 Feed / wait-chrome widget-test harness align
-      Test-infra only (no product lib/ changes). Closed Known debt
-      **465** / **466** / **467** from Cap 24.2 control-group reds.
-      Shared helper `still_cover_test_helpers.dart`; full
-      `flutter test` green (+1033) + architecture 13/13.
-- [ ] 24.6 Cap close-out
+Cap 24 Soft-delete is complete (see PHASE_HISTORY). Next Capability
+Roadmap item (Share current asset from Action Column…) awaiting
+owner-approved phases — phases TBD.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.6 Cap close-out
-- Sub-steps done: Cap 24 through 24.5.1; 24.5.5 harness debts
-      **465** / **466** / **467** Closed (full suite green)
-- Next step: Cap 24 close-out (ADR-050 Accept + debt **464**
-      Accept split; PHASE_HISTORY / Capability `[x]` when owner
-      scopes close).
-- Related decisions: ADR-050 Proposed (Decision 3 revised; Decision 4
-      (a)(b) device evidence PASS at 24.5); ADR-049 Accepted; debt
-      **464** Open until Cap 24 Accept split; **456a** / **457** Open;
+- Goal (one line): awaiting owner kickoff for Share (Action Column)
+- Sub-steps done: Cap 24 closed (ADR-050 Accepted `32d4bd1`; debt
+      **464** Closed + **469** Accepted (permanent); PHASE_HISTORY)
+- Next step: owner scopes Share Cap phases / contract before coding.
+- Related decisions: ADR-050 Accepted; ADR-049 Accepted; debt **469**
+      Accepted (permanent) Empty/purge; **456a** / **457** Open;
       **458** / **468** Monitoring; **463** Accepted (permanent);
-      **465** / **466** / **467** Closed by Cap 24.5.5; Q4′ = A
+      **465** / **466** / **467** Closed by Cap 24.5.5
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -520,7 +421,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Accepted** (2026-09-10), anchors `32a3617` (23.3) + `4004ad1`
       (23.2) + `893c8fb` (23.4 Case B harden); Proposed `25689b0`
 - ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted —
-      **Proposed** (Cap 24.1; Accept + anchor at Cap 24 close)
+      **Accepted** (2026-09-10), anchor `32d4bd1` (24.2 Host write;
+      related Cap 24 work in PHASE_HISTORY)
 - Cap 24 soft-delete locked copy candidates (pre-ARB; EN + zh-Hans):
       `docs/reference/cap24-soft-delete-copy-candidates.md`
 - Cap 24.5 device acceptance notes (Kafka + i17 matrix **PASS**):
@@ -692,11 +594,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 461 | Closed | Main Browse Screen | Cap 22.5b | Fling past prepared[0] **and** prepared[1] can still hit a later last-page wall | **Closed:** prepared bridge pages **removed** with bridge revert (scheme A). | Closed by Cap 22.5 scheme A revert | Cap 22.5b; `cap22-22.5-endless-round-bridge-notes.md` |
 | 462 | Closed | Main Browse Screen / Cap 19 | Cap 22.5b | Round-bridge remount disposed Cap19 left-swipe Listener while pointer still tracked → Unhandled `ref` after unmount | **Closed in Cap 22.5b follow-up:** remount clears `cap19LeftSwipeDragProvider`; gesture `mounted` guards on all `ref` / animation paths; `W-22.5b` remount with unfinished left-swipe pointer. Pattern retained on scheme A `advanceToNextRound` remount. | Closed by Cap 22.5b (pointer harden); retained on scheme A | Cap 22.5; ADR-041; `cap22-22.5-endless-round-bridge-notes.md` |
 | 463 | Accepted (permanent) | Main Browse Screen | Cap 22.5 | Cross-round zero-hitch doom-scroll is impossible under finite-round table + boundary data-source swap | **Architectural floor (same Status class as debt 445).** Device soak under soft-commit bridge showed data-source identity swap overlapping in-flight `DragScrollActivity` / Ballistic on the common fast-scroll path — a discrete swap cannot be guaranteed never to collide with continuous scroll. Cap 22.5 ships scheme A (static placeholder + ScrollEnd → `advanceToNextRound` remount + jump) and **accepts** a hard cut. **Only path to a true zero floor:** scheme D (monotonic infinite index space + domain virtual mapping + product decision on cross-round back-scroll) — **independent Cap**, not misc polish. **Final product framing:** the residual pause is no longer an unpredictable defect surface — it now presents to the user as a legible, self-explanatory round boundary (placeholder page, then a brief deliberate pause before the next round starts), not as a stall or bug. This resolves the earlier concern that the pause read as broken/unexplained. It does **not** resolve, and was never intended to resolve, the original product ask for true endless zero-hitch doom-scroll continuity across round boundaries — that remains exclusively scheme D's territory. What changed across Cap 22.5's iteration was not the technical floor (still architectural, still non-zero), but the framing of the residual pause from "unexplained hitch" to "an accepted, consistent, user-legible boundary marker." Full retrospective + scheme D seed: `cap22-22.5-endless-round-bridge-notes.md` (see **Scheme D — future Cap seed**). | Scheme D only (future Cap; not scheduled) | Cap 22.5; `cap22-22.5-endless-round-bridge-notes.md` |
-| 464 | Open | Photo Library / Kickoff scope | Cap 22 ADR-048 | Delete-original-asset (purge PHAsset from Photos library — not remove-from-album) conflicts with kickoff scope; owner has informal future intent only | **Intent park only — does not approve the feature or overturn kickoff.** Kickoff excludes move/copy/delete/modify of originals (same boundary cited under historical debt **456** / now **456b** half-sheet Delete note: not product-approved, needs a full product discussion). Owner has expressed an informal desire for a future “delete this asset from Photos” capability; that intent lived only in chat until this row — purpose is not to lose it when a real design/ADR starts. **Not a decision to build; kickoff boundary remains binding.** Tech cue: if ever designed, reuse ADR-048’s **composition-root shared invalidation discipline** after successful library writes — do **not** invent a parallel bus. Library-wide delete is harder than ADR-048’s “new album member missing” case: existing Session/Snapshot entries become **dangling ids**, and built-in fingerprints (All/Photos/Videos) can stale — design with debt **456b** existence-gate class, not album-scoped `invalidateEntriesContainingAlbum` alone. **Remove-from-album is not planned**; ADR-048’s `removeAssetFromAlbum` wording is illustrative membership-API completeness only. | Owner-led: formal kickoff revision or ADR before any Cap scheduling — **not scheduled** | debt **456b**; ADR-048; ADR-049; kickoff (no move/copy/delete/modify originals) |
+| 464 | Closed | Photo Library / Cap 24 | Cap 22 ADR-048 | Soft-delete current asset to system Recently Deleted (App soft-delete intent) | **Closed by Cap 24 / ADR-050.** Original row parked informal “delete from Photos” intent against kickoff bans. Cap 24 shipped soft-delete-to-system-Recently-Deleted only (`PHAssetChangeRequest.deleteAssets` → RD; Session Queue kick; never Empty RD). That soft-delete limb is done. **Permanent Empty Recently Deleted / purge originals** never entered Cap 24 — see debt **469**. Historical intent-park wording and ADR-048 invalidation cues remain useful background; do not reopen **464** for Empty/purge. | Closed by Cap 24 | ADR-050; ADR-048; ADR-049; debt **469**; kickoff (narrow supersede for soft-delete only) |
 | 465 | Closed | Main Browse Screen | Cap 24.2 | Widget tests W-16.4d / W-16.4e: after Fake `deviceLocalForIds`, `displayCalls` is `['a1','a1']` where tests expect a single `requestDisplayAsset` | **Closed as (a) at Cap 24.5.5 (test-assert only; no product change).** After Cap 23 Fake `deviceLocalForIds`, W-16.4d saw `displayCalls == ['a1','a1']` before Retry. Read-only path: single `_startLoad` → `_startLoadFromDeviceLocalFirstVisit` → L2 `requestDisplayAsset` #1 → permanent `iCloudDownloadFailed` → Cap 15.12 false-positive fallback `_runFullLayer1BecomeCurrentPath` → `requestDisplayAsset` #2 (sequential; not become-current double-fire / missing single-flight). Same contract already locked by **W-15.12d** (expects length==2) / **W-15.12i**. Assert rewrite: acknowledge two pre-Retry displays; then assert Retry adds exactly one more call on a single `pump` (bypassDwell). W-16.4e kept out of the 465 narrative (separate All-tab deviceLocal skip-L1 / cover harness). Not a product bug; no new debt opened. | Closed by Cap 24.5.5 | ADR-034 D5; Cap 15 deviceLocal path; Cap 16.4; Cap 23.4 |
 | 466 | Closed | Main Browse Screen | Cap 24.2 | Widget tests W-L6 / W-O-* / W-Loc2 / S-1 / S-3 / S-5 (and kin): `mediaInfoOverlay` or size copy `Found 0` while fail/Retry chrome may already be correct | **Closed by Cap 24.5.5 (test-infra only).** Root cause: Cap 21 `_suppressStillCoverChrome` hides Overlay until still/poster decode-ready; harness `/tmp/fake_*.jpg` never cleared the gate. Fix: shared `still_cover_test_helpers.dart` (fixture PNG seed + `pumpUntilStillCoverReady`, preferring existing `debugForceStillCoverDecodeBroken(false)` under FakeAsync). Product suppress logic unchanged. Restored W-O / W-L2 / W-L6 / W-Loc2 / S-1 / S-3 / S-5 (and kin). | Closed by Cap 24.5.5 | Cap 21 Overlay/cover discipline; Cap 8 Overlay |
 | 467 | Closed | Main Browse Screen | Cap 24.2 | Widget tests Cap 17.3 (W-17.3a/l) / Cap 17.6 (W-17.6-*) / Live L-S* preparing: `mainBrowseFeedLayer3Spinner` or `mainBrowseFeedLivePreparing_*` `Found 0` | **Closed by Cap 24.5.5 (test-infra only).** Root causes: (1) `debugForceLayer2WaitChrome` without `mediaKind: still` never forced cover-ready (Approach A: pass `FeedPageMediaKind.still` in W-17.3a/l); (2) Live/video wait-chrome kin hit same suppress / All-tab `deviceLocal` skip-L1 so hung L2 never painted cover — harness used `iCloudNotDownloaded` + shared cover helper + F1 `pumpPastLivePreparingSuppress` where needed. Did **not** broaden debugForce API semantics or change `_suppressStillCoverChrome`. Restored Cap 17.3/17.6 / L-S* / W-14.6b / W-14.4 video wait-chrome reds. | Closed by Cap 24.5.5 | ADR-034; Cap 17.3/17.6; Cap 14.6b Live chrome |
 | 468 | Monitoring | Main Browse Screen / Cap 24 | Cap 24.4b | Occasional first-page Layer 1 stall (never promotes to L2); heal by swipe away + revisit | **Seen twice on Kafka Profile (device-local stills, not iCloud):** (1) Cap 24.4b after Endless start-over (`0ccc8fa`); (2) Cap 24.4c after Pool/Origin leave-return (`0b6c7c6`). **Not** attributed to `sessionWorkingAssetIds` or `processSoftDeletedAssetIds` (those only shape Session id lists). **Photos side-channel (suspected co-factor, not proven):** owner also deleted/restored assets in system Photos while WakeTok stayed alive. Code: no `PHPhotoLibraryChangeObserver` (ADR-044 D3) — external delete/restore does **not** mutate Session Queue, Snapshot cache, or `processSoftDeletedAssetIds` (App soft-delete only). Leave→Photos→resume only auto-retries **already-failed** L2 (`_retryFailedLayer2AfterResume`); in-flight / never-started L2 is not restarted. Plausible race with lifecycle + next Host display request after PhotoKit mutation; causal link still unclear. **On recurrence record:** (1) iCloud vs device-local; (2) App soft-delete and/or Photos delete+restore in same process without force-quit; (3) start-over vs Pool leave-return; (4) leave-current + return / swipe+revisit self-heals. | Unassigned (observe) | ADR-025 / Cap 15–17 L2; Cap 22.5; ADR-044 D3; debt **444** / **456a** |
+| 469 | Accepted (permanent) | Photo Library / Kickoff scope | Cap 24.6 | Permanent Empty Recently Deleted / purge originals from Photos (not soft-delete-to-RD) | **Never in product scope.** Split from debt **464** at Cap 24 Accept (ADR-050 D1 / D11). Cap 24 closed soft-delete-to-RD only; emptying Recently Deleted, permanent purge of originals, Hide, batch delete, and in-app trash UI remain forbidden. Kickoff “no delete/modify originals” permanent-purge reading stays binding. No Cap will schedule Empty RD / purge without a new ADR that overturns this row. | Never (no Cap) | ADR-050 D1/D11; debt **464**; kickoff |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
