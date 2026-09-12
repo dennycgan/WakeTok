@@ -123,9 +123,9 @@
       kickoff Do Not Build #4 delete bans + P1–P5; after still-in-library
       gate; PHASE_HISTORY)
 - [ ] Share current asset from Action Column
-      (last MVP Action Column chrome; index 2 above Cap 19 album;
-      Cap 23 still-in-library gate; system share sheet; phases
-      awaiting owner scope) <-- YOU ARE HERE
+      (last MVP Action Column chrome; Q1=B: …=0, Share=1,
+      Album=2; Cap 23 still-in-library gate; system share sheet;
+      ADR-051 Proposed in 25.1) <-- YOU ARE HERE
 - [ ] Auto-play Presets and Mode Eligibility Rule
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
@@ -178,22 +178,42 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: Share current asset from Action Column
-Contract: awaiting owner scope / kickoff (no ADR yet)
+Contract: ADR-051 (Proposed in 25.1; Accepted at Cap close)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-Cap 24 Soft-delete is complete (see PHASE_HISTORY). Next Capability
-Roadmap item (Share current asset from Action Column…) awaiting
-owner-approved phases — phases TBD.
+- [x] 25.1 Contract freeze — ADR-051 Proposed (docs); lock Q1–Q6;
+      narrowly supersede ADR-050 D2 Action Column index layout
+      (…=0, Share=1, Album=2); update
+      `docs/reference/media-chrome-layout-notes.md` §7 indices;
+      Host presentShareSheet + error/latch/iPad notes in ADR body
+- [ ] 25.2 Host present System Share Sheet + Pigeon + Fake
+      (may merge with 25.3 in one work commit if chrome lands same
+      turn; iPhone-only present; iPad popover anchor deferred)
+- [ ] 25.3 Action Column Share icon (index 1) + Album slot → index 2;
+      Cap 19/24 slot-family chrome; Cap 23 gate on tap; fail toast
+      ARB; optical weight pass vs Cap 24 ellipsis (may tune glyph
+      size on device — do not assume 32pt)
+- [ ] 25.4 Device acceptance (Kafka + i17; still / video / Live /
+      iCloudNotDownloaded / Limited / cancel-silent / Host-fail
+      toast / missing → Cap 23 dialog); notes under
+      `docs/acceptance/cap25-*.md`
+- [ ] 25.5 Cap close-out: Cap 25 `[x]`; YOU ARE HERE → Auto-play
+      Presets and Mode Eligibility Rule…; PHASE_HISTORY snapshot;
+      ADR-051 Accepted (anchor = implementing work sha); Known
+      debt close count = 0
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): awaiting owner kickoff for Share (Action Column)
-- Sub-steps done: Cap 24 closed (ADR-050 Accepted `32d4bd1`; debt
-      **464** Closed + **469** Accepted (permanent); PHASE_HISTORY)
-- Next step: owner scopes Share Cap phases / contract before coding.
-- Related decisions: ADR-050 Accepted; ADR-049 Accepted; debt **469**
-      Accepted (permanent) Empty/purge; **456a** / **457** Open;
-      **458** / **468** Monitoring; **463** Accepted (permanent);
-      **465** / **466** / **467** Closed by Cap 24.5.5
+- Goal (one line): Cap 25.2 Host presentShareSheet + Pigeon + Fake
+- Sub-steps done: Cap 25.1 contract freeze — ADR-051 Proposed;
+      ADR-050 D2 index layout narrowly superseded; layout-notes
+      §1/§7 + Code anchors (Cap 24 + Cap 25 placeholder)
+- Next step: implement Host System Share Sheet + Pigeon (25.2);
+      may merge 25.3 chrome in same work commit
+- Related decisions: ADR-051 Proposed; ADR-050 D2 index narrowly
+      superseded; ADR-049 / ADR-042 named gate+chrome symbols;
+      debt **456a** / **457** Open (out of Cap 25); **469**
+      Accepted (permanent); **400** Accepted (permanent) cited for
+      no-L2 Share enable
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):

@@ -5704,7 +5704,11 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted
 
-- Status: Accepted (2026-09-10)
+- Status: Accepted (2026-09-10); Decision 2 Action Column **index layout**
+  (Album at index 1; Share placeholder at index 2) is **narrowly
+  superseded by ADR-051** (Proposed at Cap 25.1; Accepted date/anchor
+  when Cap 25 implementing work lands). Soft-delete entry, half-sheet,
+  Session semantics, and all other ADR-050 decisions remain binding.
 - Commit/PR anchor: 32d4bd1
 - Plain summary (owner reads this):
   From Browse, the user can open a bottom "…" action, see a small
@@ -6027,3 +6031,188 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   alert shell. Narrowly supersedes kickoff Do Not Build #4
   Delete-related lines and parallel loci P1–P5 as tabled. Does not
   authorize Hide, batch delete, or permanent purge.
+
+## ADR-051: Cap 25 Share current asset from Action Column
+
+- Status: Proposed
+- Commit/PR anchor: pending (flip to Accepted with implementing work sha
+  at Cap 25 close; no fake anchor while Proposed)
+- Plain summary (owner reads this):
+  Browse Action Column gains a Share control between "…" and Add-to-Album.
+  Tap runs the Cap 23 still-in-library gate, then Host presents the system
+  share sheet for the current Photos asset. Cancel and successful share are
+  silent; only Host present/prepare failure shows a Cap 19-style toast.
+  Session Queue is unchanged. No local DB. Mute / Fit / 2× stay out of this Cap.
+
+- Context / what problem forced this:
+  MVP Scope §12 and kickoff Share flow require System Share Sheet from the
+  Right Action Rail. Cap 19 / Cap 24 shipped album and "…" chrome; layout
+  notes left Share as a placeholder at index 2 (ADR-050 Decision 2). Owner
+  Cap 25 lock moves Share to the middle (index 1) and Album to index 2.
+  Cap 23 / ADR-049 already require future Share to reuse the still-in-library
+  gate; Cap 25 lands that chrome without Photos mutation or Queue surgery.
+
+- Decision (what was chosen):
+
+  1. **Action Column indices (Q1=B) — narrowly supersedes ADR-050 D2 index
+     layout.** Bottom-up:
+     - index 0 = Cap 24 "…" (unchanged)
+     - index 1 = Share (this Cap)
+     - index 2 = Cap 19 Add-to-Album (moves up from Cap 24’s index 1)
+     Horizontal `kMediaChromeOverlayTrailingInset` unchanged.
+     **Supersede scope:** ADR-050 Decision 2’s Action Column **index layout**
+     clauses only (Album at 1 + Share placeholder at 2). Soft-delete entry,
+     half-sheet, Session semantics, and other ADR-050 decisions remain
+     binding. Same-turn docs must update
+     `docs/reference/media-chrome-layout-notes.md` §7 (Share i=1, Album i=2;
+     Zone overview / §2 wording if they still say Share-at-2).
+
+  2. **Host presents system share sheet (Q2=A).** New Pigeon method on
+     `PhotoLibraryApi` (name locked in 25.2, e.g. `presentShareSheet`):
+     Host loads `PHAsset` by id, builds system `UIActivityViewController`
+     activity items, and presents from the app’s UIViewController.
+     **Not** an App-owned export-to-sandbox product pipeline (no Clip Export
+     Job, no durable WakeTok media file as the share product).
+     **Allowed:** ephemeral PhotoKit materialization solely to populate
+     activity items (UIImage / AV URL / NSItemProvider / temporary URLs the
+     system requires). Temps are share-scoped and cleaned after the system
+     completion handler; do **not** park them in Preview/Display temp product
+     pools as a share side effect.
+
+  3. **iCloudNotDownloaded (Q3=A).** Cap 23 still-in-library remains the only
+     pre-share existence gate (`AssetAvailability != unavailable`, including
+     `iCloudNotDownloaded` — ADR-049 Decision 3). After the gate passes, Host
+     still presents; system/PhotoKit may download or fail. No App wait layer
+     / Layer-2 gate for Share.
+
+  4. **Dismiss / cancel / complete UX (Q4=A) + completion contract.**
+     - User cancels the share sheet (`completed == false`) or finishes a
+       share target: **silent** — no success toast, no error toast.
+     - Host failure before/at present (see Decision 5): Cap 19-style
+       non-blocking toast; **new** ARB key (do not reuse album-add /
+       soft-delete failure copy).
+     - **Do not** map share-sheet cancel to `operationCancelled`. That code
+       is Cap 24 soft-delete system-consent cancel semantics; copying it
+       would falsely treat a normal dismiss as an operation error path.
+     - Pigeon Future **succeeds when the system sheet has been presented**
+       (or fails before present). Sheet dismiss does not fail the Future.
+       Session Queue / Snapshot unchanged on all share outcomes.
+
+  5. **Error codes — no new ErrorCode; reuse `assetUnavailable`.**
+     Kickoff Data Contract has no Share-specific code. Cap 25 failure surface
+     is narrow:
+     - cannot resolve a presentable root `UIViewController`, or
+     - cannot build activity items for the `PHAsset` (including missing asset
+       after the Dart gate race).
+     Both map to existing **`assetUnavailable`** as an **intentional
+     wire-code overload** (same family as Cap 24 Host soft-delete mapping
+     non-missing failures to that code for one toast path). Do **not** add a
+     new Pigeon ErrorCode in Cap 25. Dart maps that failure to the Share
+     fail toast only (not wireless Layer-2 copy).
+
+  6. **Limited Access (Q5=A).** Show Share under Limited the same way Cap 24
+     "…" remains visible for an accessible current asset. **Reason (must not
+     be omitted):** ADR-K “no Limited album features” targets album
+     **enumerate / list-find** (Album Picker / Limited create-only bootstrap
+     constraints). Share does not list or look up albums; it only asks the
+     system to share the **current** authorized-visible asset. That is
+     outside the ADR-K album list-find red line. Full Access is not required
+     for the Share entry.
+
+  7. **Icon (Q6=A).** `CupertinoIcons.square_and_arrow_up`. Cap 24
+     `ellipsis_circle` uses optical size **36** (not 32) with an in-code
+     comment. Share may need a similar on-device weight pass in 25.3 — do
+     **not** treat 32pt as locked without Profile eyeball.
+
+  8. **Chrome / gates — named symbols + no Layer-2 ready requirement.**
+     Share is the same trailing mutation slot family as Cap 19 / Cap 24 "…".
+     Implementers must wire these **named** symbols — do **not** invent a
+     parallel null-check or approximate gate:
+
+     - **Actionability / enable axis:**
+       `mainBrowseCurrentAssetActionableProvider` (ADR-042 Decisions 1–7;
+       sole “is current item determined?” signal — do not gate Share enable
+       on ad-hoc `mainBrowseCurrentAssetIdProvider == null` checks for UI
+       enablement; id provider remains the string source for the Host call).
+     - **Peek / PV-cover visibility (hide vs dim):**
+       `mainBrowseTrailingMutationChromeVisible` in
+       `main_browse_trailing_chrome_policy.dart` (ADR-042 Decision 8 —
+       actionable ∧ vertical feed settled ∧ not PV-covering).
+     - **Still-in-library before Host present:**
+       `ensureCurrentAssetStillInLibraryForMutation` (ADR-049).
+
+     **Layer 2 ready — explicitly not required.** Share chrome and tap
+     enablement do **not** require Layer 2 ready / `scrubberFrozen` /
+     playback-ready predicates. Same independence as Cap 24 "…" under
+     ADR-050 Decision 7 (“…" affordance vs minute row — decouple”: do not
+     require Layer 2 ready to tap "…"). Gating Share on L2 success would
+     block share for assets that never mint L2-ready (e.g. STATE debt
+     **400** coverless iCloud / optimized-storage video — Accepted
+     (permanent)) — rejected. Availability for Share = actionable
+     provider + Cap 23 probe pass on tap; decode/L2 state is orthogonal.
+
+     Feed Host-unavailable dimming stays as Cap 21.6 interim where already
+     applied; Cap 25 does not merge existence into actionable.
+
+  9. **In-flight latch — Share-specific (not Cap 24 PopScope copy).**
+     Cap 24 latch pairs with Flutter half-sheet + `PopScope(canPop: !latch)`
+     to block barrier / system-back dismiss while Host delete runs. Share
+     presents a **native** `UIActivityViewController`, not a Flutter route —
+     there is **no** PopScope to arm.
+     Latch covers only the async window:
+     **tap → Cap 23 probe → Host invoke until present returns (success or
+     fail).** Once the system sheet is up, it covers the icon and naturally
+     prevents re-taps. Latch clears when that window ends (probe deny /
+     dialog / Host Future settle). Do **not** hold a Flutter PopScope for
+     the lifetime of the system sheet.
+
+  10. **iPad popover anchor (Host note; out of MVP acceptance).**
+      `UIActivityViewController` on iPad requires
+      `popoverPresentationController` `sourceView` / bar-button anchor or it
+      can crash. Cap 25 Host implements **iPhone-only** present (kickoff: iPad
+      not an MVP acceptance target). 25.2 Host implementation notes must
+      state explicitly: **iPhone-only; iPad needs a separate anchor** — so a
+      future iPad Simulator run does not look like a mysterious share crash.
+
+  11. **Out of scope.** Mute / Fit / Fill / 9:16 Crop / 2×; debt **456a** /
+      **457**; Empty Recently Deleted (**469**); library change observer;
+      Share analytics / custom share targets; any Drift / SQLite entity for
+      Share; kickoff Do Not Build #4 re-freeze (Share is System Share Sheet,
+      not a Native Action Mapping Photos organize write — #4 does not apply;
+      no narrow supersede of #4 required for Cap 25).
+
+- Rejected alternatives (why not):
+  - Share at index 2 above Album (ADR-050 placeholder) — rejected; owner Q1=B.
+  - Export-to-temp then share URL as the product path — rejected; invents an
+    App export pipeline inconsistent with Host-touches-PHAsset style
+    (soft-delete / display request). Ephemeral PhotoKit item prep for the
+    system sheet remains allowed under Decision 2.
+  - Block Share until `deviceLocal` / force Layer 2 first — rejected; conflicts
+    with ADR-049 iCloudStillInLibrary, ADR-050 D7 "…" L2 independence, and
+    thickens Cap 25.
+  - Map share cancel → `operationCancelled` — rejected; wrong Cap 24 consent
+    semantics; cancel must be silent success-path for Dart.
+  - New ErrorCode for share present failure — rejected; reuse
+    `assetUnavailable` overload (Decision 5).
+  - Hide Share under Limited — rejected; not an album list-find feature.
+  - Copy Cap 24 PopScope latch onto Share — rejected; wrong UI host (Decision 9).
+  - Ad-hoc parallel actionable / existence checks instead of the named
+    providers above — rejected; ADR-042 / ADR-049 drift class.
+
+- Consequences / constraints accepted:
+  - ADR-050 Decision 2 index layout narrowly superseded as of Cap 25.1
+    Proposed; layout notes §7 updated in the same docs commit. Product
+    chrome code still follows Cap 24 indices until Cap 25.3.
+  - Architecture / localization guards remain mandatory on `lib/` work.
+  - Known debt close count for Cap 25 = **0**.
+  - GLOSSARY: no new concept node (Share is chrome on Media Item).
+
+- Relationship:
+  Narrowly supersedes ADR-050 Decision 2 **index layout** only.
+  Extends ADR-042 / ADR-049 (Share is a required consumer of the named
+  symbols in Decision 8).
+  Inherits Cap 24 "…" Layer-2 independence from ADR-050 Decision 7
+  affordance clause (Decision 8).
+  Does not amend ADR-K album list-find rules; Decision 6 records why Share
+  is outside that red line.
+  Orthogonal to ADR-044 D3 (no library observer).
