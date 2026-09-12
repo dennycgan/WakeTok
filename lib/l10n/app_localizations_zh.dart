@@ -814,7 +814,11 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
-      'Time zone differences can shift this time by a few hours, in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and converted for your current time zone, neither is guaranteed to match the exact moment this item was created or saved.';
+      'This is the finest time resolution WakeTok can show here for this item. Time zone differences may still shift it by a few hours; in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and may be affected by your current time zone, neither is guaranteed to match the exact moment this item was created or saved.';
+
+  @override
+  String get cap24SoftDeleteSheetMinuteTimezoneInfoSemantics =>
+      'More about this time';
 
   @override
   String cap24SoftDeleteSheetExactMinute(
@@ -1635,7 +1639,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
-      '跨时区可能导致这里的时间有几小时的偏差，极端情况下，连日期也可能和浏览页上带「~」的日期对不上。由于文件和图库记录时间的方式不同，再按你当前时区换算，两边都不保证与此文件实际创建或保存的时间完全一致。';
+      '这里的时间是 WakeTok 在此能展示的、关于此项的最细时间。跨时区仍可能导致有几小时偏差；极端情况下，连日期也可能和浏览页上带「~」的日期对不上。由于文件和图库记录时间的方式不同，并可能受到你当前时区影响，两边都不保证与此项实际创建或保存的时间完全一致。';
+
+  @override
+  String get cap24SoftDeleteSheetMinuteTimezoneInfoSemantics => '关于此时间的说明';
 
   @override
   String cap24SoftDeleteSheetExactMinute(

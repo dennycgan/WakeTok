@@ -12,8 +12,10 @@ import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
+import 'package:waketok/features/main_browse/cap24_timezone_note_bubble.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
+import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_soft_delete_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
@@ -285,7 +287,7 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-9 Instant library minute row + timezone note',
+    'W-24.3-9 Instant library minute row; note via i bubble (not persistent)',
     (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -319,9 +321,52 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneInfo')),
+        findsOneWidget,
+      );
+      // Not persisted as a second row.
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneInfo')),
+      );
+      await tester.pumpAndSettle();
+      expect(
         find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNoteBarrier')),
+        findsOneWidget,
+      );
+
+      // Re-tap i: opaque barrier sits above the icon; tap that point to close.
+      final infoCenter = tester.getCenter(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneInfo')),
+      );
+      await tester.tapAt(infoCenter);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneInfo')),
+      );
+      await tester.pumpAndSettle();
+      // Corner tap hits opaque barrier (not the bubble body, not modal barrier).
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsNothing,
+      );
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+
       // Instant time row stays bare (no leading ~); note may cite Browse "~".
       final timeText = tester
           .widget<Text>(
@@ -431,8 +476,12 @@ void main() {
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
           findsNothing);
       expect(
-        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneInfo')),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsNothing,
       );
 
       // No tilde honesty mark on EXIF bare path.
@@ -565,6 +614,132 @@ void main() {
           findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteBare')), findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetDelete')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'W-24.3-17 latch: timezone info i is not tappable',
+    (tester) async {
+      final hold = Completer<void>();
+      final softDelete = FakeAssetSoftDeleteRepository()..hold = hold;
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          assetSoftDelete: softDelete,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async {
+            return Cap24MinuteLandmark(
+              displayText: l10n.cap24SoftDeleteSheetExactMinuteLibrary(
+                '2024',
+                '06',
+                '01',
+                '12',
+                '00',
+              ),
+              fromLibrary: true,
+            );
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
+      await tester.pump();
+
+      final infoButton = tester.widget<IconButton>(
+        find.descendant(
+          of: find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneInfo')),
+          matching: find.byType(IconButton),
+        ),
+      );
+      expect(infoButton.onPressed, isNull);
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsNothing,
+      );
+
+      hold.complete();
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'W-24.3-18 bubble dismiss never pops sheet when force-opened under latch',
+    (tester) async {
+      final hold = Completer<void>();
+      final softDelete = FakeAssetSoftDeleteRepository()..hold = hold;
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          assetSoftDelete: softDelete,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async {
+            return Cap24MinuteLandmark(
+              displayText: l10n.cap24SoftDeleteSheetExactMinuteLibrary(
+                '2024',
+                '06',
+                '01',
+                '12',
+                '00',
+              ),
+              fromLibrary: true,
+            );
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
+      await tester.pump();
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetDeleteBusy')),
+        findsOneWidget,
+      );
+
+      // Simulate latch-guard miss: force-open bubble while Host is in-flight.
+      final sheetContext =
+          tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
+      final l10n = AppLocalizations.of(sheetContext)!;
+      final handle = showCap24TimezoneNoteBubble(
+        context: sheetContext,
+        message: l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
+        anchorOverlayRect: const Rect.fromLTWH(280, 520, 44, 44),
+      );
+      // Busy spinner animates forever — do not pumpAndSettle.
+      await tester.pump();
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsOneWidget,
+      );
+
+      handle.dismiss();
+      await tester.pump();
+
+      expect(
+        find.byKey(const Key('cap24SoftDeleteSheetMinuteTimezoneNote')),
+        findsNothing,
+      );
+      // Last line of defense: dismiss is OverlayEntry.remove only.
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+      expect(softDelete.callCount, 1);
+
+      hold.complete();
+      await tester.pumpAndSettle();
     },
   );
 }

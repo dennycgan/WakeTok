@@ -217,6 +217,7 @@
     "cap24MoreEntryIconSemantics",
     "cap24SoftDeleteSheetDelete",
     "cap24SoftDeleteSheetMinuteTimezoneNote",
+    "cap24SoftDeleteSheetMinuteTimezoneInfoSemantics",
     "cap24SoftDeleteSheetExactMinute",
     "cap24SoftDeleteSheetExactMinuteNoSeconds",
     "cap24SoftDeleteSheetExactMinuteLibrary",

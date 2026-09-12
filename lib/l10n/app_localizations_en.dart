@@ -817,7 +817,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
-      'Time zone differences can shift this time by a few hours, in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and converted for your current time zone, neither is guaranteed to match the exact moment this item was created or saved.';
+      'This is the finest time resolution WakeTok can show here for this item. Time zone differences may still shift it by a few hours; in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and may be affected by your current time zone, neither is guaranteed to match the exact moment this item was created or saved.';
+
+  @override
+  String get cap24SoftDeleteSheetMinuteTimezoneInfoSemantics =>
+      'More about this time';
 
   @override
   String cap24SoftDeleteSheetExactMinute(

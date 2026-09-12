@@ -12,6 +12,7 @@ import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
 import 'package:waketok/features/main_browse/cap24_more_panel_open.dart';
 import 'package:waketok/features/main_browse/cap24_panel_host_context.dart';
 import 'package:waketok/features/main_browse/cap24_soft_delete_dialogs.dart';
+import 'package:waketok/features/main_browse/cap24_timezone_note_bubble.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -73,11 +74,60 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   var _landmarkResolved = false;
   var _hostBusy = false;
   var _deleteLatch = false;
+  Cap24TimezoneNoteBubbleHandle? _timezoneNoteBubble;
+  final GlobalKey _timezoneInfoAnchorKey = GlobalKey();
+  /// Barrier dismiss + IconButton can both see the same tap (translucent
+  /// barrier). Consume one reopen attempt so re-tap i only closes.
+  var _suppressTimezoneInfoReopen = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadLandmark());
+  }
+
+  @override
+  void dispose() {
+    _dismissTimezoneNoteBubble();
+    super.dispose();
+  }
+
+  void _dismissTimezoneNoteBubble() {
+    _timezoneNoteBubble?.dismiss();
+    _timezoneNoteBubble = null;
+  }
+
+  void _toggleTimezoneNoteBubble() {
+    if (_timezoneNoteBubble?.isShowing == true) {
+      _dismissTimezoneNoteBubble();
+      setState(() {});
+      return;
+    }
+    if (_suppressTimezoneInfoReopen) {
+      _suppressTimezoneInfoReopen = false;
+      return;
+    }
+    // Latch (includes Host busy): never open — avoids bubble vs PopScope fights.
+    if (_deleteLatch) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context)!;
+    _timezoneNoteBubble = showCap24TimezoneNoteBubble(
+      context: context,
+      anchorKey: _timezoneInfoAnchorKey,
+      message: l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
+      onDismissed: () {
+        _timezoneNoteBubble = null;
+        _suppressTimezoneInfoReopen = true;
+        if (mounted) {
+          setState(() {});
+        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _suppressTimezoneInfoReopen = false;
+        });
+      },
+    );
+    setState(() {});
   }
 
   Future<void> _loadLandmark() async {
@@ -117,6 +167,8 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
       return;
     }
     _deleteLatch = true;
+    // Close honesty bubble before latch UI; dismiss never pops the sheet.
+    _dismissTimezoneNoteBubble();
     // Latch alone blocks dismiss during Cap 23 gate; busy spinner only for Host.
     setState(() {});
 
@@ -194,12 +246,6 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
     final timeStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: tokens.onMedia,
         );
-    // One step below labelSmall (12 → 11); still on-media muted token color.
-    final labelSmall = Theme.of(context).textTheme.labelSmall;
-    final timezoneNoteStyle = labelSmall?.copyWith(
-      color: tokens.onMediaMuted,
-      fontSize: (labelSmall.fontSize ?? 12) - 1,
-    );
     // Cap 24 half-sheet Delete: outlined destructive (iOS systemRed via
     // tokens.destructive), not brand accent fill. Overturns the brief
     // "accept accent filled" draft. Cap 24 destructive #FF3B30 and Cap 22
@@ -243,20 +289,51 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
                   ),
                 ),
                 if (_landmarkResolved && _landmark != null) ...[
-                  Text(
-                    _landmark!.displayText,
-                    key: Key(
-                      _landmark!.fromLibrary
-                          ? 'cap24SoftDeleteSheetMinuteLibrary'
-                          : 'cap24SoftDeleteSheetMinuteBare',
-                    ),
-                    style: timeStyle,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
-                    key: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
-                    style: timezoneNoteStyle,
+                  Row(
+                    // Icon sits immediately after the time — not trailing-end.
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Flexible(
+                        fit: FlexFit.loose,
+                        child: Text(
+                          _landmark!.displayText,
+                          key: Key(
+                            _landmark!.fromLibrary
+                                ? 'cap24SoftDeleteSheetMinuteLibrary'
+                                : 'cap24SoftDeleteSheetMinuteBare',
+                          ),
+                          style: timeStyle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Semantics(
+                        button: true,
+                        label: l10n
+                            .cap24SoftDeleteSheetMinuteTimezoneInfoSemantics,
+                        child: KeyedSubtree(
+                          key: const Key(
+                            'cap24SoftDeleteSheetMinuteTimezoneInfo',
+                          ),
+                          child: IconButton(
+                            key: _timezoneInfoAnchorKey,
+                            icon: Icon(
+                              Icons.info_outline,
+                              size: 18,
+                              color: tokens.onMediaMuted,
+                            ),
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 44,
+                            ),
+                            onPressed:
+                                latch ? null : _toggleTimezoneNoteBubble,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                 ],

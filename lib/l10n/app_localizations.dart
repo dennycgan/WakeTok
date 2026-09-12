@@ -1506,11 +1506,17 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get cap24SoftDeleteSheetDelete;
 
-  /// Cap 24 half-sheet honesty note (file vs library + device TZ; hour common, date rare vs Overlay ~ day)
+  /// Cap 24 half-sheet honesty note shown in the i-bubble (finest resolution here; file vs library + device TZ; hour common, date rare vs Overlay ~ day)
   ///
   /// In en, this message translates to:
-  /// **'Time zone differences can shift this time by a few hours, in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and converted for your current time zone, neither is guaranteed to match the exact moment this item was created or saved.'**
+  /// **'This is the finest time resolution WakeTok can show here for this item. Time zone differences may still shift it by a few hours; in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and may be affected by your current time zone, neither is guaranteed to match the exact moment this item was created or saved.'**
   String get cap24SoftDeleteSheetMinuteTimezoneNote;
+
+  /// Semantics / accessibility label for Cap 24 half-sheet circular i next to the minute row
+  ///
+  /// In en, this message translates to:
+  /// **'More about this time'**
+  String get cap24SoftDeleteSheetMinuteTimezoneInfoSemantics;
 
   /// Cap 24.3 bare EXIF/TIFF civil clock with seconds
   ///

@@ -1057,9 +1057,13 @@
   "@cap24SoftDeleteSheetDelete": {
     "description": "Cap 24.3 more half-sheet Delete row (system PhotoKit consent is the only confirm)"
   },
-  "cap24SoftDeleteSheetMinuteTimezoneNote": "Time zone differences can shift this time by a few hours, in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and converted for your current time zone, neither is guaranteed to match the exact moment this item was created or saved.",
+  "cap24SoftDeleteSheetMinuteTimezoneNote": "This is the finest time resolution WakeTok can show here for this item. Time zone differences may still shift it by a few hours; in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and may be affected by your current time zone, neither is guaranteed to match the exact moment this item was created or saved.",
   "@cap24SoftDeleteSheetMinuteTimezoneNote": {
-    "description": "Cap 24 half-sheet honesty note (file vs library + device TZ; hour common, date rare vs Overlay ~ day)"
+    "description": "Cap 24 half-sheet honesty note shown in the i-bubble (finest resolution here; file vs library + device TZ; hour common, date rare vs Overlay ~ day)"
+  },
+  "cap24SoftDeleteSheetMinuteTimezoneInfoSemantics": "More about this time",
+  "@cap24SoftDeleteSheetMinuteTimezoneInfoSemantics": {
+    "description": "Semantics / accessibility label for Cap 24 half-sheet circular i next to the minute row"
   },
   "cap24SoftDeleteSheetExactMinute": "{year}-{month}-{day} {hour}:{minute}:{second}",
   "@cap24SoftDeleteSheetExactMinute": {
