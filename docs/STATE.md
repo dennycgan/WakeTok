@@ -192,10 +192,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       settles Future (cancel silent); iPad minimal popover anchor;
       domain `AssetShareRepository` + gateway + composition-root;
       Fake + T-25.2 gateway tests; full `flutter test` green
-- [ ] 25.3 Action Column Share icon (index 1) + Album slot → index 2;
-      Cap 19/24 slot-family chrome; Cap 23 gate on tap; fail toast
-      ARB; optical weight pass vs Cap 24 ellipsis (may tune glyph
-      size on device — do not assume 32pt)
+- [x] 25.3 Action Column Share icon (index 1) + Album slot → index 2
+      Work `c3b5a58`: `Cap25ShareEntryIcon` + toast ARB
+      `cap25ShareFailed`; `mainBrowseSharePresentInFlightProvider`
+      latch; Cap 19/24 slot-family + Cap 23 gate (no L2 ready);
+      Album inset → index 2; layout-notes Code anchors; W-25.3 +
+      W-24.3-1 update; glyph starts at 32 (Profile optical may tune)
 - [ ] 25.4 Device acceptance (Kafka + i17; still / video / Live /
       iCloudNotDownloaded / Limited / cancel-silent / Host-fail
       toast / missing → Cap 23 dialog); notes under
@@ -206,12 +208,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       debt close count = 0
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 25.3 Action Column Share icon + Album → index 2
+- Goal (one line): Cap 25.4 device acceptance (Kafka + i17 Share matrix)
 - Sub-steps done: Cap 25.1 ADR-051 Proposed (`b2f78b3`); Cap 25.2
-      Host/Pigeon/Fake work `99c2e73`
-- Next step: design/implement Share chrome (slot family + Cap 23
-      gate + fail toast ARB); Album inset → index 2; layout-notes
-      Code anchors path when widget lands
+      Host/Pigeon/Fake work `99c2e73`; Cap 25.3 Share chrome work
+      `c3b5a58`
+- Next step: Profile device matrix (still / video / Live /
+      iCloudNotDownloaded / Limited / cancel-silent / Host-fail /
+      Cap 23 missing); write `docs/acceptance/cap25-*.md`
 - Related decisions: ADR-051 Proposed; ADR-050 D2 index narrowly
       superseded; ADR-049 / ADR-042 named gate+chrome symbols;
       debt **456a** / **457** Open (out of Cap 25); **469**
@@ -453,6 +456,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`
       (work `99c2e73`); gateway tests
       `test/platform/cap25_2_share_gateway_test.dart`
+- Cap 25.3 Share chrome: `cap25_share_entry_icon.dart` +
+      `cap25_share_toast.dart`; `mainBrowseSharePresentInFlightProvider`;
+      ARB `cap25ShareFailed` / `cap25ShareEntryIconSemantics`
+      (work `c3b5a58`); widget tests
+      `test/features/main_browse/cap25_3_share_entry_test.dart`
 - Cap 24 soft-delete locked copy candidates (pre-ARB; EN + zh-Hans):
       `docs/reference/cap24-soft-delete-copy-candidates.md`
 - Cap 24.5 device acceptance notes (Kafka + i17 matrix **PASS**):
