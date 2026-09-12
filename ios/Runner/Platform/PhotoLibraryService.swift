@@ -2196,6 +2196,268 @@ final class PhotoLibraryService: PhotoLibraryApi {
     }
   }
 
+  // MARK: - Cap 25 Share (ADR-051)
+
+  /// Cap 25 / ADR-051: present system share sheet for [assetIdentifier].
+  ///
+  /// Completes when the sheet has been **presented** (not when dismissed).
+  /// Share-sheet cancel must not fail this completion and must not map to
+  /// `operationCancelled`. Missing asset / cannot build items / no root VC →
+  /// `assetUnavailable`.
+  ///
+  /// Live Photo: `PHImageManager.requestLivePhoto` inside this service only
+  /// (do **not** route through `LivePhotoApiHost` — that owns feed Platform
+  /// View state). Prefer `PHLivePhoto` as the activity item; fall back to
+  /// still image when Live delivery fails (owner Q-A=A1).
+  ///
+  /// iPad: set a minimal `popoverPresentationController` anchor to avoid
+  /// crash (ADR-051 D10). Not an MVP acceptance target (owner Q-B=B1).
+  func presentShareSheet(
+    assetIdentifier: String,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    do {
+      try requireLibraryAccess()
+    } catch {
+      completion(.failure(error))
+      return
+    }
+    guard !assetIdentifier.isEmpty else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset identifier is empty")
+        )
+      )
+      return
+    }
+    let assets = PHAsset.fetchAssets(
+      withLocalIdentifiers: [assetIdentifier],
+      options: nil
+    )
+    guard let asset = assets.firstObject else {
+      completion(
+        .failure(
+          fail(.assetUnavailable, message: "Asset not found")
+        )
+      )
+      return
+    }
+
+    DispatchQueue.main.async {
+      guard let host = self.rootViewController() else {
+        completion(
+          .failure(
+            self.fail(
+              .assetUnavailable,
+              message: "No root view controller for share sheet"
+            )
+          )
+        )
+        return
+      }
+      self.buildShareActivityItems(for: asset) { itemsResult in
+        switch itemsResult {
+        case .failure(let error):
+          completion(.failure(error))
+        case .success(let payload):
+          let activity = UIActivityViewController(
+            activityItems: payload.items,
+            applicationActivities: nil
+          )
+          // Cap 25 / ADR-051 D10: iPhone-only product acceptance; still set
+          // a minimal popover anchor on iPad so Simulator/universal builds
+          // do not crash. Not an MVP iPad layout claim.
+          if UIDevice.current.userInterfaceIdiom == .pad,
+            let popover = activity.popoverPresentationController
+          {
+            popover.sourceView = host.view
+            popover.sourceRect = CGRect(
+              x: host.view.bounds.midX,
+              y: host.view.bounds.midY,
+              width: 1,
+              height: 1
+            )
+            popover.permittedArrowDirections = []
+          }
+          activity.completionWithItemsHandler = { _, _, _, _ in
+            for url in payload.temporaryFileURLs {
+              try? FileManager.default.removeItem(at: url)
+            }
+          }
+          host.present(activity, animated: true) {
+            // Presented — settle Pigeon here (cancel/complete stay silent).
+            completion(.success(()))
+          }
+        }
+      }
+    }
+  }
+
+  private struct ShareActivityPayload {
+    let items: [Any]
+    /// Host-owned temps only (never Photos-managed AVURLAsset URLs).
+    let temporaryFileURLs: [URL]
+  }
+
+  private func buildShareActivityItems(
+    for asset: PHAsset,
+    completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
+  ) {
+    if asset.mediaType == .video {
+      buildShareVideoItems(for: asset, completion: completion)
+      return
+    }
+    if asset.mediaSubtypes.contains(.photoLive) {
+      buildShareLivePhotoItems(for: asset, completion: completion)
+      return
+    }
+    buildShareStillImageItems(for: asset, completion: completion)
+  }
+
+  private func buildShareLivePhotoItems(
+    for asset: PHAsset,
+    completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
+  ) {
+    let options = PHLivePhotoRequestOptions()
+    options.isNetworkAccessAllowed = true
+    options.deliveryMode = .highQualityFormat
+    let targetSize = CGSize(
+      width: CGFloat(max(asset.pixelWidth, 1)),
+      height: CGFloat(max(asset.pixelHeight, 1))
+    )
+    PHImageManager.default().requestLivePhoto(
+      for: asset,
+      targetSize: targetSize,
+      contentMode: .aspectFit,
+      options: options
+    ) { [weak self] livePhoto, info in
+      guard let self else { return }
+      DispatchQueue.main.async {
+        if let cancelled = info?[PHImageCancelledKey] as? Bool, cancelled {
+          completion(
+            .failure(
+              self.fail(
+                .assetUnavailable,
+                message: "Live Photo share request cancelled"
+              )
+            )
+          )
+          return
+        }
+        if let livePhoto {
+          completion(
+            .success(
+              ShareActivityPayload(items: [livePhoto], temporaryFileURLs: [])
+            )
+          )
+          return
+        }
+        // A1 fallback: still key photo when Live delivery fails.
+        self.buildShareStillImageItems(for: asset, completion: completion)
+      }
+    }
+  }
+
+  private func buildShareStillImageItems(
+    for asset: PHAsset,
+    completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
+  ) {
+    let options = PHImageRequestOptions()
+    options.isNetworkAccessAllowed = true
+    options.deliveryMode = .highQualityFormat
+    options.resizeMode = .none
+    options.isSynchronous = false
+    let targetSize = CGSize(
+      width: CGFloat(max(asset.pixelWidth, 1)),
+      height: CGFloat(max(asset.pixelHeight, 1))
+    )
+    PHImageManager.default().requestImage(
+      for: asset,
+      targetSize: targetSize,
+      contentMode: .aspectFit,
+      options: options
+    ) { [weak self] image, info in
+      guard let self else { return }
+      DispatchQueue.main.async {
+        if let cancelled = info?[PHImageCancelledKey] as? Bool, cancelled {
+          completion(
+            .failure(
+              self.fail(
+                .assetUnavailable,
+                message: "Still share request cancelled"
+              )
+            )
+          )
+          return
+        }
+        guard let image else {
+          completion(
+            .failure(
+              self.fail(
+                .assetUnavailable,
+                message: "Failed to build still share item"
+              )
+            )
+          )
+          return
+        }
+        completion(
+          .success(
+            ShareActivityPayload(items: [image], temporaryFileURLs: [])
+          )
+        )
+      }
+    }
+  }
+
+  private func buildShareVideoItems(
+    for asset: PHAsset,
+    completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
+  ) {
+    let options = PHVideoRequestOptions()
+    options.isNetworkAccessAllowed = true
+    options.deliveryMode = .highQualityFormat
+    PHImageManager.default().requestAVAsset(
+      forVideo: asset,
+      options: options
+    ) { [weak self] avAsset, _, info in
+      guard let self else { return }
+      DispatchQueue.main.async {
+        if let cancelled = info?[PHImageCancelledKey] as? Bool, cancelled {
+          completion(
+            .failure(
+              self.fail(
+                .assetUnavailable,
+                message: "Video share request cancelled"
+              )
+            )
+          )
+          return
+        }
+        guard let urlAsset = avAsset as? AVURLAsset else {
+          completion(
+            .failure(
+              self.fail(
+                .assetUnavailable,
+                message: "Failed to build video share item"
+              )
+            )
+          )
+          return
+        }
+        // Photos-managed URL — do not delete in completion handler.
+        completion(
+          .success(
+            ShareActivityPayload(
+              items: [urlAsset.url],
+              temporaryFileURLs: []
+            )
+          )
+        )
+      }
+    }
+  }
+
   /// Maps PhotoKit write failures to stable Pigeon [ErrorCode] values.
   private func mapPhotoKitAlbumMutationError(
     _ error: Error,

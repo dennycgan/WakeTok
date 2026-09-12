@@ -1515,6 +1515,14 @@ protocol PhotoLibraryApi {
   /// [ErrorCode.assetUnavailable]. User cancel of a system confirm →
   /// [ErrorCode.operationCancelled] (cancel ≠ failure for App toast).
   func softDeleteAsset(assetIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
+  /// Cap 25 / ADR-051: present the system share sheet for [assetIdentifier].
+  ///
+  /// Completes when the sheet has been **presented** (or fails before
+  /// present). User cancel / successful share must **not** fail this call
+  /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
+  /// cannot build activity items, or no root UIViewController →
+  /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+  func presentShareSheet(assetIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -2074,6 +2082,30 @@ class PhotoLibraryApiSetup {
       }
     } else {
       softDeleteAssetChannel.setMessageHandler(nil)
+    }
+    /// Cap 25 / ADR-051: present the system share sheet for [assetIdentifier].
+    ///
+    /// Completes when the sheet has been **presented** (or fails before
+    /// present). User cancel / successful share must **not** fail this call
+    /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
+    /// cannot build activity items, or no root UIViewController →
+    /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+    let presentShareSheetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.presentShareSheet\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      presentShareSheetChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let assetIdentifierArg = args[0] as! String
+        api.presentShareSheet(assetIdentifier: assetIdentifierArg) { result in
+          switch result {
+          case .success:
+            reply(wrapResult(nil))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      presentShareSheetChannel.setMessageHandler(nil)
     }
   }
 }

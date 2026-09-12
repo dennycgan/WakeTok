@@ -2056,6 +2056,31 @@ class PhotoLibraryApi {
     )
     ;
   }
+
+  /// Cap 25 / ADR-051: present the system share sheet for [assetIdentifier].
+  ///
+  /// Completes when the sheet has been **presented** (or fails before
+  /// present). User cancel / successful share must **not** fail this call
+  /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
+  /// cannot build activity items, or no root UIViewController →
+  /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+  Future<void> presentShareSheet(String assetIdentifier) async {
+    final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.presentShareSheet$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[assetIdentifier]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    _extractReplyValueOrThrow(
+        pigeonVar_replyList,
+        pigeonVar_channelName,
+        isNullValid: true,
+    )
+    ;
+  }
 }
 
 /// App-scoped playback service contract (ADR-006).

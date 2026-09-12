@@ -592,6 +592,16 @@ abstract class PhotoLibraryApi {
   /// [ErrorCode.operationCancelled] (cancel ≠ failure for App toast).
   @async
   void softDeleteAsset(String assetIdentifier);
+
+  /// Cap 25 / ADR-051: present the system share sheet for [assetIdentifier].
+  ///
+  /// Completes when the sheet has been **presented** (or fails before
+  /// present). User cancel / successful share must **not** fail this call
+  /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
+  /// cannot build activity items, or no root UIViewController →
+  /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+  @async
+  void presentShareSheet(String assetIdentifier);
 }
 
 /// App-scoped playback service contract (ADR-006).
