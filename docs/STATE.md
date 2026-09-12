@@ -261,6 +261,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 24.5 Device acceptance
       (incl. Decision 4 resolve RD exclusion / restore reappearance;
       SYS = system PhotoKit consent only per Decision 3 revised)
+- [ ] 24.5.1 Frosted half-sheet fails to crush Meta Overlay over
+      Platform View backdrops (Live playing / video all-time)
+      Root cause: BackdropFilter does not reliably blur Hybrid
+      Composition UiKitView content; tint alpha 0.78 alone is
+      insufficient without blur — so the documented crush intent
+      (cap19_entry_layout: crush bottom-left MediaInfoOverlay) fails
+      whenever the sheet backdrop is a platform view.
+      Affects when: Cap 19 + Cap 24 half-sheets open over video
+      (UiKitView mounted for the page lifetime) or Live while
+      `_liveMotionMounted` (live_photo_surface UiKitView).
+      Does not affect when: sheet backdrop is a Flutter still
+      (ordinary stills; Live after playback ends / motion surface
+      torn down) — blur works and Meta is crushed as designed.
+      Fix TBD (opaque-on-open / raise opacity / pause underlying
+      playback / other); needs product go-ahead. Record-only —
+      do not implement in this phase. Separate from 24.5.5
+      (test-infra harness; debts 465/466/467).
 - [ ] 24.5.5 Feed / wait-chrome widget-test harness align
       (test-infra only; not Cap 24 product scope; resolves Known debt
       465 / 466 / 467 diagnosed during 24.2 control-group run; must
