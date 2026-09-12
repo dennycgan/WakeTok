@@ -50,7 +50,7 @@ Future<void> showCap24MoreHalfSheet(BuildContext context) {
               sigmaY: kCap19ActionsHalfSheetBlurSigma,
             ),
             child: ColoredBox(
-              color: tokens.feedBackground.withValues(
+              color: tokens.mediaSheetSurface.withValues(
                 alpha: kCap19ActionsHalfSheetTintOpacity,
               ),
               child: const Cap24MoreHalfSheet(),

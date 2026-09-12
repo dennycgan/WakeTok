@@ -67,8 +67,10 @@ class Cap24MoreEntryIcon extends ConsumerWidget {
               height: kActionColumnHitSize,
               child: Center(
                 child: Icon(
-                  CupertinoIcons.ellipsis,
-                  size: kActionColumnIconSize,
+                  CupertinoIcons.ellipsis_circle,
+                  // Optical match vs Cap 19 rectangle_stack_badge_plus at 32 —
+                  // outline circle reads smaller at the shared column size.
+                  size: 36,
                   color: tokens.onMedia,
                   shadows: tokens.onMediaLabelShadows,
                 ),

@@ -44,7 +44,7 @@ Future<void> showCap19ActionsHalfSheet(
               sigmaY: kCap19ActionsHalfSheetBlurSigma,
             ),
             child: ColoredBox(
-              color: tokens.feedBackground.withValues(
+              color: tokens.mediaSheetSurface.withValues(
                 alpha: kCap19ActionsHalfSheetTintOpacity,
               ),
               child: Cap19ActionsHalfSheet(access: access),

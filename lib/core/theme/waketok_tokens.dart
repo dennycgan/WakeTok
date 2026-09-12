@@ -18,6 +18,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.destructive,
     required this.brandGold,
     required this.feedBackground,
+    required this.mediaSheetSurface,
     required this.mediaScrim,
     required this.onMediaPillFill,
     required this.onMedia,
@@ -58,6 +59,15 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
 
   /// Vertical media feed backdrop (same black in both modes).
   final Color feedBackground;
+
+  /// Large frosted panel fill over the media feed (Cap 19 / Cap 24
+  /// bottom half-sheets). Distinct from [surface] (cards / app bars /
+  /// banners) and from [feedBackground] (letterbox black) so sheet edges
+  /// stay visible on non-full-bleed media. L=D `#1E1E1E` (same hex as Dark
+  /// [surface] at intro — independent semantic path). Cap 19/24 sheets
+  /// always wrap `Brightness.dark`; the Light preset is unused by that
+  /// chrome but required for ThemeExtension completeness.
+  final Color mediaSheetSurface;
 
   /// Semi-transparent scrim over media for chrome/controls (L/D same).
   /// Not used for Browse top source chrome after ADR-016 (transparent +
@@ -138,6 +148,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     destructive: Color(0xFFFF3B30),
     brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
+    mediaSheetSurface: Color(0xFF1E1E1E),
     mediaScrim: Color(0x99000000),
     // Video-App-B Reset-class mid gray (~80%): visible on black feed.
     onMediaPillFill: Color(0xCC6E6E6E),
@@ -191,6 +202,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     destructive: Color(0xFFFF3B30),
     brandGold: Color(0xFFE0C590),
     feedBackground: Color(0xFF000000),
+    mediaSheetSurface: Color(0xFF1E1E1E),
     mediaScrim: Color(0x99000000),
     // Video-App-B Reset-class mid gray (~80%): visible on black feed.
     onMediaPillFill: Color(0xCC6E6E6E),
@@ -245,6 +257,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? destructive,
     Color? brandGold,
     Color? feedBackground,
+    Color? mediaSheetSurface,
     Color? mediaScrim,
     Color? onMediaPillFill,
     Color? onMedia,
@@ -269,6 +282,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       destructive: destructive ?? this.destructive,
       brandGold: brandGold ?? this.brandGold,
       feedBackground: feedBackground ?? this.feedBackground,
+      mediaSheetSurface: mediaSheetSurface ?? this.mediaSheetSurface,
       mediaScrim: mediaScrim ?? this.mediaScrim,
       onMediaPillFill: onMediaPillFill ?? this.onMediaPillFill,
       onMedia: onMedia ?? this.onMedia,
@@ -303,6 +317,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
       destructive: Color.lerp(destructive, other.destructive, t)!,
       brandGold: Color.lerp(brandGold, other.brandGold, t)!,
       feedBackground: Color.lerp(feedBackground, other.feedBackground, t)!,
+      mediaSheetSurface:
+          Color.lerp(mediaSheetSurface, other.mediaSheetSurface, t)!,
       mediaScrim: Color.lerp(mediaScrim, other.mediaScrim, t)!,
       onMediaPillFill: Color.lerp(onMediaPillFill, other.onMediaPillFill, t)!,
       onMedia: Color.lerp(onMedia, other.onMedia, t)!,
