@@ -46,6 +46,7 @@ import '../../library_smoke/fake_new_round_toast_preferences.dart';
 import '../../library_smoke/fake_playback_repository.dart';
 import '../../library_smoke/fake_presentation_metadata_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 const _feedZeroEmptyRetries = [Duration.zero, Duration.zero, Duration.zero];
 
@@ -1221,30 +1222,39 @@ void main() {
     );
     await pumpUntilFeedIds(tester);
     await tester.pump(const Duration(milliseconds: 300));
-    expect(display.displayCalls, ['a1']);
+    // Cap 15.12: deviceLocal L2 fail → full L1→L2 fallback (W-15.12d) —
+    // two sequential display calls before the user taps Retry.
+    expect(display.displayCalls, ['a1', 'a1']);
     expect(find.byKey(const Key('mainBrowseFeedLayer2Retry')), findsOneWidget);
+    final beforeRetry = display.displayCalls.length;
     display.displayErrorById.remove('a1');
     await tester.tap(find.byKey(const Key('mainBrowseFeedLayer2Retry')));
+    // One frame only — Retry must use bypassDwell (no production N wait).
     await tester.pump();
-    expect(display.displayCalls, ['a1', 'a1']);
+    expect(
+      display.displayCalls.length,
+      beforeRetry + 1,
+      reason: 'Retry must issue requestDisplayAsset immediately (bypassDwell)',
+    );
   });
 
   testWidgets('W-16.4e spinner stays up during dwell', (tester) async {
     final display = FakeMediaDisplayRepository();
-    display.previewsById['a1'] = const DisplayAsset(
-      assetIdentifier: 'a1',
-      mediaKind: PlaybackMediaKind.image,
-      localFilePath: '/tmp/fake_preview_a1.jpg',
-    );
+    // Full L1→L2 path (not deviceLocal fast-path): All-tab deviceLocal
+    // skips still L1, so a hung L2 would never paint mainBrowseFeedStill_*.
+    // iCloudNotDownloaded stays in-library for Cap 23 and keeps L1 cover.
+    seedDecodableStillPaths(display, const ['a1']);
     display.displayGates['a1'] = Completer<void>();
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
-          ),
+          allIds: const ['a1'],
+          availabilityById: const {
+            'a1': AssetAvailability.iCloudNotDownloaded,
+          },
+        ),
         mediaDisplay: display,
         browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
@@ -1252,6 +1262,7 @@ void main() {
     await pumpUntilFeedIds(tester);
     await tester.pump();
     expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+    await pumpUntilStillCoverReadyForAsset(tester, 'a1');
     expect(
       find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
       findsNothing,
@@ -1437,6 +1448,8 @@ void main() {
     tester,
   ) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    seedDecodableStillPaths(display, const ['a1']);
     final presentation = FakePresentationMetadataRepository(
       basicsGate: Completer<void>(),
       sizeGate: Completer<void>(),
@@ -1448,10 +1461,12 @@ void main() {
             allIds: const ['a1'],
             availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
           ),
+        mediaDisplay: display,
         presentationMetadata: presentation,
       ),
     );
     await tester.pumpAndSettle();
+    await pumpUntilStillCoverReadyForAsset(tester, 'a1');
     expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
     expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
     expect(presentation.basicsCalls, greaterThan(0));
@@ -1504,6 +1519,8 @@ void main() {
       );
 
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      seedDecodableStillPaths(display, const ['a1', 'a2']);
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
@@ -1511,10 +1528,12 @@ void main() {
             allIds: const ['a1', 'a2'],
             availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
           ),
+          mediaDisplay: display,
           presentationMetadata: presentation,
         ),
       );
       await tester.pumpAndSettle();
+      await pumpUntilStillCoverReadyForAsset(tester, 'a1');
       expect(find.text(a1Exact), findsOneWidget);
       expect(find.text(a1Size), findsOneWidget);
 
@@ -1522,6 +1541,7 @@ void main() {
       final container = ProviderScope.containerOf(element);
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
       await tester.pumpAndSettle();
+      await pumpUntilStillCoverReadyForAsset(tester, 'a2');
       expect(find.text(a2Exact), findsOneWidget);
       expect(find.text(a1Exact), findsNothing);
 
@@ -1587,13 +1607,17 @@ void main() {
       );
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       final display = FakeMediaDisplayRepository();
+      // Hung L2 needs an L1 still; All-tab deviceLocal skips still L1.
+      seedDecodableStillPaths(display, const ['a1']);
       display.displayGates['a1'] = Completer<void>();
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+            availabilityById: const {
+              'a1': AssetAvailability.iCloudNotDownloaded,
+            },
           ),
           mediaDisplay: display,
           presentationMetadata: presentation,
@@ -1601,6 +1625,7 @@ void main() {
       );
       await pumpAsyncWork(tester);
       expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+      await pumpUntilStillCoverReadyForAsset(tester, 'a1');
       await revealLayer2WaitChromeForTest(tester, 'a1');
       expect(
         find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
@@ -1721,6 +1746,7 @@ void main() {
         },
       );
       final display = FakeMediaDisplayRepository();
+      seedDecodableStillPaths(display, const ['cloud']);
       display.displayErrorById['cloud'] = 'iCloudDownloadFailed';
       display.previewErrorById['bad'] = 'iCloudDownloadRequired';
       display.displayErrorById['bad'] = 'assetUnavailable';
@@ -1738,6 +1764,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await pumpUntilStillCoverReadyForAsset(tester, 'cloud');
       expect(
         find.byKey(const Key('mainBrowseFeedStill_cloud')),
         findsOneWidget,
@@ -1794,6 +1821,8 @@ void main() {
         },
       );
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      seedDecodableStillPaths(display, const ['loc1']);
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
@@ -1801,10 +1830,12 @@ void main() {
             allIds: const ['loc1'],
             availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['loc1']),
           ),
+          mediaDisplay: display,
           presentationMetadata: presentation,
         ),
       );
       await tester.pumpAndSettle();
+      await pumpUntilStillCoverReadyForAsset(tester, 'loc1');
 
       expect(find.text(exact), findsOneWidget);
       expect(find.text(sizeCopy), findsOneWidget);
@@ -2370,12 +2401,11 @@ void main() {
   testWidgets('L-S1 preparing Key while waiting for ready', (tester) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    display.displaysById['live-1'] = const DisplayAsset(
-      assetIdentifier: 'live-1',
+    seedDecodableStillPaths(
+      display,
+      const ['live-1'],
       mediaKind: PlaybackMediaKind.livePhoto,
-      localFilePath: '/tmp/live-1.jpg',
     );
-    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -2389,6 +2419,8 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+    await pumpPastLivePreparingSuppress(tester);
 
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
@@ -2403,12 +2435,11 @@ void main() {
   testWidgets('L-S2 ready clears preparing Key', (tester) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    display.displaysById['live-1'] = const DisplayAsset(
-      assetIdentifier: 'live-1',
+    seedDecodableStillPaths(
+      display,
+      const ['live-1'],
       mediaKind: PlaybackMediaKind.livePhoto,
-      localFilePath: '/tmp/live-1.jpg',
     );
-    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -2422,6 +2453,8 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+    await pumpPastLivePreparingSuppress(tester);
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       findsOneWidget,
@@ -2477,12 +2510,11 @@ void main() {
   ) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    display.displaysById['live-1'] = const DisplayAsset(
-      assetIdentifier: 'live-1',
+    seedDecodableStillPaths(
+      display,
+      const ['live-1'],
       mediaKind: PlaybackMediaKind.livePhoto,
-      localFilePath: '/tmp/live-1.jpg',
     );
-    display.previewsById['live-1'] = display.displaysById['live-1']!;
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -2496,6 +2528,8 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+    await pumpPastLivePreparingSuppress(tester);
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       findsOneWidget,
@@ -2522,17 +2556,12 @@ void main() {
   ) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    display.displaysById['live-1'] = const DisplayAsset(
-      assetIdentifier: 'live-1',
+    seedDecodableStillPaths(
+      display,
+      const ['live-1'],
       mediaKind: PlaybackMediaKind.livePhoto,
-      localFilePath: '/tmp/live-1.jpg',
     );
-    display.previewsById['live-1'] = display.displaysById['live-1']!;
-    display.displaysById['still-2'] = const DisplayAsset(
-      assetIdentifier: 'still-2',
-      mediaKind: PlaybackMediaKind.image,
-      localFilePath: '/tmp/still-2.jpg',
-    );
+    seedDecodableStillPaths(display, const ['still-2']);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -2546,6 +2575,8 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+    await pumpPastLivePreparingSuppress(tester);
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       findsOneWidget,
@@ -2571,17 +2602,12 @@ void main() {
     // (not a stream-reproducible dual-listener race; see hook doc).
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    display.displaysById['live-1'] = const DisplayAsset(
-      assetIdentifier: 'live-1',
+    seedDecodableStillPaths(
+      display,
+      const ['live-1'],
       mediaKind: PlaybackMediaKind.livePhoto,
-      localFilePath: '/tmp/live-1.jpg',
     );
-    display.previewsById['live-1'] = display.displaysById['live-1']!;
-    display.displaysById['still-2'] = const DisplayAsset(
-      assetIdentifier: 'still-2',
-      mediaKind: PlaybackMediaKind.image,
-      localFilePath: '/tmp/still-2.jpg',
-    );
+    seedDecodableStillPaths(display, const ['still-2']);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
@@ -2595,6 +2621,8 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+    await pumpPastLivePreparingSuppress(tester);
     expect(
       find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       findsOneWidget,
@@ -2685,13 +2713,11 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      const liveAsset = DisplayAsset(
-        assetIdentifier: 'live-1',
+      seedDecodableStillPaths(
+        display,
+        const ['live-1'],
         mediaKind: PlaybackMediaKind.livePhoto,
-        localFilePath: '/tmp/live-1.jpg',
       );
-      display.displaysById['live-1'] = liveAsset;
-      display.previewsById['live-1'] = liveAsset;
       display.displayGates['live-1'] = Completer<void>();
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
@@ -2699,13 +2725,16 @@ void main() {
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+            availabilityById: const {
+              'live-1': AssetAvailability.iCloudNotDownloaded,
+            },
           ),
           mediaDisplay: display,
           livePhoto: live,
         ),
       );
       await pumpAsyncWork(tester);
+      await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
       await revealLayer2WaitChromeForTest(tester, 'live-1');
 
       expect(
@@ -2732,13 +2761,11 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      const liveAsset = DisplayAsset(
-        assetIdentifier: 'live-1',
+      seedDecodableStillPaths(
+        display,
+        const ['live-1'],
         mediaKind: PlaybackMediaKind.livePhoto,
-        localFilePath: '/tmp/live-1.jpg',
       );
-      display.displaysById['live-1'] = liveAsset;
-      display.previewsById['live-1'] = liveAsset;
       // Hold L2 with elapsed ≥ T so wait chrome latches — ADR-037 continuity.
       final gate = Completer<void>();
       display.displayGates['live-1'] = gate;
@@ -2748,7 +2775,9 @@ void main() {
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+            availabilityById: const {
+              'live-1': AssetAvailability.iCloudNotDownloaded,
+            },
           ),
           mediaDisplay: display,
           livePhoto: live,
@@ -2762,8 +2791,8 @@ void main() {
           (w) => w is MediaFeedPage && w.assetIdentifier == 'live-1',
         ),
       );
-      page.debugInFlightElapsedOverride = kDefaultA4SuppressBelow;
-      await tester.pump();
+      await pumpUntilStillCoverReady(tester, page);
+      await revealLayer2WaitChromeForTest(tester, 'live-1');
       expect(
         find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
         findsOneWidget,
@@ -2794,13 +2823,11 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      const liveAsset = DisplayAsset(
-        assetIdentifier: 'live-1',
+      seedDecodableStillPaths(
+        display,
+        const ['live-1'],
         mediaKind: PlaybackMediaKind.livePhoto,
-        localFilePath: '/tmp/live-1.jpg',
       );
-      display.displaysById['live-1'] = liveAsset;
-      display.previewsById['live-1'] = liveAsset;
       final presentation = FakePresentationMetadataRepository(
         basicsById: {
           'live-1': PresentationMetadata(
@@ -2831,6 +2858,8 @@ void main() {
         ),
       );
       await pumpAsyncWork(tester);
+      await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+      await pumpPastLivePreparingSuppress(tester);
 
       final chrome = tester.getRect(
         find.byKey(const Key('mainBrowseFeedLiveChrome_live-1')),
@@ -2859,6 +2888,7 @@ void main() {
     'W-14.6b-L4 non-Live Layer 2 spinner sits in the same bottom-right corner',
     (tester) async {
       final display = FakeMediaDisplayRepository();
+      seedDecodableStillPaths(display, const ['a1']);
       display.displayGates['a1'] = Completer<void>();
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
@@ -2866,12 +2896,15 @@ void main() {
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+            availabilityById: const {
+              'a1': AssetAvailability.iCloudNotDownloaded,
+            },
           ),
           mediaDisplay: display,
         ),
       );
       await pumpAsyncWork(tester);
+      await pumpUntilStillCoverReadyForAsset(tester, 'a1');
       await revealLayer2WaitChromeForTest(tester, 'a1');
 
       expect(
@@ -3695,10 +3728,11 @@ void main() {
   ) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final display = FakeMediaDisplayRepository();
-    display.previewsById['v1'] = const DisplayAsset(
+    final posterPath = writeStillCoverTestPng('v1_14_4');
+    display.previewsById['v1'] = DisplayAsset(
       assetIdentifier: 'v1',
       mediaKind: PlaybackMediaKind.video,
-      localFilePath: '/tmp/fake_preview_v1.jpg',
+      localFilePath: posterPath,
     );
     final playback = FakePlaybackRepository();
     playback.loadGates['v1'] = Completer<void>();
@@ -3714,6 +3748,7 @@ void main() {
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'v1');
     await revealLayer2WaitChromeForTest(tester, 'v1');
 
     expect(find.byKey(const Key('mainBrowseFeedStill_v1')), findsOneWidget);
@@ -3863,6 +3898,8 @@ void main() {
         },
       );
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      seedDecodableStillPaths(display, const ['a1']);
       await tester.pumpWidget(
         permissionUiHarness(
           repo: repo,
@@ -3870,10 +3907,12 @@ void main() {
             allIds: const ['a1'],
             availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
           ),
+          mediaDisplay: display,
           presentationMetadata: presentation,
         ),
       );
       await tester.pumpAndSettle();
+      await pumpUntilStillCoverReadyForAsset(tester, 'a1');
       expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
       expect(find.text(sizeCopy), findsOneWidget);
       expect(presentation.sizeCalls, 2);
@@ -3936,6 +3975,8 @@ void main() {
       },
     );
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    seedDecodableStillPaths(display, const ['a1', 'a2']);
     await tester.pumpWidget(
       permissionUiHarness(
         repo: repo,
@@ -3943,10 +3984,12 @@ void main() {
             allIds: const ['a1', 'a2'],
             availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
           ),
+        mediaDisplay: display,
         presentationMetadata: presentation,
       ),
     );
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'a1');
     expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
     expect(find.text(a1Size), findsNothing);
 
@@ -3954,6 +3997,7 @@ void main() {
     final container = ProviderScope.containerOf(element);
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
     await tester.pumpAndSettle();
+    await pumpUntilStillCoverReadyForAsset(tester, 'a2');
     expect(find.text(a2Size), findsOneWidget);
     expect(find.text(a1Size), findsNothing);
 
@@ -4011,10 +4055,16 @@ void main() {
       },
     );
     final display = FakeMediaDisplayRepository();
-    display.previewsById['v1'] = const DisplayAsset(
+    final posterPath = writeStillCoverTestPng('v1_poster');
+    display.previewsById['v1'] = DisplayAsset(
       assetIdentifier: 'v1',
       mediaKind: PlaybackMediaKind.video,
-      localFilePath: '/tmp/fake_preview_v1.jpg',
+      localFilePath: posterPath,
+    );
+    display.displaysById['v1'] = DisplayAsset(
+      assetIdentifier: 'v1',
+      mediaKind: PlaybackMediaKind.video,
+      localFilePath: posterPath,
     );
     final playback = FakePlaybackRepository();
     playback.loadGates['v1'] = Completer<void>();
@@ -4037,6 +4087,7 @@ void main() {
 
     playback.loadGates['v1']!.complete();
     await pumpAsyncWork(tester);
+    await pumpUntilStillCoverReadyForAsset(tester, 'v1');
     expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
     expect(find.text(sizeCopy), findsOneWidget);
     expect(presentation.sizeCalls, 2);

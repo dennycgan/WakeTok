@@ -78,6 +78,7 @@ void main() {
       page.debugForceLayer2WaitChrome(
         path: WaitChromePathClass.a4L2ReadyEvict,
         elapsed: Duration.zero,
+        mediaKind: FeedPageMediaKind.still,
       );
       await tester.pump();
       expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsNothing);
@@ -85,6 +86,7 @@ void main() {
       page.debugForceLayer2WaitChrome(
         path: WaitChromePathClass.a4L2ReadyEvict,
         elapsed: const Duration(milliseconds: 150),
+        mediaKind: FeedPageMediaKind.still,
       );
       await tester.pump();
       expect(
@@ -416,6 +418,7 @@ void main() {
       page.debugForceLayer2WaitChrome(
         path: WaitChromePathClass.a4L2ReadyEvict,
         elapsed: const Duration(milliseconds: 150),
+        mediaKind: FeedPageMediaKind.still,
       );
       await tester.pump();
       expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsOneWidget);

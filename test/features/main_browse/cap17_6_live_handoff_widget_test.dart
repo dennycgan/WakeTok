@@ -17,6 +17,7 @@ import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 Future<void> _pumpFrames(WidgetTester tester, {int n = 8}) async {
   await tester.pump();
@@ -161,6 +162,7 @@ void main() {
 
       expect(page.debugLivePreparing, isTrue);
       expect(page.debugLivePreparingSkipSuppressBelowT, isFalse);
+      await pumpUntilStillCoverReady(tester, page);
       expect(
         _livePreparing(id),
         findsNothing,
@@ -219,6 +221,7 @@ void main() {
       final page = tester.state<MediaFeedPageState>(_pageFor(id));
       expect(live.calls, contains('requestLivePhoto:$id'));
       expect(page.debugLivePreparingSkipSuppressBelowT, isFalse);
+      await pumpUntilStillCoverReady(tester, page);
       expect(_livePreparing(id), findsNothing);
 
       await tester.pump(kDefaultA4SuppressBelow);

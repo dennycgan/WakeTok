@@ -1,0 +1,103 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/domain/playback/playback_models.dart';
+import 'package:waketok/features/main_browse/vertical_media_feed.dart';
+
+import '../../library_smoke/fake_media_display_repository.dart';
+
+/// Cap 24.5.5 / debt 466: Cap 21 `_suppressStillCoverChrome` hides
+/// [MediaInfoOverlay] until the still/poster [Image] has a decoded frame.
+/// Harness paths that point at non-decodable `/tmp/fake_*.jpg` never clear
+/// that gate — seed a real 1×1 PNG and pump until [debugStillCoverReady].
+
+const kStillCoverTestTinyPngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+/// Writes a decodable 1×1 PNG under the system temp directory.
+String writeStillCoverTestPng(String name) {
+  final file = File('${Directory.systemTemp.path}/wt_still_cover_$name.png');
+  file.writeAsBytesSync(base64Decode(kStillCoverTestTinyPngBase64));
+  return file.path;
+}
+
+/// Seeds preview + display maps with the same decodable PNG per id.
+void seedDecodableStillPaths(
+  FakeMediaDisplayRepository display,
+  Iterable<String> ids, {
+  PlaybackMediaKind mediaKind = PlaybackMediaKind.image,
+}) {
+  for (final id in ids) {
+    final path = writeStillCoverTestPng(id);
+    final asset = DisplayAsset(
+      assetIdentifier: id,
+      mediaKind: mediaKind,
+      localFilePath: path,
+    );
+    display.previewsById[id] = asset;
+    display.displaysById[id] = asset;
+  }
+}
+
+Finder mediaFeedPageFinder(String assetIdentifier) {
+  return find.byWidgetPredicate(
+    (w) => w is MediaFeedPage && w.assetIdentifier == assetIdentifier,
+    skipOffstage: false,
+  );
+}
+
+MediaFeedPageState mediaFeedPageState(
+  WidgetTester tester,
+  String assetIdentifier,
+) {
+  return tester.state<MediaFeedPageState>(
+    mediaFeedPageFinder(assetIdentifier),
+  );
+}
+
+/// Ensures still/poster cover chrome is not suppressed for Overlay / spinner.
+///
+/// Prefer the Cap 21 [MediaFeedPageState.debugForceStillCoverDecodeBroken]
+/// seam when a cover path is already tracked — FakeAsync rarely completes
+/// FileImage.frameBuilder, and a long wall-clock poll would also advance
+/// ADR-034 G's DateTime.now-based elapsed (false spinner during dwell).
+Future<void> pumpUntilStillCoverReady(
+  WidgetTester tester,
+  MediaFeedPageState page,
+) async {
+  final path = page.debugMedia?.display?.localFilePath;
+  if (path != null && path.isNotEmpty) {
+    page.debugForceStillCoverDecodeBroken(false);
+    await tester.pump();
+    if (page.debugStillCoverReady && !page.debugStillCoverDecodeBroken) {
+      return;
+    }
+  }
+  for (var i = 0; i < 40; i++) {
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pump();
+    if (page.debugStillCoverReady && !page.debugStillCoverDecodeBroken) {
+      await tester.pump();
+      return;
+    }
+  }
+  fail(
+    'still cover never became ready '
+    '(ready=${page.debugStillCoverReady} '
+    'broken=${page.debugStillCoverDecodeBroken} path=$path)',
+  );
+}
+
+Future<void> pumpUntilStillCoverReadyForAsset(
+  WidgetTester tester,
+  String assetIdentifier,
+) async {
+  await pumpUntilStillCoverReady(
+    tester,
+    mediaFeedPageState(tester, assetIdentifier),
+  );
+}
