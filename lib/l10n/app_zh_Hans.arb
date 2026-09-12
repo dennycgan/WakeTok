@@ -240,5 +240,7 @@
   "cap24SoftDeleteSheetExactMinute": "{year}-{month}-{day} {hour}:{minute}:{second}",
   "cap24SoftDeleteSheetExactMinuteNoSeconds": "{year}-{month}-{day} {hour}:{minute}",
   "cap24SoftDeleteSheetExactMinuteLibrary": "{year}-{month}-{day} {hour}:{minute}",
-  "cap24SoftDeleteFailed": "无法删除，请重试。"
+  "cap24SoftDeleteFailed": "无法删除，请重试。",
+  "cap25ShareEntryIconSemantics": "分享",
+  "cap25ShareFailed": "无法分享，请重试。"
 }

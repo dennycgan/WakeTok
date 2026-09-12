@@ -16,7 +16,7 @@
 > - `lib/features/main_browse/magnification_reset_button.dart`  
 > - `lib/features/main_browse/cap19_entry_icon.dart` + `cap19_entry_layout.dart`  
 > - `lib/features/main_browse/cap24_more_entry_icon.dart` + `cap24_more_half_sheet.dart`  
-> - Cap 25 Share widget path — added 25.3 (no path until chrome lands)  
+> - `lib/features/main_browse/cap25_share_entry_icon.dart` + `cap25_share_toast.dart`  
 > - `lib/features/main_browse/vertical_media_feed.dart` (`_LiveBadge` / `_FeedCornerChrome`)  
 > - `lib/features/main_browse/browse_top_chrome.dart` (shell top; §11)  
 > - `lib/features/main_browse/main_browse_shell_page.dart` (shell bottom; §11)  
@@ -50,7 +50,7 @@
 | **1 Meta** | Fixed **3** rows bottom-leading: relative / exact / characteristics | `media_info_overlay.dart` |
 | **2 Reset** | Magnification force-fit pill; visible only while still magnified | `magnification_reset_button.dart` |
 | **3 LIVE** | Live Photo status capsule trailing; **future:** replay control to the **left** of LIVE | `vertical_media_feed.dart` `_LiveBadge` / `_FeedCornerChrome` |
-| **4 Action column** | Bottom-up: i=0 Cap 24 `"…"`; i=1 Cap 25 Share (chrome lands 25.3); i=2 Cap 19 album | `cap24_more_entry_icon.dart` / Cap 25 Share widget (25.3) / `cap19_entry_icon.dart` |
+| **4 Action column** | Bottom-up: i=0 Cap 24 `"…"`; i=1 Cap 25 Share; i=2 Cap 19 album | `cap24_more_entry_icon.dart` / `cap25_share_entry_icon.dart` / `cap19_entry_icon.dart` |
 
 **MVP exclusions (locked):**
 
@@ -206,8 +206,8 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 | Item spacing | **16** | between hit boxes (lower top ↔ upper bottom) |
 | Trailing | **12** | `kMediaChromeTrailingInset` |
 | Lowest = `"…"` | Cap 24 more | `Cap24MoreEntryIcon` / `mainBrowseActionColumnLowestBottomInset` |
-| Index 1 = Share | Cap 25 Share | widget lands 25.3; `actionColumnBottomInsetForIndex(1, …)` |
-| Index 2 = album | Cap 19 entry | `Cap19EntryIcon` → `actionColumnBottomInsetForIndex(2, …)` after 25.3 |
+| Index 1 = Share | Cap 25 Share | `Cap25ShareEntryIcon` / `actionColumnBottomInsetForIndex(1, …)` |
+| Index 2 = album | Cap 19 entry | `Cap19EntryIcon` / `actionColumnBottomInsetForIndex(2, …)` |
 | Lowest **icon** bottom | = Reset visual bottom | see formula below |
 | Index `i` bottom | `lowest + i×(48+16)` | `actionColumnBottomInsetForIndex` |
 
@@ -219,10 +219,6 @@ actionLowestBottom (Positioned) = resetBottom − 8
 ```
 
 So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt below the icon.
-
-**Cap 25.1 contract vs code:** Indices above are the ADR-051 locked layout.
-Until Cap 25.3, product code may still place Cap 19 album at index 1 (Cap 24
-ship). Do not “fix” notes back to album@1 — code catches up in 25.3.
 
 **Deviation from earlier “keep bottom inset = 88” lock:** an earlier layout decision point said keep Cap 19’s fixed **`kActionColumnBottomInset = 88`** and not micro-tune it. During final device polish, tying the lowest action **icon** bottom to Reset (`resetBottom − 8`, ≈71.2 today) read better and keeps the column moving with meta/Reset instead of a second magic number. **This notes file records that deliberate override** — it was not the original plan; owner accepted it after on-device review (“大概满意”). Do not “restore 88” without a new owner pass.
 

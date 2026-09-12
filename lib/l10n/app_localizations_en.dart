@@ -859,4 +859,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap24SoftDeleteFailed => 'Couldn\'t delete. Try again.';
+
+  @override
+  String get cap25ShareEntryIconSemantics => 'Share';
+
+  @override
+  String get cap25ShareFailed => 'Couldn\'t share. Try again.';
 }

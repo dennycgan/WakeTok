@@ -18,6 +18,7 @@ import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/features/library_smoke/album_cover_providers.dart';
 import 'package:waketok/features/library_smoke/album_mutation_providers.dart';
 import 'package:waketok/features/library_smoke/asset_favorite_providers.dart';
+import 'package:waketok/features/library_smoke/asset_share_providers.dart';
 import 'package:waketok/features/library_smoke/asset_soft_delete_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
@@ -35,6 +36,7 @@ import '../../library_smoke/fake_album_cover_repository.dart';
 import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_favorite_repository.dart';
 import '../../library_smoke/fake_asset_soft_delete_repository.dart';
+import '../../library_smoke/fake_asset_share_repository.dart';
 import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
 import '../../library_smoke/fake_new_round_toast_preferences.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
@@ -89,6 +91,7 @@ Widget permissionUiHarness({
   FakeAlbumCoverRepository? albumCovers,
   FakeAssetFavoriteRepository? assetFavorites,
   FakeAssetSoftDeleteRepository? assetSoftDelete,
+  FakeAssetShareRepository? assetShare,
   FakeCap19LeftSwipePreferences? cap19LeftSwipePreferences,
   FakeNewRoundToastPreferences? newRoundToastPreferences,
   FakeWakeTokAlbumStore? wakeTokAlbumStore,
@@ -127,6 +130,7 @@ Widget permissionUiHarness({
   final covers = albumCovers ?? FakeAlbumCoverRepository();
   final favorites = assetFavorites ?? FakeAssetFavoriteRepository();
   final softDelete = assetSoftDelete ?? FakeAssetSoftDeleteRepository();
+  final share = assetShare ?? FakeAssetShareRepository();
   final leftSwipePrefs =
       cap19LeftSwipePreferences ?? FakeCap19LeftSwipePreferences();
   final newRoundPrefs =
@@ -142,6 +146,7 @@ Widget permissionUiHarness({
       albumCoverRepositoryProvider.overrideWithValue(covers),
       assetFavoriteRepositoryProvider.overrideWithValue(favorites),
       assetSoftDeleteRepositoryProvider.overrideWithValue(softDelete),
+      assetShareRepositoryProvider.overrideWithValue(share),
       cap19LeftSwipePreferencesProvider.overrideWithValue(leftSwipePrefs),
       newRoundToastPreferencesProvider.overrideWithValue(newRoundPrefs),
       wakeTokAlbumStoreProvider.overrideWithValue(albumStore),

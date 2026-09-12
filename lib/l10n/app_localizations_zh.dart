@@ -856,6 +856,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap24SoftDeleteFailed => 'Couldn\'t delete. Try again.';
+
+  @override
+  String get cap25ShareEntryIconSemantics => 'Share';
+
+  @override
+  String get cap25ShareFailed => 'Couldn\'t share. Try again.';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1680,4 +1686,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap24SoftDeleteFailed => '无法删除，请重试。';
+
+  @override
+  String get cap25ShareEntryIconSemantics => '分享';
+
+  @override
+  String get cap25ShareFailed => '无法分享，请重试。';
 }

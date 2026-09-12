@@ -52,11 +52,11 @@ const Duration kCap19BrowseToastDuration = Duration(milliseconds: 1500);
 
 /// Bottom inset for [Cap19EntryIcon] on the Browse pane Stack.
 ///
-/// Cap 24.3: Cap 19 moves to action-column index 1; `"…"` owns index 0.
-/// Aligns Cap 19's **visible** icon bottom one slot above Reset-aligned
-/// lowest (hit box still extends below the glyph).
+/// Cap 25.3: Cap 19 moves to action-column index 2; Share owns index 1;
+/// `"…"` remains index 0. Aligns Cap 19's **visible** icon bottom two slots
+/// above Reset-aligned lowest (hit box still extends below the glyph).
 double cap19EntryIconBottomInset(WakeTokTokens tokens) =>
     actionColumnBottomInsetForIndex(
-      1,
+      2,
       mainBrowseActionColumnLowestBottomInset(tokens),
     );

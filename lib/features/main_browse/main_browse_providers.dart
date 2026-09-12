@@ -303,3 +303,32 @@ class MainBrowseVerticalFeedSettled extends Notifier<bool> {
     state = settled;
   }
 }
+
+/// Cap 25 / ADR-051 Decision 9: Share tap → Cap 23 probe → Host present
+/// settle window. Clears when that window ends; does not cover system sheet
+/// lifetime (no PopScope). Keeps [Cap25ShareEntryIcon] a [ConsumerWidget].
+final mainBrowseSharePresentInFlightProvider =
+    NotifierProvider<MainBrowseSharePresentInFlight, bool>(
+      MainBrowseSharePresentInFlight.new,
+    );
+
+class MainBrowseSharePresentInFlight extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  bool get isInFlight => state;
+
+  void begin() {
+    if (state) {
+      return;
+    }
+    state = true;
+  }
+
+  void end() {
+    if (!state) {
+      return;
+    }
+    state = false;
+  }
+}

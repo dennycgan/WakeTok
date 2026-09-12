@@ -1560,6 +1560,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t delete. Try again.'**
   String get cap24SoftDeleteFailed;
+
+  /// Cap 25.3 Action Column Share entry accessibility label
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get cap25ShareEntryIconSemantics;
+
+  /// Cap 25 Share Host present/prepare failure toast (Cap 19 toast style; ADR-051 D4/D5)
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share. Try again.'**
+  String get cap25ShareFailed;
 }
 
 class _AppLocalizationsDelegate

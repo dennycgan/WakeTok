@@ -30,7 +30,7 @@ double get kMediaChromeOverlayTrailingInset {
   return math.max(actionExtent, statusExtent) + kMediaChromeOverlayClearance;
 }
 
-// --- Action column (album now; share later) ----------------------------------
+// --- Action column (…=0, Share=1, Album=2) -----------------------------------
 
 /// Visible action icon edge (owner lock Cap 20.6 layout: 32).
 const double kActionColumnIconSize = 32;
@@ -41,7 +41,8 @@ const double kActionColumnHitSize = 48;
 /// Gap between consecutive hit boxes: lower hit top ← upper hit bottom.
 const double kActionColumnItemSpacing = 16;
 
-/// Bottom inset for action index [i] above [lowestBottomInset] (0 = album).
+/// Bottom inset for action index [i] above [lowestBottomInset]
+/// (0 = Cap 24 `"…"`, 1 = Cap 25 Share, 2 = Cap 19 album).
 double actionColumnBottomInsetForIndex(int i, double lowestBottomInset) {
   assert(i >= 0);
   return lowestBottomInset +

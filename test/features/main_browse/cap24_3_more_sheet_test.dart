@@ -38,38 +38,43 @@ Future<void> _openMoreSheet(WidgetTester tester) async {
 void main() {
   tearDown(hideCap19BrowseToast);
 
-  testWidgets('W-24.3-1 ellipsis at index 0; Cap 19 above at index 1',
-      (tester) async {
-    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-    await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: _localSources()),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'W-24.3-1 ellipsis at index 0; Share@1; Cap 19 album at index 2',
+    (tester) async {
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(repo: repo, assetSources: _localSources()),
+      );
+      await tester.pumpAndSettle();
 
-    final tokens = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
-    final lowest = mainBrowseActionColumnLowestBottomInset(tokens);
-    final cap19Expected = actionColumnBottomInsetForIndex(1, lowest);
+      final tokens = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+      final lowest = mainBrowseActionColumnLowestBottomInset(tokens);
+      final cap19Expected = actionColumnBottomInsetForIndex(2, lowest);
 
-    final more = tester.getRect(find.byKey(const Key('cap24MoreEntryIcon')));
-    final cap19 = tester.getRect(find.byKey(const Key('cap19EntryIcon')));
+      final more = tester.getRect(find.byKey(const Key('cap24MoreEntryIcon')));
+      final share =
+          tester.getRect(find.byKey(const Key('cap25ShareEntryIcon')));
+      final cap19 = tester.getRect(find.byKey(const Key('cap19EntryIcon')));
 
-    expect(more.bottom, more.top + kActionColumnHitSize);
-    // Positioned bottom inset: distance from stack bottom to widget bottom.
-    final stackBottom = tester.getBottomLeft(find.byType(Scaffold)).dy +
-        tester.getSize(find.byType(Scaffold)).height;
-    // Prefer comparing Cap19 bottom > More bottom (higher on screen = smaller dy).
-    expect(cap19.bottom, lessThan(more.bottom));
-    expect(cap19.top, lessThan(more.top));
-    expect(
-      (cap19Expected - lowest - (kActionColumnHitSize + kActionColumnItemSpacing))
-          .abs(),
-      lessThan(0.01),
-    );
-    expect(find.byKey(const Key('cap24MoreEntryIcon')), findsOneWidget);
-    expect(find.byKey(const Key('cap19EntryIcon')), findsOneWidget);
-    // Touch stackBottom to avoid unused warning if layout asserts evolve.
-    expect(stackBottom, greaterThan(0));
-  });
+      expect(more.bottom, more.top + kActionColumnHitSize);
+      // Higher on screen = smaller bottom dy: Album < Share < ….
+      expect(cap19.bottom, lessThan(share.bottom));
+      expect(share.bottom, lessThan(more.bottom));
+      expect(cap19.top, lessThan(share.top));
+      expect(share.top, lessThan(more.top));
+      expect(
+        (cap19Expected -
+                lowest -
+                2 * (kActionColumnHitSize + kActionColumnItemSpacing))
+            .abs(),
+        lessThan(0.01),
+      );
+      expect(find.byKey(const Key('cap24MoreEntryIcon')), findsOneWidget);
+      expect(find.byKey(const Key('cap25ShareEntryIcon')), findsOneWidget);
+      expect(find.byKey(const Key('cap19EntryIcon')), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'W-24.3-2 empty session dims more icon like Cap 19 (opacity)',
