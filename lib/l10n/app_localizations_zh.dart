@@ -1639,7 +1639,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
-      '这里的时间是 WakeTok 在此能展示的、关于此项的最细时间。跨时区仍可能导致有几小时偏差；极端情况下，连日期也可能和浏览页上带「~」的日期对不上。由于文件和图库记录时间的方式不同，并可能受到你当前时区影响，两边都不保证与此项实际创建或保存的时间完全一致。';
+      '这里的时间是 WakeTok 能展示的、关于此项的最细时间。跨时区仍可能导致有几小时偏差；极端情况下，连日期也可能和浏览页上带「~」的日期对不上。由于文件和图库记录时间的方式不同，并可能受到你当前时区影响，两边都不保证与此项实际创建或保存的时间完全一致。';
 
   @override
   String get cap24SoftDeleteSheetMinuteTimezoneInfoSemantics => '关于此时间的说明';

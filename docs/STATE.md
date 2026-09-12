@@ -258,9 +258,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       W-24.4 rewritten; notes SYS/CANCEL = system UI only. ADR-050
       Decision 3 revised (Photo-App-A evidence; P0 if system consent
       absent). Device Kafka Profile PASS. ADR-050 remains Proposed.
-- [ ] 24.5 Device acceptance
-      (incl. Decision 4 resolve RD exclusion / restore reappearance;
-      SYS = system PhotoKit consent only per Decision 3 revised)
+- [x] 24.5 Device acceptance
+      Notes `docs/acceptance/cap24-24.5-notes.md` — Kafka + i17 **PASS**
+      (D4-a/b force-quit → real PhotoKit resolve; SYS / CANCEL /
+      SUCCESS; FAIL SKIP harness W-24.3-8 / W-24.4-2). Decision 3
+      revised system-consent-only confirmed on device. ADR-050 remains
+      Proposed until Cap 24 close. Acceptance-window chrome polish:
+      half-sheet honesty / i-bubble `8577cf8` / `aa35391`; gray sheet
+      surface + more-icon weight `c9d186e`. Open follow-up **24.5.1**
+      (frosted Meta crush over Platform View — record-only).
 - [ ] 24.5.1 Frosted half-sheet fails to crush Meta Overlay over
       Platform View backdrops (Live playing / video all-time)
       Root cause: BackdropFilter does not reliably blur Hybrid
@@ -285,27 +291,19 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 24.6 Cap close-out
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 24.5 Device acceptance
-- Sub-steps done: 24.1 Contract freeze — ADR-050 Proposed; Cap 23
-      closed (`158a21c`); **456b** Closed at 23.4; 24.2 Host
-      soft-delete write path work `32d4bd1` (+ harness align
-      `1fcdbd1`); 24.3 more-sheet chrome work `f4928b6`; 24.4 Session
-      Queue kick work `52b6c39`; 24.4b working-set rebuilds work
-      `0ccc8fa`; 24.4c process soft-delete exclusion work `0b6c7c6`;
-      24.4d system-consent-only soft-delete chrome work `6c5f39a`
-- Next step: Run Cap 24.5 device matrix (Kafka + i17) per
-      `docs/acceptance/cap24-24.5-notes.md` (force-quit D4-a/b; SYS
-      system consent; SUCCESS / CANCEL / FAIL). Optional: restore
-      runbook / SYS checklist expansions as a separate notes commit
-      before the run.
-- Related decisions: ADR-050 Proposed (Decision 3 revised at
-      `6c5f39a`); ADR-049 Accepted; ADR-042 / ADR-044 D3; debt **464**
-      Open until Cap 24 Accept split; **456a** / **457** Open; **458** /
-      **468** Monitoring; **463** Accepted (permanent); Q4′ = A (no
-      Snapshot invalidate; 24.4c process filter closed same-process
-      Pool-switch ghost; 24.5 force-quit resolve protocol in
-      `docs/acceptance/cap24-24.5-notes.md`); harness debts **465** /
-      **466** / **467** scheduled **24.5.5**
+- Goal (one line): 24.5.5 Feed / wait-chrome widget-test harness align
+- Sub-steps done: Cap 24 through 24.5 device matrix PASS (notes
+      `cap24-24.5-notes.md`); 24.5.1 recorded open (frosted Meta /
+      Platform View — no implement yet); chrome polish
+      `8577cf8` / `aa35391` / `c9d186e`
+- Next step: 24.5.5 two-step resolution for debts **465** / **466** /
+      **467** (test-infra; must complete before 24.6 close-out). Do not
+      treat 24.5.1 as the next coding task until owner product go-ahead.
+- Related decisions: ADR-050 Proposed (Decision 3 revised; Decision 4
+      (a)(b) device evidence PASS at 24.5); ADR-049 Accepted; debt
+      **464** Open until Cap 24 Accept split; **456a** / **457** Open;
+      **458** / **468** Monitoring; **463** Accepted (permanent);
+      harness debts **465** / **466** / **467** → **24.5.5**; Q4′ = A
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -536,10 +534,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Proposed** (Cap 24.1; Accept + anchor at Cap 24 close)
 - Cap 24 soft-delete locked copy candidates (pre-ARB; EN + zh-Hans):
       `docs/reference/cap24-soft-delete-copy-candidates.md`
-- Cap 24.5 device acceptance notes (protocol template only — no device
-      matrix results yet): `docs/acceptance/cap24-24.5-notes.md`
-      (locks ADR-050 D4 (a)(b) force-quit → real PhotoKit resolve;
-      same-process tab switch must not be the sole gate)
+- Cap 24.5 device acceptance notes (Kafka + i17 matrix **PASS**):
+      `docs/acceptance/cap24-24.5-notes.md`
+      (ADR-050 D4 (a)(b) force-quit → real PhotoKit resolve;
+      same-process tab switch must not be the sole gate; SYS =
+      system PhotoKit consent only)
 - Cap 23.4 device acceptance notes:
       `docs/acceptance/cap23-23.4-notes.md` (Kafka + i17 PASS; **456b**
       Closed)

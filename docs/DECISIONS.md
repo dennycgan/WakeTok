@@ -5803,7 +5803,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
        intentionally **not** excluded on that by-id path. Cap 24 does
        **not** invent a second Recently Deleted detector for Session
        surgery after a successful in-app delete (Queue removal is the
-       Session source of truth for that id). Cap 24 **device acceptance
+       Session source of truth for that id).        Cap 24 **device acceptance
        MUST confirm**: (a) after App soft-delete, while the asset remains
        in system Recently Deleted, a **new** Session resolve of the same
        Pool does not include that id; (b) after the user restores it in
@@ -5811,6 +5811,13 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
        either fails on device, add an explicit filter (see Rejected
        alternatives escape). Hidden exclusion is **not** used as product
        justification for soft-delete Session semantics.
+
+       **Decision 4 evidence (Cap 24.5):** Owner matrix on Kafka + i17
+       **PASS** for (a) and (b) under the locked force-quit → real
+       PhotoKit resolve protocol. Notes
+       `docs/acceptance/cap24-24.5-notes.md`. SYS / CANCEL / SUCCESS
+       also PASS; FAIL SKIP (harness). Escape hatch not taken. ADR-050
+       remains Proposed until Cap 24 close.
   5. **Reuse Cap 23 Recently Deleted recognition; no library observer.**
      Cap 23.4 `isInRecentlyDeletedSmartAlbum` on
      `getAssetAvailabilities` / `requestDisplayAsset` /
