@@ -186,9 +186,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (…=0, Share=1, Album=2); update
       `docs/reference/media-chrome-layout-notes.md` §7 indices;
       Host presentShareSheet + error/latch/iPad notes in ADR body
-- [ ] 25.2 Host present System Share Sheet + Pigeon + Fake
-      (may merge with 25.3 in one work commit if chrome lands same
-      turn; iPhone-only present; iPad popover anchor deferred)
+- [x] 25.2 Host present System Share Sheet + Pigeon + Fake
+      Work `99c2e73`: Pigeon `presentShareSheet`; Host ephemeral
+      activity items (still / Live→still fallback / video); present
+      settles Future (cancel silent); iPad minimal popover anchor;
+      domain `AssetShareRepository` + gateway + composition-root;
+      Fake + T-25.2 gateway tests; full `flutter test` green
 - [ ] 25.3 Action Column Share icon (index 1) + Album slot → index 2;
       Cap 19/24 slot-family chrome; Cap 23 gate on tap; fail toast
       ARB; optical weight pass vs Cap 24 ellipsis (may tune glyph
@@ -203,12 +206,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       debt close count = 0
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 25.2 Host presentShareSheet + Pigeon + Fake
-- Sub-steps done: Cap 25.1 contract freeze — ADR-051 Proposed;
-      ADR-050 D2 index layout narrowly superseded; layout-notes
-      §1/§7 + Code anchors (Cap 24 + Cap 25 placeholder)
-- Next step: implement Host System Share Sheet + Pigeon (25.2);
-      may merge 25.3 chrome in same work commit
+- Goal (one line): Cap 25.3 Action Column Share icon + Album → index 2
+- Sub-steps done: Cap 25.1 ADR-051 Proposed (`b2f78b3`); Cap 25.2
+      Host/Pigeon/Fake work `99c2e73`
+- Next step: design/implement Share chrome (slot family + Cap 23
+      gate + fail toast ARB); Album inset → index 2; layout-notes
+      Code anchors path when widget lands
 - Related decisions: ADR-051 Proposed; ADR-050 D2 index narrowly
       superseded; ADR-049 / ADR-042 named gate+chrome symbols;
       debt **456a** / **457** Open (out of Cap 25); **469**
@@ -443,6 +446,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - ADR-050: Cap 24 soft-delete current asset to Photos Recently Deleted —
       **Accepted** (2026-09-10), anchor `32d4bd1` (24.2 Host write;
       related Cap 24 work in PHASE_HISTORY)
+- ADR-051: Cap 25 Share current asset from Action Column —
+      **Proposed** (Cap 25.1 `b2f78b3`; Accept + anchor at Cap 25 close)
+- Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
+      domain `AssetShareRepository` + `PhotoLibraryGateway` +
+      `assetShareRepositoryProvider`; Host in `PhotoLibraryService`
+      (work `99c2e73`); gateway tests
+      `test/platform/cap25_2_share_gateway_test.dart`
 - Cap 24 soft-delete locked copy candidates (pre-ARB; EN + zh-Hans):
       `docs/reference/cap24-soft-delete-copy-candidates.md`
 - Cap 24.5 device acceptance notes (Kafka + i17 matrix **PASS**):
