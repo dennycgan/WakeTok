@@ -6181,12 +6181,29 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       not a Native Action Mapping Photos organize write — #4 does not apply;
       no narrow supersede of #4 required for Cap 25).
 
+  12. **Live Photo share materialization = still key frame only.** Share
+      never calls `PHImageManager.requestLivePhoto` and never places a
+      `PHLivePhoto` in `UIActivityViewController` activity items. Live
+      assets use the **same** static `requestImage` path as ordinary stills
+      (key photo). Recipients get a still, not Live motion — intentional.
+      Narrowly supersedes Cap 25.2 owner Q-A=A1 (“prefer Live, still
+      fallback”). Feed Live motion (`LivePhotoApi` / ADR-019) is unchanged.
+
+  13. **Still (incl. Live-as-still) present only non-degraded UIImage.**
+      Host ignores `PHImageResultIsDegradedKey == true` callbacks and
+      presents only when a non-degraded `UIImage` is available. Scope is
+      **still image materialization only** (Live shares this path via
+      Decision 12). Does **not** change video `requestAVAsset`, cancel /
+      pause / spinner / UIWindow presentation chrome.
+
 - Rejected alternatives (why not):
   - Share at index 2 above Album (ADR-050 placeholder) — rejected; owner Q1=B.
   - Export-to-temp then share URL as the product path — rejected; invents an
     App export pipeline inconsistent with Host-touches-PHAsset style
     (soft-delete / display request). Ephemeral PhotoKit item prep for the
     system sheet remains allowed under Decision 2.
+  - Prefer `PHLivePhoto` activity item with still fallback (Cap 25.2 Q-A=A1)
+    — superseded by Decision 12; always-still is simpler and one code path.
   - Block Share until `deviceLocal` / force Layer 2 first — rejected; conflicts
     with ADR-049 iCloudStillInLibrary, ADR-050 D7 "…" L2 independence, and
     thickens Cap 25.
@@ -6202,7 +6219,9 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Consequences / constraints accepted:
   - ADR-050 Decision 2 index layout narrowly superseded as of Cap 25.1
     Proposed; layout notes §7 updated in the same docs commit. Product
-    chrome code still follows Cap 24 indices until Cap 25.3.
+    chrome: Cap 25.3 placed Share at index 1 / Album at index 2 (`c3b5a58`).
+  - Cap 25.2 Q-A=A1 Live-prefer path superseded by Decision 12 (always
+    still key frame for Share).
   - Architecture / localization guards remain mandatory on `lib/` work.
   - Known debt close count for Cap 25 = **0**.
   - GLOSSARY: no new concept node (Share is chrome on Media Item).

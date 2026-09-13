@@ -600,6 +600,11 @@ abstract class PhotoLibraryApi {
   /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
   /// cannot build activity items, or no root UIViewController →
   /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+  ///
+  /// Host materialization (ADR-051 D12/D13): still + Live Photo use the
+  /// **same** static key-frame `requestImage` path (never
+  /// `requestLivePhoto`); present only a **non-degraded** UIImage. Video
+  /// uses `requestAVAsset` (unchanged by D12/D13).
   @async
   void presentShareSheet(String assetIdentifier);
 }

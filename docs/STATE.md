@@ -188,10 +188,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Host presentShareSheet + error/latch/iPad notes in ADR body
 - [x] 25.2 Host present System Share Sheet + Pigeon + Fake
       Work `99c2e73`: Pigeon `presentShareSheet`; Host ephemeral
-      activity items (still / Live→still fallback / video); present
+      activity items (still / Live-as-still key frame / video); present
       settles Future (cancel silent); iPad minimal popover anchor;
       domain `AssetShareRepository` + gateway + composition-root;
       Fake + T-25.2 gateway tests; full `flutter test` green
+      (Live materialization later narrowed to always-still — ADR-051 D12;
+      still non-degraded present — D13)
 - [x] 25.3 Action Column Share icon (index 1) + Album slot → index 2
       Work `c3b5a58`: `Cap25ShareEntryIcon` + toast ARB
       `cap25ShareFailed`; `mainBrowseSharePresentInFlightProvider`
@@ -454,7 +456,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`
-      (work `99c2e73`); gateway tests
+      (work `99c2e73`; Live-as-still + non-degraded still present =
+      ADR-051 D12/D13); gateway tests
       `test/platform/cap25_2_share_gateway_test.dart`
 - Cap 25.3 Share chrome: `cap25_share_entry_icon.dart` +
       `cap25_share_toast.dart`; `mainBrowseSharePresentInFlightProvider`;

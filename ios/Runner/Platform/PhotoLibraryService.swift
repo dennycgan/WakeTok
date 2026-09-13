@@ -2205,10 +2205,11 @@ final class PhotoLibraryService: PhotoLibraryApi {
   /// `operationCancelled`. Missing asset / cannot build items / no root VC →
   /// `assetUnavailable`.
   ///
-  /// Live Photo: `PHImageManager.requestLivePhoto` inside this service only
-  /// (do **not** route through `LivePhotoApiHost` — that owns feed Platform
-  /// View state). Prefer `PHLivePhoto` as the activity item; fall back to
-  /// still image when Live delivery fails (owner Q-A=A1).
+  /// Still + Live Photo: **same** static key-frame path
+  /// (`requestImage` only — never `requestLivePhoto` / `PHLivePhoto` as the
+  /// activity item). Present only a **non-degraded** `UIImage` (skip
+  /// `PHImageResultIsDegradedKey == true` callbacks). Video unchanged
+  /// (`requestAVAsset`).
   ///
   /// iPad: set a minimal `popoverPresentationController` anchor to avoid
   /// crash (ADR-051 D10). Not an MVP acceptance target (owner Q-B=B1).
@@ -2307,64 +2308,20 @@ final class PhotoLibraryService: PhotoLibraryApi {
       buildShareVideoItems(for: asset, completion: completion)
       return
     }
-    if asset.mediaSubtypes.contains(.photoLive) {
-      buildShareLivePhotoItems(for: asset, completion: completion)
-      return
-    }
+    // Image + Live Photo: same static key-frame path (ADR-051 D12).
     buildShareStillImageItems(for: asset, completion: completion)
   }
 
-  private func buildShareLivePhotoItems(
-    for asset: PHAsset,
-    completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
-  ) {
-    let options = PHLivePhotoRequestOptions()
-    options.isNetworkAccessAllowed = true
-    options.deliveryMode = .highQualityFormat
-    let targetSize = CGSize(
-      width: CGFloat(max(asset.pixelWidth, 1)),
-      height: CGFloat(max(asset.pixelHeight, 1))
-    )
-    PHImageManager.default().requestLivePhoto(
-      for: asset,
-      targetSize: targetSize,
-      contentMode: .aspectFit,
-      options: options
-    ) { [weak self] livePhoto, info in
-      guard let self else { return }
-      DispatchQueue.main.async {
-        if let cancelled = info?[PHImageCancelledKey] as? Bool, cancelled {
-          completion(
-            .failure(
-              self.fail(
-                .assetUnavailable,
-                message: "Live Photo share request cancelled"
-              )
-            )
-          )
-          return
-        }
-        if let livePhoto {
-          completion(
-            .success(
-              ShareActivityPayload(items: [livePhoto], temporaryFileURLs: [])
-            )
-          )
-          return
-        }
-        // A1 fallback: still key photo when Live delivery fails.
-        self.buildShareStillImageItems(for: asset, completion: completion)
-      }
-    }
-  }
-
+  /// Still + Live key frame for Share. Skips degraded callbacks; presents
+  /// only a non-degraded `UIImage` (ADR-051 D13). Does not touch video.
   private func buildShareStillImageItems(
     for asset: PHAsset,
     completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
   ) {
     let options = PHImageRequestOptions()
     options.isNetworkAccessAllowed = true
-    options.deliveryMode = .highQualityFormat
+    // Opportunistic can deliver degraded then final; we ignore degraded.
+    options.deliveryMode = .opportunistic
     options.resizeMode = .none
     options.isSynchronous = false
     let targetSize = CGSize(
@@ -2388,6 +2345,12 @@ final class PhotoLibraryService: PhotoLibraryApi {
               )
             )
           )
+          return
+        }
+        if let degraded = info?[PHImageResultIsDegradedKey] as? Bool,
+          degraded
+        {
+          // Wait for the non-degraded callback; do not present yet.
           return
         }
         guard let image else {
