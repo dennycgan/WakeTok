@@ -35,8 +35,12 @@ const double kCap19ActionsHalfSheetMaxHeightFactor = 0.5;
 /// Album / Favorites picker row thumbnail edge length.
 const double kCap19PanelRowThumbnailSize = 52;
 
-/// Opacity for Cap 19 entry (and future share) when current asset is not actionable.
+/// Opacity for Cap 19 entry (and Cap 24 "…") when current asset is not actionable.
 const double kCap19EntryIconDisabledOpacity = 0.38;
+
+/// Cap 25 Share dim (ADR-051 Decision 14). Darker than Cap 19/24 actionable-dim
+/// so "not tappable" reads clearly on on-media chrome.
+const double kCap25ShareEntryIconDisabledOpacity = 0.22;
 
 /// Top chrome body below [MediaQuery.padding.top] (SafeArea + cells; ADR-016).
 const double kCap19BrowseTopChromeBodyHeight = 56;

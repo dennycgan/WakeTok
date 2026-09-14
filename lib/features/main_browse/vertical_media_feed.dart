@@ -1455,6 +1455,74 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         .setUnavailable(_isAssetUnavailableFailure);
   }
 
+  void _publishLayer2DisplayReady(bool ready) {
+    if (!mounted) {
+      return;
+    }
+    // Defer: [_armLayer2InFlight] is often invoked inside setState.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      if (ready && !widget.isCurrent) {
+        return;
+      }
+      ref
+          .read(mainBrowseCurrentAssetLayer2DisplayReadyProvider.notifier)
+          .setReady(ready);
+    });
+  }
+
+  void _clearLayer2DisplayReadyGate() {
+    if (!mounted) {
+      return;
+    }
+    ref
+        .read(mainBrowseCurrentAssetLayer2DisplayReadyProvider.notifier)
+        .setReady(false);
+  }
+
+  void _publishListAvailability(AssetAvailability? availability) {
+    if (!mounted) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref
+          .read(mainBrowseCurrentAssetListAvailabilityProvider.notifier)
+          .setAvailability(availability);
+    });
+  }
+
+  /// Cap 15.12 probe (or snapshot inject) → Share Decision 14 iCloud limb.
+  Future<AssetAvailability?> _resolveAndPublishListAvailability({
+    required FeedMediaRequestGate gate,
+    required int generation,
+  }) async {
+    var avail = widget.listTimeAvailability;
+    if (avail == null) {
+      try {
+        final probed = await ref
+            .read(assetSourceRepositoryProvider)
+            .getAssetAvailabilities([widget.assetIdentifier]);
+        if (!mounted ||
+            !gate.isCurrent(generation) ||
+            !widget.isCurrent) {
+          return null;
+        }
+        avail = probed[widget.assetIdentifier];
+      } catch (_) {
+        avail = null;
+      }
+    }
+    if (mounted && widget.isCurrent) {
+      _publishListAvailability(avail);
+    }
+    return avail;
+  }
+
   /// When L2/page fail is not already Case B, re-check Photos existence
   /// (same predicate as Cap 23). Missing → [FeedFailureReason.assetUnavailable]
   /// so actionable dims and Retry is hidden (revisit A/B unification).
@@ -1824,6 +1892,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // New L2 attempt — do not inherit a prior activation's paint latch.
     _layer2WaitChromeLatched = false;
     debugInFlightElapsedOverride = null;
+    _publishLayer2DisplayReady(false);
     _scheduleA4ChromeRevealIfNeeded();
     _scheduleLayer2ReassureIfNeeded();
   }
@@ -1935,6 +2004,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   bool _liveMotionMounted = false;
+  /// Cap 25: cancel on normal ended unload; fire → skip-set + same unload path.
+  Timer? _liveEndedWatchdog;
   bool _livePhotoReady = false;
   bool _liveSurfaceReady = false;
   bool _liveStartIssued = false;
@@ -2378,11 +2449,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
     // pause because _startLoad runs and skips the isCurrent-only branch.
     if (leftCurrent) {
+      _cancelLiveEndedWatchdog();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || widget.isCurrent) {
           return;
         }
         _clearHostUnavailableGate();
+        _clearLayer2DisplayReadyGate();
+        _publishListAvailability(null);
       });
       _cancelInitialLayer1CenterLabelDelay(revealImmediately: true);
       final coordinator = ref.read(playbackCoordinatorProvider);
@@ -2505,6 +2579,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   @override
   void dispose() {
+    _cancelLiveEndedWatchdog();
     _readyForDisplaySub?.cancel();
     _readyForDisplaySub = null;
     _holdPosterTimeout?.cancel();
@@ -2610,6 +2685,31 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _setLivePreparing(generation, value);
   }
 
+  void _cancelLiveEndedWatchdog() {
+    _liveEndedWatchdog?.cancel();
+    _liveEndedWatchdog = null;
+  }
+
+  /// Cap 25: if [playbackEnded] never arrives, force the **same** unload path
+  /// as [live_ended_ok] ([_unloadLiveMotionSurface]) and session-skip this id.
+  void _armLiveEndedWatchdog(String assetId) {
+    _cancelLiveEndedWatchdog();
+    final generation = _liveMotionGate.generation;
+    _liveEndedWatchdog = Timer(kLiveMotionEndedWatchdog, () {
+      if (!mounted ||
+          !_liveMotionGate.isCurrent(generation) ||
+          !widget.isCurrent ||
+          widget.assetIdentifier != assetId ||
+          !_liveMotionMounted) {
+        return;
+      }
+      ref
+          .read(browseLiveMotionWatchdogSkipIdsProvider.notifier)
+          .add(assetId);
+      unawaited(_unloadLiveMotionSurface());
+    });
+  }
+
   /// Cap 9.4/9.5: **prepare** Live motion (may show gold spinner).
   ///
   /// Acquires the Host LivePhoto via [LivePhotoRepository.requestLivePhoto].
@@ -2622,6 +2722,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     final assetId = widget.assetIdentifier;
+    if (ref.read(browseLiveMotionWatchdogSkipIdsProvider.notifier).contains(
+          assetId,
+        )) {
+      _abandonLivePreparingHandoff();
+      return;
+    }
     final LivePhotoRepository live =
         _liveRepo ?? ref.read(livePhotoRepositoryProvider);
     final PlaybackRepository playback =
@@ -2703,6 +2809,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         // none covers the gap while deactivate no longer clearIf's.
         // Contrast L1→L2 handoff (keep pointers): destination none cannot
         // continue magnification, so mode→none clears the pointer map.
+        _armLiveEndedWatchdog(assetId);
         ref
             .read(magnificationHostModeProvider.notifier)
             .setMode(MagnificationHostMode.none);
@@ -2785,6 +2892,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!mounted) {
       return;
     }
+    _cancelLiveEndedWatchdog();
     final generation = _liveMotionGate.begin();
     if (_liveMotionMounted ||
         _livePhotoReady ||
@@ -3253,6 +3361,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!startedOffCurrent) {
       final forceFullAfterHostUnavailable =
           _needsFullReloadAfterHostUnavailable;
+      // Share D14 iCloud limb: publish before any early L2-ready return.
+      final listAvail = await _resolveAndPublishListAvailability(
+        gate: gate!,
+        generation: generation!,
+      );
+      if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
+        return;
+      }
       if (forceFullAfterHostUnavailable) {
         // Drop neighbour-preheat L1 / pendingVideo from Case B leave so we
         // cannot reuseLayer1 → `_retryLayer2Only` and stick on preview.
@@ -3313,24 +3429,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (!bypassDeviceLocalFastPath && !forceFullAfterHostUnavailable) {
         // Cap 15.15: prefer snapshot inject (tests); else on-demand Host probe
         // for the current id only. Probe failure / leave → conservative L1.
+        // Availability already published above for Share (ADR-051 D14).
         final currentGate = gate!;
         final currentGeneration = generation!;
-        var avail = widget.listTimeAvailability;
-        if (avail == null) {
-          try {
-            final probed = await ref
-                .read(assetSourceRepositoryProvider)
-                .getAssetAvailabilities([widget.assetIdentifier]);
-            if (!mounted ||
-                !currentGate.isCurrent(currentGeneration) ||
-                !widget.isCurrent) {
-              return;
-            }
-            avail = probed[widget.assetIdentifier];
-          } catch (_) {
-            avail = null;
-          }
-        }
+        final avail = listAvail;
         if (avail == AssetAvailability.deviceLocal) {
           await _startLoadFromDeviceLocalFirstVisit(
             gate: currentGate,
@@ -3812,6 +3914,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             .evict(widget.assetIdentifier);
       }
       _publishHostUnavailableGate();
+      _publishLayer2DisplayReady(false);
       return;
     }
     if (layer2.kind == FeedPageMediaKind.video) {
@@ -3843,6 +3946,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // mount only (defer / in-flight ordering). DEVICE_LOCAL / L2-ready
       // use armPosterHoldOnL2Apply above (15.14b/c).
       _publishHostUnavailableGate();
+      // Video: Share L2-ready waits for surface (Decision 14); keep false.
       await _syncPlaybackActive(requireSurfaceReady: false);
       return;
     }
@@ -3872,6 +3976,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _recordL2ReadySession(layer2: layer2, layer1: layer1);
     widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
     _publishHostUnavailableGate();
+    _publishLayer2DisplayReady(true);
     await _prepareLiveMotion();
   }
 
@@ -4000,6 +4105,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       });
       widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
       _publishHostUnavailableGate();
+      _publishLayer2DisplayReady(true);
       await _prepareLiveMotion();
       return;
     }
@@ -4488,6 +4594,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                         widget.onCurrentLayer2MediaReady?.call(
                           widget.assetIdentifier,
                         );
+                        _publishLayer2DisplayReady(true);
                       }
                       await ref
                           .read(playbackRepositoryProvider)

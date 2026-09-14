@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/magnification_arbitration.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
 /// Cap 20 session-scoped magnification runtime state (ADR-043).
 @immutable
@@ -109,6 +110,15 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
 
   void clearBecauseLeftCurrentOrBrowse() {
     _liveMotionMounted = false;
+    // Defer: leave-current can run mid-rebuild; do not write providers sync.
+    Future.microtask(() {
+      if (!ref.mounted) {
+        return;
+      }
+      ref
+          .read(mainBrowseCurrentLiveMotionMountedProvider.notifier)
+          .setMounted(false);
+    });
     if (!shouldClearMagnificationOnLeaveCurrent(
       wasCurrentOrBrowseActive: true,
       isCurrentOrBrowseActive: false,
@@ -122,6 +132,14 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
   void onLiveMotionMountedChanged(bool mounted) {
     final previous = _liveMotionMounted;
     _liveMotionMounted = mounted;
+    Future.microtask(() {
+      if (!ref.mounted) {
+        return;
+      }
+      ref
+          .read(mainBrowseCurrentLiveMotionMountedProvider.notifier)
+          .setMounted(mounted);
+    });
     if (shouldForceFitOnLiveMotionRisingEdge(
       previouslyMounted: previous,
       currentlyMounted: mounted,

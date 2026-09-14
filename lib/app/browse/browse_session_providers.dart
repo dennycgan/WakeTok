@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
+import 'package:waketok/app/browse/browse_live_motion_watchdog.dart';
 import 'package:waketok/app/browse/process_soft_deleted_asset_ids.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
@@ -463,6 +464,7 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   /// so a superseded restart cannot overwrite a newer load (Cap 14.6).
   Future<void> restartSession() async {
     ref.read(browseL2ReadySessionProvider.notifier).clear();
+    ref.read(browseLiveMotionWatchdogSkipIdsProvider.notifier).clear();
     final gen = ++_loadGen;
     final chrome = ref.read(browseChromeStateProvider);
     final definition = _definitionFor(chrome);

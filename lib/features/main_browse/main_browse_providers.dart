@@ -12,6 +12,11 @@ export 'package:waketok/app/browse/browse_l2_ready_session.dart'
         FeedL2ReadyEntry,
         FeedL2ReadyKind,
         browseL2ReadySessionProvider;
+export 'package:waketok/app/browse/browse_live_motion_watchdog.dart'
+    show
+        BrowseLiveMotionWatchdogSkipIds,
+        browseLiveMotionWatchdogSkipIdsProvider,
+        kLiveMotionEndedWatchdog;
 export 'package:waketok/app/browse/browse_session_providers.dart'
     show
         BrowseChromeState,
@@ -71,6 +76,15 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
     ref
         .read(mainBrowseCurrentAssetHostUnavailableProvider.notifier)
         .setUnavailable(false);
+    ref
+        .read(mainBrowseCurrentAssetLayer2DisplayReadyProvider.notifier)
+        .setReady(false);
+    ref
+        .read(mainBrowseCurrentLiveMotionMountedProvider.notifier)
+        .setMounted(false);
+    ref
+        .read(mainBrowseCurrentAssetListAvailabilityProvider.notifier)
+        .setAvailability(null);
   }
 }
 
@@ -281,6 +295,73 @@ class MainBrowseCurrentAssetHostUnavailable extends Notifier<bool> {
       return;
     }
     state = unavailable;
+  }
+}
+
+/// Cap 25 / ADR-051 Decision 14: current page L2 display / video surface ready.
+///
+/// Written by [MediaFeedPage] only. Still: full L2 apply; video: `_surfaceReady`.
+/// Cleared on arm in-flight / leave-current / reload / fail. Not
+/// [browseL2ReadySessionProvider] (session mint can precede video surface-ready).
+final mainBrowseCurrentAssetLayer2DisplayReadyProvider =
+    NotifierProvider<MainBrowseCurrentAssetLayer2DisplayReady, bool>(
+      MainBrowseCurrentAssetLayer2DisplayReady.new,
+    );
+
+class MainBrowseCurrentAssetLayer2DisplayReady extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setReady(bool ready) {
+    if (state == ready) {
+      return;
+    }
+    state = ready;
+  }
+}
+
+/// Cap 25 / ADR-051 Decision 14: Live motion UiKitView mounted on current item.
+///
+/// Published from [BrowseMagnificationNotifier.onLiveMotionMountedChanged]
+/// (and leave-current clear). Must not live on [BrowseMagnificationState] —
+/// [BrowseMagnificationNotifier.forceFit] resets that state.
+final mainBrowseCurrentLiveMotionMountedProvider =
+    NotifierProvider<MainBrowseCurrentLiveMotionMounted, bool>(
+      MainBrowseCurrentLiveMotionMounted.new,
+    );
+
+class MainBrowseCurrentLiveMotionMounted extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setMounted(bool mounted) {
+    if (state == mounted) {
+      return;
+    }
+    state = mounted;
+  }
+}
+
+/// Cap 25 / ADR-051 Decision 14: list-time availability for the current asset.
+///
+/// Written by [MediaFeedPage] after Cap 15.12 become-current probe (or snapshot
+/// inject when non-null). Resolve snapshots intentionally omit availabilities
+/// (ADR-033) — do not read [browseSnapshotCacheProvider] for this signal.
+final mainBrowseCurrentAssetListAvailabilityProvider =
+    NotifierProvider<MainBrowseCurrentAssetListAvailability, AssetAvailability?>(
+      MainBrowseCurrentAssetListAvailability.new,
+    );
+
+class MainBrowseCurrentAssetListAvailability
+    extends Notifier<AssetAvailability?> {
+  @override
+  AssetAvailability? build() => null;
+
+  void setAvailability(AssetAvailability? availability) {
+    if (state == availability) {
+      return;
+    }
+    state = availability;
   }
 }
 

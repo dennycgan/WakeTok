@@ -6,10 +6,10 @@ import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/library_smoke/asset_share_providers.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
+import 'package:waketok/features/main_browse/cap25_share_enable_policy.dart';
 import 'package:waketok/features/main_browse/cap25_share_toast.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
-import 'package:waketok/features/main_browse/main_browse_trailing_chrome_policy.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/still_in_library_gate.dart';
@@ -17,8 +17,8 @@ import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 25.3 Action Column Share (index 1).
 ///
-/// Slot-family chrome: ADR-051 Decision 7 (icon) + Decision 8 (named
-/// actionable / trailing-visibility / Cap 23 gate; no Layer 2 ready).
+/// Slot-family chrome: ADR-051 Decision 7/14 (glyph) + Decision 8 visibility
+/// + Decision 14 tap-enable (local L2 / Live motion; iCloud path retained).
 /// In-flight latch: ADR-051 Decision 9 via
 /// [mainBrowseSharePresentInFlightProvider] (not Cap 24 PopScope).
 class Cap25ShareEntryIcon extends ConsumerWidget {
@@ -32,6 +32,7 @@ class Cap25ShareEntryIcon extends ConsumerWidget {
         assetId != null &&
         assetId.isNotEmpty &&
         ref.watch(pvTransitionGuardProvider).isCovering(assetId);
+    // Decision 8 settle/cover axes: hide completely (not Decision 14 dim).
     if (!settled || covering) {
       return const SizedBox.shrink();
     }
@@ -39,23 +40,29 @@ class Cap25ShareEntryIcon extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
-    final chromeReady = mainBrowseTrailingMutationChromeVisible(
+    final layer2Ready = ref.watch(
+      mainBrowseCurrentAssetLayer2DisplayReadyProvider,
+    );
+    final liveMotion = ref.watch(mainBrowseCurrentLiveMotionMountedProvider);
+    final enable = cap25ShareEnablePredicate(
       actionable: actionable,
       verticalFeedSettled: settled,
       transitionCovering: covering,
+      layer2DisplayReady: layer2Ready,
+      liveMotionMounted: liveMotion,
     );
 
     return Semantics(
       button: true,
-      enabled: chromeReady,
+      enabled: enable.tapEnabled,
       label: l10n.cap25ShareEntryIconSemantics,
       child: Opacity(
-        opacity: actionable ? 1.0 : kCap19EntryIconDisabledOpacity,
+        opacity: enable.tapEnabled ? 1.0 : kCap25ShareEntryIconDisabledOpacity,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             key: const Key('cap25ShareEntryIcon'),
-            onTap: chromeReady
+            onTap: enable.tapEnabled
                 ? () => _onShareTap(context: context, ref: ref, l10n: l10n)
                 : null,
             customBorder: const CircleBorder(),
@@ -64,9 +71,9 @@ class Cap25ShareEntryIcon extends ConsumerWidget {
               height: kActionColumnHitSize,
               child: Center(
                 child: Icon(
-                  // ADR-051 D7 wrote SF-style `square_and_arrow_up`; Flutter
-                  // CupertinoIcons name is `square_arrow_up` (alias of share).
-                  CupertinoIcons.square_arrow_up,
+                  // ADR-051 Decision 14: solid turn-up-right (replaces D7
+                  // square_arrow_up). Single glyph for enabled and disabled.
+                  CupertinoIcons.arrowshape_turn_up_right_fill,
                   // Cap 25 / ADR-051 Decision 7: start at column lock 32;
                   // Profile optical pass may tune (Cap 24 ellipsis uses 36).
                   size: kActionColumnIconSize,

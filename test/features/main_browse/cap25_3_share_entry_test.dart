@@ -124,7 +124,7 @@ void main() {
           matching: find.byType(Opacity),
         ),
       );
-      expect(shareOpacity.opacity, kCap19EntryIconDisabledOpacity);
+      expect(shareOpacity.opacity, kCap25ShareEntryIconDisabledOpacity);
       expect(
         tester
             .widget<InkWell>(find.byKey(const Key('cap25ShareEntryIcon')))
