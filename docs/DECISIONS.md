@@ -6034,7 +6034,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-051: Cap 25 Share current asset from Action Column
 
-- Status: Proposed
+- Status: Proposed; Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`)
 - Commit/PR anchor: pending (flip to Accepted with implementing work sha
   at Cap 25 close; no fake anchor while Proposed)
 - Plain summary (owner reads this):
@@ -6196,7 +6196,31 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       Decision 12). Does **not** change video `requestAVAsset`, cancel /
       pause / spinner / UIWindow presentation chrome.
 
+
+  15. **System share sheet exclusions (narrow).**
+      Before presenting `UIActivityViewController`, Host sets
+      `excludedActivityTypes` to **exactly**:
+      - `UIActivity.ActivityType.saveToCameraRoll`
+      **Reason:** the shared asset is already in the user's iOS Photos
+      library; the system "Save Image" / "Save Video" (same activity
+      type) action is a redundant save-back-to-Camera-Roll and is
+      product noise for WakeTok Browse Share.
+      **Explicit non-exclusions (intentional keep):**
+      - `UIActivity.ActivityType.assignToContact` — retained; may have
+        valid uses; do not exclude by analogy with save-to-camera-roll
+        unless a later owner decision revisits it.
+      - All other built-in system activities (e.g. Print, Copy) —
+        retained.
+      - Third-party share extensions (WeChat, WhatsApp, etc.) — not
+        controllable via this list; left to the system.
+      **Out of scope:** share-sheet chrome width / half-expanded vs
+      fully-expanded layout (system-owned; Cap 25 does not customize).
+      **Accepted (2026-09-14).** Implementing work commit `39f04a4`.
+
 - Rejected alternatives (why not):
+  - Exclude assignToContact / Print together with saveToCameraRoll — rejected;
+    owner keeps the native activity list except Camera-Roll save-back
+    (Decision 15).
   - Share at index 2 above Album (ADR-050 placeholder) — rejected; owner Q1=B.
   - Export-to-temp then share URL as the product path — rejected; invents an
     App export pipeline inconsistent with Host-touches-PHAsset style
@@ -6226,6 +6250,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Known debt close count for Cap 25 = **0**.
   - GLOSSARY: no new concept node (Share is chrome on Media Item).
 
+  - Decision 15: Host excludes only `saveToCameraRoll` on Share present;
+    assignToContact and other built-ins remain intentional keeps.
 - Relationship:
   Narrowly supersedes ADR-050 Decision 2 **index layout** only.
   Extends ADR-042 / ADR-049 (Share is a required consumer of the named
