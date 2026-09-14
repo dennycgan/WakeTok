@@ -2270,6 +2270,10 @@ final class PhotoLibraryService: PhotoLibraryApi {
             activityItems: payload.items,
             applicationActivities: nil
           )
+          // Cap 25 / ADR-051 Decision 15: asset is already in Photos —
+          // hide system save-back-to-Camera-Roll ("Save Image" / "Save Video").
+          // Do not exclude assignToContact or other built-ins here.
+          activity.excludedActivityTypes = [.saveToCameraRoll]
           // Cap 25 / ADR-051 D10: iPhone-only product acceptance; still set
           // a minimal popover anchor on iPad so Simulator/universal builds
           // do not crash. Not an MVP iPad layout claim.
