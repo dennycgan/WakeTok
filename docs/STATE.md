@@ -200,28 +200,27 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       latch; Cap 19/24 slot-family + Cap 23 gate (no L2 ready);
       Album inset → index 2; layout-notes Code anchors; W-25.3 +
       W-24.3-1 update; glyph starts at 32 (Profile optical may tune)
-- [ ] 25.4 Device acceptance (Kafka + i17; still / video / Live /
-      iCloudNotDownloaded / Limited / cancel-silent / Host-fail
-      toast / missing → Cap 23 dialog); notes under
-      `docs/acceptance/cap25-*.md`
+- [x] 25.4 Device acceptance (Kafka + i17)
+      Notes `docs/acceptance/cap25-25.4-notes.md` — **PASS** (narrative:
+      Decision 14 `c1d7d2f`; Bug#1 gate `aa22a04`; Decision 15
+      `39f04a4`; Limited owner OK; FAIL SKIP harness). ADR-051 remains
+      Proposed until Cap 25 close; Decision 14/15 Accepted.
 - [ ] 25.5 Cap close-out: Cap 25 `[x]`; YOU ARE HERE → Auto-play
       Presets and Mode Eligibility Rule…; PHASE_HISTORY snapshot;
       ADR-051 Accepted (anchor = implementing work sha); Known
       debt close count = 0
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 25.4 device acceptance (Kafka + i17 Share matrix)
-- Sub-steps done: Cap 25.1 ADR-051 Proposed (`b2f78b3`); Cap 25.2
-      Host/Pigeon/Fake work `99c2e73`; Cap 25.3 Share chrome work
-      `c3b5a58`
-- Next step: Profile device matrix (still / video / Live /
-      iCloudNotDownloaded / Limited / cancel-silent / Host-fail /
-      Cap 23 missing); write `docs/acceptance/cap25-*.md`
-- Related decisions: ADR-051 Proposed; ADR-050 D2 index narrowly
-      superseded; ADR-049 / ADR-042 named gate+chrome symbols;
-      debt **456a** / **457** Open (out of Cap 25); **469**
-      Accepted (permanent); **400** Accepted (permanent) cited for
-      no-L2 Share enable
+- Goal (one line): Cap 25.5 Cap close-out (ADR-051 Accepted + PHASE_HISTORY)
+- Sub-steps done: Cap 25.1–25.3; 25.4 device acceptance PASS
+      (`cap25-25.4-notes.md`); Decision 14 work `c1d7d2f`; Decision 15
+      work `39f04a4` / docs `5200f38`; Bug#1 gate `aa22a04`
+- Next step: Cap 25.5 — Capability `[x]`, PHASE_HISTORY append, ADR-051
+      Accepted + final anchors; schedule Bug#2 + probe cleanup outside
+      or after close as owner directs
+- Related decisions: ADR-051 Proposed (D14/D15 Accepted); ADR-049 /
+      ADR-042; debt **456a** / **457** Open; **458** Monitoring; **469**
+      Accepted (permanent); probe cleanup after Bug#2
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -629,7 +628,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 456a | Open | Main Browse Screen / Cap 19 | Cap 21.6 | L2-ready still path skips PHAsset liveness (ex-456 Part A) | **Split from bare 456 at Cap 23.1.** Session still L2-ready + on-disk temp → `FeedPageMedia.still(cover)` without `requestDisplayAsset`; external delete can keep showing the JPEG until temp eviction / origin change — Cap 21.6 feed copy never fires until Host is hit. Out of ADR-044 D3. Future: Host existence check / tighter L2-ready. Not Cap 23 (still-in-library mutation gate). | later Host / L2-ready tighten | ADR-044 D3; Cap 15.10; ADR-033 |
 | 456b | Closed | Main Browse Screen / Cap 19 | Cap 21.6 | Panel / mutation still-in-library gate (ex-456 Part B) | **Split from bare 456 at Cap 23.1.** Prefer proactive “asset still in Photos” checks **before** Favorites / Cap 19.5 Add-to-Album / left-swipe / future Share. Distinct from Cap 19.8 `mainBrowseCurrentAssetActionableProvider`; **AND** — do not merge axes. Predicate: `AssetAvailability != unavailable` (iCloudNotDownloaded remains still-in-library). Cap 21.6 Overlay hide + Cap 19 entry dim reuse feed `assetUnavailable` as interim — not this probe. Cap 23 / ADR-049 implements the gate. Half-sheet Delete / delete-original → debt **464**, not this row. **Closed by Cap 23.4** device matrix PASS (Kafka + i17 P-23-A…G); work `893c8fb`; notes `cap23-23.4-notes.md`. ADR-049 Accepted at Cap 23.5. | Closed by Cap 23.4 | ADR-049; ADR-042; ADR-033; ADR-044 D3; Cap 19.5 / 19.8 |
 | 457 | Open | Main Browse Screen | Cap 21.6 | Host `layer2Failure` collapses missing-PHAsset and pre-transfer L2 failure into the same `assetUnavailable` wire code | Cap 21.6 remaps that code to `FeedFailureReason.assetUnavailable` + hides manual Retry (ADR-044 D3 feed-display only). Pre-transfer / China-SKU wireless users therefore lose wireless-specific copy and the Retry button, but retain: (1) debt **406** lifecycle auto-retry on resume (`_retryFailedLayer2AfterResume` ignores reason); (2) swipe to another feed item and back — leave clears fail chrome, activation bumps display generation, `_startLoad` re-requests L2 because fail never minted an L2-ready token. Splitting the Host bucket needs a new Pigeon/Host capability outside D3. Mid-transfer fail remains `iCloudDownloadFailed` (download copy + Retry). | Later Host / Pigeon capability | ADR-044 D3; debt **406** / **435**; Cap 21.6 |
-| 458 | Monitoring | Main Browse Screen / Cap 20 | Cap 22.4 | After Live motion + gesture attempt: vertical feed lost page-snap (continuous slow drag; adjacent peeks L1→L2); kill-app recovers, leave-Browse does not | **Logged Cap 22.4 i17 Profile soak (`0ca1198`).** One unreproduced incident during offline Live play-once: pinch/other gestures had **no** magnification visual (Live motion Host `mode == none` behaved as designed), then vertical paging became continuous strip drag (neighbor pages half-visible; peeks still advanced L1→L2) instead of snap page-change. **Not Cap 22.4 Saved chrome** (no causal link). Same fragility **family** as Project facts Host pinch / `DragScrollActivity.shouldIgnorePointer` re-verify note (Platform View + outer pinch Listener + PageView) — first **observable symptom**, not a prior prediction of this exact failure mode. Leave Browse / return did **not** heal (IndexedStack keep-alive retains `PageController` / `ScrollPosition`); force-quit did. Code review of mag `NeverScrollable` lock, Live rising-edge `forceFit`, and leave-Browse clear paths matches existing tests — no definite product bug found; do **not** change PageView physics without a repro. External factors not ruled out (accidental multi-touch); no thermal / low-battery / heavy multitasking reported. **Not** Cap 22.5. | Primary: next Flutter SDK upgrade pinch/scroll re-verify (with Project facts note). Secondary: Cap 22.6 device time opportunistic Live+gesture probes only (not on 22.6 must-pass list). Escalate to Cap discussion only if ≥1 further observable recurrence. | ADR-043 / ADR-040 / ADR-019; Project facts pinch/`DragScrollActivity` note |
+| 458 | Monitoring | Main Browse Screen / Cap 20 | Cap 22.4 | Vertical feed lost page-snap (continuous slow drag; adjacent peeks L1→L2); kill-app recovers, leave-Browse does not — seen after Live (22.4) and once on **video** (Cap 25) | **Hit 1 — Cap 22.4 i17 Profile soak (`0ca1198`).** Offline Live play-once: pinch/other gestures had **no** magnification visual (Live Host `mode == none` as designed), then vertical paging became continuous strip drag (neighbor pages half-visible; peeks still advanced L1→L2) instead of snap page-change. **Not Cap 22.4 Saved chrome.** Leave Browse / return did **not** heal (IndexedStack keep-alive retains `PageController` / `ScrollPosition`); force-quit did. **Hit 2 — Cap 25 Decision 14 Profile on Kafka (iPhone 13 Pro), owner report.** Same page-snap loss once on a **video** while an iCloud-not-downloaded item was still L2-not-ready (Share correctly dimmed); owner was repeatedly tapping the dim Share hit target to confirm no response — not a normal Share path. Share dismiss was likely swipe-down (not 100% certain). Exact timing vs dim→bright edge unclear. Same fragility **family** as Project facts Host pinch / `DragScrollActivity.shouldIgnorePointer` (Platform View + outer pinch Listener + PageView). Do **not** change PageView physics without a reliable repro. **Relation to Bug#1** (video share sheet outside-tap / intermittent pause-toggle) **unconfirmed** — continue Monitoring; pause dedicated 458 chase until Bug#1 is diagnosed. | Continue **Monitoring**; opportunistic note if seen again. Primary: next Flutter SDK upgrade pinch/scroll re-verify. Do **not** put on Cap 25 must-pass close list. Cap discussion only if a clean repro appears independent of Bug#1 / dim-Share poke. | ADR-043 / ADR-040 / ADR-019; Project facts pinch/`DragScrollActivity` note; Cap 25 D14 device; Bug#1 |
 | 459 | Closed | Main Browse Screen | Cap 22.5 | Endless round remount H0: when H1 Layer-1 seed misses, &lt;150 ms may show silent `feedBackground` (no gold spinner) before L1/L2 | **Closed:** Cap 22.5b real-bridge / soft-commit / H1–H0 remount path **reverted** to scheme A (static placeholder). Mechanism no longer exists. | Closed by Cap 22.5 scheme A revert | Cap 22.5; `cap22-22.5-endless-round-bridge-notes.md` |
 | 460 | Closed | Main Browse Screen | Cap 22.5b | Soft-commit **landing==0** → post-frame+50ms epoch remount may chop a fling started inside that 50 ms window | **Closed:** soft-commit / deferred epoch remount **removed** with bridge revert (scheme A). | Closed by Cap 22.5 scheme A revert | Cap 22.5b; `cap22-22.5-endless-round-bridge-notes.md` |
 | 461 | Closed | Main Browse Screen | Cap 22.5b | Fling past prepared[0] **and** prepared[1] can still hit a later last-page wall | **Closed:** prepared bridge pages **removed** with bridge revert (scheme A). | Closed by Cap 22.5 scheme A revert | Cap 22.5b; `cap22-22.5-endless-round-bridge-notes.md` |

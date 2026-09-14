@@ -6034,7 +6034,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-051: Cap 25 Share current asset from Action Column
 
-- Status: Proposed; Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`)
+- Status: Proposed; Decision 14 (Share enable — Layer-2 display ready + Live motion idle; unified, no iCloud exception) Accepted (2026-09-14; work `c1d7d2f`); Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`)
 - Commit/PR anchor: pending (flip to Accepted with implementing work sha
   at Cap 25 close; no fake anchor while Proposed)
 - Plain summary (owner reads this):
@@ -6197,6 +6197,111 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       pause / spinner / UIWindow presentation chrome.
 
 
+  14. **Share tap enable — Layer-2 display ready + Live motion idle
+      (unified; no iCloud exception).**
+
+      **Plain-language:** Share is dimmed (not hidden) until Browse
+      Layer-2 display is ready for the current item, and while Live motion
+      is mounted. Reason for L2 unreadiness (local decode vs iCloud
+      download) does **not** change the rule. Glyph is the solid
+      turn-up-right fill.
+
+      **Why (D13 interaction):** Enabling Share while
+      `iCloudNotDownloaded` (old exception) stacked with Decision 13’s
+      non-degraded `UIImage` materialization — chrome looked tappable
+      while Host blocked on download → “white / no response.” Product
+      also rejects share-before-Layer-2-visible as a Browse scenario.
+
+      **Narrowly supersedes (this Decision only):**
+      1. **Decision 3** clause *“No App wait layer / Layer-2 gate for
+         Share”* — **fully** replaced for Share **tap-enable** by this
+         Decision’s predicate (`layer2DisplayReady ∧ ¬liveMotionMounted`,
+         plus Decision 8 chrome). Decision 3’s Cap 23 still-in-library
+         existence gate (`AssetAvailability != unavailable`, including
+         `iCloudNotDownloaded`) is **retained** for the post-tap mutation
+         gate only — it does **not** exempt Share chrome from the L2 limb.
+         After Cap 23 passes and L2 is ready, Host still presents;
+         system/PhotoKit may still download or fail on the materialization
+         path (Decisions 12 / 13).
+      2. **Decision 8** clause *“Layer 2 ready — explicitly not required”*
+         as it applied to **Share enable** — replaced by this Decision for
+         Share only. Decision 8 actionable / peek·covering / Cap 23 wiring
+         and Cap 19 / Cap 24 “no L2 gate” remain unchanged.
+      3. **Decision 7** glyph — `CupertinoIcons.square_and_arrow_up`
+         (Flutter Cupertino name `square_arrow_up`) is replaced by
+         `CupertinoIcons.arrowshape_turn_up_right_fill` (single solid glyph
+         for both enabled and disabled; enabled = `tokens.onMedia`,
+         disabled = `kCap25ShareEntryIconDisabledOpacity`). No outline↔fill
+         swap by enable state.
+
+      **Enable table** (Decision 8 chrome visibility —
+      `actionable ∧ verticalFeedSettled ∧ ¬covering` — **plus**):
+
+      | Tappable | Dimmed (visible, `onTap: null`) |
+      |----------|----------------------------------|
+      | Ordinary still: Browse **L2 display ready** for current item | Still L2 not ready (**including** iCloud download / local decode) |
+      | Video: current-item video **L2 surface ready** to show | Video L2 not ready (**including** iCloud download / local decode) |
+      | Live: **static still** (motion not mounted / finished) **and** still-side L2 ready | Live **motion mounted / playing**, or still-side L2 not ready (**including** iCloud) |
+
+      **D14 vs Decisions 12 / 13 (do not conflate):**
+      Decision 12 / 13 govern **Host activity-item materialization**
+      (always still key-frame / non-degraded UIImage; never `PHLivePhoto`).
+      Decision 14 governs **whether the Share control may be tapped** while
+      a native Live-motion `UiKitView` (or L2-not-ready surface) can still
+      compete with the system share modal for touches — the physical risk
+      behind debt **458** (Live+Share mid-motion). D14 would still be
+      required even if D12/D13 did not exist and Live were shared as motion.
+      Sharing still content is **not** the rationale for dimming during
+      Live playback; aligning enable with L2 also avoids the D13 download
+      wait UX trap for cloud items.
+
+      **Debt 400:** Assets slow to mint L1 poster / L2 ready are
+      **temporarily** dimmed until L2 ready — delayed Share, **not**
+      permanently unavailable. Applies whether unreadiness is local or
+      iCloud. Distinct from Decision 8’s original worry about assets that
+      **never** mint L2-ready (Cap 19 / Cap 24 remain ungated).
+
+      **Tap-time only — known residual:** Decision 14 is evaluated at
+      **tap time** (and for chrome rebuilds), not a hold-lock across
+      Cap 23 → Host present (Decision 9 latch window). If the user lands
+      on a new Live item and taps Share in the brief interval before
+      motion is marked mounted, a **narrow race** can still open the sheet
+      during motion — **accepted residual, out of this knife**. Do not
+      treat a later 458 hit in that edge as “gate failed.”
+
+      **UI:** Dim when Decision 14 blocks enable; do **not** hide for
+      Layer-1 / Live-motion unreadiness (hide remains peek / PV-covering
+      only — ADR-042 D8).
+
+      **Signal sources (implementing wiring; Cap 25 Share only):**
+      - Live motion: `mainBrowseCurrentLiveMotionMountedProvider` —
+        published from `BrowseMagnificationNotifier.onLiveMotionMountedChanged`
+        (and leave-current clear). **Not** a field on
+        `BrowseMagnificationState` (`forceFit()` resets that state and must
+        not clear Live-mounted).
+      - Current-page L2 display ready:
+        `mainBrowseCurrentAssetLayer2DisplayReadyProvider` — written by
+        `MediaFeedPage` (still full L2 apply / video `_surfaceReady`;
+        cleared on arm in-flight / leave-current / reload / fail). **Not**
+        `browseL2ReadySessionProvider` (session mint can precede video
+        surface-ready).
+      - Current-item list availability:
+        `mainBrowseCurrentAssetListAvailabilityProvider` — retained for
+        Cap 23 / probe / diagnostics; **not** an input to the Share
+        tap-enable predicate (no iCloud exception limb).
+      Cap 19 / Cap 24 do **not** watch these Share-only limbs.
+
+      **Non-goals:** Cap 19 / Cap 24 L2 gates; Bug#1 outside-tap dismiss;
+      PageView physics changes for debt 458; gating Share on availability
+      enum `deviceLocal` (gate is L2 display ready, not the enum).
+      **Live-ended watchdog / session skip:** shipped in the same
+      implementing work `c1d7d2f` as reliability for the
+      `¬liveMotionMounted` limb (not a separate Cap).
+
+      **Accepted (2026-09-14).** Implementing work commit `c1d7d2f`
+      (Share enable predicate + L2 / Live publishers + Live-ended
+      watchdog).
+
   15. **System share sheet exclusions (narrow).**
       Before presenting `UIActivityViewController`, Host sets
       `excludedActivityTypes` to **exactly**:
@@ -6218,6 +6323,11 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       **Accepted (2026-09-14).** Implementing work commit `39f04a4`.
 
 - Rejected alternatives (why not):
+  - Keep Share tappable while `iCloudNotDownloaded` (skip L2 / Live limbs) —
+    **rejected** under Decision 14: stacks with Decision 13 non-degraded
+    materialization and rejects share-before-Layer-2-visible.
+  - Hide Share (instead of dim) for Layer-1 / Live-motion unreadiness —
+    rejected under Decision 14; hide remains peek / PV-covering only.
   - Exclude assignToContact / Print together with saveToCameraRoll — rejected;
     owner keeps the native activity list except Camera-Roll save-back
     (Decision 15).
@@ -6230,7 +6340,9 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     — superseded by Decision 12; always-still is simpler and one code path.
   - Block Share until `deviceLocal` / force Layer 2 first — rejected; conflicts
     with ADR-049 iCloudStillInLibrary, ADR-050 D7 "…" L2 independence, and
-    thickens Cap 25.
+    thickens Cap 25. **(Superseded for Share tap-enable by Decision 14 —
+    this entry is the original Cap 25.1 rationale; see Decision 14. Cap 19 /
+    Cap 24 remain without an L2 enable gate.)**
   - Map share cancel → `operationCancelled` — rejected; wrong Cap 24 consent
     semantics; cancel must be silent success-path for Dart.
   - New ErrorCode for share present failure — rejected; reuse
@@ -6252,6 +6364,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
   - Decision 15: Host excludes only `saveToCameraRoll` on Share present;
     assignToContact and other built-ins remain intentional keeps.
+  - Decision 14 Accepted: Share enable = chrome ∧ L2-display-ready ∧
+    ¬liveMotionMounted (`c1d7d2f`); Cap 19 / Cap 24 remain without L2 gate.
 - Relationship:
   Narrowly supersedes ADR-050 Decision 2 **index layout** only.
   Extends ADR-042 / ADR-049 (Share is a required consumer of the named
@@ -6261,3 +6375,5 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Does not amend ADR-K album list-find rules; Decision 6 records why Share
   is outside that red line.
   Orthogonal to ADR-044 D3 (no library observer).
+  Decision 14 is orthogonal to Decisions 12 / 13 (materialization vs
+  tap-enable).
