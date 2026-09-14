@@ -9,7 +9,7 @@ import UIKit
 /// Owns a bounded 1+1 AVPlayer display pool. Platform View attaches/detaches
 /// the picture only. Background: detach + pause (no Now Playing / queue advance).
 /// Restore guard raised on willEnterForeground; cleared on notifyDisplaySurfaceReady.
-final class PlaybackApiHost: PlaybackApi {
+final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
   static let viewType = "waketok/playback_surface"
 
   private let flutterApi: PlaybackFlutterApi
@@ -621,10 +621,158 @@ final class PlaybackApiHost: PlaybackApi {
 
   func unbindSurface(_ view: PlaybackSurfaceView) {
     if surfaceView === view {
+      // If Share still holds wrapper gate state, restore before dropping the
+      // bound surface (idempotent when idle).
+      endBoundPlatformViewWrapperShareGate(phase: "unbind")
       view.applyDisplayMagnification(scale: 1, translationX: 0, translationY: 0)
       view.attach(player: nil)
       surfaceView = nil
     }
+  }
+
+  /// Cap 25 Share: toggle UIKit hit-testing on the single bound
+  /// `PlaybackSurfaceView` only (`nil` → no-op). Does not touch the 1+1
+  /// AVPlayer pool or Live Photo surface.
+  func setBoundSurfaceUserInteractionEnabled(_ enabled: Bool) {
+    surfaceView?.view().isUserInteractionEnabled = enabled
+  }
+
+  // MARK: - Cap 25 Bug#1 Option 1 (engine wrapper hit-test gate)
+
+  /// Single-present slot for wrapper `isUserInteractionEnabled` restore.
+  /// Cleared at every `begin` and after every `end` — never retained across
+  /// Share presents.
+  private struct ShareWrapperGateEntry {
+    weak var view: UIView?
+    let previousEnabled: Bool
+  }
+
+  private var shareWrapperGateEntries: [ShareWrapperGateEntry] = []
+  private var shareWrapperGateHitLabel: String = "none"
+  private var shareWrapperGateArmed: Bool = false
+
+  /// Exact class-name whitelist (Flutter 3.41.9 / Engine `42d3d75a56`).
+  /// Do not use fuzzy `isKindOf` against private base classes.
+  private static let shareWrapperClassNames: Set<String> = [
+    "ChildClippingView",
+    "FlutterTouchInterceptingView",
+  ]
+  private static let shareWrapperEngineRevision = "42d3d75a56"
+  private static let shareWrapperWalkMaxDepth = 4
+
+  func beginBoundPlatformViewWrapperShareGate() {
+    // Single-present slot: if a prior present leaked state, restore then rebuild.
+    if !shareWrapperGateEntries.isEmpty || shareWrapperGateArmed {
+      endBoundPlatformViewWrapperShareGate(phase: "present_reenter_clear")
+    }
+    shareWrapperGateEntries.removeAll(keepingCapacity: false)
+    shareWrapperGateHitLabel = "none"
+    shareWrapperGateArmed = false
+
+    guard let embedded = surfaceView?.view() else {
+      emitShareWrapperGateProbe(
+        phase: "present",
+        armed: false,
+        hit: "none",
+        note: "no_bound_surface"
+      )
+      return
+    }
+
+    var foundClipping = false
+    var foundIntercepting = false
+    var matched: [(UIView, String)] = []
+
+    var current: UIView? = embedded.superview
+    var depth = 0
+    while let view = current, depth < Self.shareWrapperWalkMaxDepth {
+      let name = NSStringFromClass(type(of: view))
+      if Self.shareWrapperClassNames.contains(name) {
+        matched.append((view, name))
+        if name == "ChildClippingView" {
+          foundClipping = true
+        } else if name == "FlutterTouchInterceptingView" {
+          foundIntercepting = true
+        }
+      }
+      current = view.superview
+      depth += 1
+    }
+
+    let hitLabel =
+      matched.isEmpty ? "none" : matched.map(\.1).joined(separator: "+")
+    shareWrapperGateHitLabel = hitLabel
+
+    // Outer layer is required. Intercepting-only is known-insufficient → no-op.
+    guard foundClipping else {
+      let note =
+        foundIntercepting
+        ? "missing_ChildClippingView_only_Intercepting" : "wrapper_not_found"
+      emitShareWrapperGateProbe(
+        phase: "present",
+        armed: false,
+        hit: hitLabel,
+        note: note
+      )
+      return
+    }
+
+    for (view, _) in matched {
+      shareWrapperGateEntries.append(
+        ShareWrapperGateEntry(
+          view: view,
+          previousEnabled: view.isUserInteractionEnabled
+        )
+      )
+      view.isUserInteractionEnabled = false
+    }
+    shareWrapperGateArmed = true
+    emitShareWrapperGateProbe(
+      phase: "present",
+      armed: true,
+      hit: hitLabel,
+      note: nil
+    )
+  }
+
+  func endBoundPlatformViewWrapperShareGate(phase: String) {
+    let hitLabel = shareWrapperGateHitLabel
+    let wasArmed = shareWrapperGateArmed
+    for entry in shareWrapperGateEntries {
+      if let view = entry.view {
+        view.isUserInteractionEnabled = entry.previousEnabled
+      }
+    }
+    shareWrapperGateEntries.removeAll(keepingCapacity: false)
+    shareWrapperGateHitLabel = "none"
+    shareWrapperGateArmed = false
+    emitShareWrapperGateProbe(
+      phase: phase,
+      armed: wasArmed,
+      hit: hitLabel,
+      note: wasArmed ? "restored" : "noop"
+    )
+  }
+
+  private func emitShareWrapperGateProbe(
+    phase: String,
+    armed: Bool,
+    hit: String,
+    note: String?
+  ) {
+    var parts = [
+      "WT_CAP25_PROBE|share_pv_wrapper_gate",
+      "phase=\(phase)",
+      "armed=\(armed)",
+      "hit=\(hit)",
+      "engine=\(Self.shareWrapperEngineRevision)",
+    ]
+    if let note, !note.isEmpty {
+      parts.append("note=\(note)")
+    }
+    let line = parts.joined(separator: "|")
+    // ignore: print — Profile device capture via flutter run / logs
+    print(line)
   }
 
   /// Applies persisted [muted] and Cap 15.11 transition guard suppression.

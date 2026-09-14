@@ -28,6 +28,7 @@
 		B10000000000000000000014 /* PlaybackRuntimeObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* PlaybackRuntimeObserver.swift */; };
 		B10000000000000000000015 /* PlaybackScrubPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016 /* PlaybackScrubPreview.swift */; };
 		B10000000000000000000017 /* ScrubPreviewProbe.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018 /* ScrubPreviewProbe.swift */; };
+		B1000000000000000000001A /* PlaybackSurfaceUserInteractionGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019 /* PlaybackSurfaceUserInteractionGate.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +89,7 @@
 		B10000000000000000000009 /* PlaybackRuntimeObserver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackRuntimeObserver.swift; sourceTree = "<group>"; };
 		B10000000000000000000016 /* PlaybackScrubPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackScrubPreview.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 /* ScrubPreviewProbe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScrubPreviewProbe.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 /* PlaybackSurfaceUserInteractionGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackSurfaceUserInteractionGate.swift; sourceTree = "<group>"; };
 		BE5152C43AB3E06FDA772ADD /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -197,6 +199,7 @@
 				B10000000000000000000002 /* PhotoLibraryService.swift */,
 				B10000000000000000000005 /* PhotoKitRequestTable.swift */,
 				B10000000000000000000003 /* PlaybackApiHost.swift */,
+				B10000000000000000000019 /* PlaybackSurfaceUserInteractionGate.swift */,
 				B10000000000000000000006 /* VideoPlaybackPolicy.swift */,
 				B10000000000000000000007 /* PlaybackIntentStateReducer.swift */,
 				B10000000000000000000008 /* PlaybackRuntimeObserveMapper.swift */,
@@ -435,6 +438,7 @@
 				B1000000000000000000000B /* PhotoLibraryService.swift in Sources */,
 				B1000000000000000000000E /* PhotoKitRequestTable.swift in Sources */,
 				B1000000000000000000000C /* PlaybackApiHost.swift in Sources */,
+				B1000000000000000000001A /* PlaybackSurfaceUserInteractionGate.swift in Sources */,
 				B1000000000000000000000F /* VideoPlaybackPolicy.swift in Sources */,
 				B10000000000000000000012 /* PlaybackIntentStateReducer.swift in Sources */,
 				B10000000000000000000013 /* PlaybackRuntimeObserveMapper.swift in Sources */,

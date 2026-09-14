@@ -18,6 +18,11 @@ final class PhotoLibraryService: PhotoLibraryApi {
   private static let previewTargetSize = CGSize(width: 512, height: 512)
   private static let previewJpegQuality: CGFloat = 0.8
 
+  /// Cap 25 Share: AppDelegate wires `PlaybackApiHost` here so present can
+  /// disable the bound video Platform View's UIKit hit-testing. Weak — Share
+  /// must not retain Playback.
+  weak var playbackSurfaceTouchGate: PlaybackSurfaceUserInteractionGate?
+
   private let previewRequests = PreviewImageRequestTable()
   private let displayRequests = PhotoKitRequestTable<PreviewCompletion>()
   private let playableRequests = PhotoKitRequestTable<PlayableCompletion>()
@@ -2280,7 +2285,21 @@ final class PhotoLibraryService: PhotoLibraryApi {
             )
             popover.permittedArrowDirections = []
           }
-          activity.completionWithItemsHandler = { _, _, _, _ in
+          // Cap 25: video Platform View can still win UIKit hit-test under a
+          // system share sheet (Hybrid Composition).
+          // H1: leaf surface `isUserInteractionEnabled` (kept; insufficient for A).
+          // Bug#1 Option 1: engine wrapper stack (`ChildClippingView` required
+          // to arm; Flutter 3.41.9 / Engine 42d3d75a56 internal — re-verify on
+          // upgrade). Always restore both on dismiss.
+          self.playbackSurfaceTouchGate?
+            .setBoundSurfaceUserInteractionEnabled(false)
+          self.playbackSurfaceTouchGate?
+            .beginBoundPlatformViewWrapperShareGate()
+          activity.completionWithItemsHandler = { [weak self] _, _, _, _ in
+            self?.playbackSurfaceTouchGate?
+              .endBoundPlatformViewWrapperShareGate(phase: "dismiss")
+            self?.playbackSurfaceTouchGate?
+              .setBoundSurfaceUserInteractionEnabled(true)
             for url in payload.temporaryFileURLs {
               try? FileManager.default.removeItem(at: url)
             }

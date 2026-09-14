@@ -23,6 +23,8 @@ import UIKit
       api: photoLibraryService
     )
     let playbackHost = PlaybackApiHost(binaryMessenger: messenger)
+    // Cap 25 Share: Host-internal touch gate (no Pigeon). Weak on Share side.
+    photoLibraryService.playbackSurfaceTouchGate = playbackHost
     PlaybackApiSetup.setUp(
       binaryMessenger: messenger,
       api: playbackHost
