@@ -122,11 +122,11 @@
       Queue on success; fail-closed on Host failure; narrow-supersede
       kickoff Do Not Build #4 delete bans + P1–P5; after still-in-library
       gate; PHASE_HISTORY)
-- [ ] Share current asset from Action Column
-      (last MVP Action Column chrome; Q1=B: …=0, Share=1,
-      Album=2; Cap 23 still-in-library gate; system share sheet;
-      ADR-051 Proposed in 25.1) <-- YOU ARE HERE
-- [ ] Auto-play Presets and Mode Eligibility Rule
+- [x] Share current asset from Action Column
+      (Cap 25 / ADR-051 Accepted; Q1=B …=0 Share=1 Album=2;
+      Cap 23 gate; system share sheet; D14 enable + D15
+      saveToCameraRoll exclude; PHASE_HISTORY)
+- [ ] Auto-play Presets and Mode Eligibility Rule <-- YOU ARE HERE
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
       (renamed so “iCloud Fallback” is Auto-play / ADR-O, not Cap 14)
@@ -177,50 +177,26 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Share current asset from Action Column
-Contract: ADR-051 (Proposed in 25.1; Accepted at Cap close)
+Active capability: Auto-play Presets and Mode Eligibility Rule
+Contract: awaiting owner scope / Roadmap revision (MVP v1 submission
+track Caps are planned to insert **before** this Cap in a follow-up
+docs commit — do not invent Auto-play numbered phases here)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 25.1 Contract freeze — ADR-051 Proposed (docs); lock Q1–Q6;
-      narrowly supersede ADR-050 D2 Action Column index layout
-      (…=0, Share=1, Album=2); update
-      `docs/reference/media-chrome-layout-notes.md` §7 indices;
-      Host presentShareSheet + error/latch/iPad notes in ADR body
-- [x] 25.2 Host present System Share Sheet + Pigeon + Fake
-      Work `99c2e73`: Pigeon `presentShareSheet`; Host ephemeral
-      activity items (still / Live-as-still key frame / video); present
-      settles Future (cancel silent); iPad minimal popover anchor;
-      domain `AssetShareRepository` + gateway + composition-root;
-      Fake + T-25.2 gateway tests; full `flutter test` green
-      (Live materialization later narrowed to always-still — ADR-051 D12;
-      still non-degraded present — D13)
-- [x] 25.3 Action Column Share icon (index 1) + Album slot → index 2
-      Work `c3b5a58`: `Cap25ShareEntryIcon` + toast ARB
-      `cap25ShareFailed`; `mainBrowseSharePresentInFlightProvider`
-      latch; Cap 19/24 slot-family + Cap 23 gate (no L2 ready);
-      Album inset → index 2; layout-notes Code anchors; W-25.3 +
-      W-24.3-1 update; glyph starts at 32 (Profile optical may tune)
-- [x] 25.4 Device acceptance (Kafka + i17)
-      Notes `docs/acceptance/cap25-25.4-notes.md` — **PASS** (narrative:
-      Decision 14 `c1d7d2f`; Bug#1 gate `aa22a04`; Decision 15
-      `39f04a4`; Limited owner OK; FAIL SKIP harness). ADR-051 remains
-      Proposed until Cap 25 close; Decision 14/15 Accepted.
-- [ ] 25.5 Cap close-out: Cap 25 `[x]`; YOU ARE HERE → Auto-play
-      Presets and Mode Eligibility Rule…; PHASE_HISTORY snapshot;
-      ADR-051 Accepted (anchor = implementing work sha); Known
-      debt close count = 0
+- [ ] Phase list pending owner-approved Roadmap revision (MVP v1
+      track). Temporary YOU ARE HERE only until that docs commit.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 25.5 Cap close-out (ADR-051 Accepted + PHASE_HISTORY)
-- Sub-steps done: Cap 25.1–25.3; 25.4 device acceptance PASS
-      (`cap25-25.4-notes.md`); Decision 14 work `c1d7d2f`; Decision 15
-      work `39f04a4` / docs `5200f38`; Bug#1 gate `aa22a04`
-- Next step: Cap 25.5 — Capability `[x]`, PHASE_HISTORY append, ADR-051
-      Accepted + final anchors; schedule Bug#2 + probe cleanup outside
-      or after close as owner directs
-- Related decisions: ADR-051 Proposed (D14/D15 Accepted); ADR-049 /
-      ADR-042; debt **456a** / **457** Open; **458** Monitoring; **469**
-      Accepted (permanent); probe cleanup after Bug#2
+- Goal (one line): Roadmap revision — insert MVP v1 submission track
+      Caps before Auto-play (docs only; no product code)
+- Sub-steps done: Cap 25 closed (ADR-051 Accepted `99c2e73`;
+      PHASE_HISTORY Cap 25 snapshot)
+- Next step: Docs commit — five v1 Caps + Auto-play/Settings extract
+      edits + duplicate TF/ASC v1 track; then YOU ARE HERE → Live
+      long-press Cap
+- Related decisions: ADR-051 Accepted; ADR-049 / ADR-042; debt
+      **456a** / **457** Open; **458** Monitoring; **469** Accepted
+      (permanent); Bug#2 / probe cleanup outside Cap 25
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -451,7 +427,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Accepted** (2026-09-10), anchor `32d4bd1` (24.2 Host write;
       related Cap 24 work in PHASE_HISTORY)
 - ADR-051: Cap 25 Share current asset from Action Column —
-      **Proposed** (Cap 25.1 `b2f78b3`; Accept + anchor at Cap 25 close)
+      **Accepted** (2026-09-12), anchor `99c2e73` (25.2 Host present;
+      related Cap 25 work in PHASE_HISTORY)
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`

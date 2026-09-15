@@ -5706,8 +5706,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 - Status: Accepted (2026-09-10); Decision 2 Action Column **index layout**
   (Album at index 1; Share placeholder at index 2) is **narrowly
-  superseded by ADR-051** (Proposed at Cap 25.1; Accepted date/anchor
-  when Cap 25 implementing work lands). Soft-delete entry, half-sheet,
+  superseded by ADR-051** (Accepted; Host presentShareSheet anchor
+  `99c2e73`). Soft-delete entry, half-sheet,
   Session semantics, and all other ADR-050 decisions remain binding.
 - Commit/PR anchor: 32d4bd1
 - Plain summary (owner reads this):
@@ -6034,9 +6034,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-051: Cap 25 Share current asset from Action Column
 
-- Status: Proposed; Decision 14 (Share enable — Layer-2 display ready + Live motion idle; unified, no iCloud exception) Accepted (2026-09-14; work `c1d7d2f`); Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`)
-- Commit/PR anchor: pending (flip to Accepted with implementing work sha
-  at Cap 25 close; no fake anchor while Proposed)
+- Status: Accepted (2026-09-12); Decision 14 (Share enable — Layer-2 display ready + Live motion idle; unified, no iCloud exception) Accepted (2026-09-14; work `c1d7d2f`); Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`)
+- Commit/PR anchor: 99c2e73
 - Plain summary (owner reads this):
   Browse Action Column gains a Share control between "…" and Add-to-Album.
   Tap runs the Cap 23 still-in-library gate, then Host presents the system
@@ -6366,6 +6365,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     assignToContact and other built-ins remain intentional keeps.
   - Decision 14 Accepted: Share enable = chrome ∧ L2-display-ready ∧
     ¬liveMotionMounted (`c1d7d2f`); Cap 19 / Cap 24 remain without L2 gate.
+  - Accepted with implementing anchor `99c2e73` (2026-09-12). Related Cap 25 work: `c3b5a58` / `a671881` / `aa22a04` / `c1d7d2f` / `39f04a4` / docs `78a09b2` / `9a0cc2a` / `5200f38`. Proposed `b2f78b3`.
 - Relationship:
   Narrowly supersedes ADR-050 Decision 2 **index layout** only.
   Extends ADR-042 / ADR-049 (Share is a required consumer of the named

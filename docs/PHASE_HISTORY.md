@@ -1237,3 +1237,40 @@ Accepted (permanent) Empty/purge; **465** / **466** / **467** Closed
 by Cap 24.5.5; **456a** / **457** Open; **458** / **468** Monitoring;
 **463** Accepted (permanent). Do not flip **456a** / **457** / **469**
 in this close-out.
+
+## Share current asset from Action Column (Cap 25) — 2026-09-15
+
+- [x] 25.1 Contract freeze — ADR-051 Proposed (docs); lock Q1–Q6;
+      narrowly supersede ADR-050 D2 Action Column index layout
+      (…=0, Share=1, Album=2); update
+      `docs/reference/media-chrome-layout-notes.md` §7 indices;
+      Host presentShareSheet + error/latch/iPad notes in ADR body
+      — docs `b2f78b3`
+- [x] 25.2 Host present System Share Sheet + Pigeon + Fake
+      — work `99c2e73`; docs `dd4f8ca`
+- [x] 25.3 Action Column Share icon (index 1) + Album slot → index 2
+      — work `c3b5a58`; docs `78a09b2`
+- [x] Live-as-still + non-degraded present (D12 / D13)
+      — work `a671881`
+- [x] Bug#1 Hybrid Composition share-sheet hit-test gate
+      — work `aa22a04`
+- [x] Decision 15 exclude saveToCameraRoll
+      — work `39f04a4`; docs `5200f38`
+- [x] Decision 14 Share enable L2 + Live gate (+ Live watchdog)
+      — work `c1d7d2f`
+- [x] 25.4 Device acceptance (Kafka + i17)
+      — docs `9a0cc2a`; notes `docs/acceptance/cap25-25.4-notes.md`
+- [x] 25.5 Cap close-out: Cap 25 `[x]`; YOU ARE HERE → Auto-play
+      Presets and Mode Eligibility Rule…; PHASE_HISTORY this snapshot;
+      ADR-051 Accepted (`99c2e73`); Known debt close count = 0
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-051 Accepted): (this commit)
+
+Related ADR: ADR-051 (`99c2e73`; related `c3b5a58`, `a671881`,
+`aa22a04`, `c1d7d2f`, `39f04a4`; Proposed `b2f78b3`; 25.4 docs
+`9a0cc2a`).
+Known debt at close: Cap 25 close count = **0**. Out of Cap 25:
+Bug#2 / `WT_CAP25_PROBE` cleanup (scheduled after Bug#2); **456a** /
+**457** Open; **458** Monitoring; **469** Accepted (permanent).
+
