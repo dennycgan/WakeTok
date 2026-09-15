@@ -488,4 +488,50 @@ not a product claim that row 4 is Location’s home.
 
 ---
 
+## 13. Cap 26.4a — Meta Overlay cover-gate (still L1→L2)
+
+> Design note for feed still-cover ↔ Overlay mount gating.
+> Not an ADR. Does **not** change Overlay MVP row count / field content
+> (ADR-015 fixed three rows). Video poster→L2 is **Out** of this phase —
+> debt **472** **Closed** (Kafka + i17): video L2 reuses L1 poster so the
+> path-change clear-ready tear-down usually does not fire; keep-ready still
+> excludes `kind == video`. Residual: if poster wiring later swaps files
+> between L1 and L2, the same flash class can return (see STATE Known debt).
+
+### 13.1 Problem
+
+On iCloud stills, L2 often replaces the L1 cover **file path**. Cap 23.4
+`_trackStillCoverPath` cleared `_stillCoverReady` on every path change, so
+`_suppressStillCoverChrome` briefly removed the entire Meta Overlay
+(row1–3 flash) even though Cap 15.5 `_ReloadableFileImage` already uses
+`gaplessPlayback: true` (prior frame stays until the new decode).
+
+### 13.2 Locked rule (Cap 26.4a)
+
+When **all** of the following hold, do **not** clear `_stillCoverReady`
+on path change:
+
+- `_media?.kind == FeedPageMediaKind.still` (includes Live **static** frame)
+- previous tracked path and new path are both non-null and different
+- `_stillCoverReady` was already true
+- `_stillCoverDecodeBroken` is false
+
+Otherwise keep Cap 23.4 behaviour (clear ready → Overlay suppressed until
+the next successful frame / broken handling).
+
+**Explicitly unchanged:** decode-broken hide; first paint before any ready
+frame; page / asset change; Overlay field progressive join; half-sheet §12;
+video poster path tracking (debt **472** Closed — residual above).
+
+**Do not** reopen Overlay row 4 or change Meta copy in this phase.
+
+### 13.3 Code / tests
+
+- Code: `vertical_media_feed.dart` `_trackStillCoverPath`
+- Depends on: `_ReloadableFileImage` `gaplessPlayback: true` (Cap 15.5)
+- Tests: `cap26_4a_meta_overlay_cover_upgrade_test.dart`
+  (W-26.4a-keep / W-26.4a-switch / W-26.4a-broken)
+
+---
+
 *Update this file in the same docs commit whenever owner-visible chrome constants change.*

@@ -1483,10 +1483,22 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       !_suppressStillCoverChrome;
 
   /// When [path] changes, mark cover unresolved until frameBuilder / broken.
+  ///
+  /// Cap 26.4a: same-page still (incl. Live static) L1→L2 cover upgrade keeps
+  /// ready so Meta Overlay is not torn down while Cap 15.5 gaplessPlayback
+  /// holds the prior frame — see layout notes §13.
   void _trackStillCoverPath(String? path, {bool clearBroken = true}) {
     if (path != _stillCoverTrackedPath) {
+      final keepReadyAcrossStillCoverUpgrade = path != null &&
+          _stillCoverTrackedPath != null &&
+          _stillCoverReady &&
+          !_stillCoverDecodeBroken &&
+          _media?.kind == FeedPageMediaKind.still;
+
       _stillCoverTrackedPath = path;
-      _stillCoverReady = false;
+      if (!keepReadyAcrossStillCoverUpgrade) {
+        _stillCoverReady = false;
+      }
     }
     if (clearBroken) {
       _stillCoverDecodeBroken = false;
