@@ -6465,6 +6465,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      frame** (ignore while preparing or motion mounted). Ignore while
      persistently magnified / transient pinch active — user must return
      to fit first. Still / video: do not register this recognizer.
+     Live identity for this gate is Decision 11 (`.photoLive` only).
   7. **Narrow reopen ADR-050 Decision 8 / Rejected “Second Add-to-Album
      or location in MVP '…' sheet — deferred”.** Reopen **Add-to-Album
      entry button only**. Location row stays deferred (Known debt
@@ -6485,6 +6486,28 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
       trailing replay button; Mute / Fit / 2×; mid-motion restart;
       magnified long-press; product work on debts **436** / **456a** /
       **457** / **458**.
+  11. **Live effect variants (Loop / Bounce / Long Exposure) —
+      intentional non-discrimination.** Long-press eligibility uses the
+      same gate as Cap 9 Live motion:
+      `PHAsset.mediaSubtypes.contains(.photoLive)` →
+      `MediaKind.livePhoto` / `PlaybackMediaKind.livePhoto`, then the
+      existing Live still + `LivePhotoApi.requestLivePhoto` path. Cap 26
+      does **not** read `PHAsset.playbackStyle`, content-editing /
+      `PHAdjustmentData`, or Smart Album membership to enable, disable,
+      or branch long-press. `PHAssetMediaSubtype` has no Loop / Bounce /
+      Long Exposure bits; those Photos UI effects do not change the
+      `.photoLive` subtype mask. A public `playbackStyle` API exists
+      (e.g. `.livePhoto` vs `.videoLooping` for some Loop/Bounce cases)
+      — WakeTok **deliberately ignores it** for Cap 26 (and Cap 9
+      already ignored it for auto play-once), so gesture behaviour stays
+      one predictable rule. **Known accepted consequence:** an asset the
+      user set to Long Exposure (or Loop / Bounce) in Photos, if still
+      classified `.photoLive`, remains long-press-eligible; replay uses
+      the same Host `PHLivePhotoView` play-once path as auto play-once
+      (Cap 9.7 Style matrix S2–S4), which may play motion or fall back
+      to static — not a Cap 26 omission. Out: Photos-parity Loop
+      endless / Bounce / Long-Exposure-still presentation, and any
+      Style picker (kickoff Do Not Build #19 / ADR-019 Decision 10).
 - Rejected alternatives (why not):
   - Keep ADR-040 Decision 17 “explicit control only / no long-press” —
     rejected; control never shipped; owner chooses Photos-style App
@@ -6505,6 +6528,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     with `kCap19EdgeHoldWindow` (400 ms) hold feel.
   - Ship debt **405** disclaimer or location in this Cap — rejected;
     keep scope narrow.
+  - Branch long-press on `PHAsset.playbackStyle` / effect preference
+    (or claim “no public API exists”) — rejected; `playbackStyle` is
+    public but Cap 26 deliberately ignores it (Decision 11); “no API”
+    would be factually wrong.
 - Consequences / constraints accepted:
   - Debt **439** Picks it up → Cap 26 while Proposed; Closed only after
     long-press implementation + Cap close (not at Proposed append).

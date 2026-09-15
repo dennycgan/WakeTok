@@ -253,14 +253,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [x] 26.1 Contract freeze
       (ADR-052 Proposed appended; debt **439** Picks it up → Cap 26;
       no `lib/` in this phase)
-- [ ] 26.2 Live long-press → play-only / silent re-request replay
-      (named hold+slop constants; haptic only; static key-frame only;
-      magnified = ignore; bypass skip set on user path; arm same
-      ended watchdog; Share D14 / mounted signal unchanged;
-      LIVE trailing spacing eyeball on device) <-- YOU ARE HERE
+- [x] 26.2 Live long-press → play-only / silent re-request replay
+      (work `cab0747`; Path R+S; silent in-flight lock; lifecycle Path S
+      cancel; skip bypass; D11; debt **470** Accepted (phase) magnified
+      ignore; i17 Profile smoke PASS)
 - [ ] 26.3 "…" half-sheet size row
       (`requestPresentationFileSize` + `formatOverlayFileSize`;
-      Live still-only ADR-018; nil → omit row)
+      Live still-only ADR-018; nil → omit row) <-- YOU ARE HERE
 - [ ] 26.4 "…" Add-to-Album second entry
       (close Cap24 sheet → `showCap19ActionsHalfSheet`; zero artificial
       delay; Limited / Cap 23 gates reuse Cap 19)
@@ -269,18 +268,16 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       two-commit discipline)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.2 — Live long-press replay design (awaiting
-      owner confirm of 26.1 checklist; then design-first for 26.2 —
-      still no `lib/` until owner OK coding)
-- Sub-steps done: 26.1 contract freeze — ADR-052 Proposed appended;
-      STATE phases updated; debt **439** → Cap 26
-- Next step: Owner verifies 26.1 checklist below in chat; then 26.2
-      implementation design (still Design-first before code)
-- Related decisions: ADR-052 Proposed; supersedes ADR-040 D17
+- Goal (one line): Cap 26.3 — "…" half-sheet size row
+- Sub-steps done: 26.1 freeze; 26.2 work `cab0747` + device smoke;
+      debt **470** Accepted (phase) (magnified Live long-press Out)
+- Next step: Design-first / owner OK for 26.3 size row, then `lib/`
+- Related decisions: ADR-052 Proposed (D1–D11); supersedes ADR-040 D17
       no-long-press; narrow-reopens ADR-050 Album entry; ADR-019 /
       037 / 043 / 051 D12–D14 continue; debt **439** → Cap 26;
-      **401** Location Out; **405** Out; **456a** / **457** Open;
-      **458** Monitoring; **469** Accepted (permanent)
+      **401** Location Out; **405** Out; **470** Accepted (phase);
+      **456a** / **457** Open; **458** Monitoring; **469** Accepted
+      (permanent)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -514,10 +511,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Accepted** (2026-09-12), anchor `99c2e73` (25.2 Host present;
       related Cap 25 work in PHASE_HISTORY)
 - ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album
-      second entry — **Proposed** (2026-09-15); supersedes ADR-040
-      D17 no-long-press; narrow-reopens ADR-050 Album entry-button
-      half; skip-set bypass on user long-press; Accepted + anchor
-      after Cap 26 implementing work
+      second entry — **Proposed** (2026-09-15); D11 effect
+      non-discrimination; 26.2 work `cab0747` (Path R+S); Accepted
+      + full anchors at Cap 26 close (26.5)
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`
@@ -706,6 +702,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 467 | Closed | Main Browse Screen | Cap 24.2 | Widget tests Cap 17.3 (W-17.3a/l) / Cap 17.6 (W-17.6-*) / Live L-S* preparing: `mainBrowseFeedLayer3Spinner` or `mainBrowseFeedLivePreparing_*` `Found 0` | **Closed by Cap 24.5.5 (test-infra only).** Root causes: (1) `debugForceLayer2WaitChrome` without `mediaKind: still` never forced cover-ready (Approach A: pass `FeedPageMediaKind.still` in W-17.3a/l); (2) Live/video wait-chrome kin hit same suppress / All-tab `deviceLocal` skip-L1 so hung L2 never painted cover — harness used `iCloudNotDownloaded` + shared cover helper + F1 `pumpPastLivePreparingSuppress` where needed. Did **not** broaden debugForce API semantics or change `_suppressStillCoverChrome`. Restored Cap 17.3/17.6 / L-S* / W-14.6b / W-14.4 video wait-chrome reds. | Closed by Cap 24.5.5 | ADR-034; Cap 17.3/17.6; Cap 14.6b Live chrome |
 | 468 | Monitoring | Main Browse Screen / Cap 24 | Cap 24.4b | Occasional first-page Layer 1 stall (never promotes to L2); heal by swipe away + revisit | **Seen twice on Kafka Profile (device-local stills, not iCloud):** (1) Cap 24.4b after Endless start-over (`0ccc8fa`); (2) Cap 24.4c after Pool/Origin leave-return (`0b6c7c6`). **Not** attributed to `sessionWorkingAssetIds` or `processSoftDeletedAssetIds` (those only shape Session id lists). **Photos side-channel (suspected co-factor, not proven):** owner also deleted/restored assets in system Photos while WakeTok stayed alive. Code: no `PHPhotoLibraryChangeObserver` (ADR-044 D3) — external delete/restore does **not** mutate Session Queue, Snapshot cache, or `processSoftDeletedAssetIds` (App soft-delete only). Leave→Photos→resume only auto-retries **already-failed** L2 (`_retryFailedLayer2AfterResume`); in-flight / never-started L2 is not restarted. Plausible race with lifecycle + next Host display request after PhotoKit mutation; causal link still unclear. **On recurrence record:** (1) iCloud vs device-local; (2) App soft-delete and/or Photos delete+restore in same process without force-quit; (3) start-over vs Pool leave-return; (4) leave-current + return / swipe+revisit self-heals. | Unassigned (observe) | ADR-025 / Cap 15–17 L2; Cap 22.5; ADR-044 D3; debt **444** / **456a** |
 | 469 | Accepted (permanent) | Photo Library / Kickoff scope | Cap 24.6 | Permanent Empty Recently Deleted / purge originals from Photos (not soft-delete-to-RD) | **Never in product scope.** Split from debt **464** at Cap 24 Accept (ADR-050 D1 / D11). Cap 24 closed soft-delete-to-RD only; emptying Recently Deleted, permanent purge of originals, Hide, batch delete, and in-app trash UI remain forbidden. Kickoff “no delete/modify originals” permanent-purge reading stays binding. No Cap will schedule Empty RD / purge without a new ADR that overturns this row. | Never (no Cap) | ADR-050 D1/D11; debt **464**; kickoff |
+| 470 | Accepted (phase) | Live Photo / Cap 26 | Cap 26.2 | Magnified Live long-press does not replay (user must Reset / return to fit first) | **Known MVP limitation — not a miss.** Cap 26.2 keeps ADR-052 D6/D10 magnified ignore and ADR-043 D1 Live rising-edge force-fit / no Flutter `Transform` on `PHLivePhotoView`. In-place magnified replay (Photos-like keep scale+pan) would require Host-side Live surface scale (same class as video L2 `setDisplayMagnification`); Flutter Platform View does not follow Flutter `Transform`, and `PHLivePhotoView` owns opaque playback/animation lifecycle so external bounds transforms are higher risk than the video L2 case already proven painful. Owner skipped MVP investment; no Cap scheduled to “fix” this. This row records the known consequence of those ADR decisions, not a newly found defect. | Unassigned (MVP accepted; no Cap scheduled) | ADR-043 D1; ADR-052 D6/D10 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
