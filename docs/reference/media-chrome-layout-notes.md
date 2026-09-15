@@ -49,13 +49,14 @@
 |------|------------|---------------|
 | **1 Meta** | Fixed **3** rows bottom-leading: relative / exact / characteristics | `media_info_overlay.dart` |
 | **2 Reset** | Magnification force-fit pill; visible only while still magnified | `magnification_reset_button.dart` |
-| **3 LIVE** | Live Photo status capsule trailing; **future:** replay control to the **left** of LIVE | `vertical_media_feed.dart` `_LiveBadge` / `_FeedCornerChrome` |
+| **3 LIVE** | Live Photo status capsule trailing; Cap 26 long-press replay (no trailing button) | `vertical_media_feed.dart` `_LiveBadge` / `_FeedCornerChrome`; `Cap26LiveLongPressGesture` |
 | **4 Action column** | Bottom-up: i=0 Cap 24 `"…"`; i=1 Cap 25 Share; i=2 Cap 19 album | `cap24_more_entry_icon.dart` / `cap25_share_entry_icon.dart` / `cap19_entry_icon.dart` |
 
 **MVP exclusions (locked):**
 
+- LIVE long-press replay (Cap 26 / ADR-052): media-area hold; **no** trailing
+  control left of LIVE. Do not reserve horizontal space for a replay button.
 - Overlay does **not** grow a Location (row 4). `locationLabel` may still exist on the snapshot for a **future** long-press half-sheet — do not re-enable Overlay row 4 without owner OK.
-- LIVE replay control: **not implemented**; reserve horizontal space conceptually left of LIVE when designing later.
 
 ---
 
@@ -169,7 +170,11 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 
 ---
 
-## 6. Zone 3 — LIVE status (+ future replay)
+## 6. Zone 3 — LIVE status
+
+Live Photo status pill (bottom-trailing). Cap 26 replay is **media-area
+long-press** (ADR-052) — not a control leading of LIVE. Do **not** widen
+`kStatusChromeReservedWidth` for a trailing replay button.
 
 | Parameter | Value | Symbol / notes |
 |-----------|-------|----------------|
@@ -184,8 +189,6 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 | Label | l10n `mainBrowseLiveBadge` | `labelOnMedia` with `height: 1.0` |
 | Width reserve (overlay clear) | **80** | `kStatusChromeReservedWidth` |
 | Above spinner (when wait chrome) | badge lifts by **8 + 16** | `kStatusChromeBadgeAboveSpinnerGap` + `_spinnerSize` |
-
-**Future replay:** place control **leading** of LIVE on the same baseline; widen `kStatusChromeReservedWidth` / trailing formula if Overlay would collide.
 
 **To adjust:**
 

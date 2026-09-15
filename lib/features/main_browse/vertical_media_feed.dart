@@ -38,6 +38,10 @@ import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_gesture.dart';
+import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
+import 'package:waketok/features/main_browse/cap24_more_panel_open.dart';
+import 'package:waketok/features/main_browse/cap26_live_long_press_arbitration.dart';
+import 'package:waketok/features/main_browse/cap26_live_long_press_gesture.dart';
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
@@ -1698,6 +1702,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   bool get debugLiveMotionMounted => _liveMotionMounted;
 
+  @visibleForTesting
+  bool get debugLiveHostPhotoRetained => _liveHostPhotoRetained;
+
+  @visibleForTesting
+  bool get debugLiveSilentReplayInFlight => _liveSilentReplayInFlight;
+
+  @visibleForTesting
+  set debugLiveHostPhotoRetained(bool value) => _liveHostPhotoRetained = value;
+
+  /// Test seam: Cap 26 user long-press replay entry.
+  @visibleForTesting
+  Future<void> debugUserLongPressReplay() => _userLongPressReplay();
+
   /// Test seam: force in-flight + path for widget chrome tests (W-17.3*).
   ///
   /// [mediaKind] overrides [_media] so G (still-only) vs video a2 can be locked.
@@ -2013,6 +2030,15 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// duplicate [stopPlayback] before the first unload clears dirty flags.
   bool _liveLifecycleInterruptInFlight = false;
 
+  /// Cap 26.2 / ADR-052: Host [pendingLivePhoto] likely retained after Q7 /
+  /// watchdog / lifecycle unload (no cancel). Cleared on cancel / failed /
+  /// Path S request start.
+  bool _liveHostPhotoRetained = false;
+
+  /// Cap 26.2 / ADR-052: Path S in-flight (no prepare chrome). Cleared only on
+  /// ready-mount / failed / cancelled — never on bare [requestLivePhoto] await.
+  bool _liveSilentReplayInFlight = false;
+
   /// Cap 9.5 Q4=A: motion **prepare** spinner (generation-gated writes).
   ///
   /// Means "Live motion resource acquire in flight" only — **not** playback.
@@ -2327,9 +2353,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _retryFailedLayer2AfterResume();
   }
 
-  /// True when Live motion / prepare still owns the page (needs lifecycle end).
+  /// True when Live motion / prepare / Cap 26 Path S still owns the page.
   bool get _liveMotionLifecycleDirty =>
-      _liveMotionMounted || _livePreparing || _liveStartIssued;
+      _liveMotionMounted ||
+      _livePreparing ||
+      _liveStartIssued ||
+      _liveSilentReplayInFlight;
 
   /// Shared leave + resume-heal path: same Dart unload as [playbackEndedEvents]
   /// (Q7=A), plus best-effort [stopPlayback]. Idempotent under triple
@@ -2338,6 +2367,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Unload runs **before** awaiting Host stop so stacked leave callbacks that
   /// arrive while stop is queued already see !dirty (inFlight alone is not
   /// enough if the first Future has yielded at enqueue).
+  ///
+  /// Cap 26.2: when Path S was in flight, also [cancel] (clears Host pending)
+  /// and drop [_liveHostPhotoRetained] / [_liveSilentReplayInFlight].
   Future<void> _interruptLiveMotionForAppLifecycle() async {
     if (!mounted ||
         !widget.isCurrent ||
@@ -2346,21 +2378,36 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     _liveLifecycleInterruptInFlight = true;
+    final wasSilentInFlight = _liveSilentReplayInFlight;
     try {
       final LivePhotoRepository live =
           _liveRepo ?? ref.read(livePhotoRepositoryProvider);
       _liveRepo = live;
+      final id = widget.assetIdentifier;
       await _unloadLiveMotionSurface();
       if (!mounted) {
         return;
       }
-      await _enqueueLiveOp(() async {
-        try {
-          await live.stopPlayback();
-        } catch (_) {
-          // Best-effort — Host may already have stopped / surface gone.
-        }
-      });
+      if (wasSilentInFlight) {
+        _liveSilentReplayInFlight = false;
+        _liveHostPhotoRetained = false;
+        await _enqueueLiveOp(() async {
+          try {
+            await live.cancel(id);
+            await live.stopPlayback();
+          } catch (_) {
+            // Best-effort — Host may already have stopped / surface gone.
+          }
+        });
+      } else {
+        await _enqueueLiveOp(() async {
+          try {
+            await live.stopPlayback();
+          } catch (_) {
+            // Best-effort — Host may already have stopped / surface gone.
+          }
+        });
+      }
     } finally {
       _liveLifecycleInterruptInFlight = false;
     }
@@ -2513,6 +2560,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _livePhotoReady = false;
       _liveSurfaceReady = false;
       _liveStartIssued = false;
+      _liveSilentReplayInFlight = false;
+      if (shouldCancelHost) {
+        _liveHostPhotoRetained = false;
+      }
       if (_liveMotionMounted) {
         setState(() => _liveMotionMounted = false);
         ref
@@ -2774,6 +2825,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         if (event.assetIdentifier != assetId) {
           return;
         }
+        _liveHostPhotoRetained = false;
         _setLivePreparing(generation, false);
         unawaited(_unloadLiveMotionSurface());
       });
@@ -2809,6 +2861,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         // none covers the gap while deactivate no longer clearIf's.
         // Contrast L1→L2 handoff (keep pointers): destination none cannot
         // continue magnification, so mode→none clears the pointer map.
+        _liveHostPhotoRetained = true;
         _armLiveEndedWatchdog(assetId);
         ref
             .read(magnificationHostModeProvider.notifier)
@@ -2818,7 +2871,196 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             .onLiveMotionMountedChanged(true);
       } catch (_) {
         // Sync failure → keep still; no skip (Cap 9.5 static fallback).
+        _liveHostPhotoRetained = false;
         _setLivePreparing(generation, false);
+        if (mounted && _liveMotionGate.isCurrent(generation)) {
+          setState(() => _liveMotionMounted = false);
+          ref
+              .read(browseMagnificationProvider.notifier)
+              .onLiveMotionMountedChanged(false);
+        }
+      }
+    });
+  }
+
+  /// Cap 26.2 / ADR-052 — user long-press replay (bypass skip set).
+  Future<void> _userLongPressReplay() async {
+    if (!mounted || !widget.isCurrent || !_isLiveStillMedia(_media)) {
+      return;
+    }
+    if (_liveMotionMounted || _livePreparing || _liveSilentReplayInFlight) {
+      return;
+    }
+    final mag = ref.read(browseMagnificationProvider);
+    if (mag.hasActiveMagnification) {
+      return;
+    }
+    if (_liveHostPhotoRetained) {
+      final remounted = await _remountLiveMotionForUserReplay();
+      if (remounted) {
+        return;
+      }
+      _liveHostPhotoRetained = false;
+    }
+    await _silentReRequestLiveForUserReplay();
+  }
+
+  /// Path R: remount PV + play-only while Host pending is retained (no request).
+  /// Returns false when remount cannot proceed (caller may fall through to Path S).
+  Future<bool> _remountLiveMotionForUserReplay() async {
+    if (!mounted || !widget.isCurrent || !_isLiveStillMedia(_media)) {
+      return false;
+    }
+    if (!_liveHostPhotoRetained || _liveMotionMounted || _livePreparing) {
+      return false;
+    }
+    final LivePhotoRepository live =
+        _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+    _liveRepo = live;
+    final assetId = widget.assetIdentifier;
+    unawaited(_cancelLiveSubscriptions());
+    final generation = _liveMotionGate.begin();
+    _livePhotoReady = true;
+    _liveSurfaceReady = false;
+    _liveStartIssued = false;
+    _liveFailedSub = live.failedEvents.listen((event) {
+      if (!_liveMotionGate.isCurrent(generation)) {
+        return;
+      }
+      if (event.assetIdentifier != assetId) {
+        return;
+      }
+      _liveHostPhotoRetained = false;
+      unawaited(_unloadLiveMotionSurface());
+    });
+    _liveEndedSub = live.playbackEndedEvents.listen((event) {
+      if (!_liveMotionGate.isCurrent(generation)) {
+        return;
+      }
+      if (event.assetIdentifier != assetId) {
+        return;
+      }
+      unawaited(_unloadLiveMotionSurface());
+    });
+    if (!mounted || !_liveMotionGate.isCurrent(generation)) {
+      return false;
+    }
+    setState(() => _liveMotionMounted = true);
+    _armLiveEndedWatchdog(assetId);
+    ref
+        .read(magnificationHostModeProvider.notifier)
+        .setMode(MagnificationHostMode.none);
+    ref
+        .read(browseMagnificationProvider.notifier)
+        .onLiveMotionMountedChanged(true);
+    return true;
+  }
+
+  /// Path S: silent re-request (no prepare chrome; no skip-set consult).
+  Future<void> _silentReRequestLiveForUserReplay() async {
+    if (!mounted || !widget.isCurrent || !_isLiveStillMedia(_media)) {
+      return;
+    }
+    if (_liveSilentReplayInFlight || _liveMotionMounted || _livePreparing) {
+      return;
+    }
+    _liveSilentReplayInFlight = true;
+    _liveHostPhotoRetained = false;
+    final assetId = widget.assetIdentifier;
+    final LivePhotoRepository live =
+        _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+    final PlaybackRepository playback =
+        _playbackRepo ?? ref.read(playbackRepositoryProvider);
+    _liveRepo = live;
+    _playbackRepo = playback;
+    _livePhotoReady = false;
+    _liveSurfaceReady = false;
+    _liveStartIssued = false;
+
+    await _enqueueLiveOp(() async {
+      unawaited(_cancelLiveSubscriptions());
+      if (!mounted ||
+          !widget.isCurrent ||
+          !_isLiveStillMedia(_media) ||
+          !_liveSilentReplayInFlight) {
+        _liveSilentReplayInFlight = false;
+        return;
+      }
+      final generation = _liveMotionGate.begin();
+      if (_liveMotionMounted) {
+        setState(() => _liveMotionMounted = false);
+      }
+
+      _liveReadySub = live.readyEvents.listen((event) {
+        if (!_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        if (event.assetIdentifier != assetId) {
+          return;
+        }
+        _livePhotoReady = true;
+        _liveHostPhotoRetained = true;
+        // Clear in-flight only once mounted (ready may race ahead of mount).
+        if (_liveMotionMounted) {
+          _liveSilentReplayInFlight = false;
+        }
+        unawaited(_playLiveMotionOnce(generation));
+      });
+      _liveFailedSub = live.failedEvents.listen((event) {
+        if (!_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        if (event.assetIdentifier != assetId) {
+          return;
+        }
+        _liveSilentReplayInFlight = false;
+        _liveHostPhotoRetained = false;
+        unawaited(_unloadLiveMotionSurface());
+      });
+      _liveEndedSub = live.playbackEndedEvents.listen((event) {
+        if (!_liveMotionGate.isCurrent(generation)) {
+          return;
+        }
+        if (event.assetIdentifier != assetId) {
+          return;
+        }
+        unawaited(_unloadLiveMotionSurface());
+      });
+
+      try {
+        await playback.clearPlaybackPool();
+        if (!mounted ||
+            !_liveMotionGate.isCurrent(generation) ||
+            !widget.isCurrent ||
+            !_liveSilentReplayInFlight) {
+          _liveSilentReplayInFlight = false;
+          return;
+        }
+        // Host clears pendingLivePhoto at sync entry (before PH async).
+        await live.requestLivePhoto(assetId);
+        if (!mounted ||
+            !_liveMotionGate.isCurrent(generation) ||
+            !widget.isCurrent ||
+            !_liveSilentReplayInFlight) {
+          _liveSilentReplayInFlight = false;
+          return;
+        }
+        // Keep [_liveSilentReplayInFlight] true until ready∧mounted or failed —
+        // do not clear on this await (Pigeon returns when sync Host returns).
+        setState(() => _liveMotionMounted = true);
+        if (_livePhotoReady) {
+          _liveSilentReplayInFlight = false;
+        }
+        _armLiveEndedWatchdog(assetId);
+        ref
+            .read(magnificationHostModeProvider.notifier)
+            .setMode(MagnificationHostMode.none);
+        ref
+            .read(browseMagnificationProvider.notifier)
+            .onLiveMotionMountedChanged(true);
+      } catch (_) {
+        _liveSilentReplayInFlight = false;
+        _liveHostPhotoRetained = false;
         if (mounted && _liveMotionGate.isCurrent(generation)) {
           setState(() => _liveMotionMounted = false);
           ref
@@ -2831,8 +3073,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Play Live motion once — **never** arms [_livePreparing] / spinner.
   ///
-  /// Requires ready + surface. Future long-press replay should enter here
-  /// (or silent re-request with prepare chrome off), not [_prepareLiveMotion].
+  /// Requires ready + surface. Cap 26 long-press Path R / Path S ready enter
+  /// here (or Path S silent re-request with prepare chrome off).
   Future<void> _playLiveMotionOnce(int generation) async {
     if (!_liveMotionGate.isCurrent(generation) ||
         !_livePhotoReady ||
@@ -2925,6 +3167,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _livePhotoReady = false;
     _liveSurfaceReady = false;
     _liveStartIssued = false;
+    _liveSilentReplayInFlight = false;
+    if (cancelHost) {
+      _liveHostPhotoRetained = false;
+    }
     final wasMounted = _liveMotionMounted;
     if (mounted && wasMounted) {
       setState(() => _liveMotionMounted = false);
@@ -4866,6 +5112,26 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           isCurrent: playbackTapIsCurrent,
           excludeScrubberBand:
               onScrubComplete != null && video != null,
+        ),
+        Cap26LiveLongPressGesture(
+          enabled: shouldArmLiveLongPress(
+            isCurrent: playbackTapIsCurrent,
+            isLiveStill: _isLiveStillMedia(_media),
+            liveMotionMounted: _liveMotionMounted,
+            livePreparing: _livePreparing,
+            liveSilentReplayInFlight: _liveSilentReplayInFlight,
+            isCurrentStillMagnified:
+                ref.watch(browseMagnificationProvider).isStillMagnified,
+            transientPinchActive:
+                ref.watch(browseMagnificationProvider).transientPinchActive,
+            stillPinchContact:
+                ref.watch(browseMagnificationProvider).stillPinchContact,
+            cap19PanelOpen: ref.watch(cap19ActionsPanelOpenProvider),
+            cap24MorePanelOpen: ref.watch(cap24MorePanelOpenProvider),
+          ),
+          onLongPressFire: () {
+            unawaited(_userLongPressReplay());
+          },
         ),
         // Cap 20.3 D2-A: last layer (defensive); arming already shrinks swipe.
         MagnificationResetButton(overlaySnapshot: overlaySnapshot),

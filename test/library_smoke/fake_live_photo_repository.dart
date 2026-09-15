@@ -11,13 +11,21 @@ class FakeLivePhotoRepository implements LivePhotoRepository {
   final String? throwOnRequestCode;
 
   /// When true, emits [readyEvents] after each successful request.
-  final bool autoReady;
+  /// Mutable so Cap 26 Path S tests can settle auto play then require manual ready.
+  bool autoReady;
 
   /// When set with [cancelHold], [cancel] for this asset id awaits the hold.
   String? cancelHoldAssetId;
 
   /// Paired with [cancelHoldAssetId] (L-F8).
   Completer<void>? cancelHold;
+
+  /// When set with [requestHold], [requestLivePhoto] for this asset id awaits
+  /// the hold after recording the call (U-26.2-4 / W-26.2-e serial).
+  String? requestHoldAssetId;
+
+  /// Paired with [requestHoldAssetId].
+  Completer<void>? requestHold;
 
   final List<String> calls = <String>[];
 
@@ -58,6 +66,12 @@ class FakeLivePhotoRepository implements LivePhotoRepository {
     final code = throwOnRequestCode;
     if (code != null) {
       throw PlatformException(code: code, message: 'fake');
+    }
+    final hold = requestHold;
+    final holdId = requestHoldAssetId;
+    if (hold != null &&
+        (holdId == null || holdId == assetIdentifier)) {
+      await hold.future;
     }
     if (autoReady) {
       readyController.add(
