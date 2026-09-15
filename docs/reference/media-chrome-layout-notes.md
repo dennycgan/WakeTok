@@ -374,4 +374,69 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 
 ---
 
+## 12. Cap 24 / Cap 26.4 — "…" more half-sheet meta
+
+> Not Overlay chrome. Lives in `cap24_more_half_sheet.dart` under the
+> Cap 19-style sheet surface. Cap 26.5 will insert Add-to-Album between
+> Saved time and Delete.
+
+### 12.1 Row order (product)
+
+| Order | Block | Cap 26.4 behavior |
+|------:|-------|-------------------|
+| 0 | Grabber | Unchanged |
+| 1 | **Location slot** | **Zero height** (`SizedBox.shrink`); content deferred (debt **401**). Product home = this sheet, not Overlay row 4. |
+| 2 | **File size** | Title **always** shown. Value: blank while first request in flight; formatted bytes when known; em dash "—" when resolved ∧ nil/negative/failure. **Never omit** the row. |
+| 3 | **Saved time** | Title + Cap 24 minute-landmark value + timezone `i`. Landmark miss / parse fail → **omit entire block** (title+value). |
+| 4 | Add to Album | Cap **26.5** (not in 26.4). |
+| 5 | Delete | Unchanged |
+
+### 12.2 Layout metrics (code constants)
+
+| Symbol | Value | Role |
+|--------|------:|------|
+| Sheet padding | `fromLTRB(16, 8, 16, 24)` | Same as Cap 24.3 |
+| Grabber → content | **16** bottom margin on grabber | Unchanged |
+| `kCap24MoreSheetMetaBlockGap` | **16** | Between File size / Saved time / Delete (and Location when it gains height) |
+| `kCap24MoreSheetTitleValueGap` | **4** | Title → value inside a meta block (shared helper; same for File size + Saved time) |
+| `kCap24MoreSheetTimezoneInfoHit` | **44** | Timezone `i` tap target; **OverflowBox** so it does not inflate the Saved-time value-line height (keeps optical title→value gap aligned with File size) |
+| `kCap24MoreSheetTimezoneInfoLayoutWidth` | **36** | Width reserved in the value row for `i` |
+| Title color | `tokens.onMediaMuted` via `bodySmall` | Meta titles |
+| Value color | `tokens.onMedia` via `bodyMedium` | Size / Saved time values |
+
+### 12.3 File size reliability (Overlay parity + shared cache)
+
+- Host: `presentationMetadataRepositoryProvider.requestPresentationFileSize`
+  + `formatOverlayFileSize` (Overlay ARB size keys). Live = still-only
+  (ADR-018). **Never** network solely for size.
+- **Shared authority:** `presentationSizeCacheProvider` (per-asset
+  `PresentationSizeEntry` with `resolved` + keepExisting `apply`). Overlay
+  feed commits and the "…" sheet both read/write this map; Overlay UI still
+  receives size via mirrored `_overlaySnapshot`.
+- Open: request only when shared entry is missing / unresolved; if L2-ready
+  is already true, may refresh when bytes are still null; listen `false→true`
+  → refresh when bytes null; skip when non-null bytes already held.
+- Differs from Overlay progressive blank join: half-sheet **keeps** title
+  + reserved value slot from open (no spinner). `resolved ∧ nil` → "—".
+
+### 12.4 Keys (tests)
+
+| Key | Widget |
+|-----|--------|
+| `cap24MoreSheetLocationSlot` | Zero-height Location slot |
+| `cap24MoreSheetFileSizeBlock` / `…Title` / `…Value` | File size |
+| `cap24MoreSheetSavedTimeBlock` / `…Title` | Saved time chrome |
+| `cap24SoftDeleteSheetMinuteLibrary` / `…Bare` | Landmark value (unchanged) |
+| `cap24SoftDeleteSheetDelete` | Delete |
+
+### 12.5 Device check (after Cap 26.4)
+
+1. Open "…" before L2 ready: File size title present; value blank then fills or "—".  
+2. After L2 display ready (iCloud still): size refreshes to a non-empty SI label when local bytes exist.  
+3. Missing landmark: no Saved time title; File size title still present.  
+4. ZH: `文件大小` / `保存时间`; EN: `File size` / `Saved time`.  
+5. `flutter test test/features/main_browse/cap24_3_more_sheet_test.dart test/architecture/`.
+
+---
+
 *Update this file in the same docs commit whenever owner-visible chrome constants change.*

@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/presentation/presentation_metadata.dart';
+import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap24_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
@@ -14,9 +16,24 @@ import 'package:waketok/features/main_browse/cap24_soft_delete_dialogs.dart';
 import 'package:waketok/features/main_browse/cap24_timezone_note_bubble.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
+import 'package:waketok/features/main_browse/presentation_size_cache.dart';
+import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Opens the Cap 24 more half-sheet (Delete + minute landmark).
+/// Vertical gap between "…" half-sheet meta blocks (Cap 26.4).
+const double kCap24MoreSheetMetaBlockGap = 16;
+
+/// Gap between a meta row title and its value line (both File size and
+/// Saved time — optical, not inflated by the timezone `i` hit target).
+const double kCap24MoreSheetTitleValueGap = 4;
+
+/// Layout width reserved for the timezone `i` control in the value row.
+const double kCap24MoreSheetTimezoneInfoLayoutWidth = 36;
+
+/// Minimum tap target for timezone `i` (overflows the value-line height).
+const double kCap24MoreSheetTimezoneInfoHit = 44;
+
+/// Opens the Cap 24 more half-sheet (meta rows + Delete; Cap 26.5 Add later).
 Future<void> showCap24MoreHalfSheet(BuildContext context) {
   final darkTheme = waketokTheme(Brightness.dark);
   final tokens = darkTheme.extension<WakeTokTokens>()!;
@@ -65,6 +82,7 @@ class Cap24MoreHalfSheet extends ConsumerStatefulWidget {
 class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   Cap24MinuteLandmark? _landmark;
   var _landmarkResolved = false;
+  var _sizeRequestGen = 0;
   var _hostBusy = false;
   var _deleteLatch = false;
   Cap24TimezoneNoteBubbleHandle? _timezoneNoteBubble;
@@ -76,7 +94,16 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadLandmark());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _loadLandmark();
+      _requestSizeIfNeeded();
+      if (ref.read(mainBrowseCurrentAssetLayer2DisplayReadyProvider)) {
+        _requestSizeIfNeeded(refreshResolvedNil: true);
+      }
+    });
   }
 
   @override
@@ -153,6 +180,48 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
       _landmark = result;
       _landmarkResolved = true;
     });
+  }
+
+  /// Cap 26.4: request only when shared cache lacks non-null bytes.
+  /// Open skips when already [PresentationSizeEntry.resolved] (incl. nil → "—").
+  /// L2-ready may set [refreshResolvedNil] to re-ask after a nil resolve.
+  /// Results write through [presentationSizeCacheProvider.apply] (keepExisting).
+  Future<void> _requestSizeIfNeeded({bool refreshResolvedNil = false}) async {
+    final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
+    if (assetId == null || assetId.isEmpty) {
+      return;
+    }
+    final existing = ref.read(presentationSizeCacheProvider)[assetId];
+    if (existing?.fileSizeBytes != null) {
+      return;
+    }
+    if (existing?.resolved == true && !refreshResolvedNil) {
+      return;
+    }
+
+    final gen = ++_sizeRequestGen;
+    final repo = ref.read(presentationMetadataRepositoryProvider);
+    final cache = ref.read(presentationSizeCacheProvider.notifier);
+    PresentationFileSize size;
+    try {
+      size = await repo.requestPresentationFileSize(assetId);
+      final raw = size.fileSizeBytes;
+      if (raw != null && raw < 0) {
+        size = PresentationFileSize(
+          assetIdentifier: assetId,
+          fileSizeBytes: null,
+          fileSizeSemantics: size.fileSizeSemantics,
+        );
+      }
+    } on Object {
+      size = PresentationFileSize(assetIdentifier: assetId);
+    }
+    // Apply even if the sheet was dismissed — session cache outlives the sheet.
+    // Do not touch [ref] after the await (widget may be unmounted).
+    if (gen != _sizeRequestGen) {
+      return;
+    }
+    cache.apply(assetId, size);
   }
 
   Future<void> _onDelete() async {
@@ -232,13 +301,40 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
     ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(true);
   }
 
+  String _sizeValueText(
+    AppLocalizations l10n,
+    PresentationSizeEntry? entry,
+  ) {
+    if (entry == null || !entry.resolved) {
+      return '';
+    }
+    if (entry.fileSizeBytes == null) {
+      return l10n.cap24MoreSheetUnavailableValue;
+    }
+    return formatOverlayFileSize(
+      l10n: l10n,
+      fileSizeBytes: entry.fileSizeBytes,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final timeStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+    final assetId = ref.watch(mainBrowseCurrentAssetIdProvider);
+    final sizeEntry = assetId == null
+        ? null
+        : ref.watch(presentationSizeCacheProvider)[assetId];
+    final titleStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: tokens.onMediaMuted,
+        );
+    final valueStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
           color: tokens.onMedia,
         );
+    // Match File size / Saved time value-line height to the text metrics only.
+    final valueFontSize = valueStyle?.fontSize ?? 14;
+    final valueHeightFactor = valueStyle?.height ?? 1.0;
+    final valueLineHeight = valueFontSize * valueHeightFactor;
     // Cap 24 half-sheet Delete: outlined destructive (iOS systemRed via
     // tokens.destructive), not brand accent fill. Overturns the brief
     // "accept accent filled" draft. Cap 24 destructive #FF3B30 and Cap 22
@@ -257,6 +353,14 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
         MediaQuery.sizeOf(context).height * kCap19ActionsHalfSheetMaxHeightFactor;
     final busy = _hostBusy;
     final latch = _deleteLatch;
+
+    // Cap 26.4: Overlay-equivalent size refresh when L2 becomes ready.
+    ref.listen<bool>(mainBrowseCurrentAssetLayer2DisplayReadyProvider,
+        (previous, next) {
+      if (previous != true && next == true) {
+        _requestSizeIfNeeded(refreshResolvedNil: true);
+      }
+    });
 
     return PopScope(
       canPop: !latch,
@@ -281,54 +385,93 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
                     ),
                   ),
                 ),
-                if (_landmarkResolved && _landmark != null) ...[
-                  Row(
-                    // Icon sits immediately after the time — not trailing-end.
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Flexible(
-                        fit: FlexFit.loose,
-                        child: Text(
-                          _landmark!.displayText,
-                          key: Key(
-                            _landmark!.fromLibrary
-                                ? 'cap24SoftDeleteSheetMinuteLibrary'
-                                : 'cap24SoftDeleteSheetMinuteBare',
-                          ),
-                          style: timeStyle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      Semantics(
-                        button: true,
-                        label: l10n
-                            .cap24SoftDeleteSheetMinuteTimezoneInfoSemantics,
-                        child: KeyedSubtree(
-                          key: const Key(
-                            'cap24SoftDeleteSheetMinuteTimezoneInfo',
-                          ),
-                          child: IconButton(
-                            key: _timezoneInfoAnchorKey,
-                            icon: Icon(
-                              Icons.info_outline,
-                              size: 18,
-                              color: tokens.onMediaMuted,
-                            ),
-                            padding: EdgeInsets.zero,
-                            visualDensity: VisualDensity.compact,
-                            constraints: const BoxConstraints(
-                              minWidth: 36,
-                              minHeight: 44,
-                            ),
-                            onPressed:
-                                latch ? null : _toggleTimezoneNoteBubble,
-                          ),
-                        ),
-                      ),
-                    ],
+                // Cap 26.4: Location content deferred (debt 401); zero-height slot.
+                const KeyedSubtree(
+                  key: Key('cap24MoreSheetLocationSlot'),
+                  child: SizedBox.shrink(),
+                ),
+                _moreSheetMetaBlock(
+                  blockKey: const Key('cap24MoreSheetFileSizeBlock'),
+                  titleKey: const Key('cap24MoreSheetFileSizeTitle'),
+                  title: l10n.cap24MoreSheetFileSizeTitle,
+                  titleStyle: titleStyle,
+                  value: Text(
+                    _sizeValueText(l10n, sizeEntry),
+                    key: const Key('cap24MoreSheetFileSizeValue'),
+                    style: valueStyle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 16),
+                ),
+                const SizedBox(height: kCap24MoreSheetMetaBlockGap),
+                if (_landmarkResolved && _landmark != null) ...[
+                  _moreSheetMetaBlock(
+                    blockKey: const Key('cap24MoreSheetSavedTimeBlock'),
+                    titleKey: const Key('cap24MoreSheetSavedTimeTitle'),
+                    title: l10n.cap24MoreSheetSavedTimeTitle,
+                    titleStyle: titleStyle,
+                    value: Row(
+                      // Icon immediately after the time — not trailing-end.
+                      // Keep value-line height = text line (same as File size);
+                      // 44pt `i` hit overflows via OverflowBox so title→value
+                      // optical gap stays kCap24MoreSheetTitleValueGap.
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Text(
+                            _landmark!.displayText,
+                            key: Key(
+                              _landmark!.fromLibrary
+                                  ? 'cap24SoftDeleteSheetMinuteLibrary'
+                                  : 'cap24SoftDeleteSheetMinuteBare',
+                            ),
+                            style: valueStyle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Semantics(
+                          button: true,
+                          label: l10n
+                              .cap24SoftDeleteSheetMinuteTimezoneInfoSemantics,
+                          child: KeyedSubtree(
+                            key: const Key(
+                              'cap24SoftDeleteSheetMinuteTimezoneInfo',
+                            ),
+                            child: SizedBox(
+                              width: kCap24MoreSheetTimezoneInfoLayoutWidth,
+                              height: valueLineHeight,
+                              child: OverflowBox(
+                                minWidth: kCap24MoreSheetTimezoneInfoHit,
+                                maxWidth: kCap24MoreSheetTimezoneInfoHit,
+                                minHeight: kCap24MoreSheetTimezoneInfoHit,
+                                maxHeight: kCap24MoreSheetTimezoneInfoHit,
+                                alignment: Alignment.center,
+                                child: IconButton(
+                                  key: _timezoneInfoAnchorKey,
+                                  icon: Icon(
+                                    Icons.info_outline,
+                                    size: 18,
+                                    color: tokens.onMediaMuted,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  visualDensity: VisualDensity.compact,
+                                  constraints: const BoxConstraints(
+                                    minWidth: kCap24MoreSheetTimezoneInfoHit,
+                                    minHeight: kCap24MoreSheetTimezoneInfoHit,
+                                  ),
+                                  onPressed:
+                                      latch ? null : _toggleTimezoneNoteBubble,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: kCap24MoreSheetMetaBlockGap),
                 ],
                 OutlinedButton(
                   key: const Key('cap24SoftDeleteSheetDelete'),
@@ -358,4 +501,29 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
       ),
     );
   }
+}
+
+/// Shared title + value chrome so File size / Saved time use the same gap.
+Widget _moreSheetMetaBlock({
+  required Key blockKey,
+  required Key titleKey,
+  required String title,
+  required TextStyle? titleStyle,
+  required Widget value,
+}) {
+  return KeyedSubtree(
+    key: blockKey,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          key: titleKey,
+          style: titleStyle,
+        ),
+        const SizedBox(height: kCap24MoreSheetTitleValueGap),
+        value,
+      ],
+    ),
+  );
 }

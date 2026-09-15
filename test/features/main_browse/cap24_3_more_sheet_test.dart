@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
+import 'package:waketok/domain/presentation/file_size_semantics.dart';
 import 'package:waketok/domain/presentation/presentation_media_kind.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
@@ -14,7 +16,10 @@ import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
 import 'package:waketok/features/main_browse/cap24_timezone_note_bubble.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
+import 'package:waketok/features/main_browse/presentation_size_cache.dart';
+import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_soft_delete_repository.dart';
@@ -587,7 +592,7 @@ void main() {
   );
 
   testWidgets(
-    'W-24.3-16 omit minute row when loader returns null',
+    'W-24.3-16 omit Saved time block when loader returns null; File size stays',
     (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -615,9 +620,12 @@ void main() {
       await _openMoreSheet(tester);
       await tester.pumpAndSettle();
 
+      expect(find.byKey(const Key('cap24MoreSheetSavedTimeTitle')), findsNothing);
+      expect(find.byKey(const Key('cap24MoreSheetSavedTimeBlock')), findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteLibrary')),
           findsNothing);
       expect(find.byKey(const Key('cap24SoftDeleteSheetMinuteBare')), findsNothing);
+      expect(find.byKey(const Key('cap24MoreSheetFileSizeTitle')), findsOneWidget);
       expect(find.byKey(const Key('cap24SoftDeleteSheetDelete')), findsOneWidget);
     },
   );
@@ -745,6 +753,514 @@ void main() {
 
       hold.complete();
       await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets(
+    'W-26.4-a File size title always; value formats like Overlay',
+    (tester) async {
+      final presentation = FakePresentationMetadataRepository(
+        sizeById: {
+          'a1': const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: 2_886_627,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        },
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('cap24MoreSheetLocationSlot')), findsOneWidget);
+      expect(find.byKey(const Key('cap24MoreSheetFileSizeTitle')), findsOneWidget);
+      final sheetContext =
+          tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
+      final l10n = AppLocalizations.of(sheetContext)!;
+      expect(find.text(l10n.cap24MoreSheetFileSizeTitle), findsOneWidget);
+      expect(
+        find.text(
+          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 2_886_627),
+        ),
+        findsOneWidget,
+      );
+      expect(presentation.sizeCalls, greaterThanOrEqualTo(1));
+    },
+  );
+
+  testWidgets(
+    'W-26.4-b nil size keeps title; value is em dash; from shared entry',
+    (tester) async {
+      final presentation = FakePresentationMetadataRepository(
+        sizeById: {
+          'a1': const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: null,
+            fileSizeSemantics: FileSizeSemantics.unknownUnavailable,
+          ),
+        },
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      container
+          .read(mainBrowseCurrentAssetLayer2DisplayReadyProvider.notifier)
+          .setReady(false);
+      await tester.pump();
+      container.read(presentationSizeCacheProvider.notifier).apply(
+            'a1',
+            const PresentationFileSize(
+              assetIdentifier: 'a1',
+              fileSizeBytes: null,
+              fileSizeSemantics: FileSizeSemantics.unknownUnavailable,
+            ),
+          );
+      final callsBeforeOpen = presentation.sizeCalls;
+
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      final entry = container.read(presentationSizeCacheProvider)['a1'];
+      expect(entry, isNotNull);
+      expect(entry!.resolved, isTrue);
+      expect(entry.fileSizeBytes, isNull);
+
+      expect(find.byKey(const Key('cap24MoreSheetFileSizeTitle')), findsOneWidget);
+      expect(find.byKey(const Key('cap24MoreSheetFileSizeBlock')), findsOneWidget);
+      final sheetContext =
+          tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
+      final l10n = AppLocalizations.of(sheetContext)!;
+      expect(find.text(l10n.cap24MoreSheetUnavailableValue), findsOneWidget);
+      expect(find.text('0 B'), findsNothing);
+      expect(presentation.sizeCalls, callsBeforeOpen);
+    },
+  );
+
+  testWidgets(
+    'W-26.4-c in-flight blank while shared unresolved; no em dash; no spinner',
+    (tester) async {
+      final gate = Completer<void>();
+      final presentation = FakePresentationMetadataRepository(
+        sizeGate: gate,
+        sizeById: {
+          'a1': const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: 2048,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        },
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      // Do not pumpAndSettle: sizeGate blocks feed Overlay size AND sheet.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      expect(
+        container.read(presentationSizeCacheProvider)['a1']?.resolved ?? false,
+        isFalse,
+      );
+      expect(presentation.sizeCalls, greaterThanOrEqualTo(1));
+
+      await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+      expect(
+        container.read(presentationSizeCacheProvider)['a1']?.resolved ?? false,
+        isFalse,
+      );
+      // Sheet must issue its own Host call while feed's is still gated — not
+      // only wait for Overlay to resolve (passive-only would leave sizeCalls
+      // at 1 here).
+      expect(presentation.sizeCalls, greaterThanOrEqualTo(2));
+      expect(find.byKey(const Key('cap24MoreSheetFileSizeTitle')), findsOneWidget);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('cap24MoreSheetFileSizeValue')))
+            .data,
+        '',
+      );
+      final l10n = AppLocalizations.of(
+        tester.element(find.byKey(const Key('cap24MoreHalfSheet'))),
+      )!;
+      expect(find.text(l10n.cap24MoreSheetUnavailableValue), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      final after = container.read(presentationSizeCacheProvider)['a1'];
+      expect(after?.resolved, isTrue);
+      expect(after?.fileSizeBytes, 2048);
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('cap24MoreSheetFileSizeValue')))
+            .data,
+        formatOverlayFileSize(l10n: l10n, fileSizeBytes: 2048),
+      );
+    },
+  );
+
+  testWidgets(
+    'W-26.4-d shared non-null size: sheet displays without extra Host call',
+    (tester) async {
+      final presentation = FakePresentationMetadataRepository(
+        sizeById: {
+          'a1': const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: 4096,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        },
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      container.read(presentationSizeCacheProvider.notifier).apply(
+            'a1',
+            const PresentationFileSize(
+              assetIdentifier: 'a1',
+              fileSizeBytes: 4096,
+              fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+            ),
+          );
+      final callsBeforeOpen = presentation.sizeCalls;
+
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      final sheetContext =
+          tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
+      final l10n = AppLocalizations.of(sheetContext)!;
+      expect(
+        find.text(
+          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 4096),
+        ),
+        findsOneWidget,
+      );
+      expect(presentation.sizeCalls, callsBeforeOpen);
+    },
+  );
+
+  testWidgets(
+    'W-26.4-h sheet apply writes shared cache Overlay can mirror',
+    (tester) async {
+      final gate = Completer<void>();
+      final presentation = FakePresentationMetadataRepository(
+        sizeGate: gate,
+        sizeById: {
+          'a1': const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: 7777,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        },
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      expect(
+        container.read(presentationSizeCacheProvider)['a1']?.resolved ?? false,
+        isFalse,
+      );
+
+      await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
+      await tester.pump();
+      await tester.pump();
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      final entry = container.read(presentationSizeCacheProvider)['a1'];
+      expect(entry?.resolved, isTrue);
+      expect(entry?.fileSizeBytes, 7777);
+
+      final sheetContext =
+          tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
+      final l10n = AppLocalizations.of(sheetContext)!;
+      final sizeCopy =
+          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 7777);
+      expect(find.text(sizeCopy), findsWidgets);
+    },
+  );
+
+  testWidgets(
+    'W-26.4-i shared keepExisting: nil apply does not clobber bytes',
+    (tester) async {
+      final presentation = FakePresentationMetadataRepository();
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(MaterialApp)),
+      );
+      final cache = container.read(presentationSizeCacheProvider.notifier);
+      cache.apply(
+        'a1',
+        const PresentationFileSize(
+          assetIdentifier: 'a1',
+          fileSizeBytes: 5555,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      );
+      cache.apply(
+        'a1',
+        const PresentationFileSize(
+          assetIdentifier: 'a1',
+          fileSizeBytes: null,
+          fileSizeSemantics: FileSizeSemantics.unknownUnavailable,
+        ),
+      );
+
+      final entry = container.read(presentationSizeCacheProvider)['a1'];
+      expect(entry?.fileSizeBytes, 5555);
+      expect(entry?.resolved, isTrue);
+
+      final callsBeforeOpen = presentation.sizeCalls;
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      final sheetContext =
+          tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
+      final l10n = AppLocalizations.of(sheetContext)!;
+      expect(
+        find.text(
+          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 5555),
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.cap24MoreSheetUnavailableValue), findsNothing);
+      expect(presentation.sizeCalls, callsBeforeOpen);
+    },
+  );
+
+  testWidgets(
+    'W-26.4-e Saved time title shown with landmark; order Location→Size→Saved→Delete',
+    (tester) async {
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async {
+            return Cap24MinuteLandmark(
+              displayText: l10n.cap24SoftDeleteSheetExactMinuteLibrary(
+                '2024',
+                '06',
+                '01',
+                '12',
+                '00',
+              ),
+              fromLibrary: true,
+            );
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('cap24MoreSheetSavedTimeTitle')), findsOneWidget);
+      final location =
+          tester.getTopLeft(find.byKey(const Key('cap24MoreSheetLocationSlot')));
+      final size =
+          tester.getTopLeft(find.byKey(const Key('cap24MoreSheetFileSizeBlock')));
+      final saved =
+          tester.getTopLeft(find.byKey(const Key('cap24MoreSheetSavedTimeBlock')));
+      final delete =
+          tester.getTopLeft(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
+      expect(location.dy, lessThanOrEqualTo(size.dy));
+      expect(size.dy, lessThan(saved.dy));
+      expect(saved.dy, lessThan(delete.dy));
+    },
+  );
+
+  testWidgets(
+    'W-26.4-f dismiss before size resolve: no late setState throw',
+    (tester) async {
+      final gate = Completer<void>();
+      FlutterErrorDetails? caught;
+      final oldHandler = FlutterError.onError;
+      FlutterError.onError = (details) {
+        caught = details;
+        oldHandler?.call(details);
+      };
+      addTearDown(() => FlutterError.onError = oldHandler);
+
+      final presentation = FakePresentationMetadataRepository(
+        sizeGate: gate,
+        sizeById: {
+          'a1': const PresentationFileSize(
+            assetIdentifier: 'a1',
+            fileSizeBytes: 9999,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        },
+      );
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: _localSources(),
+          presentationMetadata: presentation,
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async =>
+              null,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
+      await tester.pump();
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+
+      Navigator.of(tester.element(find.byKey(const Key('cap24MoreHalfSheet'))))
+          .pop();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('cap24MoreHalfSheet')), findsNothing);
+
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(caught, isNull);
+    },
+  );
+
+  testWidgets(
+    'W-26.4-g zh-Hans File size / Saved time titles',
+    (tester) async {
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          locale: const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hans',
+          ),
+          assetSources: _localSources(),
+          minuteLandmarkLoader: ({
+            required l10n,
+            required assetIdentifier,
+          }) async {
+            return Cap24MinuteLandmark(
+              displayText: l10n.cap24SoftDeleteSheetExactMinuteLibrary(
+                '2024',
+                '06',
+                '01',
+                '12',
+                '00',
+              ),
+              fromLibrary: true,
+            );
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _openMoreSheet(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('文件大小'), findsOneWidget);
+      expect(find.text('保存时间'), findsOneWidget);
     },
   );
 }

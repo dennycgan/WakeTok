@@ -1512,6 +1512,24 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get cap24SoftDeleteSheetDelete;
 
+  /// Cap 26.4 more half-sheet File size row title (always shown)
+  ///
+  /// In en, this message translates to:
+  /// **'File size'**
+  String get cap24MoreSheetFileSizeTitle;
+
+  /// Cap 26.4 more half-sheet Saved time row title (umbrella wording; omits with value when landmark missing)
+  ///
+  /// In en, this message translates to:
+  /// **'Saved time'**
+  String get cap24MoreSheetSavedTimeTitle;
+
+  /// Cap 26.4 half-sheet placeholder when a resolved meta value is unavailable (em dash U+2014)
+  ///
+  /// In en, this message translates to:
+  /// **'—'**
+  String get cap24MoreSheetUnavailableValue;
+
   /// Cap 24 half-sheet honesty note shown in the i-bubble (finest resolution here; file vs library + device TZ; hour common, date rare vs Overlay ~ day)
   ///
   /// In en, this message translates to:

@@ -1,6 +1,7 @@
 import 'package:waketok/domain/presentation/file_size_semantics.dart';
 import 'package:waketok/domain/presentation/presentation_media_kind.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
+import 'package:waketok/features/main_browse/presentation_size_cache.dart';
 
 /// Session-scoped Overlay field snapshot (ADR-015 Decision 3).
 class PresentationOverlaySnapshot {
@@ -42,16 +43,22 @@ class PresentationOverlaySnapshot {
   PresentationOverlaySnapshot mergeSize(PresentationFileSize size) {
     // Same metadata generation can complete two size requests out of order
     // (activation nil after Layer-2 refresh). isCurrent cannot drop the nil.
-    final keepExisting = fileSizeBytes != null && size.fileSizeBytes == null;
+    // keepExisting rule lives in [mergePresentationSizeEntry] (S-6 / Cap 26.4).
+    final merged = mergePresentationSizeEntry(
+      PresentationSizeEntry(
+        fileSizeBytes: fileSizeBytes,
+        fileSizeSemantics: fileSizeSemantics,
+        resolved: true,
+      ),
+      size,
+    );
     return PresentationOverlaySnapshot(
       assetIdentifier: assetIdentifier,
       createdAt: createdAt,
       mediaKind: mediaKind,
       isAnimated: isAnimated,
-      fileSizeBytes: keepExisting ? fileSizeBytes : size.fileSizeBytes,
-      fileSizeSemantics: keepExisting
-          ? fileSizeSemantics
-          : size.fileSizeSemantics,
+      fileSizeBytes: merged.fileSizeBytes,
+      fileSizeSemantics: merged.fileSizeSemantics,
       locationLabel: locationLabel,
     );
   }

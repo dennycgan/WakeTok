@@ -9,6 +9,7 @@ import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/presentation_date_format.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
+import 'package:waketok/features/main_browse/presentation_size_cache.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -383,5 +384,24 @@ void main() {
     );
     expect(updated.fileSizeBytes, 200);
     expect(updated.fileSizeSemantics, FileSizeSemantics.localVideoUrl);
+  });
+
+  test('S-6b shared apply keepExisting matches mergeSize', () {
+    final first = mergePresentationSizeEntry(
+      null,
+      const PresentationFileSize(
+        assetIdentifier: 'a',
+        fileSizeBytes: 100,
+        fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+      ),
+    );
+    expect(first.resolved, isTrue);
+    expect(first.fileSizeBytes, 100);
+    final afterNil = mergePresentationSizeEntry(
+      first,
+      const PresentationFileSize(assetIdentifier: 'a'),
+    );
+    expect(afterNil.fileSizeBytes, 100);
+    expect(afterNil.resolved, isTrue);
   });
 }

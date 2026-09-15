@@ -45,6 +45,7 @@ import 'package:waketok/features/main_browse/cap26_live_long_press_gesture.dart'
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_overlay_snapshot.dart';
+import 'package:waketok/features/main_browse/presentation_size_cache.dart';
 import 'package:waketok/features/main_browse/pv_transition_guard.dart';
 import 'package:waketok/features/main_browse/scrubber_policy.dart';
 import 'package:waketok/features/main_browse/video_progress_scrubber.dart';
@@ -503,6 +504,23 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     _activeDisplayGeneration = gens.display;
     _overlaySnapshot =
         cached ?? PresentationOverlaySnapshot(assetIdentifier: assetId);
+    // Hydrate shared size from private cache when provider has no entry yet
+    // (session restore / first read after Cap 26.4 wiring).
+    final shared = ref.read(presentationSizeCacheProvider)[assetId];
+    if (shared == null &&
+        cached != null &&
+        (cached.fileSizeBytes != null ||
+            cached.fileSizeSemantics != null)) {
+      ref.read(presentationSizeCacheProvider.notifier).apply(
+            assetId,
+            PresentationFileSize(
+              assetIdentifier: assetId,
+              fileSizeBytes: cached.fileSizeBytes,
+              fileSizeSemantics: cached.fileSizeSemantics,
+            ),
+          );
+    }
+    _syncOverlaySizeFromSharedCache(assetId);
     unawaited(_loadOverlay(gens.metadata, assetId));
   }
 
@@ -529,11 +547,38 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   }
 
   void _commitOverlaySize(String assetId, PresentationFileSize size) {
+    ref.read(presentationSizeCacheProvider.notifier).apply(assetId, size);
+    _syncOverlaySizeFromSharedCache(assetId);
+  }
+
+  /// Mirror shared size into the private Overlay snapshot (Cap 26.4).
+  /// Authority is [presentationSizeCacheProvider]; this keeps MediaInfoOverlay
+  /// props unchanged.
+  void _syncOverlaySizeFromSharedCache(String assetId) {
+    if (!mounted || assetId.isEmpty) {
+      return;
+    }
+    final entry = ref.read(presentationSizeCacheProvider)[assetId];
+    if (entry == null || !entry.resolved) {
+      return;
+    }
+    final base = (_overlaySnapshot?.assetIdentifier == assetId)
+        ? _overlaySnapshot!
+        : PresentationOverlaySnapshot(assetIdentifier: assetId);
+    if (base.fileSizeBytes == entry.fileSizeBytes &&
+        base.fileSizeSemantics == entry.fileSizeSemantics) {
+      return;
+    }
+    final next = PresentationOverlaySnapshot(
+      assetIdentifier: base.assetIdentifier,
+      createdAt: base.createdAt,
+      mediaKind: base.mediaKind,
+      isAnimated: base.isAnimated,
+      fileSizeBytes: entry.fileSizeBytes,
+      fileSizeSemantics: entry.fileSizeSemantics,
+      locationLabel: base.locationLabel,
+    );
     setState(() {
-      final base = (_overlaySnapshot?.assetIdentifier == assetId)
-          ? _overlaySnapshot!
-          : PresentationOverlaySnapshot(assetIdentifier: assetId);
-      final next = base.mergeSize(size);
       _overlaySnapshot = next;
       _overlayCache[assetId] = next;
     });
@@ -833,6 +878,27 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final feedSourceKind = chrome.feedSourceKind;
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
+    // Cap 26.4: half-sheet (or any apply) updates shared size → mirror Overlay.
+    ref.listen<Map<String, PresentationSizeEntry>>(
+      presentationSizeCacheProvider,
+      (previous, next) {
+        final id = _activeAssetId;
+        if (id == null || id.isEmpty) {
+          return;
+        }
+        final prevEntry = previous?[id];
+        final nextEntry = next[id];
+        if (nextEntry == null || !nextEntry.resolved) {
+          return;
+        }
+        if (prevEntry?.fileSizeBytes == nextEntry.fileSizeBytes &&
+            prevEntry?.fileSizeSemantics == nextEntry.fileSizeSemantics &&
+            prevEntry?.resolved == nextEntry.resolved) {
+          return;
+        }
+        _syncOverlaySizeFromSharedCache(id);
+      },
+    );
     ref.listen(mainBrowseFeedIndexProvider, (previous, next) {
       if (previous != next) {
         ref.read(pvTransitionGuardProvider.notifier).onFeedIndexChanged(next);

@@ -1061,6 +1061,18 @@
   "@cap24SoftDeleteSheetDelete": {
     "description": "Cap 24.3 more half-sheet Delete row (system PhotoKit consent is the only confirm)"
   },
+  "cap24MoreSheetFileSizeTitle": "File size",
+  "@cap24MoreSheetFileSizeTitle": {
+    "description": "Cap 26.4 more half-sheet File size row title (always shown)"
+  },
+  "cap24MoreSheetSavedTimeTitle": "Saved time",
+  "@cap24MoreSheetSavedTimeTitle": {
+    "description": "Cap 26.4 more half-sheet Saved time row title (umbrella wording; omits with value when landmark missing)"
+  },
+  "cap24MoreSheetUnavailableValue": "—",
+  "@cap24MoreSheetUnavailableValue": {
+    "description": "Cap 26.4 half-sheet placeholder when a resolved meta value is unavailable (em dash U+2014)"
+  },
   "cap24SoftDeleteSheetMinuteTimezoneNote": "This is the finest time resolution WakeTok can show here for this item. Time zone differences may still shift it by a few hours; in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and may be affected by your current time zone, neither is guaranteed to match the exact moment this item was created or saved.",
   "@cap24SoftDeleteSheetMinuteTimezoneNote": {
     "description": "Cap 24 half-sheet honesty note shown in the i-bubble (finest resolution here; file vs library + device TZ; hour common, date rare vs Overlay ~ day)"

@@ -819,6 +819,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cap24SoftDeleteSheetDelete => 'Delete';
 
   @override
+  String get cap24MoreSheetFileSizeTitle => 'File size';
+
+  @override
+  String get cap24MoreSheetSavedTimeTitle => 'Saved time';
+
+  @override
+  String get cap24MoreSheetUnavailableValue => '—';
+
+  @override
   String get cap24SoftDeleteSheetMinuteTimezoneNote =>
       'This is the finest time resolution WakeTok can show here for this item. Time zone differences may still shift it by a few hours; in extreme cases, even the date may not match the date on Browse (marked with ~). Because time can be stored differently in the file and in the Photos library, and may be affected by your current time zone, neither is guaranteed to match the exact moment this item was created or saved.';
 
