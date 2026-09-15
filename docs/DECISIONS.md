@@ -6399,10 +6399,15 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Plain summary (owner reads this):
   On a Live Photo’s still key frame, a long-press replays the motion
   once (the only replay control — no new button next to LIVE). Opening
-  the bottom "…" sheet also shows file size and a second Add-to-Album
-  entry that closes "…" then opens the existing album picker. Location
-  stays out. If automatic Live play was silently skipped this session
-  after a stuck motion, the user’s long-press still retries.
+  the bottom "…" sheet shows File size (title always kept; **never omit**
+  the row; value blank in flight, formatted bytes when known, em dash "—"
+  when resolved ∧ nil; shared `presentationSizeCacheProvider` with Overlay)
+  and Saved time, then later a second Add-to-Album entry that closes "…"
+  then opens the existing album picker. Location content stays out
+  (zero-height slot; **locked product home** = half-sheet, not Overlay
+  row 4 — layout notes §12.6). If automatic Live play was silently
+  skipped this session after a stuck motion, the user’s long-press still
+  retries.
 - Context / what problem forced this:
   ADR-040 Decision 17 reserved an explicit Live replay control and
   rejected Photos-style long-press; that control was never shipped
@@ -6468,24 +6473,61 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      Live identity for this gate is Decision 11 (`.photoLive` only).
   7. **Narrow reopen ADR-050 Decision 8 / Rejected “Second Add-to-Album
      or location in MVP '…' sheet — deferred”.** Reopen **Add-to-Album
-     entry button only**. Location row stays deferred (Known debt
-     **401** / kickoff ADR-X: privacy disclosure + reverse-geocode
-     cost). "…" row order: minute landmark → size → Add to Album →
-     Delete.
-  8. **Size row.** `requestPresentationFileSize` +
-     `formatOverlayFileSize` (same Overlay ARB keys). Live = still-only
-     Tier 4 (ADR-018). Nil / negative → **omit** the row (same omit
-     class as missing minute landmark). Debt **405** size-disclaimer
-     copy stays Out (Settings / localisation Cap).
+     entry button only** (Cap 26.5). Location **row content** stays deferred
+     (Known debt **401** / kickoff ADR-X: privacy disclosure + reverse-geocode
+     cost). Location’s **product home is locked** on the "…" half-sheet
+     (**not** Overlay row 4) — privacy disclosure + Manual Browse Bounded
+     Visual Preheating / passive look-ahead discipline (see
+     `docs/reference/media-chrome-layout-notes.md` §12.6). Cap 26.4
+     reserves a **zero-height** Location slot only; do **not** later move
+     Location content back to Overlay row 4 without a new owner decision
+     overturning this limb.
+     **"…" meta / action row order (Cap 26.4+)** — same wording as layout
+     notes §12.1 / §12.6:
+     **Location → File size → Saved time → Add to Album → Delete**
+     (Location = zero-height while content deferred; Add to Album = Cap 26.5).
+     Supersedes this ADR’s earlier draft order
+     “minute landmark → size → Add to Album → Delete”.
+  8. **Size row.** Same Host path as Overlay:
+     `requestPresentationFileSize` + `formatOverlayFileSize` (same Overlay
+     ARB size keys). Live = still-only Tier 4 (ADR-018).
+     **Never** set `networkAccessAllowed = true` solely for size (ADR-015 /
+     ADR-018 continue). Shared Browse authority:
+     `presentationSizeCacheProvider` (per-asset `PresentationSizeEntry` with
+     `resolved` + keepExisting `apply`); Overlay feed and the "…" sheet
+     both read/write this map so displayed bytes stay consistent
+     (Overlay UI still mirrors into `_overlaySnapshot`). Reliability class
+     matches Overlay: open may see empty value while local bytes are
+     unavailable; when current-page L2 display becomes ready
+     (`mainBrowseCurrentAssetLayer2DisplayReadyProvider` false→true, same
+     publish sites as Overlay’s `_onCurrentLayer2MediaReady` refresh),
+     re-request size and fill the reserved value slot when shared bytes are
+     still null. Sheet open: request when shared entry is missing /
+     unresolved; if L2-ready is already true, may refresh when bytes are
+     still null; skip when non-null bytes are already held. Dismissed
+     sheet does not chase a later L2-ready.
+     **Layout (differs from Overlay progressive join; same wording as
+     layout notes §12.1):** from sheet open, always reserve title + value
+     space (no spinner). Title is **always** shown (`File size` /
+     `文件大小`). Value: blank while first request in flight; formatted
+     bytes when known; em dash "—" when **resolved ∧ nil/negative/failure**.
+     **Never omit** the File size row (not `0 B`).
+     **Saved time** title: `Saved time` / `保存时间`; value remains the
+     existing Cap 24 minute-landmark resolution (library Instant /
+     EXIF wall-clock on `creationDate` / cover path — no new Host field).
+     "Saved" is deliberate umbrella wording, not a claim that the source
+     is Photos “date saved” vs capture. Missing landmark may still omit
+     the Saved-time block (title+value), unlike File size.
+     Debt **405** size-disclaimer copy stays Out.
   9. **Add-to-Album second entry.** On tap: dismiss Cap 24 "…" sheet,
      then call existing `showCap19ActionsHalfSheet` with **zero
      artificial delay** (`whenComplete` / next frame). No new
      transition UI. Limited Access + Cap 23 still-in-library gates
      reuse Cap 19 behaviour.
-  10. **Out of Cap 26.** Location row; debt **405** disclaimer; explicit
-      trailing replay button; Mute / Fit / 2×; mid-motion restart;
-      magnified long-press; product work on debts **436** / **456a** /
-      **457** / **458**.
+  10. **Out of Cap 26.** Location **content** (slot reserved zero-height);
+      debt **405** disclaimer; explicit trailing replay button; Mute /
+      Fit / 2×; mid-motion restart; magnified long-press; product work
+      on debts **436** / **456a** / **457** / **458**.
   11. **Live effect variants (Loop / Bounce / Long Exposure) —
       intentional non-discrimination.** Long-press eligibility uses the
       same gate as Cap 9 Live motion:
@@ -6526,8 +6568,11 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     shared arbitration premises (owner Q9=A).
   - 500 ms hold “more like long-press” — rejected; breaks alignment
     with `kCap19EdgeHoldWindow` (400 ms) hold feel.
-  - Ship debt **405** disclaimer or location in this Cap — rejected;
-    keep scope narrow.
+  - Ship debt **405** disclaimer or location **content** in this Cap —
+    rejected; keep scope narrow (zero-height Location slot only in 26.4).
+  - Omit the "…" File size row when bytes are nil — rejected for the
+    half-sheet (Cap 26.4): keep title + em-dash value; differs from
+    Overlay progressive blank join.
   - Branch long-press on `PHAsset.playbackStyle` / effect preference
     (or claim “no public API exists”) — rejected; `playbackStyle` is
     public but Cap 26 deliberately ignores it (Decision 11); “no API”
@@ -6540,6 +6585,13 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - ADR-051 Decisions 12–14 (still share materialization; Share enable
     ∧ ¬liveMotionMounted) unchanged; long-press must keep publishing
     the same mounted signal.
+  - Cap 26.4 "…" File size uses `presentationSizeCacheProvider` +
+    `mainBrowseCurrentAssetLayer2DisplayReadyProvider` for post-L2
+    size refresh (same reliability class as Overlay `43c984a`); never
+    downloads solely for size. File size row is **never omitted**;
+    resolved ∧ nil → em dash "—". Location product home stays the "…"
+    sheet (layout notes §12.6); do not reopen Overlay row 4 without a
+    new owner decision.
   - Architecture / localization guards remain mandatory on `lib/` work
     (ADR-009 / ADR-010 / ADR-012).
   - GLOSSARY: no new concept node (replay is Live Manual affordance;
@@ -6549,9 +6601,11 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   alternative. Narrowly supplements ADR-019 Decision 8 (directed
   exception = App long-press). Continues ADR-037 play-only / silent
   re-request discipline. Narrowly reopens ADR-050 Add-to-Album
-  entry-button deferral only (location / **401** remain deferred).
+  entry-button deferral only (location content / **401** remain
+  deferred; half-sheet is Location’s **locked** product home).
   Orthogonal to ADR-051 D12/D13 Host share path; depends on D14 mounted
   + watchdog infrastructure without amending Share enable rules.
+  Continues ADR-015 / ADR-018 size Host discipline.
 
 ## ADR-053: Overlay row-3 Animated still label (presentation-only)
 

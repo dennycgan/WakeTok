@@ -385,7 +385,7 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 | Order | Block | Cap 26.4 behavior |
 |------:|-------|-------------------|
 | 0 | Grabber | Unchanged |
-| 1 | **Location slot** | **Zero height** (`SizedBox.shrink`); content deferred (debt **401**). Product home = this sheet, not Overlay row 4. |
+| 1 | **Location slot** | **Zero height** (`SizedBox.shrink`); content deferred (debt **401**). **Locked product home = this sheet, not Overlay row 4** — see **§12.6**. |
 | 2 | **File size** | Title **always** shown. Value: blank while first request in flight; formatted bytes when known; em dash "—" when resolved ∧ nil/negative/failure. **Never omit** the row. |
 | 3 | **Saved time** | Title + Cap 24 minute-landmark value + timezone `i`. Landmark miss / parse fail → **omit entire block** (title+value). |
 | 4 | Add to Album | Cap **26.5** (not in 26.4). |
@@ -435,7 +435,56 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 2. After L2 display ready (iCloud still): size refreshes to a non-empty SI label when local bytes exist.  
 3. Missing landmark: no Saved time title; File size title still present.  
 4. ZH: `文件大小` / `保存时间`; EN: `File size` / `Saved time`.  
-5. `flutter test test/features/main_browse/cap24_3_more_sheet_test.dart test/architecture/`.
+5. Shared cache: after L2, Overlay row-3 size and half-sheet File size show the **same** formatted bytes.  
+6. `flutter test test/features/main_browse/cap24_3_more_sheet_test.dart test/architecture/`.
+
+### 12.6 Location product home (locked — for a future implementer)
+
+> Design note only. Cap 26.4 ships a **zero-height** slot (§12.1). This
+> subsection records **where Location lives when content ships**, why, and
+> what not to reopen. It is **not** a reverse-geocode implementation plan.
+
+**Product home (locked):** Location belongs on the Cap 24 / Cap 26 **"…"
+more half-sheet**, in the row-order slot already reserved first after the
+grabber (ADR-052 **Decision 7** narrow amend: Location → File size →
+Saved time → Add to Album → Delete). It does **not** belong on Overlay
+row 4.
+
+**Why half-sheet (and what the reason is not):**
+
+- **Real blockers for Overlay:** (1) privacy disclosure for showing place
+  names (Known debt **401** / kickoff ADR-X deferral); (2) Manual Browse
+  **Bounded Visual Preheating** / passive look-ahead discipline (local
+  kickoff: Manual doom-scroll may only use ADR-P.5 Bounded Visual
+  Preheating; Auto-play is separately capped at One-item Lookahead Fetch).
+  Overlay updates as the user swipes — a passive path. Putting reverse
+  geocode there would fire a **network** place-name request for every
+  geo-tagged asset the user merely scrolls past, which conflicts with
+  that passive-preheat discipline. The half-sheet opens only on an
+  explicit "…" tap, so geocode stays user-initiated and inside the safe
+  zone of that discipline.
+- **Not** “half-sheet was a fallback because Overlay was too hard.”
+  Coordinate metadata on the asset is cheap; the expensive part is
+  **reverse geocode** (a separate network call). That bottleneck is
+  **not** the Cap 26.4 Size problem (whether local bytes exist at L1 /
+  L2 for `requestPresentationFileSize`). Half-sheet does not inherit a
+  Size-style “must be accurate the instant Browse opens” technical
+  barrier for Location. Choosing the half-sheet is the stronger product
+  fit, not a consolation prize.
+
+**Do not move later:** Do **not** relocate Location content back to
+Overlay row 4 because the half-sheet feels inconvenient, because geocode
+UX is unfinished, or for “simpler” chrome alignment with Photos Info.
+That Overlay home was considered and rejected; reopening it needs a new
+owner decision that overturns ADR-052 D7 + this note — not a quiet
+implementation shortcut.
+
+**Cross-refs:** debt **401** (`docs/STATE.md` Known debt); ADR-052
+Decision 7 (Location product home + zero-height slot + row order);
+local kickoff Bounded Visual Preheating / One-item Lookahead Fetch
+(Manual vs Auto-play fetch caps). Cap 8 Overlay still collapses empty
+row 4 when `locationLabel` is unset — that remains presentation layout,
+not a product claim that row 4 is Location’s home.
 
 ---
 

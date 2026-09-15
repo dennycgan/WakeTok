@@ -251,7 +251,8 @@ exception = App long-press; manual long-press **bypasses** Cap 25
 Live-ended watchdog session skip set
 (`browseLiveMotionWatchdogSkipIdsProvider`).
 Owner Q1–Q9 locked (hold **400 ms** / haptic B / static-only A / mag A
-/ sheet A / size A+omit / row-order A / 405 Out A / single ADR A).
+/ sheet A / size A+omit-overridden-to-em-dash / row-order A / 405 Out A
+/ single ADR A).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 26.1 Contract freeze
@@ -265,26 +266,31 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (work `fc0bfcc`; ADR-053 Accepted; `isAnimated` via
       `playbackStyle == .imageAnimated`; no badge; Kafka + i17 Profile
       smoke PASS)
-- [ ] 26.4 "…" half-sheet size row
-      (`requestPresentationFileSize` + `formatOverlayFileSize`;
-      Live still-only ADR-018; nil → omit row) <-- YOU ARE HERE
+- [x] 26.4 "…" half-sheet size row
+      (work `c1a0d13`; `presentationSizeCacheProvider` shared with
+      Overlay; title always; never omit; resolved ∧ nil → "—"; L2-ready
+      refresh; layout notes §12 + §12.6 Location home locked; Kafka +
+      i17 Profile smoke PASS)
 - [ ] 26.5 "…" Add-to-Album second entry
       (close Cap24 sheet → `showCap19ActionsHalfSheet`; zero artificial
-      delay; Limited / Cap 23 gates reuse Cap 19)
+      delay; Limited / Cap 23 gates reuse Cap 19) <-- YOU ARE HERE
 - [ ] 26.6 Device acceptance (Kafka + i17) + Cap close
       (debt **439** Closed; ADR-052 Accepted + anchors; PHASE_HISTORY;
       two-commit discipline)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.4 — "…" half-sheet size row
-- Sub-steps done: 26.1–26.3; ADR-053 Accepted (`fc0bfcc`); Animated
-      device smoke PASS (Kafka + i17 Profile)
-- Next step: Design-first / owner OK for 26.4 size row, then `lib/`
-- Related decisions: ADR-053 Accepted; ADR-052 Proposed (D1–D11);
-      ADR-015 / 018 / 043 D12 continue; debt **439** → Cap 26;
-      **401** Location Out; **405** Out; **470** Accepted (phase);
-      **456a** / **457** Open; **458** Monitoring; **469** Accepted
-      (permanent)
+- Goal (one line): Cap 26.5 — "…" Add-to-Album second entry
+- Sub-steps done: 26.1–26.4; ADR-053 Accepted (`fc0bfcc`); 26.4 work
+      `c1a0d13` + device smoke PASS (Kafka + i17 Profile); ADR-052
+      still Proposed (D7/D8 narrow-amended for 26.4)
+- Next step: Design-first / owner OK for 26.5 Add-to-Album second entry,
+      then `lib/`
+- Related decisions: ADR-053 Accepted; ADR-052 Proposed (D1–D11;
+      D7/D8 narrow-amended); ADR-015 / 018 / 043 D12 / 050 continue;
+      debt **439** → Cap 26; **401** Location content Out (zero-height
+      slot; product home = "…" sheet, layout notes §12.6); **405** Out;
+      **470** Accepted (phase); **456a** / **457** Open; **458**
+      Monitoring; **469** Accepted (permanent)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
