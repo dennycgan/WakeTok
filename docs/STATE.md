@@ -271,6 +271,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Overlay; title always; never omit; resolved ∧ nil → "—"; L2-ready
       refresh; layout notes §12 + §12.6 Location home locked; Kafka +
       i17 Profile smoke PASS)
+- [x] 26.4a Meta Overlay: keep chrome across still L1→L2 cover path
+      upgrade
+      (work `aee8ba5`; `_trackStillCoverPath` keep-ready; layout notes
+      §13; debt **472** Closed — video Out structurally, not side-fix;
+      Kafka + i17 Profile PASS)
 - [ ] 26.5 "…" Add-to-Album second entry
       (close Cap24 sheet → `showCap19ActionsHalfSheet`; zero artificial
       delay; Limited / Cap 23 gates reuse Cap 19) <-- YOU ARE HERE
@@ -280,17 +285,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 26.5 — "…" Add-to-Album second entry
-- Sub-steps done: 26.1–26.4; ADR-053 Accepted (`fc0bfcc`); 26.4 work
-      `c1a0d13` + device smoke PASS (Kafka + i17 Profile); ADR-052
-      still Proposed (D7/D8 narrow-amended for 26.4)
+- Sub-steps done: 26.1–26.4a; ADR-053 Accepted (`fc0bfcc`); 26.4 work
+      `c1a0d13`; 26.4a work `aee8ba5` + Kafka / i17 Profile PASS; debt
+      **472** Closed; ADR-052 still Proposed (D7/D8 narrow-amended)
 - Next step: Design-first / owner OK for 26.5 Add-to-Album second entry,
       then `lib/`
 - Related decisions: ADR-053 Accepted; ADR-052 Proposed (D1–D11;
-      D7/D8 narrow-amended); ADR-015 / 018 / 043 D12 / 050 continue;
-      debt **439** → Cap 26; **401** Location content Out (zero-height
-      slot; product home = "…" sheet, layout notes §12.6); **405** Out;
-      **470** Accepted (phase); **456a** / **457** Open; **458**
-      Monitoring; **469** Accepted (permanent)
+      D7/D8 narrow-amended); layout notes §12.6 / §13; ADR-015 / 018 /
+      043 D12 / 050 continue; debt **439** → Cap 26; **401** Location
+      content Out (zero-height slot; product home = "…" sheet); **405**
+      Out; **470** Accepted (phase); **469** Accepted (permanent);
+      **472** Closed by Cap 26.4a
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -728,6 +733,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 469 | Accepted (permanent) | Photo Library / Kickoff scope | Cap 24.6 | Permanent Empty Recently Deleted / purge originals from Photos (not soft-delete-to-RD) | **Never in product scope.** Split from debt **464** at Cap 24 Accept (ADR-050 D1 / D11). Cap 24 closed soft-delete-to-RD only; emptying Recently Deleted, permanent purge of originals, Hide, batch delete, and in-app trash UI remain forbidden. Kickoff “no delete/modify originals” permanent-purge reading stays binding. No Cap will schedule Empty RD / purge without a new ADR that overturns this row. | Never (no Cap) | ADR-050 D1/D11; debt **464**; kickoff |
 | 470 | Accepted (phase) | Live Photo / Cap 26 | Cap 26.2 | Magnified Live long-press does not replay (user must Reset / return to fit first) | **Known MVP limitation — not a miss.** Cap 26.2 keeps ADR-052 D6/D10 magnified ignore and ADR-043 D1 Live rising-edge force-fit / no Flutter `Transform` on `PHLivePhotoView`. In-place magnified replay (Photos-like keep scale+pan) would require Host-side Live surface scale (same class as video L2 `setDisplayMagnification`); Flutter Platform View does not follow Flutter `Transform`, and `PHLivePhotoView` owns opaque playback/animation lifecycle so external bounds transforms are higher risk than the video L2 case already proven painful. Owner skipped MVP investment; no Cap scheduled to “fix” this. This row records the known consequence of those ADR decisions, not a newly found defect. | Unassigned (MVP accepted; no Cap scheduled) | ADR-043 D1; ADR-052 D6/D10 |
 | 471 | Monitoring | Live Photo / Cap 21 source · Cap 9–26 browse | Cap 26.3 | System Album Live Photos (213) membership can diverge from WakeTok Live presentation (`.photoLive` / `mapMediaKind`) | **Observed (iPhone13pro Kafka, iOS 26.6 / 23G71; Host probe on `requestPresentationMetadata`):** two Photos Live-off assets remained browsable from a Live-oriented pool path but Browse showed no Live Overlay / LIVE badge and did not arm Live play — probe logged `mediaSubtypes` `0x200` with `photoLive=0` (`playbackStyle=1` observed only). A Live-on control in the same session logged `subtypes=0x208` (`photoLive=1`, `playbackStyle=3`). Not a WakeTok recognition bug: smart-album **213** membership and subtype-based Live identity are independent PhotoKit surfaces. **Symmetric risk (not observed on this probe):** if some iOS version / Live-off workflow keeps `.photoLive`, WakeTok would still show Live chrome and call `requestLivePhoto` while Photos presents a still — same class of accepted non-parity as ADR-052 Decision 11 ignoring `playbackStyle` for Live identity. Accumulation: `docs/reference/ios-photokit-implicit-behavior-notes.md` §2.3. | Unassigned (Monitoring; revisit if Pool UX or Photos-parity Live-off becomes a product goal) | ADR-052 D11; Cap 9 `mapMediaKind`; Cap 21 smart album 213; PhotoKit notes §2.3 |
+| 472 | Closed | Main Browse Screen / Cap 26.4a | Cap 26.4a | Video L1 poster→L2 path change: whole Meta Overlay flash **unverified** → closed | **Closed by Cap 26.4a device smoke (Kafka + i17 Profile).** Owner saw no Meta 3-row flash on video while accepting still L1→L2 keep-ready. **Not a side-effect of 26.4a:** keep-ready explicitly requires `_media?.kind == FeedPageMediaKind.still` and excludes `kind == video`. **Structural reason video usually does not flash:** on video L2 success, `_trackStillCoverPath` is called with `(layer1?.display ?? _media?.display)?.localFilePath` — the **existing L1 poster**, not a new L2 full-still file. The “path changed → clear `_stillCoverReady` → `_suppressStillCoverChrome` tears down Overlay” branch is usually **not entered** because its path-change precondition does not hold for video; it is not that video somehow bypasses that branch after entering it. **Residual:** if video poster wiring later **does** swap to a different file between L1 and L2, the **same** clear-ready tear-down can return — 26.4a does **not** structurally make video safe (and keep-ready would still not apply while `kind == video`). Reopen only with a video-scoped change if flash is seen after such a poster-source change. | Closed by Cap 26.4a (Kafka + i17; structural note above) | Cap 26.4a; `vertical_media_feed.dart` `_trackStillCoverPath` + video `_applyLayer2Result` poster reuse; Cap 23.4 `_suppressStillCoverChrome`; Cap 15.5 gapless; layout notes §13 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
