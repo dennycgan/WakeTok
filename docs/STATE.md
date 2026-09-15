@@ -336,6 +336,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   `docs/reference/cap21-smart-album-boundary.md`. New iOS subtypes do
   **not** auto-join; owner edits the table + ARB deliberately. Work
   `67cb08b`.
+- PhotoKit multi-surface identity mismatches (Live/Animated;
+  `mediaSubtypes` vs `playbackStyle` vs smart-album membership) +
+  other implicit Host index:
+  `docs/reference/ios-photokit-implicit-behavior-notes.md`
+  (debt **471**; ADR-052 D11; ADR-053)
 - Localization guard: ADR-012 + test/architecture/localization_test.dart
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)
@@ -612,6 +617,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Cap 21.4b smart-album Build catalog boundary (live whitelist /
   exclude maintenance):
   docs/reference/cap21-smart-album-boundary.md — work `67cb08b`
+- PhotoKit implicit multi-surface / Host notes (not ADR):
+  docs/reference/ios-photokit-implicit-behavior-notes.md — debt **471**
 - Acceptance notes (Cap 20.6 device acceptance — D5=4× / B.1 / Q2-A;
   debt **451** Closed / **452** Open):
   docs/acceptance/cap20-20.6-notes.md — work `bc15517`
@@ -714,6 +721,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 468 | Monitoring | Main Browse Screen / Cap 24 | Cap 24.4b | Occasional first-page Layer 1 stall (never promotes to L2); heal by swipe away + revisit | **Seen twice on Kafka Profile (device-local stills, not iCloud):** (1) Cap 24.4b after Endless start-over (`0ccc8fa`); (2) Cap 24.4c after Pool/Origin leave-return (`0b6c7c6`). **Not** attributed to `sessionWorkingAssetIds` or `processSoftDeletedAssetIds` (those only shape Session id lists). **Photos side-channel (suspected co-factor, not proven):** owner also deleted/restored assets in system Photos while WakeTok stayed alive. Code: no `PHPhotoLibraryChangeObserver` (ADR-044 D3) — external delete/restore does **not** mutate Session Queue, Snapshot cache, or `processSoftDeletedAssetIds` (App soft-delete only). Leave→Photos→resume only auto-retries **already-failed** L2 (`_retryFailedLayer2AfterResume`); in-flight / never-started L2 is not restarted. Plausible race with lifecycle + next Host display request after PhotoKit mutation; causal link still unclear. **On recurrence record:** (1) iCloud vs device-local; (2) App soft-delete and/or Photos delete+restore in same process without force-quit; (3) start-over vs Pool leave-return; (4) leave-current + return / swipe+revisit self-heals. | Unassigned (observe) | ADR-025 / Cap 15–17 L2; Cap 22.5; ADR-044 D3; debt **444** / **456a** |
 | 469 | Accepted (permanent) | Photo Library / Kickoff scope | Cap 24.6 | Permanent Empty Recently Deleted / purge originals from Photos (not soft-delete-to-RD) | **Never in product scope.** Split from debt **464** at Cap 24 Accept (ADR-050 D1 / D11). Cap 24 closed soft-delete-to-RD only; emptying Recently Deleted, permanent purge of originals, Hide, batch delete, and in-app trash UI remain forbidden. Kickoff “no delete/modify originals” permanent-purge reading stays binding. No Cap will schedule Empty RD / purge without a new ADR that overturns this row. | Never (no Cap) | ADR-050 D1/D11; debt **464**; kickoff |
 | 470 | Accepted (phase) | Live Photo / Cap 26 | Cap 26.2 | Magnified Live long-press does not replay (user must Reset / return to fit first) | **Known MVP limitation — not a miss.** Cap 26.2 keeps ADR-052 D6/D10 magnified ignore and ADR-043 D1 Live rising-edge force-fit / no Flutter `Transform` on `PHLivePhotoView`. In-place magnified replay (Photos-like keep scale+pan) would require Host-side Live surface scale (same class as video L2 `setDisplayMagnification`); Flutter Platform View does not follow Flutter `Transform`, and `PHLivePhotoView` owns opaque playback/animation lifecycle so external bounds transforms are higher risk than the video L2 case already proven painful. Owner skipped MVP investment; no Cap scheduled to “fix” this. This row records the known consequence of those ADR decisions, not a newly found defect. | Unassigned (MVP accepted; no Cap scheduled) | ADR-043 D1; ADR-052 D6/D10 |
+| 471 | Monitoring | Live Photo / Cap 21 source · Cap 9–26 browse | Cap 26.3 | System Album Live Photos (213) membership can diverge from WakeTok Live presentation (`.photoLive` / `mapMediaKind`) | **Observed (iPhone13pro Kafka, iOS 26.6 / 23G71; Host probe on `requestPresentationMetadata`):** two Photos Live-off assets remained browsable from a Live-oriented pool path but Browse showed no Live Overlay / LIVE badge and did not arm Live play — probe logged `mediaSubtypes` `0x200` with `photoLive=0` (`playbackStyle=1` observed only). A Live-on control in the same session logged `subtypes=0x208` (`photoLive=1`, `playbackStyle=3`). Not a WakeTok recognition bug: smart-album **213** membership and subtype-based Live identity are independent PhotoKit surfaces. **Symmetric risk (not observed on this probe):** if some iOS version / Live-off workflow keeps `.photoLive`, WakeTok would still show Live chrome and call `requestLivePhoto` while Photos presents a still — same class of accepted non-parity as ADR-052 Decision 11 ignoring `playbackStyle` for Live identity. Accumulation: `docs/reference/ios-photokit-implicit-behavior-notes.md` §2.3. | Unassigned (Monitoring; revisit if Pool UX or Photos-parity Live-off becomes a product goal) | ADR-052 D11; Cap 9 `mapMediaKind`; Cap 21 smart album 213; PhotoKit notes §2.3 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
