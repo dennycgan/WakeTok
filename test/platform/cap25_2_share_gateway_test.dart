@@ -23,6 +23,12 @@ void main() {
     );
   });
 
+  PhotoLibraryGateway gatewayWithMocks() {
+    final gateway = PhotoLibraryGateway();
+    addTearDown(gateway.dispose);
+    return gateway;
+  }
+
   test('T-25.2-1 presentShareSheet forwards asset id to Pigeon', () async {
     Object? capturedMessage;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -34,7 +40,7 @@ void main() {
       },
     );
 
-    final gateway = PhotoLibraryGateway();
+    final gateway = gatewayWithMocks();
     await gateway.presentShareSheet('phasset-42');
 
     expect(capturedMessage, isA<List<Object?>>());
@@ -50,7 +56,7 @@ void main() {
       (message) async => <Object?>[null],
     );
 
-    final gateway = PhotoLibraryGateway();
+    final gateway = gatewayWithMocks();
     await gateway.presentShareSheet('ok-id');
   });
 
@@ -66,7 +72,7 @@ void main() {
           (message) async => <Object?>[code, 'host $code', null],
         );
 
-        final gateway = PhotoLibraryGateway();
+        final gateway = gatewayWithMocks();
         try {
           await gateway.presentShareSheet('id-$code');
           fail('expected PlatformException($code)');
@@ -76,4 +82,14 @@ void main() {
       });
     }
   });
+
+  test(
+    'T-25.2-4 onShareSheetDismissed emits shareSheetDismissedAtMs',
+    () async {
+      final gateway = gatewayWithMocks();
+      final future = gateway.shareSheetDismissedAtMs.first;
+      gateway.onShareSheetDismissed(1_700_000_000_123);
+      expect(await future, 1_700_000_000_123);
+    },
+  );
 }

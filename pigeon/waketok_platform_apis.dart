@@ -609,6 +609,19 @@ abstract class PhotoLibraryApi {
   void presentShareSheet(String assetIdentifier);
 }
 
+/// Cap 25: Host → Dart when [UIActivityViewController] dismisses
+/// (`completionWithItemsHandler`). Does **not** change
+/// [PhotoLibraryApi.presentShareSheet] Future timing (still settles on
+/// present — ADR-051 D4).
+///
+/// [dismissedAtMs] is Host wall-clock epoch ms when the completion handler
+/// ran — Dart clears only magnification pointers with `downAtMs <=` this
+/// value (residual vs post-dismiss gestures).
+@FlutterApi()
+abstract class PhotoLibraryFlutterApi {
+  void onShareSheetDismissed(int dismissedAtMs);
+}
+
 /// App-scoped playback service contract (ADR-006).
 ///
 /// Ownership: Swift owns AVPlayer lifetime; Dart sends intent only.

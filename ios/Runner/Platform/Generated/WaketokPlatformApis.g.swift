@@ -1522,6 +1522,11 @@ protocol PhotoLibraryApi {
   /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
   /// cannot build activity items, or no root UIViewController →
   /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+  ///
+  /// Host materialization (ADR-051 D12/D13): still + Live Photo use the
+  /// **same** static key-frame `requestImage` path (never
+  /// `requestLivePhoto`); present only a **non-degraded** UIImage. Video
+  /// uses `requestAVAsset` (unchanged by D12/D13).
   func presentShareSheet(assetIdentifier: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
@@ -2090,6 +2095,11 @@ class PhotoLibraryApiSetup {
     /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
     /// cannot build activity items, or no root UIViewController →
     /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+    ///
+    /// Host materialization (ADR-051 D12/D13): still + Live Photo use the
+    /// **same** static key-frame `requestImage` path (never
+    /// `requestLivePhoto`); present only a **non-degraded** UIImage. Video
+    /// uses `requestAVAsset` (unchanged by D12/D13).
     let presentShareSheetChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.waketok.PhotoLibraryApi.presentShareSheet\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       presentShareSheetChannel.setMessageHandler { message, reply in
@@ -2106,6 +2116,49 @@ class PhotoLibraryApiSetup {
       }
     } else {
       presentShareSheetChannel.setMessageHandler(nil)
+    }
+  }
+}
+
+/// Cap 25: Host → Dart when [UIActivityViewController] dismisses
+/// (`completionWithItemsHandler`). Does **not** change
+/// [PhotoLibraryApi.presentShareSheet] Future timing (still settles on
+/// present — ADR-051 D4).
+///
+/// [dismissedAtMs] is Host wall-clock epoch ms when the completion handler
+/// ran — Dart clears only magnification pointers with `downAtMs <=` this
+/// value (residual vs post-dismiss gestures).
+///
+/// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
+protocol PhotoLibraryFlutterApiProtocol {
+  func onShareSheetDismissed(dismissedAtMs dismissedAtMsArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
+}
+class PhotoLibraryFlutterApi: PhotoLibraryFlutterApiProtocol {
+  private let binaryMessenger: FlutterBinaryMessenger
+  private let messageChannelSuffix: String
+  init(binaryMessenger: FlutterBinaryMessenger, messageChannelSuffix: String = "") {
+    self.binaryMessenger = binaryMessenger
+    self.messageChannelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+  }
+  var codec: WaketokPlatformApisPigeonCodec {
+    return WaketokPlatformApisPigeonCodec.shared
+  }
+  func onShareSheetDismissed(dismissedAtMs dismissedAtMsArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.waketok.PhotoLibraryFlutterApi.onShareSheetDismissed\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([dismissedAtMsArg] as [Any?]) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(()))
+      }
     }
   }
 }

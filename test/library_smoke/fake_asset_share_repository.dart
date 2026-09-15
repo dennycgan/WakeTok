@@ -24,4 +24,14 @@ class FakeAssetShareRepository implements AssetShareRepository {
       throw thrown;
     }
   }
+
+  final _dismissController = StreamController<int>.broadcast();
+
+  @override
+  Stream<int> get shareSheetDismissedAtMs => _dismissController.stream;
+
+  /// Test helper: emit a Host-stamped dismiss.
+  void emitShareSheetDismissed(int dismissedAtMs) {
+    _dismissController.add(dismissedAtMs);
+  }
 }

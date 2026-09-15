@@ -1,3 +1,5 @@
+import 'dart:ui' show Offset;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
@@ -136,6 +138,160 @@ void main() {
         ),
         isTrue,
       );
+    });
+  });
+
+  group('pointerIdsToClearAfterNativeShareDismiss', () {
+    test('T-clear-1 single residual at dismissedAtMs', () {
+      expect(
+        pointerIdsToClearAfterNativeShareDismiss(
+          pointerDownAtMs: {10: 1000},
+          dismissedAtMs: 1000,
+        ),
+        {10},
+      );
+    });
+
+    test('T-clear-2 keeps post-dismiss pointer', () {
+      expect(
+        pointerIdsToClearAfterNativeShareDismiss(
+          pointerDownAtMs: {10: 1000, 11: 2000},
+          dismissedAtMs: 1500,
+        ),
+        {10},
+      );
+    });
+
+    test('T-clear-3 empty map', () {
+      expect(
+        pointerIdsToClearAfterNativeShareDismiss(
+          pointerDownAtMs: {},
+          dismissedAtMs: 999,
+        ),
+        isEmpty,
+      );
+    });
+
+    test('T-clear-4 all residuals cleared', () {
+      expect(
+        pointerIdsToClearAfterNativeShareDismiss(
+          pointerDownAtMs: {1: 10, 2: 20, 3: 30},
+          dismissedAtMs: 30,
+        ),
+        {1, 2, 3},
+      );
+    });
+  });
+
+  group('recoverBrowseMagnificationAfterNativeShareDismiss', () {
+    test('T-rec-1 hasActive=false clears residual pointers', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final mag = container.read(browseMagnificationProvider.notifier);
+      expect(
+        container.read(browseMagnificationProvider).hasActiveMagnification,
+        isFalse,
+      );
+
+      final pointers = <int, Offset>{10: Offset.zero};
+      final downAt = <int, int>{10: 1000};
+      var forceFitCalls = 0;
+      final cleared = recoverBrowseMagnificationAfterNativeShareDismiss(
+        forceFit: () {
+          forceFitCalls += 1;
+          mag.forceFit();
+        },
+        pointers: pointers,
+        pointerDownAtMs: downAt,
+        dismissedAtMs: 1000,
+      );
+
+      expect(forceFitCalls, 1);
+      expect(
+        container.read(browseMagnificationProvider).hasActiveMagnification,
+        isFalse,
+      );
+      expect(cleared, {10});
+      expect(pointers, isEmpty);
+      expect(downAt, isEmpty);
+    });
+
+    test('T-rec-2 hasActive=true forceFits and clears pointers', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final mag = container.read(browseMagnificationProvider.notifier);
+      mag.setTransientPinchActive(true);
+      expect(
+        container.read(browseMagnificationProvider).hasActiveMagnification,
+        isTrue,
+      );
+
+      final pointers = <int, Offset>{7: const Offset(1, 2)};
+      final downAt = <int, int>{7: 500};
+      final cleared = recoverBrowseMagnificationAfterNativeShareDismiss(
+        forceFit: mag.forceFit,
+        pointers: pointers,
+        pointerDownAtMs: downAt,
+        dismissedAtMs: 500,
+      );
+
+      expect(
+        container.read(browseMagnificationProvider).hasActiveMagnification,
+        isFalse,
+      );
+      expect(
+        container.read(browseMagnificationProvider).locksVerticalPageView,
+        isFalse,
+      );
+      expect(cleared, {7});
+      expect(pointers, isEmpty);
+    });
+
+    test('T-rec-3 clean state is full no-op on maps', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final mag = container.read(browseMagnificationProvider.notifier);
+      final before = container.read(browseMagnificationProvider);
+
+      final pointers = <int, Offset>{};
+      final downAt = <int, int>{};
+      final cleared = recoverBrowseMagnificationAfterNativeShareDismiss(
+        forceFit: mag.forceFit,
+        pointers: pointers,
+        pointerDownAtMs: downAt,
+        dismissedAtMs: 42,
+      );
+
+      expect(cleared, isEmpty);
+      expect(pointers, isEmpty);
+      expect(container.read(browseMagnificationProvider), before);
+    });
+
+    test('T-rec-4 clears residual only keeps newer pointer', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final mag = container.read(browseMagnificationProvider.notifier);
+      mag.setTransientPinchActive(true);
+
+      final pointers = <int, Offset>{
+        10: Offset.zero,
+        11: const Offset(3, 4),
+      };
+      final downAt = <int, int>{10: 1000, 11: 2000};
+      final cleared = recoverBrowseMagnificationAfterNativeShareDismiss(
+        forceFit: mag.forceFit,
+        pointers: pointers,
+        pointerDownAtMs: downAt,
+        dismissedAtMs: 1500,
+      );
+
+      expect(
+        container.read(browseMagnificationProvider).hasActiveMagnification,
+        isFalse,
+      );
+      expect(cleared, {10});
+      expect(pointers.keys, {11});
+      expect(downAt, {11: 2000});
     });
   });
 

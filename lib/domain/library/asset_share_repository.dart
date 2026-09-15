@@ -13,4 +13,9 @@ abstract class AssetShareRepository {
   /// `assetUnavailable` (ADR-051 Decision 5 intentional overload). Share
   /// sheet cancel must **not** surface as `operationCancelled`.
   Future<void> presentShareSheet(String assetIdentifier);
+
+  /// Cap 25 Bug#2: Host wall-clock epoch ms when the share sheet dismissed
+  /// (`completionWithItemsHandler`). Does not affect [presentShareSheet]
+  /// Future timing (ADR-051 D4).
+  Stream<int> get shareSheetDismissedAtMs;
 }

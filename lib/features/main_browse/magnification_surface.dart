@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/features/library_smoke/asset_share_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
+import 'package:waketok/features/main_browse/magnification_arbitration.dart';
 import 'package:waketok/features/main_browse/magnification_geometry.dart';
 
 export 'package:waketok/features/main_browse/magnification_geometry.dart'
@@ -201,6 +203,8 @@ class MagnificationPointerHost extends ConsumerStatefulWidget {
 class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerHost>
     with SingleTickerProviderStateMixin {
   final Map<int, Offset> _pointers = <int, Offset>{};
+  /// Wall-clock ms at [PointerDownEvent] (Cap 25 Share residual clear).
+  final Map<int, int> _pointerDownAtMs = <int, int>{};
 
   double _scale = kCap20MinScale;
   Offset _translation = Offset.zero;
@@ -211,6 +215,7 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
   Offset _pinchStartTranslation = Offset.zero;
 
   Size _viewportSize = Size.zero;
+  StreamSubscription<int>? _shareDismissSub;
 
   Size get _contentAtFit {
     final reported = ref.read(magnificationContentSizeProvider);
@@ -275,14 +280,54 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
       vsync: this,
       duration: kCap20VideoReleaseToFitDuration,
     )..addListener(_onReleaseTick);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      try {
+        _shareDismissSub = ref
+            .read(assetShareRepositoryProvider)
+            .shareSheetDismissedAtMs
+            .listen(_onNativeShareSheetDismissed);
+      } catch (error, _) {
+        // Riverpod wraps [UnimplementedError] as ProviderException when
+        // tests pump this host without Cap 25 share override.
+        final message = error.toString();
+        if (!message.contains('assetShareRepositoryProvider')) {
+          rethrow;
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    unawaited(_shareDismissSub?.cancel());
+    _shareDismissSub = null;
     _releaseController
       ..removeListener(_onReleaseTick)
       ..dispose();
     super.dispose();
+  }
+
+  void _onNativeShareSheetDismissed(int dismissedAtMs) {
+    recoverBrowseMagnificationAfterNativeShareDismiss(
+      forceFit: () {
+        ref.read(browseMagnificationProvider.notifier).forceFit();
+      },
+      pointers: _pointers,
+      pointerDownAtMs: _pointerDownAtMs,
+      dismissedAtMs: dismissedAtMs,
+    );
+    if (_pointers.isEmpty) {
+      _pinchStartSpan = null;
+      _panLastLocal = null;
+    } else if (_pointers.length == 1 && _isMagnified) {
+      _panLastLocal = _pointers.values.first;
+    } else if (_pointers.length < 2) {
+      _pinchStartSpan = null;
+    }
+    _syncContactFlags();
   }
 
   void _onReleaseTick() {
@@ -424,6 +469,7 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     }
     if (clearPointers) {
       _pointers.clear();
+      _pointerDownAtMs.clear();
     }
     _pinchStartSpan = null;
     _panLastLocal = null;
@@ -556,6 +602,8 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
       return;
     }
     _pointers[event.pointer] = event.localPosition;
+    _pointerDownAtMs[event.pointer] =
+        DateTime.now().millisecondsSinceEpoch;
     if (_pointers.length >= 2) {
       _clearDoubleTapCandidate();
       _clearActiveTapTracking();
@@ -617,6 +665,7 @@ class _MagnificationPointerHostState extends ConsumerState<MagnificationPointerH
     }
     final upLocal = _pointers[pointer];
     _pointers.remove(pointer);
+    _pointerDownAtMs.remove(pointer);
     if (_pointers.length < 2) {
       _pinchStartSpan = null;
     }

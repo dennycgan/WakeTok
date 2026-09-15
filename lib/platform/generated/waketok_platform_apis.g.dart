@@ -2064,6 +2064,11 @@ class PhotoLibraryApi {
   /// and must **not** use [ErrorCode.operationCancelled]. Missing asset,
   /// cannot build activity items, or no root UIViewController →
   /// [ErrorCode.assetUnavailable] (intentional wire-code overload).
+  ///
+  /// Host materialization (ADR-051 D12/D13): still + Live Photo use the
+  /// **same** static key-frame `requestImage` path (never
+  /// `requestLivePhoto`); present only a **non-degraded** UIImage. Video
+  /// uses `requestAVAsset` (unchanged by D12/D13).
   Future<void> presentShareSheet(String assetIdentifier) async {
     final pigeonVar_channelName = 'dev.flutter.pigeon.waketok.PhotoLibraryApi.presentShareSheet$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
@@ -2080,6 +2085,45 @@ class PhotoLibraryApi {
         isNullValid: true,
     )
     ;
+  }
+}
+
+/// Cap 25: Host → Dart when [UIActivityViewController] dismisses
+/// (`completionWithItemsHandler`). Does **not** change
+/// [PhotoLibraryApi.presentShareSheet] Future timing (still settles on
+/// present — ADR-051 D4).
+///
+/// [dismissedAtMs] is Host wall-clock epoch ms when the completion handler
+/// ran — Dart clears only magnification pointers with `downAtMs <=` this
+/// value (residual vs post-dismiss gestures).
+abstract class PhotoLibraryFlutterApi {
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  void onShareSheetDismissed(int dismissedAtMs);
+
+  static void setUp(PhotoLibraryFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
+    messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+    {
+      final pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.waketok.PhotoLibraryFlutterApi.onShareSheetDismissed$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          final List<Object?> args = message! as List<Object?>;
+          final int arg_dismissedAtMs = args[0]! as int;
+          try {
+            api.onShareSheetDismissed(arg_dismissedAtMs);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
   }
 }
 

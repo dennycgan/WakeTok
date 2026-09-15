@@ -23,6 +23,9 @@ final class PhotoLibraryService: PhotoLibraryApi {
   /// must not retain Playback.
   weak var playbackSurfaceTouchGate: PlaybackSurfaceUserInteractionGate?
 
+  /// Cap 25 Bug#2: Host → Dart share-sheet dismiss (wall-clock ms).
+  var photoLibraryFlutterApi: PhotoLibraryFlutterApi?
+
   private let previewRequests = PreviewImageRequestTable()
   private let displayRequests = PhotoKitRequestTable<PreviewCompletion>()
   private let playableRequests = PhotoKitRequestTable<PlayableCompletion>()
@@ -2304,6 +2307,12 @@ final class PhotoLibraryService: PhotoLibraryApi {
               .endBoundPlatformViewWrapperShareGate(phase: "dismiss")
             self?.playbackSurfaceTouchGate?
               .setBoundSurfaceUserInteractionEnabled(true)
+            let dismissedAtMs = Int64(
+              Date().timeIntervalSince1970 * 1000.0
+            )
+            self?.photoLibraryFlutterApi?.onShareSheetDismissed(
+              dismissedAtMs: dismissedAtMs
+            ) { _ in }
             for url in payload.temporaryFileURLs {
               try? FileManager.default.removeItem(at: url)
             }

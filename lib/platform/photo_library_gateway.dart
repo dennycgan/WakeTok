@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:waketok/domain/authorization/photos_access.dart';
@@ -231,7 +232,7 @@ LibraryPage libraryPageFromDto(pigeon.LibraryPageDto dto) {
   );
 }
 
-/// Pigeon [PhotoLibraryApi] adapter (ADR-009 platform layer).
+/// Pigeon [PhotoLibraryApi] + [PhotoLibraryFlutterApi] adapter (ADR-009).
 class PhotoLibraryGateway
     implements
         PhotosAuthorizationRepository,
@@ -243,11 +244,36 @@ class PhotoLibraryGateway
         AlbumCoverRepository,
         AssetFavoriteRepository,
         AssetSoftDeleteRepository,
-        AssetShareRepository {
+        AssetShareRepository,
+        pigeon.PhotoLibraryFlutterApi {
   PhotoLibraryGateway({pigeon.PhotoLibraryApi? api})
-      : _api = api ?? pigeon.PhotoLibraryApi();
+      : _api = api ?? pigeon.PhotoLibraryApi() {
+    pigeon.PhotoLibraryFlutterApi.setUp(this);
+  }
 
   final pigeon.PhotoLibraryApi _api;
+  final StreamController<int> _shareSheetDismissedController =
+      StreamController<int>.broadcast();
+
+  @override
+  Stream<int> get shareSheetDismissedAtMs =>
+      _shareSheetDismissedController.stream;
+
+  /// Tear down FlutterApi + dismiss stream (tests / hot restart).
+  void dispose() {
+    pigeon.PhotoLibraryFlutterApi.setUp(null);
+    if (!_shareSheetDismissedController.isClosed) {
+      unawaited(_shareSheetDismissedController.close());
+    }
+  }
+
+  @override
+  void onShareSheetDismissed(int dismissedAtMs) {
+    if (_shareSheetDismissedController.isClosed) {
+      return;
+    }
+    _shareSheetDismissedController.add(dismissedAtMs);
+  }
 
   @override
   Future<PhotosAccess> currentStatus() async {

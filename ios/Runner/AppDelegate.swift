@@ -18,6 +18,9 @@ import UIKit
     let messenger = engineBridge.applicationRegistrar.messenger()
     let photoLibraryService = PhotoLibraryService()
     self.photoLibraryService = photoLibraryService
+    photoLibraryService.photoLibraryFlutterApi = PhotoLibraryFlutterApi(
+      binaryMessenger: messenger
+    )
     PhotoLibraryApiSetup.setUp(
       binaryMessenger: messenger,
       api: photoLibraryService

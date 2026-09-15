@@ -1,3 +1,5 @@
+import 'dart:ui' show Offset;
+
 /// Cap 20.2 / ADR-043 — pure magnification arbitration helpers.
 ///
 /// Product pinch UI lands in 20.3+; these predicates drive PageView lock,
@@ -46,4 +48,40 @@ bool shouldClearMagnificationOnLeaveCurrent({
   return wasCurrentOrBrowseActive &&
       !isCurrentOrBrowseActive &&
       hasActiveMagnification;
+}
+
+/// Cap 25 Share dismiss: pointer ids whose down wall-clock is at or before
+/// Host [dismissedAtMs] (residuals). Ids with `downAtMs > dismissedAtMs`
+/// are post-dismiss gestures and must be kept.
+Set<int> pointerIdsToClearAfterNativeShareDismiss({
+  required Map<int, int> pointerDownAtMs,
+  required int dismissedAtMs,
+}) {
+  return {
+    for (final entry in pointerDownAtMs.entries)
+      if (entry.value <= dismissedAtMs) entry.key,
+  };
+}
+
+/// Cap 25 Bug#2: [forceFit] (ADR-043 D4 same entry) then clear residual
+/// pointers by [dismissedAtMs]. Mutates [pointers] / [pointerDownAtMs].
+///
+/// Returns ids removed. Safe when already clean (`forceFit` no-op + empty
+/// clear set).
+Set<int> recoverBrowseMagnificationAfterNativeShareDismiss({
+  required void Function() forceFit,
+  required Map<int, Offset> pointers,
+  required Map<int, int> pointerDownAtMs,
+  required int dismissedAtMs,
+}) {
+  forceFit();
+  final toClear = pointerIdsToClearAfterNativeShareDismiss(
+    pointerDownAtMs: pointerDownAtMs,
+    dismissedAtMs: dismissedAtMs,
+  );
+  for (final id in toClear) {
+    pointers.remove(id);
+    pointerDownAtMs.remove(id);
+  }
+  return toClear;
 }
