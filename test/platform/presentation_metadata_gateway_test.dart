@@ -47,6 +47,51 @@ void main() {
     expect(meta.assetIdentifier, 'img1');
     expect(meta.mediaKind, PresentationMediaKind.livePhoto);
     expect(meta.createdAt, isNotNull);
+    expect(meta.isAnimated, isFalse);
+  });
+
+  test('G-P1b isAnimated maps for animated still; cleared for livePhoto', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestPresentationMetadata'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        pigeon.PresentationMetadataDto(
+          assetIdentifier: 'gif1',
+          mediaKind: pigeon.MediaKind.image,
+          creationDateMs: null,
+          isAnimated: true,
+        ),
+      ],
+    );
+
+    final animated =
+        await PhotoLibraryGateway().requestPresentationMetadata('gif1');
+    expect(animated.mediaKind, PresentationMediaKind.image);
+    expect(animated.isAnimated, isTrue);
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<Object?>(
+      BasicMessageChannel<Object?>(
+        photoChannel('requestPresentationMetadata'),
+        codec,
+      ),
+      (message) async => <Object?>[
+        pigeon.PresentationMetadataDto(
+          assetIdentifier: 'live-bad',
+          mediaKind: pigeon.MediaKind.livePhoto,
+          creationDateMs: null,
+          isAnimated: true,
+        ),
+      ],
+    );
+
+    final live =
+        await PhotoLibraryGateway().requestPresentationMetadata('live-bad');
+    expect(live.mediaKind, PresentationMediaKind.livePhoto);
+    expect(live.isAnimated, isFalse);
   });
 
   test('G-P1 null creationDateMs stays null (no epoch)', () async {

@@ -798,6 +798,10 @@
   "@mediaInfoLivePhoto": {
     "description": "Overlay row 3 label when mediaKind is livePhoto"
   },
+  "mediaInfoAnimated": "Animated",
+  "@mediaInfoAnimated": {
+    "description": "Overlay row 3 Animated still characteristics label (GIF kin; ADR-053)"
+  },
   "mediaInfoFileSizeBytes": "{count} B",
   "@mediaInfoFileSizeBytes": {
     "description": "Overlay row 3 size under 1 KiB",
@@ -828,7 +832,7 @@
   },
   "mediaInfoCharacteristicsJoined": "{live} · {size}",
   "@mediaInfoCharacteristicsJoined": {
-    "description": "Overlay row 3 when both Live Photo label and file size are present",
+    "description": "Overlay row 3 when both a characteristics label (Live Photo or Animated) and file size are present",
     "placeholders": {
       "live": {"type": "String"},
       "size": {"type": "String"}

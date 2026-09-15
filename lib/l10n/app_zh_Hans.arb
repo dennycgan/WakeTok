@@ -178,6 +178,7 @@
   "mediaInfoRelativeYearsMonthsAgo": "{years} 年 {months} 个月前",
   "mediaInfoExactDateApprox": "~ {year}-{month}-{day}",
   "mediaInfoLivePhoto": "实况照片",
+  "mediaInfoAnimated": "动图",
   "mediaInfoFileSizeBytes": "{count} B",
   "mediaInfoFileSizeKb": "{count} KB",
   "mediaInfoFileSizeMb": "{count} MB",

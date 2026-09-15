@@ -159,6 +159,7 @@
     "mediaInfoRelativeYearsMonthsAgo",
     "mediaInfoExactDateApprox",
     "mediaInfoLivePhoto",
+    "mediaInfoAnimated",
     "mediaInfoFileSizeBytes",
     "mediaInfoFileSizeKb",
     "mediaInfoFileSizeMb",

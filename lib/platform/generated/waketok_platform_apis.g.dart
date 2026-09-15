@@ -696,6 +696,7 @@ class PresentationMetadataDto {
     required this.assetIdentifier,
     required this.mediaKind,
     this.creationDateMs,
+    this.isAnimated = false,
   });
 
   String assetIdentifier;
@@ -705,11 +706,16 @@ class PresentationMetadataDto {
   /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
   int? creationDateMs;
 
+  /// Cap 26.3 / ADR-053: true when Host maps still as animated
+  /// (`playbackStyle == .imageAnimated` and not Live). Overlay row-3 only.
+  bool isAnimated;
+
   List<Object?> _toList() {
     return <Object?>[
       assetIdentifier,
       mediaKind,
       creationDateMs,
+      isAnimated,
     ];
   }
 
@@ -722,6 +728,7 @@ class PresentationMetadataDto {
       assetIdentifier: result[0]! as String,
       mediaKind: result[1]! as MediaKind,
       creationDateMs: result[2] as int?,
+      isAnimated: result[3]! as bool,
     );
   }
 
@@ -734,7 +741,7 @@ class PresentationMetadataDto {
     if (identical(this, other)) {
       return true;
     }
-    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(mediaKind, other.mediaKind) && _deepEquals(creationDateMs, other.creationDateMs);
+    return _deepEquals(assetIdentifier, other.assetIdentifier) && _deepEquals(mediaKind, other.mediaKind) && _deepEquals(creationDateMs, other.creationDateMs) && _deepEquals(isAnimated, other.isAnimated);
   }
 
   @override
@@ -743,7 +750,7 @@ class PresentationMetadataDto {
 
   @override
   String toString() {
-    return 'PresentationMetadataDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, creationDateMs: $creationDateMs)';
+    return 'PresentationMetadataDto(assetIdentifier: $assetIdentifier, mediaKind: $mediaKind, creationDateMs: $creationDateMs, isAnimated: $isAnimated)';
   }
 }
 

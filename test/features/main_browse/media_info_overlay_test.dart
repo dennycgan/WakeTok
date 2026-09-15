@@ -157,6 +157,90 @@ void main() {
     );
   });
 
+  testWidgets('W-A1 animated still joins size on row 3', (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.pumpWidget(
+      harness(
+        PresentationOverlaySnapshot(
+          assetIdentifier: 'gif',
+          mediaKind: PresentationMediaKind.image,
+          isAnimated: true,
+          fileSizeBytes: 2_886_627,
+          fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+        ),
+      ),
+    );
+    expect(
+      find.text(
+        l10n.mediaInfoCharacteristicsJoined(
+          l10n.mediaInfoAnimated,
+          l10n.mediaInfoFileSizeMb('2.9'),
+        ),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('W-A2 animated still alone when size unavailable', (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.pumpWidget(
+      harness(
+        const PresentationOverlaySnapshot(
+          assetIdentifier: 'gif',
+          mediaKind: PresentationMediaKind.image,
+          isAnimated: true,
+        ),
+      ),
+    );
+    expect(find.text(l10n.mediaInfoAnimated), findsOneWidget);
+  });
+
+  testWidgets(
+    'W-A4 Loop/Bounce Live path: Live prefix only, never Animated (ADR-053 §7)',
+    (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await tester.pumpWidget(
+        harness(
+          PresentationOverlaySnapshot(
+            assetIdentifier: 'loop-live',
+            mediaKind: PresentationMediaKind.livePhoto,
+            isAnimated: false,
+            fileSizeBytes: 2_886_627,
+            fileSizeSemantics: FileSizeSemantics.currentImageRepresentation,
+          ),
+        ),
+      );
+      expect(
+        find.text(
+          l10n.mediaInfoCharacteristicsJoined(
+            l10n.mediaInfoLivePhoto,
+            l10n.mediaInfoFileSizeMb('2.9'),
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining(l10n.mediaInfoAnimated), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'W-A5 livePhoto wins over malformed isAnimated true (branch order)',
+    (tester) async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await tester.pumpWidget(
+        harness(
+          const PresentationOverlaySnapshot(
+            assetIdentifier: 'live-bad',
+            mediaKind: PresentationMediaKind.livePhoto,
+            isAnimated: true,
+          ),
+        ),
+      );
+      expect(find.text(l10n.mediaInfoLivePhoto), findsOneWidget);
+      expect(find.text(l10n.mediaInfoAnimated), findsNothing);
+    },
+  );
+
   testWidgets('W-O4b live photo alone when size unavailable', (tester) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.pumpWidget(

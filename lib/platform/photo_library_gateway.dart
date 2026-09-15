@@ -97,10 +97,15 @@ PresentationMetadata presentationMetadataFromDto(
   if (ms != null) {
     createdAt = DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true).toLocal();
   }
+  final kind = presentationMediaKindFromPigeon(dto.mediaKind);
+  // ADR-053 defense: Live never carries Animated (Host should already clear).
+  final isAnimated =
+      kind == PresentationMediaKind.livePhoto ? false : dto.isAnimated;
   return PresentationMetadata(
     assetIdentifier: dto.assetIdentifier,
-    mediaKind: presentationMediaKindFromPigeon(dto.mediaKind),
+    mediaKind: kind,
     createdAt: createdAt,
+    isAnimated: isAnimated,
   );
 }
 

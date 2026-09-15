@@ -257,6 +257,7 @@ class PresentationMetadataDto {
     required this.assetIdentifier,
     required this.mediaKind,
     this.creationDateMs,
+    this.isAnimated = false,
   });
 
   String assetIdentifier;
@@ -264,6 +265,10 @@ class PresentationMetadataDto {
 
   /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
   int? creationDateMs;
+
+  /// Cap 26.3 / ADR-053: true when Host maps still as animated
+  /// (`playbackStyle == .imageAnimated` and not Live). Overlay row-3 only.
+  bool isAnimated;
 }
 
 /// Cap 8.3: optional file size for Overlay row 3 (ADR-015 / POC-10 Tier 3/4).

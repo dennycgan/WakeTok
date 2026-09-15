@@ -8,6 +8,7 @@ class PresentationOverlaySnapshot {
     required this.assetIdentifier,
     this.createdAt,
     this.mediaKind,
+    this.isAnimated = false,
     this.fileSizeBytes,
     this.fileSizeSemantics,
     this.locationLabel,
@@ -16,6 +17,9 @@ class PresentationOverlaySnapshot {
   final String assetIdentifier;
   final DateTime? createdAt;
   final PresentationMediaKind? mediaKind;
+
+  /// Cap 26.3 / ADR-053 — Overlay row-3 Animated prefix only.
+  final bool isAnimated;
   final int? fileSizeBytes;
   final FileSizeSemantics? fileSizeSemantics;
 
@@ -28,6 +32,7 @@ class PresentationOverlaySnapshot {
       assetIdentifier: meta.assetIdentifier,
       createdAt: meta.createdAt,
       mediaKind: meta.mediaKind,
+      isAnimated: meta.isAnimated,
       fileSizeBytes: fileSizeBytes,
       fileSizeSemantics: fileSizeSemantics,
       locationLabel: locationLabel,
@@ -42,6 +47,7 @@ class PresentationOverlaySnapshot {
       assetIdentifier: assetIdentifier,
       createdAt: createdAt,
       mediaKind: mediaKind,
+      isAnimated: isAnimated,
       fileSizeBytes: keepExisting ? fileSizeBytes : size.fileSizeBytes,
       fileSizeSemantics: keepExisting
           ? fileSizeSemantics

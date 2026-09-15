@@ -701,6 +701,9 @@ struct PresentationMetadataDto: Hashable, CustomStringConvertible {
   var mediaKind: MediaKind
   /// Epoch milliseconds; null when PhotoKit `creationDate` is nil.
   var creationDateMs: Int64? = nil
+  /// Cap 26.3 / ADR-053: true when Host maps still as animated
+  /// (`playbackStyle == .imageAnimated` and not Live). Overlay row-3 only.
+  var isAnimated: Bool
 
 
   // swift-format-ignore: AlwaysUseLowerCamelCase
@@ -708,11 +711,13 @@ struct PresentationMetadataDto: Hashable, CustomStringConvertible {
     let assetIdentifier = pigeonVar_list[0] as! String
     let mediaKind = pigeonVar_list[1] as! MediaKind
     let creationDateMs: Int64? = nilOrValue(pigeonVar_list[2])
+    let isAnimated = pigeonVar_list[3] as! Bool
 
     return PresentationMetadataDto(
       assetIdentifier: assetIdentifier,
       mediaKind: mediaKind,
-      creationDateMs: creationDateMs
+      creationDateMs: creationDateMs,
+      isAnimated: isAnimated
     )
   }
   func toList() -> [Any?] {
@@ -720,13 +725,14 @@ struct PresentationMetadataDto: Hashable, CustomStringConvertible {
       assetIdentifier,
       mediaKind,
       creationDateMs,
+      isAnimated,
     ]
   }
   static func == (lhs: PresentationMetadataDto, rhs: PresentationMetadataDto) -> Bool {
     if Swift.type(of: lhs) != Swift.type(of: rhs) {
       return false
     }
-    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.mediaKind, rhs.mediaKind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.creationDateMs, rhs.creationDateMs)
+    return WaketokPlatformApisPigeonInternal.deepEquals(lhs.assetIdentifier, rhs.assetIdentifier) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.mediaKind, rhs.mediaKind) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.creationDateMs, rhs.creationDateMs) && WaketokPlatformApisPigeonInternal.deepEquals(lhs.isAnimated, rhs.isAnimated)
   }
 
   func hash(into hasher: inout Hasher) {
@@ -734,10 +740,11 @@ struct PresentationMetadataDto: Hashable, CustomStringConvertible {
     WaketokPlatformApisPigeonInternal.deepHash(value: assetIdentifier, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: mediaKind, hasher: &hasher)
     WaketokPlatformApisPigeonInternal.deepHash(value: creationDateMs, hasher: &hasher)
+    WaketokPlatformApisPigeonInternal.deepHash(value: isAnimated, hasher: &hasher)
   }
 
   public var description: String {
-    return "PresentationMetadataDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), creationDateMs: \(String(describing: creationDateMs)))"
+    return "PresentationMetadataDto(assetIdentifier: \(String(describing: assetIdentifier)), mediaKind: \(String(describing: mediaKind)), creationDateMs: \(String(describing: creationDateMs)), isAnimated: \(String(describing: isAnimated)))"
   }
 }
 

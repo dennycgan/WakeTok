@@ -616,6 +616,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mediaInfoLivePhoto => 'Live Photo';
 
   @override
+  String get mediaInfoAnimated => 'Animated';
+
+  @override
   String mediaInfoFileSizeBytes(String count) {
     return '$count B';
   }

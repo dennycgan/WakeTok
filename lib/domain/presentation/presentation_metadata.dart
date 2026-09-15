@@ -9,6 +9,7 @@ class PresentationMetadata {
     required this.assetIdentifier,
     required this.mediaKind,
     this.createdAt,
+    this.isAnimated = false,
   });
 
   final String assetIdentifier;
@@ -16,6 +17,9 @@ class PresentationMetadata {
 
   /// PhotoKit `creationDate`; null when the system value is nil (no epoch).
   final DateTime? createdAt;
+
+  /// Cap 26.3 / ADR-053: Overlay row-3 Animated still label (not a MediaKind).
+  final bool isAnimated;
 }
 
 /// Optional file size for Overlay row 3 (POC-10 Tier 3/4).

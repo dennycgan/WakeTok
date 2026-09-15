@@ -1164,6 +1164,12 @@ abstract class AppLocalizations {
   /// **'Live Photo'**
   String get mediaInfoLivePhoto;
 
+  /// Overlay row 3 Animated still characteristics label (GIF kin; ADR-053)
+  ///
+  /// In en, this message translates to:
+  /// **'Animated'**
+  String get mediaInfoAnimated;
+
   /// Overlay row 3 size under 1 KiB
   ///
   /// In en, this message translates to:
@@ -1188,7 +1194,7 @@ abstract class AppLocalizations {
   /// **'{count} GB'**
   String mediaInfoFileSizeGb(String count);
 
-  /// Overlay row 3 when both Live Photo label and file size are present
+  /// Overlay row 3 when both a characteristics label (Live Photo or Animated) and file size are present
   ///
   /// In en, this message translates to:
   /// **'{live} · {size}'**

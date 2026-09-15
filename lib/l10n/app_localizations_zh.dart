@@ -613,6 +613,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mediaInfoLivePhoto => 'Live Photo';
 
   @override
+  String get mediaInfoAnimated => 'Animated';
+
+  @override
   String mediaInfoFileSizeBytes(String count) {
     return '$count B';
   }
@@ -1452,6 +1455,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mediaInfoLivePhoto => '实况照片';
+
+  @override
+  String get mediaInfoAnimated => '动图';
 
   @override
   String mediaInfoFileSizeBytes(String count) {

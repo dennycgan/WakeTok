@@ -1487,12 +1487,22 @@ final class PhotoLibraryService: PhotoLibraryApi {
       } else {
         ms = nil
       }
+      // Cap 26.3 / ADR-053: animated still label — playbackStyle only;
+      // never smartAlbumAnimated membership (Loop/Bounce Live false+).
+      let kind = mapMediaKind(asset)
+      let isAnimated: Bool
+      if kind == .livePhoto {
+        isAnimated = false
+      } else {
+        isAnimated = kind == .image && asset.playbackStyle == .imageAnimated
+      }
       completion(
         .success(
           PresentationMetadataDto(
             assetIdentifier: assetIdentifier,
-            mediaKind: mapMediaKind(asset),
-            creationDateMs: ms
+            mediaKind: kind,
+            creationDateMs: ms,
+            isAnimated: isAnimated
           )
         )
       )

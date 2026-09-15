@@ -104,20 +104,23 @@ class MediaInfoOverlay extends StatelessWidget {
     if (snap == null) {
       return '';
     }
-    final live = snap.mediaKind == PresentationMediaKind.livePhoto
+    // ADR-053: livePhoto checked first; isAnimated only in the else branch
+    // so malformed upstream (both live + animated) cannot dual-label row 3.
+    // Do not reorder for "simpler" boolean expressions.
+    final label = snap.mediaKind == PresentationMediaKind.livePhoto
         ? l10n.mediaInfoLivePhoto
-        : '';
+        : (snap.isAnimated ? l10n.mediaInfoAnimated : '');
     final size = formatOverlayFileSize(
       l10n: l10n,
       fileSizeBytes: snap.fileSizeBytes,
     );
-    if (live.isEmpty) {
+    if (label.isEmpty) {
       return size;
     }
     if (size.isEmpty) {
-      return live;
+      return label;
     }
-    return l10n.mediaInfoCharacteristicsJoined(live, size);
+    return l10n.mediaInfoCharacteristicsJoined(label, size);
   }
 }
 
