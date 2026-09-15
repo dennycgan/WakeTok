@@ -6555,10 +6555,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-053: Overlay row-3 Animated still label (presentation-only)
 
-- Status: Proposed (2026-09-15) — design locked; flip to Accepted with
-  real implementing-work anchor when the phase lands (no fake anchors
-  while Proposed)
-- Commit/PR anchor: pending implementing work
+- Status: Accepted (2026-09-15)
+- Commit/PR anchor: fc0bfcc
 - Plain summary (owner reads this):
   Animated stills (GIFs and kin) show an "Animated" / "动图" text prefix
   on Overlay row 3 next to file size — same join layout as Live Photo —

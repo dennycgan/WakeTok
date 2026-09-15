@@ -243,12 +243,13 @@
 Active capability: Live Photo long-press replay + "…" half-sheet size
 field and Add-to-Album second entry
 Contract: owner-locked Cap kickoff (2026-09-15) — ADR-052 **Proposed**
-in `docs/DECISIONS.md`; Overlay Animated insert — ADR-053 **Proposed**
-(26.3 before "…" size 26.4). Supersedes ADR-040 D17 no-long-press
-limb; narrow-reopens ADR-050 "…" Add-to-Album entry-button half only
-(location / debt **401** stay Out); ADR-019 D8 directed exception =
-App long-press; manual long-press **bypasses** Cap 25 Live-ended
-watchdog session skip set (`browseLiveMotionWatchdogSkipIdsProvider`).
+in `docs/DECISIONS.md`; Overlay Animated — ADR-053 **Accepted**
+(`fc0bfcc`; 26.3 done; "…" size is 26.4). Supersedes ADR-040 D17
+no-long-press limb; narrow-reopens ADR-050 "…" Add-to-Album entry-button
+half only (location / debt **401** stay Out); ADR-019 D8 directed
+exception = App long-press; manual long-press **bypasses** Cap 25
+Live-ended watchdog session skip set
+(`browseLiveMotionWatchdogSkipIdsProvider`).
 Owner Q1–Q9 locked (hold **400 ms** / haptic B / static-only A / mag A
 / sheet A / size A+omit / row-order A / 405 Out A / single ADR A).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
@@ -260,12 +261,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (work `cab0747`; Path R+S; silent in-flight lock; lifecycle Path S
       cancel; skip bypass; D11; debt **470** Accepted (phase) magnified
       ignore; i17 Profile smoke PASS)
-- [ ] 26.3 Overlay row-3 Animated still label
-      (ADR-053 Proposed; `isAnimated` via `playbackStyle ==
-      .imageAnimated`; no badge; not smart-album membership) <-- YOU ARE HERE
+- [x] 26.3 Overlay row-3 Animated still label
+      (work `fc0bfcc`; ADR-053 Accepted; `isAnimated` via
+      `playbackStyle == .imageAnimated`; no badge; Kafka + i17 Profile
+      smoke PASS)
 - [ ] 26.4 "…" half-sheet size row
       (`requestPresentationFileSize` + `formatOverlayFileSize`;
-      Live still-only ADR-018; nil → omit row)
+      Live still-only ADR-018; nil → omit row) <-- YOU ARE HERE
 - [ ] 26.5 "…" Add-to-Album second entry
       (close Cap24 sheet → `showCap19ActionsHalfSheet`; zero artificial
       delay; Limited / Cap 23 gates reuse Cap 19)
@@ -274,12 +276,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       two-commit discipline)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.3 — Overlay row-3 Animated still label
-      (ADR-053 Proposed; awaiting owner OK before `lib/`)
-- Sub-steps done: 26.1–26.2; ADR-053 design locked + Proposed append;
-      phase order: Animated before "…" size (was 26.3 → now 26.4)
-- Next step: Owner OK coding → Pigeon `isAnimated` + Overlay + tests
-- Related decisions: ADR-053 Proposed; ADR-052 Proposed (D1–D11);
+- Goal (one line): Cap 26.4 — "…" half-sheet size row
+- Sub-steps done: 26.1–26.3; ADR-053 Accepted (`fc0bfcc`); Animated
+      device smoke PASS (Kafka + i17 Profile)
+- Next step: Design-first / owner OK for 26.4 size row, then `lib/`
+- Related decisions: ADR-053 Accepted; ADR-052 Proposed (D1–D11);
       ADR-015 / 018 / 043 D12 continue; debt **439** → Cap 26;
       **401** Location Out; **405** Out; **470** Accepted (phase);
       **456a** / **457** Open; **458** Monitoring; **469** Accepted
@@ -520,9 +521,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       second entry — **Proposed** (2026-09-15); D11 effect
       non-discrimination; 26.2 work `cab0747` (Path R+S); Accepted
       + full anchors at Cap 26 close (26.6)
-- ADR-053: Overlay row-3 Animated still label — **Proposed**
-      (2026-09-15); `isAnimated` via `playbackStyle == .imageAnimated`;
-      Cap 26.3 before "…" size (26.4)
+- ADR-053: Overlay row-3 Animated still label — **Accepted**
+      (2026-09-15); work `fc0bfcc`; `isAnimated` via
+      `playbackStyle == .imageAnimated`; Cap 26.3 closed before "…"
+      size (26.4)
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`
