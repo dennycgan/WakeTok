@@ -133,6 +133,7 @@
 
 - [ ] Live Photo long-press replay + "…" half-sheet size field
       and Add-to-Album second entry
+      (+ Overlay row-3 Animated still label / ADR-053)
       (supersedes ADR-040 D17 no-long-press limb; D17's explicit
       replay control was Decision-17'd but never actually shipped —
       no existing UI to remove; long-press replaces it as the sole
@@ -141,7 +142,8 @@
       location stays deferred; second entry = close "…" sheet then
       present existing Cap 19 Album half-sheet, no new transition UI;
       size field reuses existing requestPresentationFileSize Pigeon
-      path) <-- YOU ARE HERE
+      path; Animated = presentation-only `isAnimated`, Cap 26.3
+      before size 26.4) <-- YOU ARE HERE
 - [ ] Auto bottom-nav slot redefinition — pull-up order-control sheet
       (Layer 1 only: newest / oldest / random switch, immediate
       requeue, default stays random; Auto is no longer a standalone
@@ -241,8 +243,9 @@
 Active capability: Live Photo long-press replay + "…" half-sheet size
 field and Add-to-Album second entry
 Contract: owner-locked Cap kickoff (2026-09-15) — ADR-052 **Proposed**
-in `docs/DECISIONS.md`. Supersedes ADR-040 D17 no-long-press limb;
-narrow-reopens ADR-050 "…" Add-to-Album entry-button half only
+in `docs/DECISIONS.md`; Overlay Animated insert — ADR-053 **Proposed**
+(26.3 before "…" size 26.4). Supersedes ADR-040 D17 no-long-press
+limb; narrow-reopens ADR-050 "…" Add-to-Album entry-button half only
 (location / debt **401** stay Out); ADR-019 D8 directed exception =
 App long-press; manual long-press **bypasses** Cap 25 Live-ended
 watchdog session skip set (`browseLiveMotionWatchdogSkipIdsProvider`).
@@ -257,24 +260,27 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (work `cab0747`; Path R+S; silent in-flight lock; lifecycle Path S
       cancel; skip bypass; D11; debt **470** Accepted (phase) magnified
       ignore; i17 Profile smoke PASS)
-- [ ] 26.3 "…" half-sheet size row
+- [ ] 26.3 Overlay row-3 Animated still label
+      (ADR-053 Proposed; `isAnimated` via `playbackStyle ==
+      .imageAnimated`; no badge; not smart-album membership) <-- YOU ARE HERE
+- [ ] 26.4 "…" half-sheet size row
       (`requestPresentationFileSize` + `formatOverlayFileSize`;
-      Live still-only ADR-018; nil → omit row) <-- YOU ARE HERE
-- [ ] 26.4 "…" Add-to-Album second entry
+      Live still-only ADR-018; nil → omit row)
+- [ ] 26.5 "…" Add-to-Album second entry
       (close Cap24 sheet → `showCap19ActionsHalfSheet`; zero artificial
       delay; Limited / Cap 23 gates reuse Cap 19)
-- [ ] 26.5 Device acceptance (Kafka + i17) + Cap close
+- [ ] 26.6 Device acceptance (Kafka + i17) + Cap close
       (debt **439** Closed; ADR-052 Accepted + anchors; PHASE_HISTORY;
       two-commit discipline)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.3 — "…" half-sheet size row
-- Sub-steps done: 26.1 freeze; 26.2 work `cab0747` + device smoke;
-      debt **470** Accepted (phase) (magnified Live long-press Out)
-- Next step: Design-first / owner OK for 26.3 size row, then `lib/`
-- Related decisions: ADR-052 Proposed (D1–D11); supersedes ADR-040 D17
-      no-long-press; narrow-reopens ADR-050 Album entry; ADR-019 /
-      037 / 043 / 051 D12–D14 continue; debt **439** → Cap 26;
+- Goal (one line): Cap 26.3 — Overlay row-3 Animated still label
+      (ADR-053 Proposed; awaiting owner OK before `lib/`)
+- Sub-steps done: 26.1–26.2; ADR-053 design locked + Proposed append;
+      phase order: Animated before "…" size (was 26.3 → now 26.4)
+- Next step: Owner OK coding → Pigeon `isAnimated` + Overlay + tests
+- Related decisions: ADR-053 Proposed; ADR-052 Proposed (D1–D11);
+      ADR-015 / 018 / 043 D12 continue; debt **439** → Cap 26;
       **401** Location Out; **405** Out; **470** Accepted (phase);
       **456a** / **457** Open; **458** Monitoring; **469** Accepted
       (permanent)
@@ -513,7 +519,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album
       second entry — **Proposed** (2026-09-15); D11 effect
       non-discrimination; 26.2 work `cab0747` (Path R+S); Accepted
-      + full anchors at Cap 26 close (26.5)
+      + full anchors at Cap 26 close (26.6)
+- ADR-053: Overlay row-3 Animated still label — **Proposed**
+      (2026-09-15); `isAnimated` via `playbackStyle == .imageAnimated`;
+      Cap 26.3 before "…" size (26.4)
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`

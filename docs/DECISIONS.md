@@ -6552,3 +6552,103 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   entry-button deferral only (location / **401** remain deferred).
   Orthogonal to ADR-051 D12/D13 Host share path; depends on D14 mounted
   + watchdog infrastructure without amending Share enable rules.
+
+## ADR-053: Overlay row-3 Animated still label (presentation-only)
+
+- Status: Proposed (2026-09-15) — design locked; flip to Accepted with
+  real implementing-work anchor when the phase lands (no fake anchors
+  while Proposed)
+- Commit/PR anchor: pending implementing work
+- Plain summary (owner reads this):
+  Animated stills (GIFs and kin) show an "Animated" / "动图" text prefix
+  on Overlay row 3 next to file size — same join layout as Live Photo —
+  without a trailing badge. Detection uses PhotoKit
+  `playbackStyle == .imageAnimated`, not Animated smart-album membership
+  and not a (nonexistent) `mediaSubtypes.photoAnimated` bit. Live Photo
+  chrome is unchanged. Core media-kind enums stay four-valued.
+- Context / what problem forced this:
+  Row 3 already prefixes Live Photo (`mediaInfoLivePhoto` + optional
+  size). Users can confuse animated stills with ordinary stills; product
+  wants a single text cue only (no dual Live-style badge). Build-a-Pool
+  already exposes System Album Animated (`smartAlbumAnimated` / 214).
+  That album’s membership overlaps Loop/Bounce Live Photos, which must
+  keep Live presentation in Browse — so row-3 Animated must not key off
+  album membership.
+- Decision (what was chosen):
+  1. **Presentation-only signal.** Add `isAnimated: bool` on
+     `PresentationMetadata` / `PresentationOverlaySnapshot` and on
+     Pigeon `PresentationMetadataDto` (narrow wire field). Do **not**
+     expand `MediaKind` / `PlaybackMediaKind` / `PresentationMediaKind`
+     (animated stills remain `image`). Do **not** put this on
+     `DisplayAsset` or invent a feed kind (continues ADR-043 Decision 12
+     “Animated images — no separate feed kind”).
+  2. **Host detection (deliberate).**
+     `isAnimated = (mapMediaKind(asset) == .image)
+                   && (asset.playbackStyle == .imageAnimated)`.
+     Available since iOS 11; WakeTok floor is iOS 18.0. There is **no**
+     `PHAssetMediaSubtype.photoAnimated` in Photos.framework.
+  3. **Do not use smart-album membership.** Never set `isAnimated` from
+     `PHAssetCollectionSubtype.smartAlbumAnimated` (214) or from “asset
+     is in the Animated System Album source.” PhotoKit’s Animated album
+     can include Loop/Bounce Live Photos that still have
+     `mediaSubtypes.contains(.photoLive)` and
+     `playbackStyle == .videoLooping` (not `.imageAnimated`). Those
+     assets must continue to resolve as Live via `mapMediaKind` and keep
+     row-3 Live prefix + LIVE badge. Membership-based Animated labeling
+     would false-positive them.
+  4. **Row-3 Live vs Animated (causality, not arbitration).**
+     - Live prefix: `mediaKind == livePhoto` (Host: `.photoLive`
+       **mediaSubtype**).
+     - Animated prefix: `isAnimated` as in Decision 2
+       (`playbackStyle` **enum** case `.imageAnimated`).
+     - These are **two independent APIs**, not two cases of one enum.
+     - Primary guarantee: Loop/Bounce Live never satisfies Decision 2, so
+       both prefixes do not fire on that path. Overlap of “Animated”
+       **album membership** with Live assets does **not** propagate to
+       dual row-3 prefixes when detection follows Decision 2–3.
+     - Defense only: if `mediaKind == livePhoto`, force
+       `isAnimated = false` on Host and/or Dart. Belt-and-suspenders —
+       **not** a “both true → Live wins” product arbitration rule.
+  5. **UI.** Same join path as Live (`mediaInfoCharacteristicsJoined` /
+     size-only / label-only). **No** trailing Animated badge (unlike
+     Live’s dual LIVE chrome). Out: other media-type row-3 labels
+     (slo-mo, panorama, HDR, Portrait, screenshot, …).
+  6. **Naming / l10n (platform-neutral).**
+     - Field / Pigeon: `isAnimated` (not `isGif` / `photoAnimated`).
+     - ARB: `mediaInfoAnimated` — EN `"Animated"`; zh-Hans `"动图"`.
+     - Do not bind product copy to GIF UTI or iOS-only subtype names.
+  7. **Required regression (implementing work).** Fixture: Live asset
+     with `.photoLive` + `playbackStyle == .videoLooping`, as if pooled
+     from System Album Animated (214). Assert: `isAnimated == false`;
+     row 3 Live prefix only; LIVE badge present. Exercises the real
+     Build-a-Pool → Animated System Album → Loop/Bounce Live path.
+- Rejected alternatives (why not):
+  - Detect via `smartAlbumAnimated` membership — rejected; false-positives
+    Loop/Bounce Live (owner device + Pool path).
+  - Invent / assume `mediaSubtypes.photoAnimated` — rejected; bit does
+    not exist in SDK headers.
+  - Expand core `MediaKind` / feed kind for animated — rejected; breaks
+    “presentation-only” scope; fights ADR-043 D12.
+  - Dual trailing badge for Animated — rejected; product wants single
+    text cue.
+  - UTI-only GIF detection as primary — rejected; `playbackStyle` matches
+    Photos Animated semantics without format lock-in.
+  - “Both true → Live wins” as the main rule — rejected; wrong model;
+    Decision 2–3 already prevent both prefixes on the overlapping album
+    path.
+- Consequences / constraints accepted:
+  - One narrow Pigeon field on `PresentationMetadataDto`; regenerate
+    Dart/Swift; gateway + Host map; Overlay `_row3` branch; ARB +
+    localization guards.
+  - Loop/Bounce Live continue Cap 9 play-once (no Photos Loop/Bounce
+    parity) — unchanged; out of this ADR.
+  - ADR-052 Decision 11 (ignore `playbackStyle` for **Live long-press
+    eligibility**) unchanged; this ADR **reads** `.imageAnimated` only
+    for Overlay labeling of non-Live images.
+  - Scheduled as Cap 26.3 (before the "…" size row, which becomes 26.4)
+    so Overlay presentation changes do not land in the same review as
+    size-row work.
+- Relationship:
+  Continues ADR-015 Overlay / ADR-018 Live size tier; continues ADR-043
+  Decision 12 (no separate animated feed kind). Orthogonal to ADR-052
+  Live long-press. Does not reopen ADR-019 / 040 / 050 / 051.
