@@ -1389,7 +1389,12 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 ## ADR-019: Cap 9 Live Photo motion surface + PlaybackApi.clearPlaybackPool
 
-- Status: Accepted (2026-08-10)
+- Status: Accepted (2026-08-10); Decision 8 directed-exception limb
+  narrowly supplemented by ADR-040 Decision 17 (explicit control,
+  never shipped) and then by ADR-052 (Proposed 2026-09-15 — App
+  long-press replaces that control; system
+  `playbackGestureRecognizer` hard gate unchanged; Accepted +
+  implementing anchor when Cap 26.2+ lands)
 - Commit/PR anchor: 98fe191
 - Plain summary (owner reads this):
   Live Photos in Manual browse play motion once through a dedicated native
@@ -3837,7 +3842,10 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   (2026-09-01; work `0ef9ef2`); Decision 13 Cap 19.2d seek-hold + live
   ghost (2026-09-01; work `7637812`); Decision 18 Limited deferral
   superseded by ADR-041 (2026-09-01); Decision 20 supplement added
-  (2026-09-01; docs `372175c`)
+  (2026-09-01; docs `372175c`); Decision 17 **no Photos-style
+  long-press** limb + Rejected "Photos-style Live long-press replay
+  in MVP" superseded by ADR-052 (Proposed 2026-09-15; Accepted +
+  implementing anchor when Cap 26.2+ lands)
 - Commit/PR anchor: `0df9ceb` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
   `84ef30c`); Cap 18.5 supplement anchor `04ef327`; Cap 18.5 preview
@@ -5707,8 +5715,12 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Status: Accepted (2026-09-10); Decision 2 Action Column **index layout**
   (Album at index 1; Share placeholder at index 2) is **narrowly
   superseded by ADR-051** (Accepted; Host presentShareSheet anchor
-  `99c2e73`). Soft-delete entry, half-sheet,
-  Session semantics, and all other ADR-050 decisions remain binding.
+  `99c2e73`); Decision 8 / Rejected "Second Add-to-Album or location
+  in MVP '…' sheet — deferred" is **narrowly reopened by ADR-052**
+  (Proposed 2026-09-15) for the **Add-to-Album entry-button half
+  only** — location row / Known debt **401** stay deferred.
+  Soft-delete entry, half-sheet, Session semantics, and all other
+  ADR-050 decisions remain binding.
 - Commit/PR anchor: 32d4bd1
 - Plain summary (owner reads this):
   From Browse, the user can open a bottom "…" action, see a small
@@ -6377,3 +6389,139 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Orthogonal to ADR-044 D3 (no library observer).
   Decision 14 is orthogonal to Decisions 12 / 13 (materialization vs
   tap-enable).
+
+## ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album second entry
+
+- Status: Proposed (2026-09-15) — design locked; flip to Accepted with
+  real implementing-work anchor when Cap 26.2+ lands (no fake anchors
+  while Proposed)
+- Commit/PR anchor: pending Cap 26 implementing work
+- Plain summary (owner reads this):
+  On a Live Photo’s still key frame, a long-press replays the motion
+  once (the only replay control — no new button next to LIVE). Opening
+  the bottom "…" sheet also shows file size and a second Add-to-Album
+  entry that closes "…" then opens the existing album picker. Location
+  stays out. If automatic Live play was silently skipped this session
+  after a stuck motion, the user’s long-press still retries.
+- Context / what problem forced this:
+  ADR-040 Decision 17 reserved an explicit Live replay control and
+  rejected Photos-style long-press; that control was never shipped
+  (Known debt **439**). Cap 24’s "…" sheet deferred a second
+  Add-to-Album entry and a location row. Cap 25’s Live-ended watchdog
+  session skip set (`browseLiveMotionWatchdogSkipIdsProvider`) correctly
+  stops auto `_prepareLiveMotion` after a stuck mount, but the same
+  early-return would silently no-op a future long-press silent
+  re-request — defeating the product goal of giving the user a way
+  back into Live motion. Owner Cap 26 locks long-press as the sole
+  replay affordance, fills two "…" slots, and requires user long-press
+  to bypass the skip set while auto-play continues to honor it.
+- Decision (what was chosen):
+  1. **Supersede ADR-040 Decision 17 no-long-press limb.** Sole replay
+     affordance = App-owned media-area long-press on a Live **static
+     key frame**. Explicit trailing control was Decision-17’d but never
+     shipped — nothing to remove. Trailing “replay left of LIVE”
+     reserve is retired (update
+     `docs/reference/media-chrome-layout-notes.md` in implementing
+     work; device-check LIVE spacing in 26.2).
+  2. **Narrow supplement ADR-019 Decision 8.** System
+     `PHLivePhotoView.playbackGestureRecognizer` stays disabled. App
+     long-press is the directed exception (replaces the never-built
+     explicit control). Accidental tap / recognizer-driven replay
+     remains forbidden.
+  3. **Replay path (ADR-037).** Prefer `_playLiveMotionOnce` when Host
+     still holds a prepared LivePhoto. After Q7 / watchdog unload,
+     allow **silent re-request** (Host request without arming
+     `_livePreparing` / gold prepare chrome). Do **not** invent
+     mid-motion interrupt / restart Host branches (owner Q3=A).
+  4. **Live-ended watchdog / session skip (ADR-051 Decision 14
+     reliability) — mandatory Cap 26 rule.**
+     - Mount / Share signal line unchanged: successful mount →
+       `_liveMotionMounted` →
+       `BrowseMagnificationNotifier.onLiveMotionMountedChanged` →
+       `mainBrowseCurrentLiveMotionMountedProvider`; arm
+       `kLiveMotionEndedWatchdog` (6s); timeout →
+       `browseLiveMotionWatchdogSkipIdsProvider.add` + same unload as
+       normal ended.
+     - **Auto** `_prepareLiveMotion` (become-current play-once)
+       **continues to honor** the skip set (early return → stay still).
+     - **User long-press replay (including silent re-request) MUST NOT
+       consult** `browseLiveMotionWatchdogSkipIdsProvider`. Each
+       long-press is an independent retry. Watchdog still applies to
+       that attempt.
+     - Do **not** remove an id from the skip set on successful user
+       replay; skip remains an auto-play gate only.
+     - Rejected: letting long-press share the auto skip early-return
+       (silent no-op on skipped assets).
+  5. **Gesture constants (owner Q1=B) — named, not system defaults.**
+     - `kLiveLongPressHoldDuration = Duration(milliseconds: 400)`
+       (same magnitude as `kCap19EdgeHoldWindow` — keep App-wide hold
+       feel consistent; do **not** use 500 ms)
+     - `kLiveLongPressMaxSlopPx = 24`
+       (same as `kCap19LeftSwipeEarlyMotionThreshold`)
+     Cancel pending long-press if translation exceeds slop before hold
+     elapses (vertical → PageView; horizontal → left-swipe family).
+  6. **Feedback / eligibility (owner Q2–Q4).** Haptic only on recognize
+     (no visual scale / highlight). Fire only on Live **static key
+     frame** (ignore while preparing or motion mounted). Ignore while
+     persistently magnified / transient pinch active — user must return
+     to fit first. Still / video: do not register this recognizer.
+  7. **Narrow reopen ADR-050 Decision 8 / Rejected “Second Add-to-Album
+     or location in MVP '…' sheet — deferred”.** Reopen **Add-to-Album
+     entry button only**. Location row stays deferred (Known debt
+     **401** / kickoff ADR-X: privacy disclosure + reverse-geocode
+     cost). "…" row order: minute landmark → size → Add to Album →
+     Delete.
+  8. **Size row.** `requestPresentationFileSize` +
+     `formatOverlayFileSize` (same Overlay ARB keys). Live = still-only
+     Tier 4 (ADR-018). Nil / negative → **omit** the row (same omit
+     class as missing minute landmark). Debt **405** size-disclaimer
+     copy stays Out (Settings / localisation Cap).
+  9. **Add-to-Album second entry.** On tap: dismiss Cap 24 "…" sheet,
+     then call existing `showCap19ActionsHalfSheet` with **zero
+     artificial delay** (`whenComplete` / next frame). No new
+     transition UI. Limited Access + Cap 23 still-in-library gates
+     reuse Cap 19 behaviour.
+  10. **Out of Cap 26.** Location row; debt **405** disclaimer; explicit
+      trailing replay button; Mute / Fit / 2×; mid-motion restart;
+      magnified long-press; product work on debts **436** / **456a** /
+      **457** / **458**.
+- Rejected alternatives (why not):
+  - Keep ADR-040 Decision 17 “explicit control only / no long-press” —
+    rejected; control never shipped; owner chooses Photos-style App
+    long-press as sole affordance.
+  - Honor watchdog skip set on the user long-press path — rejected;
+    silent no-op on skipped assets defeats Cap 26 replay intent.
+  - Clear skip-set membership on successful user replay — rejected;
+    skip stays auto-only; user path never reads it.
+  - Mid-motion / preparing long-press restart (owner Q3 B/C) — rejected;
+    new Host interrupt state machine out of Cap 26.
+  - Magnified long-press that force-fits then plays (owner Q4=B) —
+    rejected; two semantic changes on one gesture.
+  - Fixed ms delay between "…" dismiss and Cap 19 sheet — rejected;
+    wall-clock debounce debt class; use `whenComplete` / next frame.
+  - Separate ADRs for gesture vs "…" sheet — rejected; one surface and
+    shared arbitration premises (owner Q9=A).
+  - 500 ms hold “more like long-press” — rejected; breaks alignment
+    with `kCap19EdgeHoldWindow` (400 ms) hold feel.
+  - Ship debt **405** disclaimer or location in this Cap — rejected;
+    keep scope narrow.
+- Consequences / constraints accepted:
+  - Debt **439** Picks it up → Cap 26 while Proposed; Closed only after
+    long-press implementation + Cap close (not at Proposed append).
+  - ADR-043 Live-motion rising-edge force-fit continues to cover
+    long-press-triggered mount (no ADR-043 text rewrite required).
+  - ADR-051 Decisions 12–14 (still share materialization; Share enable
+    ∧ ¬liveMotionMounted) unchanged; long-press must keep publishing
+    the same mounted signal.
+  - Architecture / localization guards remain mandatory on `lib/` work
+    (ADR-009 / ADR-010 / ADR-012).
+  - GLOSSARY: no new concept node (replay is Live Manual affordance;
+    size is Presentation Metadata already defined).
+- Relationship:
+  Supersedes ADR-040 Decision 17 no-long-press limb + matching Rejected
+  alternative. Narrowly supplements ADR-019 Decision 8 (directed
+  exception = App long-press). Continues ADR-037 play-only / silent
+  re-request discipline. Narrowly reopens ADR-050 Add-to-Album
+  entry-button deferral only (location / **401** remain deferred).
+  Orthogonal to ADR-051 D12/D13 Host share path; depends on D14 mounted
+  + watchdog infrastructure without amending Share enable rules.
