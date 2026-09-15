@@ -126,10 +126,71 @@
       (Cap 25 / ADR-051 Accepted; Q1=B …=0 Share=1 Album=2;
       Cap 23 gate; system share sheet; D14 enable + D15
       saveToCameraRoll exclude; PHASE_HISTORY)
-- [ ] Auto-play Presets and Mode Eligibility Rule <-- YOU ARE HERE
+> **MVP v1 submission track** — minimal closed loop for first App Review.
+> Positioning: "Wake what you saved — A local-first vertical feed for
+> rediscovering your own photo and video library." + album random-browse /
+> light organize. Clip Export / Clip-dedicated Auto-play = v2 track below.
+
+- [ ] Live Photo long-press replay + "…" half-sheet size field
+      and Add-to-Album second entry
+      (supersedes ADR-040 D17 no-long-press limb; D17's explicit
+      replay control was Decision-17'd but never actually shipped —
+      no existing UI to remove; long-press replaces it as the sole
+      replay affordance; narrowly reopens ADR-050 "Second
+      Add-to-Album…deferred" for the entry-button half only —
+      location stays deferred; second entry = close "…" sheet then
+      present existing Cap 19 Album half-sheet, no new transition UI;
+      size field reuses existing requestPresentationFileSize Pigeon
+      path) <-- YOU ARE HERE
+- [ ] Auto bottom-nav slot redefinition — pull-up order-control sheet
+      (Layer 1 only: newest / oldest / random switch, immediate
+      requeue, default stays random; Auto is no longer a standalone
+      bottom-nav destination — narrowly amend ADR-027 leave-Browse
+      trigger: session end only on leave to remaining destinations
+      (Settings / Clips if kept), not on opening the in-Browse sheet;
+      resolve Clips stub visibility for Review; Layer 2/3 — autoplay
+      on/off + autoplay-internal ordering — stay in "Auto-play Presets
+      and Mode Eligibility Rule" below, paired with Clips v2)
+- [ ] Debt 421 — Limited Access manage entry restored
+      (presentLimitedLibraryPicker + Open Settings entry point;
+      extracted from "Settings and localisation completion" below;
+      pre-work: audit MainBrowseShellPage overlay stack alongside the
+      new Auto sheet entry to avoid repeating the original notch /
+      SafeArea layering bug that caused this debt)
+- [ ] First-launch vertical-swipe guidance
+      (minimal TikTok-style up/down hint; must not time-overlap with
+      existing Cap 19.7 left-swipe guide — flexible scheduling, may
+      slot alongside any of the three Caps above)
+- [ ] MVP v1 pre-submission hardening
+      (privacy policy final copy — after the three functional Caps
+      above land; permission string finalize; portrait-only already
+      locked — ADR-028 + Info.plist + SystemChrome +
+      test/architecture/presentation_defaults_test.dart — no product
+      work, verify only; small-screen device pass; App Store
+      description / screenshots / keywords; empty-state Action Column
+      dim widget-test coverage — near-zero cost, attach to whichever
+      Cap above is convenient)
+- [ ] TestFlight internal testing and release-candidate validation
+      (MVP v1 track; owner executes distribution; Cursor prepares
+      build and metadata)
+- [ ] App Store metadata, screenshots, privacy disclosures,
+      submission, and release verification
+      (MVP v1 track first Review; owner executes submission; Cursor
+      prepares assets only)
+
+> **Post–v1 / Clips v2 track** — not in first Review scope. Distinct
+> TestFlight / App Store Caps below are a second release event (Clip /
+> background privacy disclosures etc.), not a merge of the v1 track.
+
+- [ ] Auto-play Presets and Mode Eligibility Rule
+      (Layer 2/3 only: autoplay on/off + autoplay-internal ordering
+      e.g. single-asset replay; bottom-nav Auto destination nature is
+      already decided in "Auto bottom-nav slot redefinition" above —
+      this Cap owns eligibility rules and Layer 2/3 settings only;
+      paired with Clips v2)
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
-      (renamed so “iCloud Fallback” is Auto-play / ADR-O, not Cap 14)
+      (renamed so "iCloud Fallback" is Auto-play / ADR-O, not Cap 14)
 - [ ] Background Audio, lock-screen playback, system media controls
 - [ ] SessionCheckpoint and Session Recovery
       (Queue, current Media Item, playback position,
@@ -145,24 +206,24 @@
 - [ ] Clip export progress/result UI,
       failed-segment retry, cancellation, and resume UX
 - [ ] Mute, Fit / Fill / 9:16 Crop, 2x gesture
-      (Share split out to its own Capability Roadmap item above;
-      tap-to-pause/resume moved to Cap 18; MVP 2x = left **or**
-      right edge hold for temporary 2x, release → 1x; no
-      slide-down lock; Cap 18 freezes both-edge hold slots and
-      edge-hold vs left-swipe album arbitration only — no 2x
-      product UI in Cap 18)
+      (Share already shipped Cap 25; tap-to-pause/resume Cap 18; MVP 2x
+      = left or right edge hold temporary 2x, release → 1x; no
+      slide-down lock; Cap 18 froze edge-hold slots only)
 - [ ] Settings and localisation completion
-      (English/zh-Hans copy, privacy/storage/about screens,
-      Light/Dark layout verification; Limited Access manage
-      entry — `presentLimitedLibraryPicker` + Open Settings —
-      belongs on the Settings page when this capability lands)
+      (remaining English / zh-Hans copy sweep; privacy / storage /
+      about screens; Light/Dark layout verification; Limited Access
+      manage entry already completed in the Debt 421 Cap above)
 - [ ] Final real-device performance, memory,
       accessibility, privacy, and error-state hardening
+      (full-product / post-Clips pass; distinct from MVP v1 hardening)
 - [ ] TestFlight internal testing and release-candidate validation
-      (owner executes distribution; Cursor prepares build and metadata)
+      (post–v1 / Clips track; owner executes distribution; Cursor
+      prepares build and metadata)
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
-      (owner executes submission; Cursor prepares assets only)
+      (post–v1 full-product Review — Clip / background privacy
+      disclosures etc.; owner executes submission; Cursor prepares
+      assets only)
 
 > Each line is a capability, not a sub-step. Completed capabilities stay one line
 > (phase snapshots -> docs/PHASE_HISTORY.md). Only the ACTIVE capability is
@@ -177,26 +238,27 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Auto-play Presets and Mode Eligibility Rule
-Contract: awaiting owner scope / Roadmap revision (MVP v1 submission
-track Caps are planned to insert **before** this Cap in a follow-up
-docs commit — do not invent Auto-play numbered phases here)
+Active capability: Live Photo long-press replay + "…" half-sheet size
+field and Add-to-Album second entry
+Contract: awaiting owner scope / kickoff (ADR-040 D17 supersede +
+ADR-050 second Add-to-Album entry-button reopen; numbered phases TBD)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] Phase list pending owner-approved Roadmap revision (MVP v1
-      track). Temporary YOU ARE HERE only until that docs commit.
+- [ ] Phase list pending owner-approved Cap kickoff / contract freeze.
+      YOU ARE HERE = this Cap on the MVP v1 submission track.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Roadmap revision — insert MVP v1 submission track
-      Caps before Auto-play (docs only; no product code)
-- Sub-steps done: Cap 25 closed (ADR-051 Accepted `99c2e73`;
-      PHASE_HISTORY Cap 25 snapshot)
-- Next step: Docs commit — five v1 Caps + Auto-play/Settings extract
-      edits + duplicate TF/ASC v1 track; then YOU ARE HERE → Live
-      long-press Cap
-- Related decisions: ADR-051 Accepted; ADR-049 / ADR-042; debt
-      **456a** / **457** Open; **458** Monitoring; **469** Accepted
-      (permanent); Bug#2 / probe cleanup outside Cap 25
+- Goal (one line): Cap kickoff — Live Photo long-press replay + "…"
+      half-sheet size field and Add-to-Album second entry (MVP v1)
+- Sub-steps done: Cap 25 closed (Bug#2 `59a2de2`; probe chore
+      `1f21298`); Capability Roadmap MVP v1 track inserted (five Caps
+      + TF/ASC v1; Auto-play/Settings extracts; post–v1 Clips track
+      retained)
+- Next step: Owner Cap kickoff / Design-first for Live long-press Cap
+- Related decisions: ADR-040 D17 supersede (planned); ADR-050 second
+      Add-to-Album entry-button reopen (planned); ADR-051 Accepted;
+      debt **456a** / **457** Open; **458** Monitoring; **469**
+      Accepted (permanent)
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
