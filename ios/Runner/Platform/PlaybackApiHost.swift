@@ -657,7 +657,6 @@ final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
     "ChildClippingView",
     "FlutterTouchInterceptingView",
   ]
-  private static let shareWrapperEngineRevision = "42d3d75a56"
   private static let shareWrapperWalkMaxDepth = 4
 
   func beginBoundPlatformViewWrapperShareGate() {
@@ -670,17 +669,10 @@ final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
     shareWrapperGateArmed = false
 
     guard let embedded = surfaceView?.view() else {
-      emitShareWrapperGateProbe(
-        phase: "present",
-        armed: false,
-        hit: "none",
-        note: "no_bound_surface"
-      )
       return
     }
 
     var foundClipping = false
-    var foundIntercepting = false
     var matched: [(UIView, String)] = []
 
     var current: UIView? = embedded.superview
@@ -691,8 +683,6 @@ final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
         matched.append((view, name))
         if name == "ChildClippingView" {
           foundClipping = true
-        } else if name == "FlutterTouchInterceptingView" {
-          foundIntercepting = true
         }
       }
       current = view.superview
@@ -705,15 +695,6 @@ final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
 
     // Outer layer is required. Intercepting-only is known-insufficient → no-op.
     guard foundClipping else {
-      let note =
-        foundIntercepting
-        ? "missing_ChildClippingView_only_Intercepting" : "wrapper_not_found"
-      emitShareWrapperGateProbe(
-        phase: "present",
-        armed: false,
-        hit: hitLabel,
-        note: note
-      )
       return
     }
 
@@ -727,17 +708,9 @@ final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
       view.isUserInteractionEnabled = false
     }
     shareWrapperGateArmed = true
-    emitShareWrapperGateProbe(
-      phase: "present",
-      armed: true,
-      hit: hitLabel,
-      note: nil
-    )
   }
 
-  func endBoundPlatformViewWrapperShareGate(phase: String) {
-    let hitLabel = shareWrapperGateHitLabel
-    let wasArmed = shareWrapperGateArmed
+  func endBoundPlatformViewWrapperShareGate(phase _: String) {
     for entry in shareWrapperGateEntries {
       if let view = entry.view {
         view.isUserInteractionEnabled = entry.previousEnabled
@@ -746,33 +719,6 @@ final class PlaybackApiHost: PlaybackApi, PlaybackSurfaceUserInteractionGate {
     shareWrapperGateEntries.removeAll(keepingCapacity: false)
     shareWrapperGateHitLabel = "none"
     shareWrapperGateArmed = false
-    emitShareWrapperGateProbe(
-      phase: phase,
-      armed: wasArmed,
-      hit: hitLabel,
-      note: wasArmed ? "restored" : "noop"
-    )
-  }
-
-  private func emitShareWrapperGateProbe(
-    phase: String,
-    armed: Bool,
-    hit: String,
-    note: String?
-  ) {
-    var parts = [
-      "WT_CAP25_PROBE|share_pv_wrapper_gate",
-      "phase=\(phase)",
-      "armed=\(armed)",
-      "hit=\(hit)",
-      "engine=\(Self.shareWrapperEngineRevision)",
-    ]
-    if let note, !note.isEmpty {
-      parts.append("note=\(note)")
-    }
-    let line = parts.joined(separator: "|")
-    // ignore: print — Profile device capture via flutter run / logs
-    print(line)
   }
 
   /// Applies persisted [muted] and Cap 15.11 transition guard suppression.
