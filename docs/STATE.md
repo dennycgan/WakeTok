@@ -276,26 +276,27 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (work `aee8ba5`; `_trackStillCoverPath` keep-ready; layout notes
       §13; debt **472** Closed — video Out structurally, not side-fix;
       Kafka + i17 Profile PASS)
-- [ ] 26.5 "…" Add-to-Album second entry
-      (close Cap24 sheet → `showCap19ActionsHalfSheet`; zero artificial
-      delay; Limited / Cap 23 gates reuse Cap 19) <-- YOU ARE HERE
+- [x] 26.5 "…" Add-to-Album second entry
+      (work `7001e6e`; muted Add above Delete; Cap 23 → pop → Cap 19;
+      mutual latch; layout notes §12; W-26.5-1…7; Kafka + i17 Profile
+      smoke PASS)
+- [ ] 26.4b Misc polish (media / "…" chrome layout)
+      (owner layout UI tweaks; keep
+      `docs/reference/media-chrome-layout-notes.md` in sync) <-- YOU ARE HERE
 - [ ] 26.6 Device acceptance (Kafka + i17) + Cap close
       (debt **439** Closed; ADR-052 Accepted + anchors; PHASE_HISTORY;
       two-commit discipline)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.5 — "…" Add-to-Album second entry
-- Sub-steps done: 26.1–26.4a; ADR-053 Accepted (`fc0bfcc`); 26.4 work
-      `c1a0d13`; 26.4a work `aee8ba5` + Kafka / i17 Profile PASS; debt
-      **472** Closed; ADR-052 still Proposed (D7/D8 narrow-amended)
-- Next step: Design-first / owner OK for 26.5 Add-to-Album second entry,
-      then `lib/`
+- Goal (one line): Cap 26.4b — Misc polish (chrome layout)
+- Sub-steps done: 26.1–26.5; ADR-053 Accepted (`fc0bfcc`); 26.5 work
+      `7001e6e` + Kafka / i17 Profile PASS; ADR-052 still Proposed
+- Next step: owner layout UI adjustments + layout notes updates
 - Related decisions: ADR-053 Accepted; ADR-052 Proposed (D1–D11;
-      D7/D8 narrow-amended); layout notes §12.6 / §13; ADR-015 / 018 /
+      D7/D8 / D9); layout notes §12 / §12.6 / §13; ADR-015 / 018 /
       043 D12 / 050 continue; debt **439** → Cap 26; **401** Location
-      content Out (zero-height slot; product home = "…" sheet); **405**
-      Out; **470** Accepted (phase); **469** Accepted (permanent);
-      **472** Closed by Cap 26.4a
+      content Out; **405** Out; **470** Accepted (phase); **469**
+      Accepted (permanent); **472** Closed by Cap 26.4a
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
