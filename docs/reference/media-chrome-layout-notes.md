@@ -374,22 +374,22 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 
 ---
 
-## 12. Cap 24 / Cap 26.4 — "…" more half-sheet meta
+## 12. Cap 24 / Cap 26 — "…" more half-sheet meta
 
 > Not Overlay chrome. Lives in `cap24_more_half_sheet.dart` under the
-> Cap 19-style sheet surface. Cap 26.5 will insert Add-to-Album between
-> Saved time and Delete.
+> Cap 19-style sheet surface. Cap **26.5** Add-to-Album sits between
+> Saved time and Delete (same outlined geometry as Delete; muted colors).
 
 ### 12.1 Row order (product)
 
-| Order | Block | Cap 26.4 behavior |
+| Order | Block | Behavior |
 |------:|-------|-------------------|
 | 0 | Grabber | Unchanged |
 | 1 | **Location slot** | **Zero height** (`SizedBox.shrink`); content deferred (debt **401**). **Locked product home = this sheet, not Overlay row 4** — see **§12.6**. |
 | 2 | **File size** | Title **always** shown. Value: blank while first request in flight; formatted bytes when known; em dash "—" when resolved ∧ nil/negative/failure. **Never omit** the row. |
 | 3 | **Saved time** | Title + Cap 24 minute-landmark value + timezone `i`. Landmark miss / parse fail → **omit entire block** (title+value). |
-| 4 | Add to Album | Cap **26.5** (not in 26.4). |
-| 5 | Delete | Unchanged |
+| 4 | **Add to Album** | Cap **26.5**. Full-width `OutlinedButton` (48pt, radius 12) matching Delete geometry. Label = `cap19PanelAddToAlbumTitle`. Colors: `tokens.onMediaMuted` label; border `tokens.onMedia` × **0.4**. Typography: same `titleMedium` **size** as Delete, `FontWeight.w400` (Delete stays `titleChrome` w600) so the longer string does not dominate. Tap: Cap 23 gate → pop this sheet → next-frame `showCap19ActionsHalfSheet` (ADR-052 D9; `_addToAlbumLatch` anti-reentry). |
+| 5 | Delete | Unchanged (destructive outline) |
 
 ### 12.2 Layout metrics (code constants)
 
@@ -397,12 +397,14 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 |--------|------:|------|
 | Sheet padding | `fromLTRB(16, 8, 16, 24)` | Same as Cap 24.3 |
 | Grabber → content | **16** bottom margin on grabber | Unchanged |
-| `kCap24MoreSheetMetaBlockGap` | **16** | Between File size / Saved time / Delete (and Location when it gains height) |
+| `kCap24MoreSheetMetaBlockGap` | **16** | Between File size / Saved time / Add / Delete (and Location when it gains height) |
 | `kCap24MoreSheetTitleValueGap` | **4** | Title → value inside a meta block (shared helper; same for File size + Saved time) |
 | `kCap24MoreSheetTimezoneInfoHit` | **44** | Timezone `i` tap target; **OverflowBox** so it does not inflate the Saved-time value-line height (keeps optical title→value gap aligned with File size) |
 | `kCap24MoreSheetTimezoneInfoLayoutWidth` | **36** | Width reserved in the value row for `i` |
 | Title color | `tokens.onMediaMuted` via `bodySmall` | Meta titles |
 | Value color | `tokens.onMedia` via `bodyMedium` | Size / Saved time values |
+| Add to Album | `onMediaMuted` + `onMedia`×0.4 border | Cap 26.5; same min size / radius as Delete |
+| Delete | `tokens.destructive` outline | Cap 24 |
 
 ### 12.3 File size reliability (Overlay parity + shared cache)
 
@@ -427,16 +429,18 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 | `cap24MoreSheetFileSizeBlock` / `…Title` / `…Value` | File size |
 | `cap24MoreSheetSavedTimeBlock` / `…Title` | Saved time chrome |
 | `cap24SoftDeleteSheetMinuteLibrary` / `…Bare` | Landmark value (unchanged) |
+| `cap24MoreSheetAddToAlbum` | Cap 26.5 Add to Album |
 | `cap24SoftDeleteSheetDelete` | Delete |
 
-### 12.5 Device check (after Cap 26.4)
+### 12.5 Device check (after Cap 26.4 / 26.5)
 
 1. Open "…" before L2 ready: File size title present; value blank then fills or "—".  
 2. After L2 display ready (iCloud still): size refreshes to a non-empty SI label when local bytes exist.  
 3. Missing landmark: no Saved time title; File size title still present.  
 4. ZH: `文件大小` / `保存时间`; EN: `File size` / `Saved time`.  
 5. Shared cache: after L2, Overlay row-3 size and half-sheet File size show the **same** formatted bytes.  
-6. `flutter test test/features/main_browse/cap24_3_more_sheet_test.dart test/architecture/`.
+6. Cap **26.5**: Add sits above Delete, same size, muted outline (not red); tap closes "…" then opens Cap 19.  
+7. `flutter test` Cap 24 / Cap 26.5 more-sheet tests + `test/architecture/`.
 
 ### 12.6 Location product home (locked — for a future implementer)
 

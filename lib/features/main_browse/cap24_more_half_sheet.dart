@@ -5,8 +5,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
+import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
+import 'package:waketok/features/main_browse/cap19_actions_half_sheet.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap24_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
@@ -18,6 +21,7 @@ import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_size_cache.dart';
 import 'package:waketok/features/main_browse/presentation_size_format.dart';
+import 'package:waketok/features/main_browse/still_in_library_gate.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Vertical gap between "…" half-sheet meta blocks (Cap 26.4).
@@ -33,7 +37,7 @@ const double kCap24MoreSheetTimezoneInfoLayoutWidth = 36;
 /// Minimum tap target for timezone `i` (overflows the value-line height).
 const double kCap24MoreSheetTimezoneInfoHit = 44;
 
-/// Opens the Cap 24 more half-sheet (meta rows + Delete; Cap 26.5 Add later).
+/// Opens the Cap 24 more half-sheet (meta rows + Add to Album + Delete).
 Future<void> showCap24MoreHalfSheet(BuildContext context) {
   final darkTheme = waketokTheme(Brightness.dark);
   final tokens = darkTheme.extension<WakeTokTokens>()!;
@@ -85,6 +89,8 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   var _sizeRequestGen = 0;
   var _hostBusy = false;
   var _deleteLatch = false;
+  /// Cap 26.5: blocks re-entrant Add → Cap23 → pop → Cap19 until settle.
+  var _addToAlbumLatch = false;
   Cap24TimezoneNoteBubbleHandle? _timezoneNoteBubble;
   final GlobalKey _timezoneInfoAnchorKey = GlobalKey();
   /// Barrier dismiss + IconButton can both see the same tap (translucent
@@ -127,8 +133,9 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
       _suppressTimezoneInfoReopen = false;
       return;
     }
-    // Latch (includes Host busy): never open — avoids bubble vs PopScope fights.
-    if (_deleteLatch) {
+    // Latch (includes Host busy / Add in flight): never open — avoids
+    // bubble vs PopScope fights.
+    if (_deleteLatch || _addToAlbumLatch) {
       return;
     }
     final l10n = AppLocalizations.of(context)!;
@@ -224,8 +231,54 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
     cache.apply(assetId, size);
   }
 
+  /// Cap 26.5: Cap 23 gate → dismiss "…" → existing Cap 19 sheet (ADR-052 D9).
+  Future<void> _onAddToAlbum() async {
+    if (_addToAlbumLatch || _deleteLatch) {
+      return;
+    }
+    _addToAlbumLatch = true;
+    _dismissTimezoneNoteBubble();
+    setState(() {});
+
+    var clearLatch = true;
+    try {
+      final allowed = await ensureCurrentAssetStillInLibraryForMutation(
+        ref: ref,
+        context: context,
+      );
+      if (!mounted || !allowed) {
+        return;
+      }
+      final access = ref.read(photosAuthorizationProvider).asData?.value;
+      if (access != PhotosAccess.full && access != PhotosAccess.limited) {
+        return;
+      }
+      final resolvedAccess = access!;
+      final hostContext = Cap24PanelHostContext.of(context);
+      // Success path: leave latch set while the sheet pops (same class as
+      // Delete clearBusy=false) so a second tap cannot re-enter mid-dismiss.
+      clearLatch = false;
+      Navigator.of(context).pop();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!hostContext.mounted) {
+          return;
+        }
+        unawaited(
+          showCap19ActionsHalfSheet(hostContext, access: resolvedAccess),
+        );
+      });
+    } finally {
+      if (clearLatch) {
+        _addToAlbumLatch = false;
+        if (mounted) {
+          setState(() {});
+        }
+      }
+    }
+  }
+
   Future<void> _onDelete() async {
-    if (_deleteLatch) {
+    if (_deleteLatch || _addToAlbumLatch) {
       return;
     }
     _deleteLatch = true;
@@ -340,6 +393,8 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
     // "accept accent filled" draft. Cap 24 destructive #FF3B30 and Cap 22
     // accent delete-label text (#FC2555 Light) are two independent decisions —
     // coexistence is intentional until a future design-system pass; not a bug.
+    // Cap 26.5 Add to Album: same OutlinedButton geometry as Delete; muted
+    // chrome (onMediaMuted + onMedia×0.4 border) — not destructive / accent.
     final deleteButtonStyle = OutlinedButton.styleFrom(
       foregroundColor: tokens.destructive,
       disabledForegroundColor: tokens.destructive,
@@ -349,10 +404,19 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
         borderRadius: BorderRadius.circular(12),
       ),
     );
+    final addToAlbumButtonStyle = OutlinedButton.styleFrom(
+      foregroundColor: tokens.onMediaMuted,
+      disabledForegroundColor: tokens.onMediaMuted,
+      side: BorderSide(color: tokens.onMedia.withValues(alpha: 0.4)),
+      minimumSize: const Size(double.infinity, 48),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
     final maxSheetHeight =
         MediaQuery.sizeOf(context).height * kCap19ActionsHalfSheetMaxHeightFactor;
     final busy = _hostBusy;
-    final latch = _deleteLatch;
+    final latch = _deleteLatch || _addToAlbumLatch;
 
     // Cap 26.4: Overlay-equivalent size refresh when L2 becomes ready.
     ref.listen<bool>(mainBrowseCurrentAssetLayer2DisplayReadyProvider,
@@ -473,6 +537,21 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
                   ),
                   const SizedBox(height: kCap24MoreSheetMetaBlockGap),
                 ],
+                OutlinedButton(
+                  key: const Key('cap24MoreSheetAddToAlbum'),
+                  onPressed: latch ? null : _onAddToAlbum,
+                  style: addToAlbumButtonStyle,
+                  child: Text(
+                    l10n.cap19PanelAddToAlbumTitle,
+                    // Same titleMedium size as Delete; w400 so the longer
+                    // label does not read heavier than destructive Delete.
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: tokens.onMediaMuted,
+                          fontWeight: FontWeight.w400,
+                        ),
+                  ),
+                ),
+                const SizedBox(height: kCap24MoreSheetMetaBlockGap),
                 OutlinedButton(
                   key: const Key('cap24SoftDeleteSheetDelete'),
                   onPressed: latch ? null : _onDelete,

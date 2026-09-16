@@ -1128,7 +1128,8 @@ void main() {
   );
 
   testWidgets(
-    'W-26.4-e Saved time title shown with landmark; order Location→Size→Saved→Delete',
+    'W-26.4-e Saved time title shown with landmark; order '
+    'Location→Size→Saved→Add→Delete',
     (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -1164,11 +1165,14 @@ void main() {
           tester.getTopLeft(find.byKey(const Key('cap24MoreSheetFileSizeBlock')));
       final saved =
           tester.getTopLeft(find.byKey(const Key('cap24MoreSheetSavedTimeBlock')));
+      final add =
+          tester.getTopLeft(find.byKey(const Key('cap24MoreSheetAddToAlbum')));
       final delete =
           tester.getTopLeft(find.byKey(const Key('cap24SoftDeleteSheetDelete')));
       expect(location.dy, lessThanOrEqualTo(size.dy));
       expect(size.dy, lessThan(saved.dy));
-      expect(saved.dy, lessThan(delete.dy));
+      expect(saved.dy, lessThan(add.dy));
+      expect(add.dy, lessThan(delete.dy));
     },
   );
 
