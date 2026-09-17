@@ -8,10 +8,13 @@ import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 
 import '../../library_smoke/fake_media_display_repository.dart';
 
-/// Cap 24.5.5 / debt 466: Cap 21 `_suppressStillCoverChrome` hides
-/// [MediaInfoOverlay] until the still/poster [Image] has a decoded frame.
-/// Harness paths that point at non-decodable `/tmp/fake_*.jpg` never clear
-/// that gate — seed a real 1×1 PNG and pump until [debugStillCoverReady].
+/// Cap 24.5.5 / debt 466: Cap 21 `_suppressStillCoverMeta` hides
+/// [MediaInfoOverlay] until the still/poster [Image] has a decoded frame
+/// (unresolved **or** broken). Cap 26.4b: corner spinner / LIVE are suppressed
+/// only when decode-**broken** (`_suppressStillCoverWaitChrome`) — unresolved
+/// keeps spinner + LIVE. Harness paths that point at non-decodable
+/// `/tmp/fake_*.jpg` never clear the Meta gate — seed a real 1×1 PNG and pump
+/// until [debugStillCoverReady].
 
 const kStillCoverTestTinyPngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
@@ -57,12 +60,13 @@ MediaFeedPageState mediaFeedPageState(
   );
 }
 
-/// Ensures still/poster cover chrome is not suppressed for Overlay / spinner.
+/// Ensures still/poster Meta Overlay is not suppressed (cover ready).
 ///
 /// Prefer the Cap 21 [MediaFeedPageState.debugForceStillCoverDecodeBroken]
 /// seam when a cover path is already tracked — FakeAsync rarely completes
 /// FileImage.frameBuilder, and a long wall-clock poll would also advance
 /// ADR-034 G's DateTime.now-based elapsed (false spinner during dwell).
+/// Cap 26.4b: spinner no longer requires ready; Overlay still does.
 Future<void> pumpUntilStillCoverReady(
   WidgetTester tester,
   MediaFeedPageState page,

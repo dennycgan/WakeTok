@@ -25,10 +25,10 @@ class MediaInfoOverlay extends StatelessWidget {
   /// Always-rendered MVP rows (Relative / Exact / Characteristics).
   static const int baseRowCount = 3;
 
-  /// Trailing inset so Overlay copy stays left of action column + LIVE.
+  /// Trailing inset so Overlay copy stays left of the action column.
   ///
-  /// Derived from [kMediaChromeOverlayTrailingInset] (action hit / LIVE
-  /// reserve + clearance) — do not hard-code a stale measured width.
+  /// Derived from [kMediaChromeOverlayTrailingInset] (action hit + clearance).
+  /// Cap 26.4b: LIVE is top-leading and no longer reserves trailing width.
   static double get trailingInset => kMediaChromeOverlayTrailingInset;
 
   /// Column height for Cap 20 Reset placement above this Overlay (ADR-043 D2-A).
@@ -135,8 +135,8 @@ class _OverlayRow extends StatelessWidget {
     return SizedBox(
       height: MediaInfoOverlay.rowHeight,
       child: Align(
-        // Bottom-align so row-3 text bottom == Overlay column bottom == LIVE
-        // capsule bottom ([mainBrowseLiveStatusBottomInset]).
+        // Bottom-align so row-3 text bottom == Overlay column bottom ==
+        // scrubber timestamp text bottom ([mainBrowseMediaOverlayBottomInset]).
         alignment: Alignment.bottomLeft,
         child: Text(
           text,

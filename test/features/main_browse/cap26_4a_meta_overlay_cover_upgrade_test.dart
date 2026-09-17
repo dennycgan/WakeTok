@@ -20,7 +20,7 @@ import '../authorization/permission_ui_test_harness.dart';
 import 'still_cover_test_helpers.dart';
 
 /// Cap 26.4a: still (incl. Live static) L1→L2 cover path upgrade must not
-/// tear down Meta Overlay via `_suppressStillCoverChrome`.
+/// tear down Meta Overlay via `_suppressStillCoverMeta`.
 ///
 /// L1→L2 trigger mirrors production: hung `requestDisplayAsset` via
 /// [FakeMediaDisplayRepository.displayGates], distinct preview vs display

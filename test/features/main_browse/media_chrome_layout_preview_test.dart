@@ -6,8 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
+import 'package:waketok/l10n/app_localizations.dart';
 
 /// Layout-only chrome preview (not full feed). Writes PNGs via `--update-goldens`.
 Future<ByteData> _fileBytes(String path) async {
@@ -58,6 +60,9 @@ void main() {
     final base = waketokTheme(Brightness.dark);
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         theme: base.copyWith(
           textTheme: base.textTheme.apply(fontFamily: 'Roboto'),
           primaryTextTheme: base.primaryTextTheme.apply(fontFamily: 'Roboto'),
@@ -192,8 +197,8 @@ class _Preview extends StatelessWidget {
       fontFamily: 'Roboto',
       shadows: tokens.onMediaLabelShadows,
     );
-    // Stand-in for mainBrowseMediaOverlayBottomInset (scrubber-aligned).
-    const metaBottom = 8.0;
+    // Production Overlay bottom (scrubber timestamp text-bottom lock).
+    final metaBottom = mainBrowseMediaOverlayBottomInset(tokens);
     const metaRows = MediaInfoOverlay.baseRowCount;
     const metaHeight = MediaInfoOverlay.rowHeight * metaRows;
     final resetBottom = metaBottom + metaHeight + kResetAboveMetaGap;
@@ -273,8 +278,11 @@ class _Preview extends StatelessWidget {
                 ),
               if (showLive)
                 Positioned(
-                  right: kMediaChromeTrailingInset,
-                  bottom: metaBottom,
+                  left: kLiveBadgeLeadingInset,
+                  top: mainBrowseLiveBadgeTopInset(
+                    mediaQueryPaddingTop: MediaQuery.paddingOf(context).top,
+                    limitedCreateHelperBand: false,
+                  ),
                   child: _PreviewLiveBadge(style: style, tokens: tokens),
                 ),
               if (showAlbum)
@@ -317,30 +325,36 @@ class _PreviewLiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
+    return DecoratedBox(
+      decoration: ShapeDecoration(
         color: tokens.mediaScrim.withValues(alpha: kStatusChromeScrimOpacity),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: tokens.onMedia.withValues(alpha: kStatusChromeBorderOpacity),
-          width: 1,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: tokens.onMedia.withValues(alpha: kStatusChromeBorderOpacity),
+            width: kStatusChromeBorderWidth,
+          ),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: tokens.onMedia, width: 1.5),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: kLiveBadgeHorizontalPad,
+          vertical: kLiveBadgeVerticalPad,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: kLiveBadgeDotSize,
+              height: kLiveBadgeDotSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: tokens.onMedia, width: 1.25),
+              ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Text('LIVE', style: style),
-        ],
+            const SizedBox(width: kLiveBadgeDotLabelGap),
+            Text('LIVE', style: style.copyWith(height: 1.0)),
+          ],
+        ),
       ),
     );
   }

@@ -469,16 +469,20 @@ void main() {
   });
 
   group('U-18.5-F overlay vs scrubber timestamp geometry', () {
-    test('U-18.5-F1 row 3 center matches timestamp center', () {
-      final tokens = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
-      final timestampCenter = mainBrowseScrubberTimestampCenterFromFeedBottom(
-        tokens,
-      );
-      final row3Center =
-          mainBrowseMediaOverlayBottomInset(tokens) +
-          MediaInfoOverlay.rowHeight / 2;
-      expect(row3Center, closeTo(timestampCenter, 0.001));
-    });
+    test(
+      'U-18.5-F1 overlay bottom matches scrubber timestamp bottom (text-bottom lock)',
+      () {
+        final tokens = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
+        expect(
+          mainBrowseMediaOverlayBottomInset(tokens),
+          mainBrowseScrubberTimestampBottomInset(),
+        );
+        expect(
+          mainBrowseLiveStatusBottomInset(tokens),
+          mainBrowseMediaOverlayBottomInset(tokens),
+        );
+      },
+    );
 
     test('U-18.5-F2 overlay rows use uniform slot height', () {
       // Rows 1–3 are stacked 20px slots; row 3 special case is inset only.

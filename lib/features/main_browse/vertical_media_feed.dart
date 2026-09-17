@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/domain/library/still_in_library.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
@@ -19,6 +20,7 @@ import 'package:waketok/domain/playback/playback_repository.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
+import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/live_photo_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
@@ -1459,14 +1461,25 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// does not auto-retry (owner-accepted).
   bool _needsFullReloadAfterHostUnavailable = false;
 
-  /// Hide Meta + corner wait spinner while a still/poster cover is mounted
-  /// but unresolved or broken. Coverless / pendingVideo wait chrome (Cap 17)
-  /// must keep the corner spinner — do not suppress when there is no display.
-  bool get _suppressStillCoverChrome {
+  /// Hide Meta Overlay while a still/poster cover is mounted but unresolved
+  /// or decode-broken. Cap 26.4b: does **not** gate corner wait spinner / LIVE
+  /// (see [_suppressStillCoverWaitChrome]).
+  bool get _suppressStillCoverMeta {
     if (_media?.display == null) {
       return false;
     }
     return !_stillCoverReady || _stillCoverDecodeBroken;
+  }
+
+  /// Hide corner wait spinner + LIVE badge only when still/poster decode is
+  /// **broken**. Unresolved (path tracked, first frame not yet ready) keeps
+  /// spinner/LIVE so Limited iCloud Live does not flash LIVE-alone (Cap 26.4b).
+  /// Coverless / pendingVideo: no display → false (Cap 17 corner chrome stays).
+  bool get _suppressStillCoverWaitChrome {
+    if (_media?.display == null) {
+      return false;
+    }
+    return _stillCoverDecodeBroken;
   }
 
   /// Hide Cap 8 Overlay while Host reports the asset is gone (contradicts
@@ -1480,7 +1493,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       widget.showMediaInfoOverlay &&
       !_loading &&
       !_isAssetUnavailableFailure &&
-      !_suppressStillCoverChrome;
+      !_suppressStillCoverMeta;
 
   /// When [path] changes, mark cover unresolved until frameBuilder / broken.
   ///
@@ -1700,7 +1713,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   bool get debugNeedsFullReloadAfterHostUnavailable =>
       _needsFullReloadAfterHostUnavailable;
 
-  /// Test seam: set/clear still-cover decode-broken Overlay hide bit.
+  /// Test seam: set/clear still-cover decode-broken Overlay / wait-chrome hide.
   /// When [broken] is true, also arms [_previewReloadTriedPath] from the
   /// current cover so [debugRunReloadPreviewFile] exercises A-class clear.
   @visibleForTesting
@@ -1714,6 +1727,24 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       } else {
         _stillCoverReady = true;
       }
+    }
+
+    if (!mounted) {
+      apply();
+      return;
+    }
+    setState(apply);
+  }
+
+  /// Test seam: cover path tracked but first frame not ready (unresolved).
+  ///
+  /// Cap 26.4b: Meta suppressed; corner spinner + LIVE must stay when wait
+  /// chrome would otherwise paint. Distinct from [debugForceStillCoverDecodeBroken].
+  @visibleForTesting
+  void debugForceStillCoverUnresolved() {
+    void apply() {
+      _stillCoverReady = false;
+      _stillCoverDecodeBroken = false;
     }
 
     if (!mounted) {
@@ -4722,21 +4753,46 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
     // One wait-chrome evaluation per build. ADR-039 removed the separate
     // coverless center Layer2Waiting copy; corner feedback remains.
-    // Still/poster decode-broken: hide Meta + corner spinner (owner: empty
-    // chrome OK; date/size Meta on a deleted/broken cover is not).
+    // Decode-broken: hide Meta + corner spinner + LIVE. Unresolved: hide Meta
+    // only (Cap 26.4b) — spinner/LIVE stay so Limited iCloud Live does not
+    // flash LIVE-alone on black.
+    //
+    // Cap 26.4b A2a: when cover is unresolved but Host work is outstanding
+    // (_layer2InFlight or _livePreparing), force corner spinner even if wait
+    // chrome / Live F1 policy would suppress — so miss→media handoff does not
+    // flash LIVE-alone. Unresolved with neither flag: no force (honesty).
+    final coverUnresolved = media.display != null &&
+        !_stillCoverReady &&
+        !_stillCoverDecodeBroken;
+    final hostWorkOutstanding = _layer2InFlight || _livePreparing;
+    final forceUnresolvedHostWaitSpinner = widget.isCurrent &&
+        coverUnresolved &&
+        hostWorkOutstanding &&
+        !_suppressStillCoverWaitChrome;
     final showLayer2WaitSpinner =
-        !_suppressStillCoverChrome && _evaluateShowLayer2WaitChrome();
-    if (showLayer2WaitSpinner) {
+        !_suppressStillCoverWaitChrome && _evaluateShowLayer2WaitChrome();
+    if (showLayer2WaitSpinner || forceUnresolvedHostWaitSpinner) {
       // ADR-037: latch real paint, not wall-clock ≥ T alone.
       _layer2WaitChromeLatched = true;
     }
     final showLayer2FailedSlot =
         widget.isCurrent && _layer2Failed && !_layer2InFlight;
-    // LIVE may coexist with reassure: badge stacks above the spinner row.
+    // LIVE: decode-broken hides; any active magnification (settled / pinch /
+    // contact) hides. Motion *play* keeps LIVE visible (iOS Photos parity).
+    // Preparing keeps LIVE beside the gold spinner (Cap 14.6b) when not
+    // magnified.
+    final mag = ref.watch(browseMagnificationProvider);
     final liveBadgeVisible =
-        debugForceLiveBadgeVisible ||
-        (media.kind == FeedPageMediaKind.still &&
-            media.display?.mediaKind == PlaybackMediaKind.livePhoto);
+        !_suppressStillCoverWaitChrome &&
+        !mag.hasActiveMagnification &&
+        (debugForceLiveBadgeVisible ||
+            (media.kind == FeedPageMediaKind.still &&
+                media.display?.mediaKind == PlaybackMediaKind.livePhoto));
+    final showLoadSpinnerEffective = widget.isCurrent &&
+        !_suppressStillCoverWaitChrome &&
+        (showLayer2WaitSpinner ||
+            _showLiveLoadSpinner ||
+            forceUnresolvedHostWaitSpinner);
     final showCornerReassure = shouldShowLayer2CornerReassure(
       isCurrent: widget.isCurrent,
       layer2InFlight: _layer2InFlight,
@@ -4746,12 +4802,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       elapsedInFlight: _inFlightElapsed,
       waitSpinnerVisible: showLayer2WaitSpinner,
     );
-    final cornerReassureLabel = showCornerReassure
-        ? l10n.mainBrowseFeedLayer2Reassure
-        : null;
+    final cornerReassureLabel =
+        _suppressStillCoverMeta || !showCornerReassure
+            ? null
+            : l10n.mainBrowseFeedLayer2Reassure;
     final coverlessLiveBadgeLabel = liveBadgeVisible
         ? l10n.mainBrowseLiveBadge
         : null;
+    final limitedCreateHelperBand =
+        ref.watch(photosAuthorizationProvider).asData?.value ==
+            PhotosAccess.limited;
+    final liveBadgeTop = mainBrowseLiveBadgeTopInset(
+      mediaQueryPaddingTop: MediaQuery.paddingOf(context).top,
+      limitedCreateHelperBand: limitedCreateHelperBand,
+    );
 
     // Cap 15.14 / 4A: still + video poster share one asset-stable key so
     // STILL→VIDEO promote can reuse the Image Element (path must not be in key).
@@ -4795,12 +4859,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           liveLabel: l10n.mainBrowseLiveBadge,
           liveLoadLabel: l10n.mainBrowseFeedLiveLoading,
           layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
-          showLoadSpinner:
-              widget.isCurrent &&
-              !_suppressStillCoverChrome &&
-              (showLayer2WaitSpinner || _showLiveLoadSpinner),
-          reassureLabel:
-              _suppressStillCoverChrome ? null : cornerReassureLabel,
+          showLoadSpinner: showLoadSpinnerEffective,
+          showLiveBadge: liveBadgeVisible,
+          liveBadgeTop: liveBadgeTop,
+          reassureLabel: cornerReassureLabel,
           liveMotionOverlay: _liveMotionMounted
               ? _LiveMotionSurface(
                   assetIdentifier: widget.assetIdentifier,
@@ -4825,6 +4887,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         showLayer2FailedSlot: showLayer2FailedSlot,
         cornerReassureLabel: cornerReassureLabel,
         coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
+        liveBadgeTop: liveBadgeTop,
         playbackTapIsCurrent: widget.isCurrent,
         showMediaInfoOverlay: _showMediaInfoOverlayEffective,
         overlaySnapshot: widget.overlaySnapshot,
@@ -4836,10 +4899,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           child: Stack(
             fit: StackFit.expand,
             children: [
+              if (coverlessLiveBadgeLabel != null)
+                _LiveBadgeTopLeading(
+                  top: liveBadgeTop,
+                  label: coverlessLiveBadgeLabel!,
+                ),
               if (showLayer2WaitSpinner)
                 _FeedCornerChrome(
                   color: tokens.brandGold,
-                  badgeLabel: coverlessLiveBadgeLabel,
                   showSpinner: true,
                   reassureLabel: cornerReassureLabel,
                   rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
@@ -4985,8 +5052,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   layer3LoadLabel: l10n.mainBrowseFeedLayer3Loading,
                   showLoadSpinner:
                       showLayer2WaitSpinner && !deferVideoForHandoff,
-                  reassureLabel:
-                      _suppressStillCoverChrome ? null : cornerReassureLabel,
+                  showLiveBadge: liveBadgeVisible,
+                  liveBadgeTop: liveBadgeTop,
+                  reassureLabel: cornerReassureLabel,
                 )
               : null,
           deferVideoForHandoff: deferVideoForHandoff,
@@ -4996,6 +5064,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           showLayer2FailedSlot: showLayer2FailedSlot,
           cornerReassureLabel: cornerReassureLabel,
           coverlessLiveBadgeLabel: coverlessLiveBadgeLabel,
+          liveBadgeTop: liveBadgeTop,
           onPlaybackTapToggle: coordinator == null
               ? null
               : () {
@@ -5063,6 +5132,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required bool showLayer2FailedSlot,
     String? cornerReassureLabel,
     String? coverlessLiveBadgeLabel,
+    double liveBadgeTop = 0,
     Widget? still,
     Widget? video,
     Widget? poster,
@@ -5163,10 +5233,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             onScrubComplete: onScrubComplete,
             requestPreview: playbackRepository.requestScrubPreviewFrame,
           ),
+        if (coverlessLiveBadgeLabel != null &&
+            still == null &&
+            poster == null)
+          _LiveBadgeTopLeading(
+            top: liveBadgeTop,
+            label: coverlessLiveBadgeLabel!,
+          ),
         if (showLayer2WaitSpinner && still == null && poster == null)
           _FeedCornerChrome(
             color: tokens.brandGold,
-            badgeLabel: coverlessLiveBadgeLabel,
             showSpinner: true,
             reassureLabel: cornerReassureLabel,
             rowKey: const Key('mainBrowseFeedLayer2CoverlessChrome'),
@@ -5319,6 +5395,8 @@ class _StillPage extends StatelessWidget {
     this.liveLoadLabel,
     this.layer3LoadLabel,
     this.showLoadSpinner = false,
+    this.showLiveBadge = true,
+    this.liveBadgeTop = 0,
     this.reassureLabel,
     this.liveMotionOverlay,
   });
@@ -5339,6 +5417,12 @@ class _StillPage extends StatelessWidget {
   /// Cap 14.6b: corner spinner for Layer 2 in-flight (any item) or Live prepare.
   final bool showLoadSpinner;
 
+  /// Cap 26.4b: false when decode-broken wait-chrome gate hides LIVE.
+  final bool showLiveBadge;
+
+  /// Cap 26.4b: screen-top inset for top-leading LIVE (band bottom + gap).
+  final double liveBadgeTop;
+
   /// Cap 17.5b: short copy left of spinner when Package B fires (rare on still).
   final String? reassureLabel;
 
@@ -5348,8 +5432,8 @@ class _StillPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final showChrome =
-        isLivePhoto ||
+    final paintLiveBadge = isLivePhoto && showLiveBadge;
+    final showCornerWait =
         showLoadSpinner ||
         (reassureLabel != null && reassureLabel!.isNotEmpty);
     final loadLabel = isLivePhoto ? liveLoadLabel : layer3LoadLabel;
@@ -5358,39 +5442,40 @@ class _StillPage extends StatelessWidget {
       fit: StackFit.expand,
       children: [
         mediaChild,
-        if (showChrome)
+        // Cap 26.4b: Live PV under chrome so LIVE stays fully visible during
+        // motion play (iOS Photos parity — badge does not peek under PV).
+        if (liveMotionOverlay != null) liveMotionOverlay!,
+        if (showCornerWait)
           _FeedCornerChrome(
             color: tokens.brandGold,
-            badgeLabel: isLivePhoto ? liveLabel : null,
             showSpinner: showLoadSpinner,
             reassureLabel: reassureLabel,
             rowKey: isLivePhoto
-                ? Key('mainBrowseFeedLiveChrome_$assetIdentifier')
+                ? Key('mainBrowseFeedLiveSpinnerRow_$assetIdentifier')
                 : const Key('mainBrowseFeedLayer3Chrome'),
             spinnerKey: isLivePhoto
                 ? Key('mainBrowseFeedLivePreparing_$assetIdentifier')
                 : const Key('mainBrowseFeedLayer3Spinner'),
             semanticsLabel: showLoadSpinner ? loadLabel : null,
           ),
-        if (liveMotionOverlay != null) liveMotionOverlay!,
+        if (paintLiveBadge)
+          _LiveBadgeTopLeading(
+            top: liveBadgeTop,
+            label: liveLabel,
+            chromeKey: Key('mainBrowseFeedLiveChrome_$assetIdentifier'),
+          ),
       ],
     );
   }
 }
 
-/// Bottom-right load chrome for every feed item (Live badge ± spinner).
+/// Bottom-trailing wait chrome (spinner ± “Still loading”).
 ///
-/// Cap 17.5b: LIVE badge stacks **above** the gold spinner row so
-/// “Still loading” can sit left of the spinner without a horizontal
-/// LIVE|reassure|spinner collision (and without soft-degrade hide).
-///
-/// LIVE is pinned to the **screen trailing edge** (`right: [inset]`) on
-/// its own [Positioned] — not sized/aligned against the spinner row.
-/// Spinner / reassure share a separate trailing pin.
+/// Cap 26.4b: LIVE moved to top-leading — this widget no longer paints the
+/// badge or lifts above a badge row.
 class _FeedCornerChrome extends StatelessWidget {
   const _FeedCornerChrome({
     required this.color,
-    this.badgeLabel,
     this.showSpinner = false,
     this.reassureLabel,
     this.rowKey,
@@ -5398,10 +5483,7 @@ class _FeedCornerChrome extends StatelessWidget {
     this.semanticsLabel,
   });
 
-  static const double _spinnerSize = 16;
-
   final Color color;
-  final String? badgeLabel;
   final bool showSpinner;
 
   /// Cap 17.5b: short copy immediately left of the spinner (incremental).
@@ -5412,68 +5494,74 @@ class _FeedCornerChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showBadge = badgeLabel != null;
     final showReassure = reassureLabel != null && reassureLabel!.isNotEmpty;
-    if (!showBadge && !showSpinner && !showReassure) {
+    if (!showSpinner && !showReassure) {
       return const SizedBox.shrink();
     }
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final hasSpinnerRow = showReassure || showSpinner;
     final statusBottom = mainBrowseLiveStatusBottomInset(tokens);
-    final badgeBottom = statusBottom +
-        (hasSpinnerRow
-            ? kStatusChromeBadgeAboveSpinnerGap + _spinnerSize
-            : 0);
-    return Positioned.fill(
+    return Positioned(
+      right: kMediaChromeTrailingInset,
+      bottom: statusBottom,
       child: IgnorePointer(
-        child: Stack(
-          children: [
-            if (showBadge)
-              Positioned(
-                right: kMediaChromeTrailingInset,
-                bottom: badgeBottom,
-                child: _LiveBadge(label: badgeLabel!),
-              ),
-            if (hasSpinnerRow)
-              Positioned(
-                right: kMediaChromeTrailingInset,
-                bottom: statusBottom,
-                child: Semantics(
-                  container: true,
-                  excludeSemantics: showSpinner,
-                  label: showSpinner ? semanticsLabel : null,
-                  child: Row(
-                    key: rowKey,
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      if (showReassure) ...[
-                        // Intrinsic width — do not fade-clip EN
-                        // "Still loading" / zh-Hans reassure under a tight
-                        // maxWidth (device smoke).
-                        Text(
-                          reassureLabel!,
-                          key: const Key('mainBrowseFeedLayer2Reassure'),
-                          maxLines: 1,
-                          softWrap: false,
-                          style: tokens.labelOnMedia.copyWith(
-                            color: tokens.onMedia,
-                            shadows: tokens.onMediaLabelShadows,
-                          ),
-                        ),
-                        if (showSpinner) const SizedBox(width: 8),
-                      ],
-                      if (showSpinner)
-                        _FeedCornerSpinner(
-                          spinnerKey: spinnerKey,
-                          color: color,
-                        ),
-                    ],
+        child: Semantics(
+          container: true,
+          excludeSemantics: showSpinner,
+          label: showSpinner ? semanticsLabel : null,
+          child: Row(
+            key: rowKey,
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (showReassure) ...[
+                // Intrinsic width — do not fade-clip EN
+                // "Still loading" / zh-Hans reassure under a tight
+                // maxWidth (device smoke).
+                Text(
+                  reassureLabel!,
+                  key: const Key('mainBrowseFeedLayer2Reassure'),
+                  maxLines: 1,
+                  softWrap: false,
+                  style: tokens.labelOnMedia.copyWith(
+                    color: tokens.onMedia,
+                    shadows: tokens.onMediaLabelShadows,
                   ),
                 ),
-              ),
-          ],
+                if (showSpinner) const SizedBox(width: 8),
+              ],
+              if (showSpinner)
+                _FeedCornerSpinner(
+                  spinnerKey: spinnerKey,
+                  color: color,
+                ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+/// Cap 26.4b: LIVE capsule below Browse top chrome; **left** with Temp chip.
+class _LiveBadgeTopLeading extends StatelessWidget {
+  const _LiveBadgeTopLeading({
+    required this.top,
+    required this.label,
+    this.chromeKey,
+  });
+
+  final double top;
+  final String label;
+  final Key? chromeKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      key: chromeKey,
+      left: kLiveBadgeLeadingInset,
+      top: top,
+      child: IgnorePointer(
+        child: _LiveBadge(label: label),
       ),
     );
   }
@@ -5653,46 +5741,58 @@ class _LiveBadge extends StatelessWidget {
 
   final String label;
 
+  /// Match Browse top-chrome optical centering for the label line box.
+  static const TextHeightBehavior _textHeightBehavior = TextHeightBehavior(
+    applyHeightToFirstAscent: false,
+    applyHeightToLastDescent: false,
+  );
+
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final labelStyle = tokens.labelOnMedia.copyWith(
+      inherit: false,
       height: 1.0,
       shadows: tokens.onMediaLabelShadows,
     );
-    final fontSize = labelStyle.fontSize ?? 12;
-    return Container(
+    // Cap 26.4b: Flutter ShapeDecoration stadium (not Material; not Temp
+    // 32-tall / r16 shell). Left aligns with Temp/Saved via [_LiveBadgeTopLeading].
+    return DecoratedBox(
       key: const Key('mainBrowseLiveBadge'),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: tokens.mediaScrim.withValues(alpha: kStatusChromeScrimOpacity),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: tokens.onMedia.withValues(alpha: kStatusChromeBorderOpacity),
-          width: 1,
+        shape: StadiumBorder(
+          side: BorderSide(
+            color: tokens.onMedia.withValues(alpha: kStatusChromeBorderOpacity),
+            width: kStatusChromeBorderWidth,
+          ),
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          SizedBox(
-            width: fontSize,
-            height: fontSize,
-            child: Center(
-              child: Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: tokens.onMedia, width: 1.5),
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: kLiveBadgeHorizontalPad,
+          vertical: kLiveBadgeVerticalPad,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: kLiveBadgeDotSize,
+              height: kLiveBadgeDotSize,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: tokens.onMedia, width: 1.25),
               ),
             ),
-          ),
-          const SizedBox(width: 6),
-          Text(label, style: labelStyle),
-        ],
+            const SizedBox(width: kLiveBadgeDotLabelGap),
+            Text(
+              label,
+              textHeightBehavior: _textHeightBehavior,
+              style: labelStyle,
+            ),
+          ],
+        ),
       ),
     );
   }

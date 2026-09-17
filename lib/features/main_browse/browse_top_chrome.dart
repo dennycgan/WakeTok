@@ -17,16 +17,16 @@ import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/composition_peek_dismiss.dart';
 import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Shared chrome control metrics (Temp / Saved chip / Built-in / Create / Saved menu).
-const double _kChromeControlHeight = 32;
-const double _kChromeControlHPad = 10;
+/// Shared chrome control metrics — see [kBrowseTopChromeControlHeight] etc.
+/// in `media_chrome_layout.dart` (single source with feed LIVE skeleton).
 const double _kChromeDropdownIconSize = 16;
 /// Cap 26.4b: Limited helper top inset inside the Create Stack.
-/// Below Create glyphs optically; less than `_kChromeControlHeight` so the
-/// caption sits closer than flush-under-hit (owner nudge).
+/// Below Create glyphs optically; less than [kBrowseTopChromeControlHeight] so
+/// the caption sits closer than flush-under-hit (owner nudge).
 const double _kCreateRequiresFullAccessTop = 24;
 
 /// Cap 26.4b L2: Create Limited helper font size (was 9).
@@ -41,24 +41,13 @@ Color _chromeLimitedMuteColor(WakeTokTokens tokens) =>
 /// Locale-dependent (`mainBrowseTempPoolChip` ARB). Used for Temp chip,
 /// Saved chip (name replaces label, centered + ellipsis), and selected
 /// Built-in control so All / Photos / Videos share one capsule size.
-double _chromeTempPoolPillWidth(BuildContext context) {
-  final l10n = AppLocalizations.of(context)!;
-  final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-  final style = _chromeOnMediaLabelStyle(tokens, tokens.accent);
-  final painter = TextPainter(
-    text: TextSpan(text: l10n.mainBrowseTempPoolChip, style: style),
-    textDirection: Directionality.of(context),
-    maxLines: 1,
-    textHeightBehavior: _kChromeTextHeightBehavior,
-  )..layout();
-  return painter.width + 2 * _kChromeControlHPad;
-}
+/// Canonical implementation: [browseTempPoolPillWidth].
+double _chromeTempPoolPillWidth(BuildContext context) =>
+    browseTempPoolPillWidth(context);
 
 /// Drop font leading so glyphs sit in the geometric middle of the fixed hit.
-const TextHeightBehavior _kChromeTextHeightBehavior = TextHeightBehavior(
-  applyHeightToFirstAscent: false,
-  applyHeightToLastDescent: false,
-);
+const TextHeightBehavior _kChromeTextHeightBehavior =
+    kBrowseTopChromeTextHeightBehavior;
 
 TextStyle _chromeOnMediaLabelStyle(WakeTokTokens tokens, Color color) {
   return tokens.labelOnMedia.copyWith(
@@ -94,10 +83,10 @@ Widget _chromeControlShell({
   double? width,
 }) {
   return SizedBox(
-    height: _kChromeControlHeight,
+    height: kBrowseTopChromeControlHeight,
     width: width,
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _kChromeControlHPad),
+      padding: const EdgeInsets.symmetric(horizontal: kBrowseTopChromeControlHPad),
       child: Center(child: child),
     ),
   );
@@ -147,7 +136,9 @@ class BrowseTopChrome extends ConsumerWidget {
 
     final createEnabled =
         ref.watch(photosAuthorizationProvider).value != PhotosAccess.limited;
-    final chromeHeight = createEnabled ? 52.0 : 70.0;
+    final chromeHeight = browseTopChromeBandHeight(
+      limitedCreateHelper: !createEnabled,
+    );
 
     // Cap 26.4b L2: leaving Full→Limited while on Saved would resolve album
     // refs as unauthorized (ADR-021 D3). Fall back to lastRememberedBuiltIn.
@@ -212,7 +203,7 @@ class BrowseTopChrome extends ConsumerWidget {
               switch (chipKind) {
                 BrowseLeftChipKind.hidden => const SizedBox.shrink(),
                 BrowseLeftChipKind.tempPool => Positioned(
-                  left: 8,
+                  left: kLiveBadgeLeadingInset,
                   top: 0,
                   bottom: 0,
                   child: Align(
@@ -230,7 +221,7 @@ class BrowseTopChrome extends ConsumerWidget {
                   ),
                 ),
                 BrowseLeftChipKind.savedPool => Positioned(
-                  left: 8,
+                  left: kLiveBadgeLeadingInset,
                   top: 0,
                   bottom: 0,
                   child: Align(
@@ -382,10 +373,10 @@ class _TempPoolChip extends StatelessWidget {
         color: isActive
             ? tokens.surface.withValues(alpha: 0.92)
             : Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
           child: _chromeControlShell(
             width: _chromeTempPoolPillWidth(context),
             child: _chromeLabelText(
@@ -413,10 +404,10 @@ class _SavedPoolChip extends StatelessWidget {
     return Material(
       key: const Key('mainBrowseSavedPoolChip'),
       color: tokens.surface.withValues(alpha: 0.92),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
         child: _chromeControlShell(
           width: _chromeTempPoolPillWidth(context),
           child: _chromeLabelText(
@@ -474,7 +465,7 @@ class _CreateControl extends StatelessWidget {
           if (!enabled)
             Positioned(
               top: _kCreateRequiresFullAccessTop,
-              right: _kChromeControlHPad,
+              right: kBrowseTopChromeControlHPad,
               child: Text(
                 key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
                 l10n.mainBrowseCreatePoolRequiresFullAccess,
@@ -533,10 +524,10 @@ class _BuiltInControl extends StatelessWidget {
           color: highlightAsSelected
               ? tokens.surface.withValues(alpha: 0.92)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
           child: InkWell(
             onTap: () => _openBuiltInOverlay(context),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
             child: _chromeControlShell(
               // Cap 26.4b: selected Built-in uses Temp Pool pill width so
               // All / Photos / Videos do not grow different capsules.

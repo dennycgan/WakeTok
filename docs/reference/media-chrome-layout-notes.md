@@ -5,7 +5,9 @@
 > polish (see §11; keep in sync with `browse_top_chrome.dart` /
 > `main_browse_shell_page.dart`). Cap **26.4b** selected-capsule standard:
 > §**11.3.1**; action-column disabled opacity: §**7.1** (Share lock **0.22**);
-> top chrome Scheme **A** + Limited Saved mute / Create helper **8pt**: §**11.3**.  
+> top chrome Scheme **A** + Limited Saved mute / Create helper **8pt**: §**11.3**;
+> media-area **text-bottom** lock (Meta row-3 ≡ scrubber timestamp): §**2**;
+> Cap **26.4b** LIVE **top-leading** under Browse band (not bottom-trailing): §**2** / §**6**.  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -33,17 +35,19 @@
 
 ```
 ┌─────────────────────────────────────────────┐
-│                                             │
+│  ┌ LIVE ┐  ← top: padding.top + band(52|70) + gap 0; left 8 (= Temp chip)
 │                    media                    │
 │                                             │
 │  ┌ Reset pill ─┐              ┌ actions ┐   │
 │  │             │              │  album  │   │  ← i=2
 │  └─────────────┘              │  share  │   │  ← i=1
-│  row1 relative                │   …     │   │  ← i=0 lowest
-│  row2 exact                   └─────────┘   │
-│  row3 characteristics    ┌ LIVE (+ replay) ┐│
-│  ──────── meta (3 rows, MVP) ───────────────│
-│              scrubber / chrome band         │
+│                               │   …     │   │  ← i=0 (= Reset bottom)
+│  gap 12                       └─────────┘   │
+│  row1 relative                              │
+│  row2 exact                                 │
+│  row3 characteristics          ┌ spinner ┐  │  ← bottom-trailing; no LIVE lift
+│  ──────── meta (3 rows, MVP) ───────────────│  ← text-bottom ≡ timestamp (10)
+│         scrubber / resident timestamp band  │
 └─────────────────────────────────────────────┘
 ```
 
@@ -51,13 +55,13 @@
 |------|------------|---------------|
 | **1 Meta** | Fixed **3** rows bottom-leading: relative / exact / characteristics | `media_info_overlay.dart` |
 | **2 Reset** | Magnification force-fit pill; visible only while still magnified | `magnification_reset_button.dart` |
-| **3 LIVE** | Live Photo status capsule trailing; Cap 26 long-press replay (no trailing button) | `vertical_media_feed.dart` `_LiveBadge` / `_FeedCornerChrome`; `Cap26LiveLongPressGesture` |
+| **3 LIVE** | Live Photo status capsule (**top-leading** in media Stack). Replay = Cap 26 media-area long-press (ADR-052) | `vertical_media_feed.dart` `_LiveBadge` / `_LiveBadgeTopLeading`; `Cap26LiveLongPressGesture` |
 | **4 Action column** | Bottom-up: i=0 Cap 24 `"…"`; i=1 Cap 25 Share; i=2 Cap 19 album | `cap24_more_entry_icon.dart` / `cap25_share_entry_icon.dart` / `cap19_entry_icon.dart` |
 
 **MVP exclusions (locked):**
 
-- LIVE long-press replay (Cap 26 / ADR-052): media-area hold; **no** trailing
-  control left of LIVE. Do not reserve horizontal space for a replay button.
+- Live Photo replay is **media-area long-press only** (Cap 26 / ADR-052). LIVE
+  chrome is the status capsule; there is no separate replay control in this zone.
 - Overlay does **not** grow a Location (row 4). `locationLabel` may still exist on the snapshot for a **future** long-press half-sheet — do not re-enable Overlay row 4 without owner OK.
 
 ---
@@ -68,38 +72,49 @@ All vertical positions below are **feed-bottom insets** unless noted (larger = h
 
 | Contract | Meaning | Formula / constant |
 |----------|---------|-------------------|
-| Meta column bottom | Overlay padding bottom | `mainBrowseMediaOverlayBottomInset(tokens)` |
+| Meta column bottom | Overlay padding bottom = **row-3 text bottom** | `mainBrowseMediaOverlayBottomInset` ≡ `mainBrowseScrubberTimestampBottomInset` (**10** today) |
 | Meta row-3 **text** bottom | Same as column bottom (glyphs **bottom-aligned** in each 20pt row) | row box bottom |
-| LIVE capsule **outer** bottom | Align with meta row-3 text bottom | `mainBrowseLiveStatusBottomInset` ≡ overlay bottom inset |
+| Scrubber resident timestamp **text** bottom | Track height + gap above track | `kScrubProgressTrackHeight` + `kMainBrowseScrubberTimestampAboveTrackGap` = **4 + 6 = 10** |
+| LIVE **top** | Top-chrome band bottom + gap | `mainBrowseLiveBadgeTopInset` = `padding.top` + `browseTopChromeBandHeight` (**52**\|**70**) + `kLiveBadgeBelowTopChromeGap` (**0**) |
+| LIVE **left** | Align with Temp/Saved chip left | `kLiveBadgeLeadingInset` (**8**) |
+| Chip show/hide | Does **not** move LIVE | Same top/left (chip presence does not change geometry) |
+| Wait spinner / “Still loading” row bottom | Same edge as Overlay/timestamp (no LIVE lift) | `_FeedCornerChrome` `statusBottom` ≡ `mainBrowseLiveStatusBottomInset`. Cap 26.4b: spinner gated by `_suppressStillCoverWaitChrome` (broken-only); Meta by `_suppressStillCoverMeta` |
 | Reset visual bottom | `overlayBottom + 3×rowHeight + gap` | see §5 |
 | Lowest action **icon** bottom (Cap 24 `"…"`) | Align with Reset visual bottom | `mainBrowseActionColumnLowestBottomInset` (hit box bottom = that − 8; see §7) |
-| Reset ↔ meta gap | Reset bottom → Overlay row-1 **top** | `kResetAboveMetaGap` (**12**) |
+| Reset ↔ meta gap | Reset bottom → Overlay row-1 **top** | `kResetAboveMetaGap` (**12**) — **relative contract; does not change when overlayBottom moves** |
 | Leading content | Meta text left; Reset pill outer left | `kMediaChromeLeadingInset` (**16**) |
-| Trailing chrome | Action + LIVE | `kMediaChromeTrailingInset` (**12**) |
+| Trailing chrome | Action column only (LIVE left top) | `kMediaChromeTrailingInset` (**12**) |
 
 **Derived Overlay trailing inset** (keep meta clear of right chrome):
 
 ```
 kMediaChromeOverlayTrailingInset
-  = max(trailing + actionHit, trailing + LIVE reserve) + clearance
-  = max(12+48, 12+80) + 16
-  = 108   // with current constants
+  = trailing + actionHit + clearance
+  = 12 + 48 + 16
+  = 76   // Cap 26.4b: LIVE no longer in trailing max()
 ```
 
-**Overlay bottom inset** (ties meta to scrubber timestamp geometry; Cap 18.x):
+**Overlay bottom inset (Cap 26.4b text-bottom lock):**
 
 ```
 timestampBottom = kScrubProgressTrackHeight + kMainBrowseScrubberTimestampAboveTrackGap
                 = 4 + 6 = 10
-lineHeight      = labelOnMedia.fontSize × height = 12 × 1.2 = 14.4
-timestampCenter = 10 + 14.4/2 = 17.2
-overlayBottom   = timestampCenter − rowHeight/2 = 17.2 − 10 = 7.2
+overlayBottom   = timestampBottom = 10
 ```
 
-If scrubber track / label metrics change, meta + LIVE + Reset + actions all move together via the helpers — do not patch one zone with a magic number.
+**Supersedes** the Cap 18.x “row-3 **box center** = timestamp **center**” formula
+(`timestampCenter − rowHeight/2` ≈ 7.2). That centered the 20pt row box on the
+timestamp mid-line while Meta glyphs are bottom-aligned, so row-3 **text** sat
+~2.8pt below the resident timestamp. Contract is now **text bottom = text bottom**.
 
-**Guard test:** `test/features/main_browse/live_badge_meta_align_test.dart`  
-(LIVE outer bottom ≈ Overlay row-3 bottom in a sibling Stack).
+If scrubber track / gap metrics change, meta + Reset + actions + corner
+wait chrome all move together via the helpers — do not patch one zone with a
+magic number. LIVE top uses Browse band helpers (`mainBrowseLiveBadgeTopInset`),
+not the scrubber/meta bottom edge. Do **not** retune timestamp geometry in the
+same pass as a pure inset lock unless the owner reopens that scope.
+
+**Guard tests:** `U-18.5-F1` (overlay bottom ≡ timestamp bottom);
+`live_badge_meta_align_test.dart` (LIVE top ≡ band+gap **0**; left ≡ Temp leading **8**).
 
 ---
 
@@ -127,15 +142,15 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 | Row height | **20** | `MediaInfoOverlay.rowHeight` |
 | Column height | **60** | `columnHeightFor` always `3×20` (ignores `locationLabel`) |
 | Leading | **16** | `kMediaChromeLeadingInset` |
-| Trailing | **108** (derived) | `kMediaChromeOverlayTrailingInset` |
-| Bottom | **~7.2** (derived) | `mainBrowseMediaOverlayBottomInset` |
-| Text align in row | **bottomLeft** | so text bottom = row bottom = LIVE bottom |
+| Trailing | **76** (derived) | `kMediaChromeOverlayTrailingInset` (action only) |
+| Bottom | **10** (derived) | `mainBrowseMediaOverlayBottomInset` ≡ timestamp text bottom |
+| Text align in row | **bottomLeft** | so text bottom = row bottom = timestamp text bottom |
 | Copy | relative / exact / characteristics | Cap 8.5 formatters |
 
 **To adjust:**
 
 - Tighter/looser line stack → `rowHeight` (also moves Reset / actions / LIVE math).  
-- Move whole block up/down → scrubber geometry helpers or accept changing `overlayBottom` formula.
+- Move whole block up/down → change scrubber **timestamp bottom** inputs (track height / gap) or accept a new owner lock on `overlayBottom`; do **not** reintroduce center-vs-text mismatch.
 
 ---
 
@@ -144,8 +159,8 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 | Parameter | Value | Symbol / notes |
 |-----------|-------|----------------|
 | Show when | Still magnified only | `browseStillMagnifiedProvider` |
-| Above meta gap | **12** | `kResetAboveMetaGap` |
-| Bottom (visual) | `overlayBottom + 60 + 12` ≈ **79.2** | Reset `Padding.bottom` |
+| Above meta gap | **12** | `kResetAboveMetaGap` (Reset bottom → Overlay **row-1 top**; relative lock) |
+| Bottom (visual) | `overlayBottom + 60 + 12` = **82** today | Reset `Padding.bottom` (moves with overlayBottom) |
 | Fill | mid gray ~80% | `tokens.onMediaPillFill` = `Color(0xCC6E6E6E)` L=D |
 | Border | **none** (owner lock) | — |
 | Horizontal pad | **10** | `kResetPillHorizontalPad` |
@@ -174,31 +189,39 @@ Changing meta size without changing Reset/LIVE will break the “same chrome typ
 
 ## 6. Zone 3 — LIVE status
 
-Live Photo status pill (bottom-trailing). Cap 26 replay is **media-area
-long-press** (ADR-052) — not a control leading of LIVE. Do **not** widen
-`kStatusChromeReservedWidth` for a trailing replay button.
+Live Photo status pill (**top-leading** in the media Stack — **not** a
+`browse_top_chrome` / shell child). Cap 26 replay is **media-area long-press**
+on the still (ADR-052); this zone is status chrome only.
 
 | Parameter | Value | Symbol / notes |
 |-----------|-------|----------------|
-| Trailing | **12** | `kMediaChromeTrailingInset` |
-| Bottom | = Overlay bottom ≈ **7.2** | `mainBrowseLiveStatusBottomInset` |
-| Fill | `mediaScrim` × **0.78** | `kStatusChromeScrimOpacity` |
-| Border | `onMedia` × **0.45**, width **1** | `kStatusChromeBorderOpacity` |
-| Corner radius | **12** | `_LiveBadge` |
-| Pad H / V | **8** / **5** | `_LiveBadge` |
-| Dot | **8×8**, stroke **1.5** | centered in `fontSize` box |
-| Dot↔LIVE gap | **6** | |
+| Top | `padding.top` + band (**52**\|**70**) + **0** | `mainBrowseLiveBadgeTopInset` / `kLiveBadgeBelowTopChromeGap` |
+| Left | **8** | `kLiveBadgeLeadingInset` (= Temp/Saved chip left) |
+| Horizontal | **left**-aligned with Temp chip | Content-sized capsule; not centerX on Temp pill width |
+| Band height | **52** Full / **70** Limited+Create helper | `browseTopChromeBandHeight` — **same** predicate as `BrowseTopChrome` |
+| Chip show/hide | Does **not** move LIVE | Stable top + left (even when chip hidden) |
+| Height / width | **Content-sized** | Pad H **8** / V **3** (`kLiveBadgeHorizontalPad` / `kLiveBadgeVerticalPad`); stadium follows content — **not** Temp 32 shell |
+| Corner radius | Stadium (½ height) | `ShapeDecoration` + `StadiumBorder` (not `Material`; not Temp r16 shell) |
+| Dot | **6×6**, stroke **1.25** | `kLiveBadgeDotSize` |
+| Dot↔LIVE gap | **6** | `kLiveBadgeDotLabelGap` |
+| Width | Content-adaptive | Dot + gap + “LIVE”; **not** Temp fixed pill width |
+| Fill | `mediaScrim` × **0.55** | `kStatusChromeScrimOpacity` — **not** `surface@0.92` |
+| Border | `onMedia` × **0.45**, width **1.0** | `kStatusChromeBorderOpacity` / `kStatusChromeBorderWidth` |
 | Label | l10n `mainBrowseLiveBadge` | `labelOnMedia` with `height: 1.0` |
-| Width reserve (overlay clear) | **80** | `kStatusChromeReservedWidth` |
-| Above spinner (when wait chrome) | badge lifts by **8 + 16** | `kStatusChromeBadgeAboveSpinnerGap` + `_spinnerSize` |
+| Motion play | **Visible**, painted **above** Live PV | Stack: still → PV → spinner → LIVE (no hide; no PV peek) |
+| Magnification | **Hidden** | `BrowseMagnificationState.hasActiveMagnification` (settled / transient pinch / still contact) |
+
+**Retired (Cap 26.4b move):** bottom-trailing pin; `kStatusChromeReservedWidth`
+in Overlay trailing `max()`; `badgeAboveSpinner` lift.
 
 **To adjust:**
 
 | Want | Change |
 |------|--------|
-| Stronger shell on black | ↑ scrim opacity and/or border opacity |
-| Move with meta | do **not** hard-code bottom — keep helper ≡ overlay inset |
-| Content centering | pad V, label `height`, dot box |
+| Closer/farther under top chrome | `kLiveBadgeBelowTopChromeGap` (**0** today) |
+| CenterX on Temp pill width (retire left) | owner pass — was briefly tried then reverted |
+| Tighter/looser content pad | `kLiveBadgeHorizontalPad` / `kLiveBadgeVerticalPad` |
+| Stronger shell on media | ↑ scrim / border opacity (fill recipe stays separate from Temp surface) |
 
 ---
 
@@ -221,7 +244,7 @@ long-press** (ADR-052) — not a control leading of LIVE. Do **not** widen
 resetBottom = overlayBottom + 3×20 + kResetAboveMetaGap
 iconCenterInset = (48 − 32) / 2 = 8
 actionLowestBottom (Positioned) = resetBottom − 8
-≈ 79.2 − 8 = 71.2   // with current overlayBottom ≈ 7.2
+= 82 − 8 = 74   // with overlayBottom = 10 (text-bottom lock)
 ```
 
 So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt below the icon.
@@ -251,7 +274,7 @@ control type, not copy the nearest number.
 
 **Code:** `cap19_entry_layout.dart` (`kActionColumnEntryIconDisabledOpacity`); consumers in `cap19_entry_icon.dart`, `cap25_share_entry_icon.dart`, `cap24_more_entry_icon.dart`.
 
-**Deviation from earlier “keep bottom inset = 88” lock:** an earlier layout decision point said keep Cap 19’s fixed **`kActionColumnBottomInset = 88`** and not micro-tune it. During final device polish, tying the lowest action **icon** bottom to Reset (`resetBottom − 8`, ≈71.2 today) read better and keeps the column moving with meta/Reset instead of a second magic number. **This notes file records that deliberate override** — it was not the original plan; owner accepted it after on-device review (“大概满意”). Do not “restore 88” without a new owner pass.
+**Deviation from earlier “keep bottom inset = 88” lock:** an earlier layout decision point said keep Cap 19’s fixed **`kActionColumnBottomInset = 88`** and not micro-tune it. During final device polish, tying the lowest action **icon** bottom to Reset (`resetBottom − 8`, **74** today with text-bottom overlay) read better and keeps the column moving with meta/Reset instead of a second magic number. **This notes file records that deliberate override** — it was not the original plan; owner accepted it after on-device review (“大概满意”). Do not “restore 88” without a new owner pass.
 
 **To adjust:**
 
@@ -272,13 +295,20 @@ control type, not copy the nearest number.
 | `kMediaChromeLeadingInset` | 16 |
 | `kMediaChromeTrailingInset` | 12 |
 | `kMediaChromeOverlayClearance` | 16 |
-| `kStatusChromeReservedWidth` | 80 |
+| `kMediaChromeOverlayTrailingInset` | **76** (derived: 12+48+16) |
+| `kBrowseTopChromeControlHeight` | 32 |
+| `kBrowseTopChromeControlHPad` | 10 |
+| `kBrowseTopChromeControlCornerRadius` | 16 |
+| `kBrowseTopChromeBandHeightFull` | 52 |
+| `kBrowseTopChromeBandHeightLimited` | 70 |
+| `kLiveBadgeBelowTopChromeGap` | **0** |
+| `kLiveBadgeLeadingInset` | 8 |
 | `kActionColumnIconSize` | 32 |
 | `kActionColumnHitSize` | 48 |
 | `kActionColumnItemSpacing` | 16 |
-| `kStatusChromeScrimOpacity` | 0.78 |
+| `kStatusChromeScrimOpacity` | **0.55** |
 | `kStatusChromeBorderOpacity` | 0.45 |
-| `kStatusChromeBadgeAboveSpinnerGap` | 8 |
+| `kStatusChromeBorderWidth` | **1.0** |
 | `kResetMinHitEdge` | 44 |
 | `kResetAboveMetaGap` | 12 |
 | `kResetPillHorizontalPad` | 10 |
@@ -312,7 +342,7 @@ control type, not copy the nearest number.
 3. Reset fill = **gray** (`onMediaPillFill`), **no** border; LIVE keeps **scrim + border**.  
 4. Reset icon = **Cupertino** clockwise at **`fontSize + 2`** (≈14 today; not the old layout lock of 28); no one-off CustomPaint unless owner asks again.  
 5. Action column icon size **32** / hit **48** accepted (independent of Reset glyph size).  
-6. LIVE bottom ↔ meta last-line text bottom (helpers + bottom-aligned rows).  
+6. LIVE **top** lock: band bottom + gap **0**; **left** **8** with Temp chip; **content-sized** `ShapeDecoration` stadium (not Material; not Temp 32 shell); spinner independent bottom-trailing; A2a honesty residual still §13.  
 7. Action column lowest icon follows Reset (formula), **not** the retired fixed `88` inset — see §7 deviation note.  
 8. Competitor naming in git/docs: **Video-App-B** / **Photo-App-A** only.
 
@@ -320,11 +350,11 @@ control type, not copy the nearest number.
 
 ## 10. Device check checklist (after any retune)
 
-1. Black still + light still: Reset gray shell readable; LIVE shell readable.  
+1. Black still + light still: Reset gray shell readable; LIVE shell readable (top-leading).  
 2. Magnified: Reset gap above row 1 feels like 12.  
 3. Album icon bottom vs Reset bottom.  
-4. LIVE outer bottom vs row-3 text bottom (Live Photo).  
-5. **Longest realistic row-3 copy** (e.g. Live Photo label + file size via `mediaInfoCharacteristicsJoined`) must **not** collide with trailing LIVE / action chrome under the derived trailing inset (**108** today: was a hard-coded ~123 reserve; formula + 32/48 action + LIVE reserve must still clear on device).  
+4. LIVE top vs Browse band bottom + **0**; left **8** with Temp; Limited band **70** does not bury LIVE in Create helper.  
+5. **Longest realistic row-3 copy** must **not** collide with action chrome under trailing inset (**76**).  
 6. Run: `live_badge_meta_align_test`, Cap 20 still Reset tests (`T-20.3-1` included), `test/architecture/`.  
 7. If chrome layout goldens under `media_chrome_preview/` changed: re-run `flutter test --update-goldens` on this machine and eyeball the diff before committing. These goldens are local-only / manual (no CI). Debt **449** is the repo-wide “no push CI for `flutter test`” gap — not a chrome-only debt.
 
@@ -373,18 +403,21 @@ control type, not copy the nearest number.
 
 ### 11.3 Top chrome layout metrics
 
-Constants in `browse_top_chrome.dart` (file-private today; change there, then
-update this section). Cap **26.4b** freezes the **selected capsule** recipe
-below so later surfaces (e.g. Clips chrome) can copy it without re-deriving.
+Constants for band height / control height / H pad / corner radius live in
+`media_chrome_layout.dart` (**shared** with feed LIVE skeleton). Cap **26.4b**
+freezes the **selected capsule** recipe below so later surfaces (e.g. Clips
+chrome) can copy it without re-deriving. LIVE is **not** one of the four top
+controls — it only **reads** these metrics for top-leading alignment.
 
 | Symbol | Value | Role |
 |--------|-------|------|
-| `_kChromeControlHeight` | **32** | Fixed hit / pill **height** (Temp, Saved chip, Built-in, Saved menu, Create label) |
-| `_kChromeControlHPad` | **10** | Horizontal padding inside the hit (left + right) |
-| `_chromeTempPoolPillWidth(context)` | see §11.3.1 | Cap **26.4b** fixed pill **width** |
+| `kBrowseTopChromeControlHeight` | **32** | Fixed hit / pill **height** (Temp, Saved chip, Built-in, Saved menu, Create label) |
+| `kBrowseTopChromeControlHPad` | **10** | Horizontal padding inside the hit (left + right) |
+| `kBrowseTopChromeControlCornerRadius` | **16** | Full-capsule radius for height-32 pills |
+| `_chromeTempPoolPillWidth` / `browseTempPoolPillWidth` | see §11.3.1 | Cap **26.4b** fixed pill **width** (Temp/Saved/Built-in selected) |
 | `_kChromeDropdownIconSize` | **16** | `Icons.arrow_drop_down` next to Built-in / Saved labels |
-| Chrome band height | **52** (Full) / **70** (Limited + Create helper only) | `SizedBox` under `SafeArea`. **No** third tier — L1 dual-row + Open Settings deferred (debt **421**). |
-| Leading chip inset | **8** | `Positioned(left: 8)` for Temp / Saved chip |
+| `browseTopChromeBandHeight` | **52** (Full) / **70** (Limited + Create helper only) | `SizedBox` under `SafeArea`. **No** third tier — L1 dual-row + Open Settings deferred (debt **421**). Feed LIVE top uses the same helper. |
+| Leading chip inset / `kLiveBadgeLeadingInset` | **8** | `Positioned(left: 8)` for Temp / Saved chip **and** LIVE |
 | Create inset | **8** | `Positioned(right: 8)` |
 | Center-pair gap | **12** | Between Built-in and Saved menu |
 | Create Limited helper font | **8** | `_kCreateRequiresFullAccessFontSize` (Cap **26.4b** L2; was 9) |
@@ -614,9 +647,24 @@ not a product claim that row 4 is Location’s home.
 
 On iCloud stills, L2 often replaces the L1 cover **file path**. Cap 23.4
 `_trackStillCoverPath` cleared `_stillCoverReady` on every path change, so
-`_suppressStillCoverChrome` briefly removed the entire Meta Overlay
+`_suppressStillCoverMeta` briefly removed the entire Meta Overlay
 (row1–3 flash) even though Cap 15.5 `_ReloadableFileImage` already uses
 `gaplessPlayback: true` (prior frame stays until the new decode).
+
+**Cap 26.4b:** corner wait spinner + LIVE use a **separate** gate
+`_suppressStillCoverWaitChrome` (decode-**broken** only). Unresolved cover
+(no first frame yet) still hides Meta but **keeps** spinner/LIVE when wait
+policy would already show them — avoids suppress tearing the spinner off LIVE.
+
+**Cap 26.4b A2a (force spinner):** when cover is unresolved **and** Host work
+is outstanding (`_layer2InFlight || _livePreparing`), force the corner spinner
+even if wait-chrome &lt;T (still a2 G) or Live prepare F1 would suppress. This
+closes the miss→media “LIVE-alone on black” handoff when a real request is
+in flight. **Known accepted residual (honesty):** `unresolved ∧ !_layer2InFlight
+∧ !_livePreparing` deliberately does **not** force a spinner — no Host work,
+no fake busy chrome (same attitude as ADR-015 nil honesty). Not an oversight;
+revisit only if that narrow combo is seen as product-visible without either
+flag.
 
 ### 13.2 Locked rule (Cap 26.4a)
 
@@ -628,12 +676,15 @@ on path change:
 - `_stillCoverReady` was already true
 - `_stillCoverDecodeBroken` is false
 
-Otherwise keep Cap 23.4 behaviour (clear ready → Overlay suppressed until
-the next successful frame / broken handling).
+Otherwise keep Cap 23.4 behaviour for **Meta** (clear ready → Overlay
+suppressed until the next successful frame / broken handling). Wait chrome
+follows Cap 26.4b (broken-only).
 
-**Explicitly unchanged:** decode-broken hide; first paint before any ready
-frame; page / asset change; Overlay field progressive join; half-sheet §12;
-video poster path tracking (debt **472** Closed — residual above).
+**Explicitly unchanged:** decode-broken hide of Meta + wait chrome + LIVE;
+first paint before any ready frame (Meta only); page / asset change; Overlay
+field progressive join; half-sheet §12; video poster path tracking (debt
+**472** Closed — residual above). F1 &lt;T Live-prepare suppress (ADR-034/037)
+is out of Cap 26.4b gate split.
 
 **Do not** reopen Overlay row 4 or change Meta copy in this phase.
 

@@ -9,6 +9,7 @@ import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -294,7 +295,7 @@ void main() {
   });
 
   testWidgets(
-    'W-17.5b-live LIVE badge stacks above spinner/reassure and pins trailing',
+    'W-17.5b-live LIVE top-leading; spinner/reassure stay bottom-trailing',
     (tester) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -334,8 +335,7 @@ void main() {
         findsNothing,
       );
 
-      // Corner collision lock: LIVE above spinner/reassure (not a side-by-side
-      // row that recreates the horizontal LIVE|reassure|spinner clash).
+      // Cap 26.4b: LIVE is top-leading; spinner/reassure stay bottom-trailing.
       final live = tester.getRect(find.byKey(const Key('mainBrowseLiveBadge')));
       final spinner = tester.getRect(
         find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
@@ -345,19 +345,23 @@ void main() {
       );
       expect(
         live.bottom,
-        lessThanOrEqualTo(spinner.top),
-        reason: 'LIVE must stack above the gold spinner',
+        lessThan(spinner.top),
+        reason: 'LIVE top-leading must sit above bottom-trailing spinner',
       );
       expect(
         live.bottom,
-        lessThanOrEqualTo(reassure.top),
-        reason: 'LIVE must stack above corner reassure copy',
+        lessThan(reassure.top),
+        reason: 'LIVE top-leading must sit above bottom-trailing reassure',
       );
-      // Independent trailing pin (not sized against the spinner row).
       expect(
-        live.right,
-        closeTo(spinner.right, 0.5),
-        reason: 'LIVE and spinner share the same trailing edge (inset)',
+        live.left,
+        closeTo(kLiveBadgeLeadingInset, 0.5),
+        reason: 'LIVE left matches Temp/Saved chip leading inset',
+      );
+      expect(
+        spinner.right,
+        greaterThan(live.right),
+        reason: 'spinner remains trailing; LIVE is leading',
       );
       expect(find.text(l10n.mainBrowseLiveBadge), findsWidgets);
     },

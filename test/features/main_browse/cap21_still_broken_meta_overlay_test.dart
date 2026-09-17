@@ -8,6 +8,7 @@ import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/features/main_browse/wait_chrome_policy.dart';
@@ -16,12 +17,17 @@ import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
 
-/// Cap 21.6 residual: hide MediaInfoOverlay **and** Layer-2 corner spinner
-/// while still/poster has no decoded frame yet or decode is broken — without
+/// Cap 21.6 residual (narrowed Cap 26.4b): hide MediaInfoOverlay while
+/// still/poster has no decoded frame yet **or** decode is broken — without
 /// coupling hide to [_layer2InFlight] alone (normal L2 wait with a painted
 /// cover keeps Meta + spinner).
 ///
-/// Policy seams call [MediaFeedPageState.debugForceStillCoverDecodeBroken].
+/// Cap 26.4b: corner wait spinner (and LIVE badge) stay visible while the
+/// cover is only **unresolved**; decode-**broken** still hides Meta +
+/// spinner + LIVE. Unresolved-only spinner hide was the LIVE-alone flash.
+///
+/// Policy seams call [MediaFeedPageState.debugForceStillCoverDecodeBroken]
+/// / [MediaFeedPageState.debugForceStillCoverUnresolved].
 /// Integration seams drive real [Image.errorBuilder] via a missing file path
 /// (Cap 15.13 pattern) and A-class clear via production [_reloadPreviewFile].
 
@@ -264,6 +270,231 @@ void main() {
       );
       expect(page.debugStillCoverReady, isTrue);
       expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'W-26.4b-unresolved-keeps-spinner: Meta hidden, Layer3 spinner stays',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final ok = _writeTempPngSync('26_4b_unresolved_ok');
+      final page = await _pumpPhotosHeadPage(
+        tester,
+        display: display,
+        headPath: ok,
+      );
+      await _pumpUntilStillCoverReady(tester, page);
+
+      page.debugForceLayer2WaitChrome(
+        path: WaitChromePathClass.a2WaitToPlayable,
+        elapsed: const Duration(milliseconds: 200),
+      );
+      await tester.pump();
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
+      );
+
+      page.debugForceStillCoverUnresolved();
+      await tester.pump();
+      expect(page.debugStillCoverReady, isFalse);
+      expect(page.debugStillCoverDecodeBroken, isFalse);
+      expect(
+        find.byKey(const Key('mediaInfoOverlay')),
+        findsNothing,
+        reason: 'unresolved still suppresses Meta',
+      );
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
+        reason: 'Cap 26.4b: unresolved must not hide corner spinner',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-26.4b-live-unresolved-keeps-spinner: LIVE + spinner, no Meta',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final ok = _writeTempPngSync('26_4b_live_unresolved_ok');
+      final page = await _pumpPhotosHeadPage(
+        tester,
+        display: display,
+        headPath: ok,
+      );
+      await _pumpUntilStillCoverReady(tester, page);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      page.debugForceLayer2WaitChrome(
+        path: WaitChromePathClass.a2WaitToPlayable,
+        elapsed: const Duration(milliseconds: 200),
+        mediaKind: FeedPageMediaKind.still,
+        stillPlaybackKind: PlaybackMediaKind.livePhoto,
+      );
+      await tester.pump();
+      page.debugForceStillCoverUnresolved();
+      await tester.pump();
+
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+      expect(
+        find.byKey(Key('mainBrowseFeedLivePreparing_$head')),
+        findsOneWidget,
+        reason: 'unresolved Live must keep prepare/wait spinner',
+      );
+      expect(
+        find.byKey(Key('mainBrowseFeedLiveChrome_$head')),
+        findsOneWidget,
+        reason: 'LIVE badge may stay with spinner while cover unresolved',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-26.4b-live-broken-hides-live: Meta + spinner + LIVE all gone',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final ok = _writeTempPngSync('26_4b_live_broken_ok');
+      final page = await _pumpPhotosHeadPage(
+        tester,
+        display: display,
+        headPath: ok,
+      );
+      await _pumpUntilStillCoverReady(tester, page);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      page.debugForceLayer2WaitChrome(
+        path: WaitChromePathClass.a2WaitToPlayable,
+        elapsed: const Duration(milliseconds: 200),
+        mediaKind: FeedPageMediaKind.still,
+        stillPlaybackKind: PlaybackMediaKind.livePhoto,
+      );
+      await tester.pump();
+      expect(
+        find.byKey(Key('mainBrowseFeedLiveChrome_$head')),
+        findsOneWidget,
+      );
+
+      page.debugForceStillCoverDecodeBroken(true);
+      await tester.pump();
+
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+      expect(
+        find.byKey(Key('mainBrowseFeedLivePreparing_$head')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(Key('mainBrowseFeedLiveChrome_$head')),
+        findsNothing,
+        reason: 'decode-broken hides LIVE with Meta/spinner',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-26.4b-A2a-l2-below-T: unresolved + layer2InFlight forces spinner',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final ok = _writeTempPngSync('26_4b_a2a_l2');
+      final page = await _pumpPhotosHeadPage(
+        tester,
+        display: display,
+        headPath: ok,
+      );
+      await _pumpUntilStillCoverReady(tester, page);
+
+      // Still a2 G: elapsed < T ⇒ evaluateWaitChrome paint path false.
+      page.debugForceLayer2WaitChrome(
+        path: WaitChromePathClass.a2WaitToPlayable,
+        elapsed: const Duration(milliseconds: 50),
+      );
+      page.debugForceStillCoverUnresolved();
+      await tester.pump();
+
+      expect(page.debugStillCoverReady, isFalse);
+      expect(page.debugStillCoverDecodeBroken, isFalse);
+      expect(page.debugLayer2InFlight, isTrue);
+      expect(page.debugLivePreparing, isFalse);
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsOneWidget,
+        reason: 'A2a: unresolved ∧ _layer2InFlight forces spinner under G <T',
+      );
+    },
+  );
+
+  testWidgets(
+    'W-26.4b-A2a-live-F1: unresolved + livePreparing forces spinner',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final ok = _writeTempPngSync('26_4b_a2a_live_f1');
+      final page = await _pumpPhotosHeadPage(
+        tester,
+        display: display,
+        headPath: ok,
+      );
+      await _pumpUntilStillCoverReady(tester, page);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      page.debugForceLayer2WaitChrome(
+        path: WaitChromePathClass.a2WaitToPlayable,
+        elapsed: const Duration(milliseconds: 200),
+        mediaKind: FeedPageMediaKind.still,
+        stillPlaybackKind: PlaybackMediaKind.livePhoto,
+      );
+      await tester.pump();
+      page.debugCompleteLayer2InFlightForSuccess();
+      page.debugForceStillCoverUnresolved();
+      final generation = page.debugBeginLiveMotionGate();
+      page.debugSetLivePreparing(generation, true);
+      // Do not pump past F1 T — raw _showLiveLoadSpinner must stay false.
+      await tester.pump();
+
+      expect(page.debugLayer2InFlight, isFalse);
+      expect(page.debugLivePreparing, isTrue);
+      expect(page.debugStillCoverReady, isFalse);
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+      expect(
+        find.byKey(Key('mainBrowseFeedLivePreparing_$head')),
+        findsOneWidget,
+        reason: 'A2a: unresolved ∧ _livePreparing forces spinner under F1',
+      );
+      expect(
+        find.byKey(Key('mainBrowseFeedLiveChrome_$head')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-26.4b-A2a-honesty: unresolved without host work does not force spinner',
+    (tester) async {
+      final display = FakeMediaDisplayRepository();
+      final ok = _writeTempPngSync('26_4b_a2a_honesty');
+      final page = await _pumpPhotosHeadPage(
+        tester,
+        display: display,
+        headPath: ok,
+      );
+      await _pumpUntilStillCoverReady(tester, page);
+
+      page.debugForceStillCoverUnresolved();
+      await tester.pump();
+
+      expect(page.debugStillCoverReady, isFalse);
+      expect(page.debugStillCoverDecodeBroken, isFalse);
+      expect(page.debugLayer2InFlight, isFalse);
+      expect(page.debugLivePreparing, isFalse);
+      expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
+      expect(
+        find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
+        findsNothing,
+        reason: 'honesty: unresolved alone must not fake a spinner',
+      );
     },
   );
 }

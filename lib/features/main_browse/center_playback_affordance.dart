@@ -29,23 +29,21 @@ double mainBrowseScrubberTimestampBottomInset() {
   return kScrubProgressTrackHeight + kMainBrowseScrubberTimestampAboveTrackGap;
 }
 
-/// Vertical center of scrubber timestamp line measured from feed bottom.
-double mainBrowseScrubberTimestampCenterFromFeedBottom(WakeTokTokens tokens) {
-  return mainBrowseScrubberTimestampBottomInset() +
-      mainBrowseScrubberTimestampLineHeight(tokens) / 2;
-}
-
-/// Positions overlay row 3 center on scrubber timestamp center (rows 1–2 keep
-/// uniform [MediaInfoOverlay.rowHeight] spacing above).
+/// Positions Overlay column so **row-3 text bottom** matches scrubber resident
+/// timestamp **text bottom** (Cap 26.4b text-bottom lock).
+///
+/// Meta rows bottom-align glyphs in [MediaInfoOverlay.rowHeight] slots, so the
+/// column padding bottom equals row-3 text bottom. Wait-spinner chrome shares
+/// this edge via [mainBrowseLiveStatusBottomInset] (LIVE is top-leading).
 double mainBrowseMediaOverlayBottomInset(WakeTokTokens tokens) {
-  return mainBrowseScrubberTimestampCenterFromFeedBottom(tokens) -
-      MediaInfoOverlay.rowHeight / 2;
+  return mainBrowseScrubberTimestampBottomInset();
 }
 
-/// LIVE / status chrome bottom — same feed-bottom edge as Overlay column.
+/// Wait-spinner / status chrome bottom — same feed-bottom edge as Overlay.
 ///
 /// Overlay last-row glyphs are bottom-aligned in their row box, so this inset
 /// matches the **text bottom** of row 3 (not a guessed mid-row pad).
+/// Cap 26.4b: LIVE no longer uses this edge (top-leading under Browse chrome).
 double mainBrowseLiveStatusBottomInset(WakeTokTokens tokens) {
   return mainBrowseMediaOverlayBottomInset(tokens);
 }

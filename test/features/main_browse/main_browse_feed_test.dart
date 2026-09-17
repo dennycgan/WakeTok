@@ -21,6 +21,7 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
+import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
@@ -1949,6 +1950,8 @@ void main() {
       findsOneWidget,
     );
     expect(live.calls, contains('startPlayback'));
+    // iOS Photos parity: LIVE stays visible during motion play.
+    expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
 
     live.endedController.add(
       const LivePhotoPlaybackEndedEvent(assetIdentifier: 'live-1'),
@@ -1963,6 +1966,52 @@ void main() {
     expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
     expect(live.calls.where((c) => c == 'startPlayback').length, 1);
   });
+
+  testWidgets(
+    'W-26.4b-live-mag: LIVE badge hides while still magnified, returns on force-fit',
+    (tester) async {
+      final live = FakeLivePhotoRepository();
+      final display = FakeMediaDisplayRepository();
+      seedDecodableStillPaths(
+        display,
+        const ['live-1'],
+        mediaKind: PlaybackMediaKind.livePhoto,
+      );
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['live-1'],
+            availabilityById:
+                FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+          ),
+          mediaDisplay: display,
+          livePhoto: live,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      await pumpUntilStillCoverReadyForAsset(tester, 'live-1');
+      await pumpPastLivePreparingSuppress(tester);
+
+      expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(VerticalMediaFeed)),
+      );
+      container.read(browseMagnificationProvider.notifier).setStillMagnified(true);
+      await tester.pump();
+      expect(
+        find.byKey(const Key('mainBrowseLiveBadge')),
+        findsNothing,
+        reason: 'LIVE must hide for the whole magnified session',
+      );
+
+      container.read(browseMagnificationProvider.notifier).forceFit();
+      await tester.pump();
+      expect(find.byKey(const Key('mainBrowseLiveBadge')), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'L-lifecycle leave inactive unloads Live PV + restores Host still',
@@ -2819,7 +2868,7 @@ void main() {
   );
 
   testWidgets(
-    'W-14.6b-L3 Live chrome sits in Overlay trailing corridor (measure)',
+    'W-14.6b-L3 Live chrome sits top-leading under Browse band (measure)',
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
@@ -2864,22 +2913,40 @@ void main() {
       final chrome = tester.getRect(
         find.byKey(const Key('mainBrowseFeedLiveChrome_live-1')),
       );
+      final badge = tester.getRect(find.byKey(const Key('mainBrowseLiveBadge')));
       final overlay = tester.getRect(find.byKey(const Key('mediaInfoOverlay')));
+      final badgeContext = tester.element(
+        find.byKey(const Key('mainBrowseLiveBadge')),
+      );
+      final paddingTop = MediaQuery.paddingOf(badgeContext).top;
+      final expectedTop = mainBrowseLiveBadgeTopInset(
+        mediaQueryPaddingTop: paddingTop,
+        limitedCreateHelperBand: false,
+      );
       expect(
         chrome.overlaps(overlay),
         isFalse,
+        reason: 'top-leading LIVE must not overlap bottom Meta overlay',
+      );
+      expect(
+        badge.left,
+        closeTo(kLiveBadgeLeadingInset, 0.5),
+        reason: 'LIVE left matches Temp/Saved chip leading inset',
+      );
+      expect(
+        badge.top,
+        closeTo(expectedTop, 1.0),
         reason:
-            'Live chrome $chrome overlaps Overlay $overlay; '
-            'bump MediaInfoOverlay.trailingInset from '
-            '${MediaInfoOverlay.trailingInset}',
+            'LIVE top = padding.top($paddingTop) + Full band + gap '
+            '(got ${badge.top}; expected $expectedTop)',
       );
       final liveSpinner = tester.getRect(
         find.byKey(const Key('mainBrowseFeedLivePreparing_live-1')),
       );
       expect(
-        liveSpinner.center.dy,
-        closeTo(chrome.center.dy, 1),
-        reason: 'Live spinner is vertically centered on the LIVE badge row',
+        liveSpinner.bottom,
+        greaterThan(badge.bottom),
+        reason: 'prepare spinner stays bottom-trailing after LIVE move',
       );
     },
   );
