@@ -6735,3 +6735,120 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Continues ADR-015 Overlay / ADR-018 Live size tier; continues ADR-043
   Decision 12 (no separate animated feed kind). Orthogonal to ADR-052
   Live long-press. Does not reopen ADR-019 / 040 / 050 / 051.
+
+## ADR-054: Cap 26.4c media-cover-visible gate for Browse mutations
+
+- Status: Accepted (2026-09-18)
+- Commit/PR anchor: `32dd521`
+- Plain summary (owner reads this):
+  While the current Browse page has not painted a real media cover
+  (Layer-1 miss / unresolved or decode-broken cover; coverless video
+  before surface ready), WakeTok disables Action Column "…", Share, and
+  Add-to-Album, and blocks Cap 19 left-swipe arming for add-to-album —
+  same §7.1 disabled look as empty source. Share keeps ADR-051
+  Decision 14 (Layer-2 display ready ∧ ¬Live motion) and also ANDs the
+  new cover-visible axis so miss/unresolved windows cannot race Share
+  open. System PhotoKit delete thumbnails may still appear if a
+  mutation somehow reaches Host — WakeTok’s own entries are gated.
+- Context / what problem forced this:
+  Known debt **473**: Action Column lives in shell chrome and does not
+  read page `_loading` / `_stillCoverReady`. On Layer-1 miss (“Loading
+  item”), Cap 24 soft-delete could still open and the system consent
+  UI could show a Photos thumbnail while WakeTok still painted miss
+  chrome. Empty source already dims via
+  `mainBrowseCurrentAssetActionableProvider == false` (no current id);
+  miss pages still have an id so `actionable` stays true. Product lock:
+  if the user cannot see the current page’s real picture, they must not
+  start delete / share / album mutations from WakeTok chrome (including
+  left-swipe). Orthogonal to Cap 26.4b spinner/LIVE / watchdog work.
+- Decision (what was chosen):
+  1. **New orthogonal axis — do not fold into `actionable`.**
+     Introduce `mainBrowseCurrentAssetMediaCoverVisibleProvider`
+     (`Notifier<bool>`, default `false`). ADR-042 Decisions 1–7
+     (`actionable` = determinate current id ∧ ¬host-unavailable) stay
+     the sole “is current item determined?” signal. Cover-visible is a
+     **second** AND axis at mutation entry / arm sites (same pattern as
+     ADR-049 still-in-library: AND at call sites; do not merge providers).
+
+  2. **Canonical `mediaCoverVisible` (page-local, then publish):**
+     ```
+     mediaCoverVisible =
+       !_loading && (
+         _liveMotionMounted
+         || (display != null
+             && _stillCoverReady
+             && !_stillCoverDecodeBroken)
+         || (kind == video
+             && display == null
+             && _surfaceReady)
+       )
+     ```
+     - Still / Live static: Layer-1 miss and unresolved / decode-broken
+       cover → false; Meta-visible (cover ready) → true.
+     - Live motion PV mounted → true (real picture).
+     - Video with poster: same cover-ready gate; poster-hold does **not**
+       force false (poster is visible).
+     - Coverless video: `_surfaceReady` (no Image → `_stillCoverReady`
+       never becomes true).
+     Publish only from **current** `MediaFeedPage` (same family as
+     Layer2DisplayReady / hostUnavailable). Leave-current → `false`.
+     Shell must not read `MediaFeedPageState` private fields.
+
+  3. **Consumers — AND cover-visible (Opacity + Semantics + onTap):**
+     - Cap 24 "…" and Cap 19 Album: §7.1 dim when
+       `¬(actionable ∧ coverVisible)`; tap / Semantics enabled only when
+       `chromeVisible ∧ coverVisible` (then Cap 23 still-in-library).
+     - Cap 19 left-swipe arming: existing actionable / mag / settle gates
+       **AND** `coverVisible` — no gesture bypass of the icon gate.
+     - Cap 25 Share: ADR-051 Decision 14 unchanged
+       (`layer2DisplayReady ∧ ¬liveMotionMounted`) **and** AND
+       `coverVisible` on `tapEnabled` (and matching Opacity / Semantics).
+       Does **not** enable Share when cover is ready but Layer 2 is not.
+
+  4. **Visual recipe:** layout notes §7.1 only —
+     `tokens.onMedia` + shadows + `Opacity(0.22)`;
+     `Semantics(enabled: false)` and `onTap: null`. No new dim language.
+
+  5. **Cross-references (do not rewrite Accepted bodies):**
+     - ADR-042: actionable / D7–D8 chrome unchanged; this ADR adds an
+       orthogonal cover-visible axis for mutation entries + left-swipe.
+     - ADR-050: "…" still does **not** require Layer 2 (D7); cover-visible
+       is an additional pre-tap gate for miss/unresolved cover.
+     - ADR-051: Decision 14 L2 ∧ ¬Live remains binding; cover-visible
+       stacks without reopening D14’s L2 requirement.
+
+  6. **Out of Cap 26.4c:** Changing Share to enable at cover-ready before
+     L2; folding cover-visible into `actionable`; relying on system
+     PhotoKit UI to hide thumbnails; Cap 26.6 Cap-close ADR-052 Accepted
+     flip.
+- Rejected alternatives (why not):
+  - Gate only on `_loading == true` — rejected; unresolved cover still
+    has no real picture but `_loading` is false.
+  - Reuse `mainBrowseCurrentAssetLayer2DisplayReadyProvider` as the sole
+    gate for "…" / Album — rejected; would block soft-delete / album when
+    cover is ready but L2 is not (conflicts ADR-050 / ADR-042 “not
+    L2-ready”).
+  - Fold into `mainBrowseCurrentAssetActionableProvider` — rejected;
+    expands ADR-042 D1 semantics and collateral-damages unrelated
+    actionable readers; axes must stay orthogonal.
+  - Disable icons but leave left-swipe armed — rejected; same mutation
+    class would bypass the product rule.
+  - Reopen ADR-051 D14 so Share enables at cover-ready — rejected;
+    independent Share contract; not required to close debt **473**.
+  - Leave Share without cover-visible AND — rejected; residual race when
+    `layer2DisplayReady` is true while cover is still unresolved.
+  - Invent a new disabled opacity / `onMediaMuted` for this gate —
+    rejected; §7.1 is the column lock.
+- Consequences / constraints accepted:
+  - Debt **473** → Closed by Cap 26.4c after implement + device smoke,
+    with close reason: WakeTok entry points gated; system thumbnail is
+    outside WakeTok chrome.
+  - ADR-042 / 050 / 051 Status lines may note “narrowly supplemented by
+    ADR-054” on Accepted flip — **do not** edit those ADRs’ Decision
+    reasoning in place.
+  - Architecture: feature-layer Riverpod only (ADR-009); no platform /
+    data / DB.
+- Relationship:
+  Supplements ADR-042 / ADR-050 / ADR-051 consumer gates without
+  rewriting their Accepted Decision bodies. Orthogonal to ADR-052 /
+  ADR-053. Closes Known debt **473** when Cap 26.4c lands.
