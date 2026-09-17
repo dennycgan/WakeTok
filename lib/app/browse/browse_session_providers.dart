@@ -95,6 +95,17 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     );
   }
 
+  /// Cap 26.4b L2: under Limited, leave Saved origin for [lastRememberedBuiltIn].
+  ///
+  /// Album/smartAlbum resolve under Limited is unauthorized (ADR-021 D3);
+  /// staying on Saved would show resolve-failed + Retry.
+  void leaveSavedOriginForLimitedAccess() {
+    if (state.activeOrigin is! BrowseOriginSavedPool) {
+      return;
+    }
+    selectBuiltIn(state.lastRememberedBuiltIn);
+  }
+
   /// Cap 21.3 D7: resume parked ephemeral as [activeOrigin] (new Session).
   ///
   /// No-op when [parkedEphemeralPool] is null or already the active ephemeral.

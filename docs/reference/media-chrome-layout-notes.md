@@ -4,7 +4,8 @@
 > work `81904e1`). **Browse shell** top/bottom chrome metrics added Cap 22.5
 > polish (see §11; keep in sync with `browse_top_chrome.dart` /
 > `main_browse_shell_page.dart`). Cap **26.4b** selected-capsule standard:
-> §**11.3.1**; action-column disabled opacity: §**7.1** (Share lock **0.22**).  
+> §**11.3.1**; action-column disabled opacity: §**7.1** (Share lock **0.22**);
+> top chrome Scheme **A** + Limited Saved mute / Create helper **8pt**: §**11.3**.  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -231,6 +232,13 @@ So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt bel
 > **Empty / no-item / not-actionable chrome** must match across the column —
 > owner device: Cap 19 + Cap 24 looked brighter than Share at the old **0.38**.
 
+**Sibling recipe (do not confuse):** Top-chrome Limited mute for **text /
+dropdown** controls (Create / Saved menu) uses `onMediaMuted` @ **0.35**
+alpha on the glyph color — **not** this `Opacity` **0.22** lock. See §**11.3**
+and the §**11.1** glossary row. Icon column ↔ text/capsule are **two
+independent disabled languages**; Clips (or any new surface) must pick by
+control type, not copy the nearest number.
+
 | Parameter | Locked value | Notes |
 |-----------|--------------|-------|
 | **Opacity** | **0.22** (`kActionColumnEntryIconDisabledOpacity`) | Single column lock. Aliases: `kCap19EntryIconDisabledOpacity`, `kCap25ShareEntryIconDisabledOpacity` |
@@ -341,6 +349,7 @@ So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt bel
 | **Center pair** | Built-in + Saved, screen-centered (`mainBrowseChromeCenterPair`). Chip show/hide must **not** translate this pair (Stack overlay). |
 | **Covering route** | Full-screen Build cover; `browseCoveringRouteOpenProvider` + `PlaybackCoordinator.onBrowseCoverOpened` (user-intent pause). |
 | **Bottom tab bar** | Browse / Clips / Auto / Settings (`_MainBrowseBottomBar`). Custom row — not Material 3 `NavigationBar`. |
+| **Disabled / not-actionable** (two recipes) | **Do not mix.** (1) **Icon column** — §**7.1**: keep `onMedia`, wrap in `Opacity` **0.22**. (2) **Top-chrome text / dropdown / Limited Create·Saved** — §**11.3**: paint `onMediaMuted` @ **0.35** alpha on the label (no `Opacity` wrapper). Pick by control type: glyph icon vs text/capsule. |
 
 ### 11.2 Shared typography (shell labels)
 
@@ -374,14 +383,30 @@ below so later surfaces (e.g. Clips chrome) can copy it without re-deriving.
 | `_kChromeControlHPad` | **10** | Horizontal padding inside the hit (left + right) |
 | `_chromeTempPoolPillWidth(context)` | see §11.3.1 | Cap **26.4b** fixed pill **width** |
 | `_kChromeDropdownIconSize` | **16** | `Icons.arrow_drop_down` next to Built-in / Saved labels |
-| Chrome band height | **52** (Create enabled) / **70** (Limited + Create helper) | `SizedBox` under `SafeArea` |
+| Chrome band height | **52** (Full) / **70** (Limited + Create helper only) | `SizedBox` under `SafeArea`. **No** third tier — L1 dual-row + Open Settings deferred (debt **421**). |
 | Leading chip inset | **8** | `Positioned(left: 8)` for Temp / Saved chip |
 | Create inset | **8** | `Positioned(right: 8)` |
 | Center-pair gap | **12** | Between Built-in and Saved menu |
+| Create Limited helper font | **8** | `_kCreateRequiresFullAccessFontSize` (Cap **26.4b** L2; was 9) |
+| Limited mute (Create / Saved menu) | `onMediaMuted` @ **0.35** alpha | Text/dropdown recipe — **not** §7.1 icon `Opacity` **0.22**. Saved has **no** caption |
 
-**Layout model:** `Stack` — center pair `Align(center)`; leading chip / Create `Positioned` + `Align` vertically centered in the band. Equal H pad + `Center` inside `_chromeControlShell` keep label (+ dropdown) geometrically centered in the 32pt hit. Fixed-width shells ellipsize overflow (`TextOverflow.ellipsis`); dropdown rows use `Flexible` on the label when the shell is fixed-width.
+**Disabled-language cross-ref:** §**7.1** (action-column icons) and this Limited mute are **independent**. Do not apply 0.22 `Opacity` to top-chrome labels, and do not paint action icons with `onMediaMuted`@0.35. Glossary: §**11.1**.
 
-**Limited Create helper (Cap 26.4b):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create hit** (32). `Requires Full Access` is `Positioned(top: _kCreateRequiresFullAccessTop = **24**, right: 10)` under Create — slightly overlapping the hit’s lower pad so the caption sits closer to the Create glyphs than flush-under-32. It must **not** join a Column that the parent `Align` would center (that used to lift Create above the other three). Band height stays **70** so the helper has room; Create label baseline matches Full Access / the center pair.
+**Layout model (Scheme A — Cap 26.4b lock):** `Stack` —
+
+1. **Center pair** (Built-in + Saved): `Align(center)` — **screen geometric center**; gap **12**. Primary permanent controls.
+2. **Leading chip** (Temp / Saved name): `Positioned(left: 8)` wing.
+3. **Create**: `Positioned(right: 8)` wing.
+
+Chip show/hide must **not** translate the center pair. Equal H pad + `Center` inside `_chromeControlShell` keep label (+ dropdown) geometrically centered in the 32pt hit. Fixed-width shells ellipsize overflow (`TextOverflow.ellipsis`); dropdown rows use `Flexible` on the label when the shell is fixed-width.
+
+**Not a goal:** equal horizontal gaps among all four visible elements (wings pin to edges; center pair stays fixed).
+
+**Limited Create helper (Cap 26.4b L2):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create hit** (32). `Requires Full Access` is `Positioned(top: _kCreateRequiresFullAccessTop = **24**, right: 10)` under Create — **fontSize 8**, `TextAlign.end` so the helper’s **right edge matches the Create label** right edge. Longer EN copy may still extend left toward Saved; 8pt reduces intrusion but does **not** promise zero overlap. Band height stays **70**. Create label baseline matches Full Access / the center pair.
+
+**Limited Saved pools menu (Cap 26.4b L2):** same mute as Create (`onMediaMuted` @ 0.35); **untappable**; **no** helper/caption under Saved (avoids a second long string fighting Create’s helper). Root cause for not browsing album-backed Saved under Limited: **ADR-021 Decision 3** (album/smartAlbum resolve → unauthorized). When access becomes Limited while origin is Saved, chrome calls `leaveSavedOriginForLimitedAccess()` → `lastRememberedBuiltIn`.
+
+**Follow-up (out of scope this polish):** Temp / ephemeral pools that still contain album refs under Limited hit the same ADR-021 D3 failure mode — not disabled in this change; revisit with a dedicated Limited/pool honesty pass (not Misc polish).
 
 **Do not:** push the center pair sideways when the leading chip appears (owner lock — chip show/hide must not shift Built-in/Saved).
 
@@ -390,9 +415,25 @@ below so later surfaces (e.g. Clips chrome) can copy it without re-deriving.
 > **Canon name:** Temp-Pool selected pill.  
 > **Code today:** `browse_top_chrome.dart` — `_chromeTempPoolPillWidth`,
 > `_chromeControlShell(width:)`, `_chromeOnMediaLabelStyle`.  
-> **Not yet a shared `lib/core` helper** — when Clips (or another shell)
-> needs the same capsule, either call the same formula or extract a shared
-> helper and keep this table as the contract.
+> These identifiers are **Dart library-private** (leading `_`): they are
+> visible **only inside** `browse_top_chrome.dart`. Clips / other features
+> **cannot** import or call them. Until a shared helper exists, “reuse”
+> means **re-implement from this table’s numbers/formula** (duplicate the
+> recipe in the new file). True call-site reuse starts only after extraction.
+>
+> **Extraction target (when owned):** `lib/core/` (ADR-009: `core` must not
+> import `features`; any feature may import `core`). The shared helper must
+> stay **presentation-only** — tokens, strings, sizes, styles. It must **not**
+> take Browse providers, Browse origin/chrome types, or other feature-domain
+> dependencies (otherwise the extract fails architecture guards mid-flight).
+> Prefer parameters like label `String` + `WakeTokTokens` / `TextStyle`, not
+> `AppLocalizations` or `BrowseChromeState`.
+>
+> **Reuse scope:** this § freezes the **capsule component** only (geometry +
+> typography + fill). It does **not** license copying top-chrome **Scheme A**
+> (center-pair + pinned wings Stack) onto Clips or any new shell. Reusing that
+> **layout mode** is a separate owner design call — do not treat Scheme A as
+> part of this capsule contract.
 
 | Parameter | Locked value / formula | Notes |
 |-----------|------------------------|-------|
@@ -418,10 +459,11 @@ below so later surfaces (e.g. Clips chrome) can copy it without re-deriving.
 **Reuse checklist (Clips / future)**
 
 1. Height **32**, H pad **10**, radius **16**, fill `surface@0.92`.  
-2. Width = **Temp Pool ARB** intrinsic under `_chromeOnMediaLabelStyle` + **20** — not content-sized, not a magic constant.  
+2. Width = **Temp Pool ARB** (or equivalent width-budget string) intrinsic under the **label runtime recipe in the table** + **20** — not content-sized, not a magic constant. Do **not** call `_chromeOnMediaLabelStyle` / `_chromeTempPoolPillWidth` from another file (library-private).  
 3. Label = `labelOnMedia` recipe above; replace text only; center + ellipsis.  
 4. Do not invent a second “short name” pill geometry.  
-5. Update this § when extracting a shared helper or changing numbers.
+5. Do **not** assume Scheme A top-chrome Stack is in scope — capsule only (§ above).  
+6. When extracting to `lib/core/`: presentation-only API; update this §; keep ADR-009 green.
 
 **Cap 26.4b lock:** Leading Saved name must not invent a different pill geometry than Temp — only the string changes (centered). Short names (e.g. `"W"`) stay in the Temp-sized capsule; they must not grow a wider pill that overlaps Built-in.
 

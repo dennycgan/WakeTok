@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
+import 'package:waketok/domain/source/saved_pool_record.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
@@ -234,5 +235,46 @@ void main() {
           .select(SourceReference.all);
       expect(container.read(mainBrowseFeedIndexProvider), 3);
     });
+
+    test(
+      'W-26.4b leaveSavedOriginForLimitedAccess restores lastRememberedBuiltIn',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+
+        container
+            .read(browseChromeStateProvider.notifier)
+            .selectBuiltIn(SourceReference.videos);
+        final at = DateTime.utc(2026, 1, 1);
+        container.read(browseChromeStateProvider.notifier).openSavedPool(
+          SavedPoolRecord(
+            id: 'pool-1',
+            displayName: 'Trip',
+            createdAt: at,
+            updatedAt: at,
+            orderedSourceReferences: const [SourceReference.photos],
+          ),
+        );
+        expect(
+          container.read(browseChromeStateProvider).activeOrigin,
+          isA<BrowseOriginSavedPool>(),
+        );
+
+        container
+            .read(browseChromeStateProvider.notifier)
+            .leaveSavedOriginForLimitedAccess();
+        final origin = container.read(browseChromeStateProvider).activeOrigin;
+        expect(origin, const BrowseOriginBuiltIn(SourceReference.videos));
+
+        // Idempotent when already Built-in.
+        container
+            .read(browseChromeStateProvider.notifier)
+            .leaveSavedOriginForLimitedAccess();
+        expect(
+          container.read(browseChromeStateProvider).activeOrigin,
+          const BrowseOriginBuiltIn(SourceReference.videos),
+        );
+      },
+    );
   });
 }

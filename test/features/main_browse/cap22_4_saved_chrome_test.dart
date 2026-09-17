@@ -11,6 +11,7 @@ import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/saved_pool_dialogs.dart';
 import 'package:waketok/l10n/app_localizations.dart';
@@ -232,6 +233,85 @@ void main() {
           lessThanOrEqualTo(createBottom + 1),
           reason: 'Helper should not start far below Create hit bottom',
         );
+      },
+    );
+
+    testWidgets(
+      'W-26.4b-4 Limited Saved menu muted and untappable; no Saved caption',
+      (tester) async {
+        await _pump(tester: tester, access: PhotosAccess.limited);
+        await tester.pumpAndSettle();
+
+        final saved = find.byKey(const Key('mainBrowseSavedPoolsMenu'));
+        expect(saved, findsOneWidget);
+        expect(tester.widget<InkWell>(saved).onTap, isNull);
+        expect(
+          find.byKey(const Key('mainBrowseCreatePoolRequiresFullAccess')),
+          findsOneWidget,
+        );
+        final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+        // Only Create carries the helper — no second Limited caption under Saved.
+        expect(
+          find.text(l10n.mainBrowseCreatePoolRequiresFullAccess),
+          findsOneWidget,
+        );
+
+        await tester.tap(saved);
+        await tester.pumpAndSettle();
+        expect(find.byKey(const Key('mainBrowseSavedOverlay')), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'W-26.4b-5 Full→Limited while on Saved falls back to lastRememberedBuiltIn',
+      (tester) async {
+        final pools = FakeSavedPoolRepository(createId: () => 'p1');
+        await pools.save(
+          displayName: 'Trip',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
+        final repo =
+            ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+        await tester.pumpWidget(
+          permissionUiHarness(
+            repo: repo,
+            savedPools: pools,
+            assetSources: FakeAssetSourceRepository(
+              allIds: const ['a1'],
+              photosIds: const ['p1'],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+        container
+            .read(mainBrowseSelectedSourceProvider.notifier)
+            .select(SourceReference.photos);
+        await tester.pumpAndSettle();
+        container
+            .read(browseChromeStateProvider.notifier)
+            .openSavedPool((await pools.loadAll()).single);
+        await tester.pumpAndSettle();
+        expect(
+          container.read(browseChromeStateProvider).activeOrigin,
+          isA<BrowseOriginSavedPool>(),
+        );
+
+        repo.status = PhotosAccess.limited;
+        container.invalidate(photosAuthorizationProvider);
+        await tester.pumpAndSettle();
+
+        final origin = container.read(browseChromeStateProvider).activeOrigin;
+        expect(origin, isA<BrowseOriginBuiltIn>());
+        expect(
+          (origin as BrowseOriginBuiltIn).source,
+          SourceReference.photos,
+          reason: 'Must restore lastRememberedBuiltIn (Photos), not default All',
+        );
+        expect(find.byKey(const Key('mainBrowseSavedPoolChip')), findsNothing);
       },
     );
 

@@ -29,6 +29,13 @@ const double _kChromeDropdownIconSize = 16;
 /// caption sits closer than flush-under-hit (owner nudge).
 const double _kCreateRequiresFullAccessTop = 24;
 
+/// Cap 26.4b L2: Create Limited helper font size (was 9).
+const double _kCreateRequiresFullAccessFontSize = 8;
+
+/// Cap 26.4b L2: Create / Saved Limited mute (label + dropdown icon).
+Color _chromeLimitedMuteColor(WakeTokTokens tokens) =>
+    tokens.onMediaMuted.withValues(alpha: 0.35);
+
 /// Cap 26.4b: selected / leading pill width matches Temp Pool label + pads.
 ///
 /// Locale-dependent (`mainBrowseTempPoolChip` ARB). Used for Temp chip,
@@ -141,6 +148,34 @@ class BrowseTopChrome extends ConsumerWidget {
     final createEnabled =
         ref.watch(photosAuthorizationProvider).value != PhotosAccess.limited;
     final chromeHeight = createEnabled ? 52.0 : 70.0;
+
+    // Cap 26.4b L2: leaving Full→Limited while on Saved would resolve album
+    // refs as unauthorized (ADR-021 D3). Fall back to lastRememberedBuiltIn.
+    ref.listen<AsyncValue<PhotosAccess>>(photosAuthorizationProvider, (
+      previous,
+      next,
+    ) {
+      final access = next.asData?.value;
+      if (access != PhotosAccess.limited) {
+        return;
+      }
+      ref
+          .read(browseChromeStateProvider.notifier)
+          .leaveSavedOriginForLimitedAccess();
+    });
+    // Mount already Limited + Saved (rare): leave after this frame — cannot
+    // mutate chrome during build.
+    final accessNow = ref.watch(photosAuthorizationProvider).asData?.value;
+    if (accessNow == PhotosAccess.limited) {
+      final origin = ref.read(browseChromeStateProvider).activeOrigin;
+      if (origin is BrowseOriginSavedPool) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref
+              .read(browseChromeStateProvider.notifier)
+              .leaveSavedOriginForLimitedAccess();
+        });
+      }
+    }
 
     return Material(
       key: const Key('mainBrowseTopSourceChrome'),
@@ -409,7 +444,7 @@ class _CreateControl extends StatelessWidget {
     // albums after Cap 21.4 Q3; STATE Accepted deviation).
     final color = enabled
         ? tokens.onMediaMuted
-        : tokens.onMediaMuted.withValues(alpha: 0.35);
+        : _chromeLimitedMuteColor(tokens);
     final labelStyle = _chromeOnMediaLabelStyle(tokens, color);
     final createHit = InkWell(
       key: const Key('mainBrowseCreatePool'),
@@ -446,7 +481,7 @@ class _CreateControl extends StatelessWidget {
                 textAlign: TextAlign.end,
                 textHeightBehavior: _kChromeTextHeightBehavior,
                 style: tokens.labelOnMedia.copyWith(
-                  fontSize: 9,
+                  fontSize: _kCreateRequiresFullAccessFontSize,
                   height: 1.0,
                   inherit: false,
                   color: color,
@@ -558,14 +593,26 @@ class _SavedControl extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return InkWell(
-      key: const Key('mainBrowseSavedPoolsMenu'),
-      onTap: () => _openSavedOverlay(context, ref),
-      child: _chromeControlShell(
-        child: _chromeDropdownRow(
-          label: l10n.mainBrowseSavedPoolsMenu,
-          style: _chromeOnMediaLabelStyle(tokens, tokens.onMediaMuted),
-          iconColor: tokens.onMediaMuted,
+    // Cap 26.4b L2: Limited — mute + untappable (same recipe as Create).
+    // No second "Requires Full Access" caption under Saved.
+    final enabled =
+        ref.watch(photosAuthorizationProvider).value != PhotosAccess.limited;
+    final color = enabled
+        ? tokens.onMediaMuted
+        : _chromeLimitedMuteColor(tokens);
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: l10n.mainBrowseSavedPoolsMenu,
+      child: InkWell(
+        key: const Key('mainBrowseSavedPoolsMenu'),
+        onTap: enabled ? () => _openSavedOverlay(context, ref) : null,
+        child: _chromeControlShell(
+          child: _chromeDropdownRow(
+            label: l10n.mainBrowseSavedPoolsMenu,
+            style: _chromeOnMediaLabelStyle(tokens, color),
+            iconColor: color,
+          ),
         ),
       ),
     );
