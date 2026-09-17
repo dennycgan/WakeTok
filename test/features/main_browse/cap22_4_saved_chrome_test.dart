@@ -195,6 +195,46 @@ void main() {
       },
     );
 
+    testWidgets(
+      'W-26.4b-2 Limited Create stays on chrome baseline; helper below',
+      (tester) async {
+        await _pump(tester: tester, access: PhotosAccess.limited);
+        await tester.pumpAndSettle();
+
+        final builtInDy =
+            tester.getCenter(find.byKey(const Key('mainBrowseBuiltInMenu'))).dy;
+        final savedDy = tester
+            .getCenter(find.byKey(const Key('mainBrowseSavedPoolsMenu')))
+            .dy;
+        final createDy =
+            tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+        expect(createDy, closeTo(builtInDy, 2));
+        expect(savedDy, closeTo(builtInDy, 2));
+
+        final helper = find.byKey(
+          const Key('mainBrowseCreatePoolRequiresFullAccess'),
+        );
+        expect(helper, findsOneWidget);
+        final createCenter =
+            tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+        final helperTop = tester.getTopLeft(helper).dy;
+        expect(
+          helperTop,
+          greaterThan(createCenter),
+          reason: 'Requires Full Access must sit below Create Pool center',
+        );
+        // Optical nudge: helper may overlap the Create hit's lower pad
+        // (_kCreateRequiresFullAccessTop = 24 < 32).
+        final createBottom =
+            tester.getBottomLeft(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+        expect(
+          helperTop,
+          lessThanOrEqualTo(createBottom + 1),
+          reason: 'Helper should not start far below Create hit bottom',
+        );
+      },
+    );
+
     testWidgets('Saved chip tap opens composition peek (not center Info)', (
       tester,
     ) async {

@@ -362,6 +362,8 @@ below so later surfaces (e.g. Clips chrome) can copy it without re-deriving.
 
 **Layout model:** `Stack` — center pair `Align(center)`; leading chip / Create `Positioned` + `Align` vertically centered in the band. Equal H pad + `Center` inside `_chromeControlShell` keep label (+ dropdown) geometrically centered in the 32pt hit. Fixed-width shells ellipsize overflow (`TextOverflow.ellipsis`); dropdown rows use `Flexible` on the label when the shell is fixed-width.
 
+**Limited Create helper (Cap 26.4b):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create hit** (32). `Requires Full Access` is `Positioned(top: _kCreateRequiresFullAccessTop = **24**, right: 10)` under Create — slightly overlapping the hit’s lower pad so the caption sits closer to the Create glyphs than flush-under-32. It must **not** join a Column that the parent `Align` would center (that used to lift Create above the other three). Band height stays **70** so the helper has room; Create label baseline matches Full Access / the center pair.
+
 **Do not:** push the center pair sideways when the leading chip appears (owner lock — chip show/hide must not shift Built-in/Saved).
 
 #### 11.3.1 Selected capsule standard (Cap 26.4b — copy for Clips / new chrome)
@@ -410,12 +412,12 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 
 ### 11.5 Shell device check (after retune)
 
-1. ZH + EN: Temp/Saved chip, Built-in, Saved, Create share one optical baseline; Create not lower than center pair.  
+1. ZH + EN: Temp/Saved chip, Built-in, Saved, Create share one optical baseline; Create not lower than center pair. **Limited:** Create still shares that baseline; helper sits under Create without shifting it (**W-26.4b-2**).  
 2. Selected Built-in / active chip: label + dropdown (if any) centered in the gray pill; All / Photos / Videos pills **same width** as Temp.  
 3. Saved short name (e.g. `"W"`): pill width equals Temp; does not cover Built-in.  
 4. Chip appear/disappear: center pair `dx` unchanged (`cap22_4` / `cap21_3` chrome tests).  
 5. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`).  
-6. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/` (includes **W-26.4b-1**).
+6. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/` (includes **W-26.4b-1**, **W-26.4b-2**).
 
 ---
 

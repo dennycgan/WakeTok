@@ -24,6 +24,10 @@ import 'package:waketok/l10n/app_localizations.dart';
 const double _kChromeControlHeight = 32;
 const double _kChromeControlHPad = 10;
 const double _kChromeDropdownIconSize = 16;
+/// Cap 26.4b: Limited helper top inset inside the Create Stack.
+/// Below Create glyphs optically; less than `_kChromeControlHeight` so the
+/// caption sits closer than flush-under-hit (owner nudge).
+const double _kCreateRequiresFullAccessTop = 24;
 
 /// Cap 26.4b: selected / leading pill width matches Temp Pool label + pads.
 ///
@@ -407,30 +411,35 @@ class _CreateControl extends StatelessWidget {
         ? tokens.onMediaMuted
         : tokens.onMediaMuted.withValues(alpha: 0.35);
     final labelStyle = _chromeOnMediaLabelStyle(tokens, color);
+    final createHit = InkWell(
+      key: const Key('mainBrowseCreatePool'),
+      onTap: enabled ? onTap : null,
+      child: _chromeControlShell(
+        child: _chromeLabelText(
+          l10n.mainBrowseCreatePool,
+          labelStyle,
+        ),
+      ),
+    );
+    // Cap 26.4b: under Limited, keep Create on the same vertical center as
+    // the other three controls. The helper sits under Create but must not
+    // participate in the Align-centered size (Column used to lift Create).
     return Semantics(
       button: true,
       enabled: enabled,
       label: enabled
           ? l10n.mainBrowseCreatePool
           : '${l10n.mainBrowseCreatePool}. ${l10n.mainBrowseCreatePoolRequiresFullAccess}',
-      child: Column(
+      child: Stack(
         key: const Key('mainBrowseCreatePoolColumn'),
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        clipBehavior: Clip.none,
+        alignment: Alignment.centerRight,
         children: [
-          InkWell(
-            key: const Key('mainBrowseCreatePool'),
-            onTap: enabled ? onTap : null,
-            child: _chromeControlShell(
-              child: _chromeLabelText(
-                l10n.mainBrowseCreatePool,
-                labelStyle,
-              ),
-            ),
-          ),
+          createHit,
           if (!enabled)
-            Padding(
-              padding: const EdgeInsets.only(right: _kChromeControlHPad, bottom: 2),
+            Positioned(
+              top: _kCreateRequiresFullAccessTop,
+              right: _kChromeControlHPad,
               child: Text(
                 key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
                 l10n.mainBrowseCreatePoolRequiresFullAccess,
