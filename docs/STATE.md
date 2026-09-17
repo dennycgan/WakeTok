@@ -280,23 +280,35 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (work `7001e6e`; muted Add above Delete; Cap 23 → pop → Cap 19;
       mutual latch; layout notes §12; W-26.5-1…7; Kafka + i17 Profile
       smoke PASS)
-- [ ] 26.4b Misc polish (media / "…" chrome layout)
-      (owner layout UI tweaks; keep
-      `docs/reference/media-chrome-layout-notes.md` in sync) <-- YOU ARE HERE
+- [x] 26.4b Misc polish (media / "…" chrome layout) + Live ended-
+      watchdog arm tighten
+      (chrome work `8a0494e` — LIVE top-leading / gap / ShapeDecoration /
+      scrim; watchdog work `2d12e39` — arm after `startPlayback` issued;
+      timeout skip only if `_liveStartIssued` (C0); ADR-052 D4 narrow
+      tighten; Kafka Profile revisit PASS on slow Live)
+- [ ] 26.4c Action Column mute while Layer 1 not painted
+      (debt **473**; center “Loading item” / `_loading` miss and any
+      peer state where Layer 1 is not visible: disable all three Action
+      Column icons — Share / "…" / Cap 19 — same disabled treatment as
+      empty source `mainBrowseFeedEmpty` (“No items in this source.”);
+      product lock: no soft-delete / sheet while the user cannot see
+      Layer 1; system delete thumbnail ≠ WakeTok L1 paint) <-- YOU ARE HERE
 - [ ] 26.6 Device acceptance (Kafka + i17) + Cap close
       (debt **439** Closed; ADR-052 Accepted + anchors; PHASE_HISTORY;
       two-commit discipline)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.4b — Misc polish (chrome layout)
-- Sub-steps done: 26.1–26.5; ADR-053 Accepted (`fc0bfcc`); 26.5 work
-      `7001e6e` + Kafka / i17 Profile PASS; ADR-052 still Proposed
-- Next step: owner layout UI adjustments + layout notes updates
-- Related decisions: ADR-053 Accepted; ADR-052 Proposed (D1–D11;
-      D7/D8 / D9); layout notes §12 / §12.6 / §13; ADR-015 / 018 /
-      043 D12 / 050 continue; debt **439** → Cap 26; **401** Location
-      content Out; **405** Out; **470** Accepted (phase); **469**
-      Accepted (permanent); **472** Closed by Cap 26.4a
+- Goal (one line): Cap 26.4c — mute Action Column until Layer 1 paints
+- Sub-steps done: 26.1–26.5; 26.4b chrome `8a0494e` + watchdog
+      `2d12e39` (ADR-052 D4 arm/C0); ADR-053 Accepted (`fc0bfcc`);
+      ADR-052 still Proposed
+- Next step: design/implement Action Column gate for L1-miss /
+      Loading-item (align empty-source disabled icons); close debt **473**
+- Related decisions: ADR-052 Proposed (D1–D11; D4 Cap 26.4b tighten);
+      ADR-053 Accepted; layout notes §12 / §12.6 / §13; Cap 15.3 miss
+      chrome; Cap 24 / ADR-050; Cap 25 Share; debt **439** → Cap 26;
+      **401** / **405** Out; **470** Accepted (phase); **469** Accepted
+      (permanent); **472** Closed; **473** → Cap 26.4c
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -735,6 +747,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 470 | Accepted (phase) | Live Photo / Cap 26 | Cap 26.2 | Magnified Live long-press does not replay (user must Reset / return to fit first) | **Known MVP limitation — not a miss.** Cap 26.2 keeps ADR-052 D6/D10 magnified ignore and ADR-043 D1 Live rising-edge force-fit / no Flutter `Transform` on `PHLivePhotoView`. In-place magnified replay (Photos-like keep scale+pan) would require Host-side Live surface scale (same class as video L2 `setDisplayMagnification`); Flutter Platform View does not follow Flutter `Transform`, and `PHLivePhotoView` owns opaque playback/animation lifecycle so external bounds transforms are higher risk than the video L2 case already proven painful. Owner skipped MVP investment; no Cap scheduled to “fix” this. This row records the known consequence of those ADR decisions, not a newly found defect. | Unassigned (MVP accepted; no Cap scheduled) | ADR-043 D1; ADR-052 D6/D10 |
 | 471 | Monitoring | Live Photo / Cap 21 source · Cap 9–26 browse | Cap 26.3 | System Album Live Photos (213) membership can diverge from WakeTok Live presentation (`.photoLive` / `mapMediaKind`) | **Observed (iPhone13pro Kafka, iOS 26.6 / 23G71; Host probe on `requestPresentationMetadata`):** two Photos Live-off assets remained browsable from a Live-oriented pool path but Browse showed no Live Overlay / LIVE badge and did not arm Live play — probe logged `mediaSubtypes` `0x200` with `photoLive=0` (`playbackStyle=1` observed only). A Live-on control in the same session logged `subtypes=0x208` (`photoLive=1`, `playbackStyle=3`). Not a WakeTok recognition bug: smart-album **213** membership and subtype-based Live identity are independent PhotoKit surfaces. **Symmetric risk (not observed on this probe):** if some iOS version / Live-off workflow keeps `.photoLive`, WakeTok would still show Live chrome and call `requestLivePhoto` while Photos presents a still — same class of accepted non-parity as ADR-052 Decision 11 ignoring `playbackStyle` for Live identity. Accumulation: `docs/reference/ios-photokit-implicit-behavior-notes.md` §2.3. | Unassigned (Monitoring; revisit if Pool UX or Photos-parity Live-off becomes a product goal) | ADR-052 D11; Cap 9 `mapMediaKind`; Cap 21 smart album 213; PhotoKit notes §2.3 |
 | 472 | Closed | Main Browse Screen / Cap 26.4a | Cap 26.4a | Video L1 poster→L2 path change: whole Meta Overlay flash **unverified** → closed | **Closed by Cap 26.4a device smoke (Kafka + i17 Profile).** Owner saw no Meta 3-row flash on video while accepting still L1→L2 keep-ready. **Not a side-effect of 26.4a:** keep-ready explicitly requires `_media?.kind == FeedPageMediaKind.still` and excludes `kind == video`. **Structural reason video usually does not flash:** on video L2 success, `_trackStillCoverPath` is called with `(layer1?.display ?? _media?.display)?.localFilePath` — the **existing L1 poster**, not a new L2 full-still file. The “path changed → clear `_stillCoverReady` → `_suppressStillCoverChrome` tears down Overlay” branch is usually **not entered** because its path-change precondition does not hold for video; it is not that video somehow bypasses that branch after entering it. **Residual:** if video poster wiring later **does** swap to a different file between L1 and L2, the **same** clear-ready tear-down can return — 26.4a does **not** structurally make video safe (and keep-ready would still not apply while `kind == video`). Reopen only with a video-scoped change if flash is seen after such a poster-source change. | Closed by Cap 26.4a (Kafka + i17; structural note above) | Cap 26.4a; `vertical_media_feed.dart` `_trackStillCoverPath` + video `_applyLayer2Result` poster reuse; Cap 23.4 `_suppressStillCoverChrome`; Cap 15.5 gapless; layout notes §13 |
+| 473 | Open | Main Browse Screen | Cap 26.4b | Layer-1 miss page (`_loading` / center “Loading item”) still leaves Action Column tappable — Cap 24 soft-delete can succeed and the system delete confirm may show a Photos thumbnail while WakeTok still paints miss chrome | **Observed twice** (Limited + Optimize iPhone Storage + iCloud Live cold miss). Action Column is shell chrome (sibling of the feed page), not gated by page `_loading`. PhotoKit still has the asset (thumbnail in the system sheet); miss chrome means WakeTok has not painted Layer 1, not that the id is absent. **Product lock (Cap 26.4c):** while Layer 1 is not visible (Loading-item miss and peer “no painted L1” states), disable **all three** Action Column icons — same disabled treatment as empty source `mainBrowseFeedEmpty` (“No items in this source.”). System delete thumbnail must not imply WakeTok L1 readiness. **Not** in Cap 26.4b spinner/LIVE / watchdog scope. **Not** the historical `cap15-15.10-notes.md` “STATE row 473” peek-black cross-ref (leave-side poster; closed by 15.7 `bb3d5e2`) — that ID is absent from the current Known debt table; this row reuses the next free ID **473** for a different symptom. | Cap 26.4c | Cap 15.3 miss chrome; Cap 24 / ADR-050; Cap 25 Share; shell Action Column |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

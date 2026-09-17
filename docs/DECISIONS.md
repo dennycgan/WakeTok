@@ -6440,23 +6440,41 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      mid-motion interrupt / restart Host branches (owner Q3=A).
   4. **Live-ended watchdog / session skip (ADR-051 Decision 14
      reliability) — mandatory Cap 26 rule.**
-     - Mount / Share signal line unchanged: successful mount →
-       `_liveMotionMounted` →
+     - **Mount / Share signal line unchanged (orthogonal to watchdog
+       arm):** successful mount → `_liveMotionMounted` →
        `BrowseMagnificationNotifier.onLiveMotionMountedChanged` →
-       `mainBrowseCurrentLiveMotionMountedProvider`; arm
-       `kLiveMotionEndedWatchdog` (6s); timeout →
-       `browseLiveMotionWatchdogSkipIdsProvider.add` + same unload as
-       normal ended.
+       `mainBrowseCurrentLiveMotionMountedProvider`. Cap 25 Share enable
+       (`¬liveMotionMounted`) continues to use this signal only.
+     - **Watchdog arm point (Cap 26.4b narrow tighten):** arm
+       `kLiveMotionEndedWatchdog` (6s) only after Live
+       `startPlayback` has been **issued** on that attempt
+       (`_liveStartIssued == true`, from `_playLiveMotionOnce` after the
+       Host `startPlayback` call is entered/issued — not at PV mount /
+       not when sync `requestLivePhoto` returns). Prepare / Path R /
+       Path S must **not** arm at `_liveMotionMounted = true`. Cancel any
+       prior timer on unload / leave / gate bump as today.
+     - **Timeout behavior:**
+       - If `_liveStartIssued == true`: same unload as normal ended
+         **and** `browseLiveMotionWatchdogSkipIdsProvider.add` (true hung
+         play).
+       - If `_liveStartIssued == false` (should be rare once arm follows
+         start; kept as a hard gate): same unload **only** — **do not**
+         `skip.add`. Download / bind delay before start must not create
+         a session auto-play ban.
      - **Auto** `_prepareLiveMotion` (become-current play-once)
        **continues to honor** the skip set (early return → stay still).
      - **User long-press replay (including silent re-request) MUST NOT
        consult** `browseLiveMotionWatchdogSkipIdsProvider`. Each
        long-press is an independent retry. Watchdog still applies to
-       that attempt.
+       that attempt (arm after that attempt’s `startPlayback` issued).
      - Do **not** remove an id from the skip set on successful user
        replay; skip remains an auto-play gate only.
-     - Rejected: letting long-press share the auto skip early-return
-       (silent no-op on skipped assets).
+     - Do **not** clear skip on leave-current or revisit of the same id
+       (no “revisit heals skip”); Origin / Session end clear unchanged.
+     - Rejected: arming at successful mount / sync `requestLivePhoto`
+       return (conflates iCloud/prepare latency with hung playback).
+     - Rejected: letting long-press share the auto skip early-return.
+     - Rejected: clear skip on successful long-press or on revisit/leave.
   5. **Gesture constants (owner Q1=B) — named, not system defaults.**
      - `kLiveLongPressHoldDuration = Duration(milliseconds: 400)`
        (same magnitude as `kCap19EdgeHoldWindow` — keep App-wide hold
@@ -6558,6 +6576,12 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     silent no-op on skipped assets defeats Cap 26 replay intent.
   - Clear skip-set membership on successful user replay — rejected;
     skip stays auto-only; user path never reads it.
+  - Clear skip-set on leave-current / revisit — rejected; would weaken
+    the auto-only skip gate; false “never started” timeouts are handled
+    by not adding to skip (arm-after-start + no-add if ¬startIssued).
+  - Arm ended-watchdog at successful mount / sync `requestLivePhoto`
+    return — rejected (Cap 26.4b); conflates iCloud/prepare latency with
+    hung playback (false session skip).
   - Mid-motion / preparing long-press restart (owner Q3 B/C) — rejected;
     new Host interrupt state machine out of Cap 26.
   - Magnified long-press that force-fits then plays (owner Q4=B) —
@@ -6584,7 +6608,14 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     long-press-triggered mount (no ADR-043 text rewrite required).
   - ADR-051 Decisions 12–14 (still share materialization; Share enable
     ∧ ¬liveMotionMounted) unchanged; long-press must keep publishing
-    the same mounted signal.
+    the same mounted signal. Cap 26.4b Decision 4 arm-point tighten
+    (`2d12e39`) does **not** change the Share mount signal line —
+    only when `kLiveMotionEndedWatchdog` arms and whether timeout
+    `skip.add`s.
+  - Cap 26.4b (`2d12e39`): Decision 4 **Watchdog arm point** +
+    **Timeout behavior** (C0) implemented — arm after
+    `startPlayback` issued; ¬startIssued timeout unloads without
+    `skip.add`.
   - Cap 26.4 "…" File size uses `presentationSizeCacheProvider` +
     `mainBrowseCurrentAssetLayer2DisplayReadyProvider` for post-L2
     size refresh (same reliability class as Overlay `43c984a`); never
