@@ -5,7 +5,7 @@ import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 
 void main() {
-  test('kLiveMotionEndedWatchdog is 6s (3+2+1)', () {
+  test('kLiveMotionEndedWatchdog is 6s (post-startPlayback budget)', () {
     expect(kLiveMotionEndedWatchdog, const Duration(seconds: 6));
   });
 

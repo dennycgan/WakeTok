@@ -492,5 +492,87 @@ void main() {
         );
       },
     );
+
+    testWidgets(
+      'watchdog timeout with startIssued=true adds skip and unloads',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: true);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+
+        final element = tester.element(find.byType(VerticalMediaFeed));
+        final container = ProviderScope.containerOf(element);
+        final page = await _settleToStaticKeyFrame(
+          tester,
+          live,
+          clearRetained: false,
+        );
+
+        expect(
+          container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(
+                'live-1',
+              ),
+          isFalse,
+        );
+
+        // Cap 26.4b B+C0: force arm after a hung start (startIssued true).
+        page.debugSetLiveMotionMounted(true);
+        page.debugLiveStartIssued = true;
+        page.debugArmLiveEndedWatchdog();
+        await tester.pump(kLiveMotionEndedWatchdog);
+        await tester.pump(const Duration(milliseconds: 1));
+        await _pumpAsyncWork(tester);
+
+        expect(
+          container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(
+                'live-1',
+              ),
+          isTrue,
+          reason: 'hung play after startPlayback issued must session-skip',
+        );
+        expect(page.debugLiveMotionMounted, isFalse);
+      },
+    );
+
+    testWidgets(
+      'watchdog timeout with startIssued=false unloads without skip',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: true);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+
+        final element = tester.element(find.byType(VerticalMediaFeed));
+        final container = ProviderScope.containerOf(element);
+        final page = await _settleToStaticKeyFrame(
+          tester,
+          live,
+          clearRetained: false,
+        );
+
+        expect(
+          container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(
+                'live-1',
+              ),
+          isFalse,
+        );
+
+        // Cap 26.4b C0 hard gate: arm without startIssued must not ban auto.
+        page.debugSetLiveMotionMounted(true);
+        page.debugLiveStartIssued = false;
+        page.debugArmLiveEndedWatchdog();
+        await tester.pump(kLiveMotionEndedWatchdog);
+        await tester.pump(const Duration(milliseconds: 1));
+        await _pumpAsyncWork(tester);
+
+        expect(
+          container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(
+                'live-1',
+              ),
+          isFalse,
+          reason: '¬startIssued timeout must not skip.add (C0)',
+        );
+        expect(page.debugLiveMotionMounted, isFalse);
+      },
+    );
   });
 }

@@ -2,12 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart'
     show BrowseOrigin, browseChromeStateProvider;
 
-/// Cap 25 / ADR-051 Decision 14: Live motion ended watchdog.
+/// Cap 25 / ADR-051 Decision 14 + Cap 26.4b / ADR-052 Decision 4:
+/// Live motion ended watchdog.
 ///
-/// Armed at `live_mounted_true` (request succeeded, PV mount). Covers:
+/// Armed when Host `startPlayback` is issued (`_liveStartIssued`), **not**
+/// at PV mount / sync `requestLivePhoto` return. Budget covers:
 /// - full motion content ≈ 3s (Live capture ~1.5s before/after key)
-/// - surface create + bind + startPlayback ≈ 2s
-/// - device/scheduling slack ≈ 1s
+/// - device/scheduling slack ≈ 3s
+/// Prepare / iCloud download / surface bind latency are **outside** this
+/// window (must not create a session auto-play skip).
 const Duration kLiveMotionEndedWatchdog = Duration(seconds: 6);
 
 /// Session-scoped asset ids that hit the Live ended watchdog once.

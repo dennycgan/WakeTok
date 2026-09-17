@@ -1799,6 +1799,23 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _liveStartIssued = false;
   }
 
+  /// Test seam: Cap 26.4b watchdog timeout paths (C0 vs skip.add).
+  @visibleForTesting
+  bool get debugLiveStartIssued => _liveStartIssued;
+
+  @visibleForTesting
+  set debugLiveStartIssued(bool value) => _liveStartIssued = value;
+
+  @visibleForTesting
+  void debugSetLiveMotionMounted(bool value) {
+    _liveMotionMounted = value;
+  }
+
+  @visibleForTesting
+  void debugArmLiveEndedWatchdog() {
+    _armLiveEndedWatchdog(widget.assetIdentifier);
+  }
+
   /// Test seam: bump Live motion gate and return the new generation.
   @visibleForTesting
   int debugBeginLiveMotionGate() => _liveMotionGate.begin();
@@ -2850,8 +2867,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _liveEndedWatchdog = null;
   }
 
-  /// Cap 25: if [playbackEnded] never arrives, force the **same** unload path
-  /// as [live_ended_ok] ([_unloadLiveMotionSurface]) and session-skip this id.
+  /// Cap 25 / Cap 26.4b: if [playbackEnded] never arrives after
+  /// `startPlayback` was issued, force the same unload as [live_ended_ok].
+  /// Skip-set add only when [_liveStartIssued] (hung play); ¬startIssued →
+  /// unload only (C0 — must not ban auto-play for pre-start delays).
   void _armLiveEndedWatchdog(String assetId) {
     _cancelLiveEndedWatchdog();
     final generation = _liveMotionGate.generation;
@@ -2863,9 +2882,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           !_liveMotionMounted) {
         return;
       }
-      ref
-          .read(browseLiveMotionWatchdogSkipIdsProvider.notifier)
-          .add(assetId);
+      if (_liveStartIssued) {
+        ref
+            .read(browseLiveMotionWatchdogSkipIdsProvider.notifier)
+            .add(assetId);
+      }
       unawaited(_unloadLiveMotionSurface());
     });
   }
@@ -2970,8 +2991,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         // none covers the gap while deactivate no longer clearIf's.
         // Contrast L1→L2 handoff (keep pointers): destination none cannot
         // continue magnification, so mode→none clears the pointer map.
+        // Cap 26.4b: do **not** arm ended-watchdog here — arm only when
+        // [_playLiveMotionOnce] issues Host startPlayback.
         _liveHostPhotoRetained = true;
-        _armLiveEndedWatchdog(assetId);
         ref
             .read(magnificationHostModeProvider.notifier)
             .setMode(MagnificationHostMode.none);
@@ -3054,8 +3076,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!mounted || !_liveMotionGate.isCurrent(generation)) {
       return false;
     }
+    // Cap 26.4b: arm watchdog in [_playLiveMotionOnce], not at remount.
     setState(() => _liveMotionMounted = true);
-    _armLiveEndedWatchdog(assetId);
     ref
         .read(magnificationHostModeProvider.notifier)
         .setMode(MagnificationHostMode.none);
@@ -3156,11 +3178,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
         // Keep [_liveSilentReplayInFlight] true until ready∧mounted or failed —
         // do not clear on this await (Pigeon returns when sync Host returns).
+        // Cap 26.4b: arm watchdog in [_playLiveMotionOnce], not at mount.
         setState(() => _liveMotionMounted = true);
         if (_livePhotoReady) {
           _liveSilentReplayInFlight = false;
         }
-        _armLiveEndedWatchdog(assetId);
         ref
             .read(magnificationHostModeProvider.notifier)
             .setMode(MagnificationHostMode.none);
@@ -3184,6 +3206,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   ///
   /// Requires ready + surface. Cap 26 long-press Path R / Path S ready enter
   /// here (or Path S silent re-request with prepare chrome off).
+  /// Cap 26.4b: arms [kLiveMotionEndedWatchdog] immediately before Host
+  /// `startPlayback` (after [_liveStartIssued] latch). Throw → cancel timer,
+  /// clear issued, no skip.
   Future<void> _playLiveMotionOnce(int generation) async {
     if (!_liveMotionGate.isCurrent(generation) ||
         !_livePhotoReady ||
@@ -3191,6 +3216,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _liveStartIssued) {
       return;
     }
+    // Latch before enqueue so concurrent playOnce calls do not double-start.
     _liveStartIssued = true;
     // Cap 9.6 / F4: setMute + startPlayback share LiveHostOpSerial with
     // cancel/request — do not call Live setMute outside this chain.
@@ -3210,8 +3236,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         if (!mounted || !_liveMotionGate.isCurrent(generation)) {
           return;
         }
+        // Cap 26.4b B: arm only once startPlayback is about to be issued
+        // (_liveStartIssued already true). Not at PV mount / request return.
+        _armLiveEndedWatchdog(widget.assetIdentifier);
         await live.startPlayback();
       } catch (_) {
+        _cancelLiveEndedWatchdog();
+        _liveStartIssued = false;
         // Keep still; do not skip.
       }
     });
