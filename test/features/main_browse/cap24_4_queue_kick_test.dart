@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
@@ -29,7 +30,8 @@ ProviderContainer _containerOf(WidgetTester tester) {
 }
 
 Future<void> _openMoreSheet(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
+  await ensureShellMediaCoverVisible(tester);
+      await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
 }
@@ -283,6 +285,9 @@ void main() {
 
       expect(container.read(mainBrowseVerticalFeedSettledProvider), isTrue);
       expect(find.byKey(const Key('cap24MoreEntryIcon')), findsOneWidget);
+      // Cap 26.4c / ADR-054: after queue kick the landed page must publish
+      // cover-visible before More is actionable again.
+      await ensureShellMediaCoverVisible(tester);
       expect(
         tester
             .widget<InkWell>(find.byKey(const Key('cap24MoreEntryIcon')))

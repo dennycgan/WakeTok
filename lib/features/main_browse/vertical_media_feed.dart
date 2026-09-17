@@ -34,6 +34,7 @@ import 'package:waketok/features/main_browse/magnification_surface.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
 import 'package:waketok/features/main_browse/feed_page_media.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/media_cover_visible_policy.dart';
 import 'package:waketok/features/main_browse/media_info_overlay.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
@@ -1539,6 +1540,45 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _stillCoverReady = true;
       _stillCoverDecodeBroken = false;
     });
+    _syncMediaCoverVisibleGate();
+  }
+
+  bool _computeMediaCoverVisible() {
+    final media = _media;
+    return mediaCoverVisiblePredicate(
+      loading: _loading,
+      liveMotionMounted: _liveMotionMounted,
+      hasDisplay: media?.display != null,
+      stillCoverReady: _stillCoverReady,
+      stillCoverDecodeBroken: _stillCoverDecodeBroken,
+      isVideo: media?.kind == FeedPageMediaKind.video,
+      surfaceReady: _surfaceReady,
+    );
+  }
+
+  /// Cap 26.4c / ADR-054: publish cover-visible to shell Action Column.
+  void _syncMediaCoverVisibleGate() {
+    if (!mounted) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final next = widget.isCurrent && _computeMediaCoverVisible();
+      ref
+          .read(mainBrowseCurrentAssetMediaCoverVisibleProvider.notifier)
+          .setVisible(next);
+    });
+  }
+
+  void _clearMediaCoverVisibleGate() {
+    if (!mounted) {
+      return;
+    }
+    ref
+        .read(mainBrowseCurrentAssetMediaCoverVisibleProvider.notifier)
+        .setVisible(false);
   }
 
   void _publishHostUnavailableGate() {
@@ -1694,6 +1734,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   bool get debugSurfaceReady => _surfaceReady;
 
+  /// When true, [_VideoPage]/[_StillPage] surface-ready callbacks are ignored
+  /// so coverless ¬surfaceReady welds stay pinned in Cap 26.4c tests.
+  bool _debugSuppressSurfaceReadyCallbacks = false;
+
   @visibleForTesting
   bool get debugHoldPosterUntilFirstFrame => _holdPosterUntilFirstFrame;
 
@@ -1734,6 +1778,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     setState(apply);
+    _syncMediaCoverVisibleGate();
   }
 
   /// Test seam: cover path tracked but first frame not ready (unresolved).
@@ -1752,6 +1797,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       return;
     }
     setState(apply);
+    _syncMediaCoverVisibleGate();
   }
 
   /// Test seam: run production [_reloadPreviewFile] (A-class clear path).
@@ -1976,6 +2022,46 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       setState(apply);
     } else {
       apply();
+    }
+    // Cap 26.4c: miss chrome must publish cover-visible=false (debt 473).
+    _syncMediaCoverVisibleGate();
+  }
+
+  /// Test seam: coverless video page with/without surface ready (ADR-054).
+  ///
+  /// No poster → [mediaCoverVisiblePredicate] keys off [_surfaceReady] only
+  /// (`_stillCoverReady` never becomes true). Also publishes L2-ready to
+  /// match production [onSurfaceReady] (Share D14 limb).
+  ///
+  /// When [surfaceReady] is false, suppresses in-tree surface-ready callbacks
+  /// (test [_VideoPage] fires them immediately on mount).
+  @visibleForTesting
+  void debugForceCoverlessVideoSurface({required bool surfaceReady}) {
+    void apply() {
+      // Invalidate in-flight L1/L2 so a late Fake display apply cannot
+      // restore a still cover over this coverless weld.
+      _localGate.begin();
+      _debugSuppressSurfaceReadyCallbacks = !surfaceReady;
+      _loading = false;
+      _media = FeedPageMedia.video(widget.assetIdentifier);
+      _surfaceReady = surfaceReady;
+      _stillCoverReady = false;
+      _stillCoverDecodeBroken = false;
+      _stillCoverTrackedPath = null;
+      _liveMotionMounted = false;
+      _layer2InFlight = false;
+      _a4ChromeRevealTimer?.cancel();
+      _a4ChromeRevealTimer = null;
+    }
+
+    if (mounted) {
+      setState(apply);
+    } else {
+      apply();
+    }
+    _syncMediaCoverVisibleGate();
+    if (widget.isCurrent) {
+      _publishLayer2DisplayReady(surfaceReady);
     }
   }
 
@@ -2605,6 +2691,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           return;
         }
         _publishHostUnavailableGate();
+        _syncMediaCoverVisibleGate();
       });
     }
     if (leftCurrent) {}
@@ -2629,6 +2716,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
         _clearHostUnavailableGate();
         _clearLayer2DisplayReadyGate();
+        _clearMediaCoverVisibleGate();
         _publishListAvailability(null);
       });
       _cancelInitialLayer1CenterLabelDelay(revealImmediately: true);
@@ -3000,6 +3088,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         ref
             .read(browseMagnificationProvider.notifier)
             .onLiveMotionMountedChanged(true);
+        _syncMediaCoverVisibleGate();
       } catch (_) {
         // Sync failure → keep still; no skip (Cap 9.5 static fallback).
         _liveHostPhotoRetained = false;
@@ -3084,6 +3173,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     ref
         .read(browseMagnificationProvider.notifier)
         .onLiveMotionMountedChanged(true);
+    _syncMediaCoverVisibleGate();
     return true;
   }
 
@@ -3189,6 +3279,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         ref
             .read(browseMagnificationProvider.notifier)
             .onLiveMotionMountedChanged(true);
+        _syncMediaCoverVisibleGate();
       } catch (_) {
         _liveSilentReplayInFlight = false;
         _liveHostPhotoRetained = false;
@@ -4705,6 +4796,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _publishHostUnavailableGate();
         });
       }
+      // Cap 26.4c / ADR-054: keep shell cover-visible aligned with page paint.
+      final wantCover = _computeMediaCoverVisible();
+      final haveCover =
+          ref.read(mainBrowseCurrentAssetMediaCoverVisibleProvider);
+      if (wantCover != haveCover) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || !widget.isCurrent) {
+            return;
+          }
+          ref
+              .read(mainBrowseCurrentAssetMediaCoverVisibleProvider.notifier)
+              .setVisible(_computeMediaCoverVisible());
+        });
+      }
     }
 
     if (_loading) {
@@ -5009,9 +5114,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                       if (!mounted) {
                         return;
                       }
+                      if (_debugSuppressSurfaceReadyCallbacks) {
+                        return;
+                      }
                       setState(() {
                         _surfaceReady = true;
                       });
+                      _syncMediaCoverVisibleGate();
                       if (widget.isCurrent) {
                         widget.onCurrentLayer2MediaReady?.call(
                           widget.assetIdentifier,

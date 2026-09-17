@@ -43,6 +43,7 @@ bool leftSwipeArmingAllowed({
   required bool isCurrentStillMagnified,
   required bool cap19PanelOpen,
   required bool currentAssetActionable,
+  required bool currentAssetMediaCoverVisible,
   bool transientPinchActive = false,
   bool stillPinchContact = false,
 }) {
@@ -61,6 +62,10 @@ bool leftSwipeArmingAllowed({
     return false;
   }
   if (!currentAssetActionable) {
+    return false;
+  }
+  // Cap 26.4c / ADR-054: no album mutation while cover is unpainted.
+  if (!currentAssetMediaCoverVisible) {
     return false;
   }
   return true;

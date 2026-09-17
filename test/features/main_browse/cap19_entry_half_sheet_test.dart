@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/asset_source.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
@@ -50,7 +51,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('cap19EntryIcon')));
+    await ensureShellMediaCoverVisible(tester);
+      await tester.tap(find.byKey(const Key('cap19EntryIcon')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('cap19ActionsHalfSheet')), findsOneWidget);
@@ -68,6 +70,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap19EntryIcon')));
       await tester.pumpAndSettle();
 
@@ -109,6 +112,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap19EntryIcon')));
       await tester.pumpAndSettle();
 
@@ -136,7 +140,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('cap19EntryIcon')));
+    await ensureShellMediaCoverVisible(tester);
+      await tester.tap(find.byKey(const Key('cap19EntryIcon')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('cap19PanelOpenSettings')));

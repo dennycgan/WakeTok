@@ -40,6 +40,9 @@ class Cap25ShareEntryIcon extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
+    final coverVisible = ref.watch(
+      mainBrowseCurrentAssetMediaCoverVisibleProvider,
+    );
     final layer2Ready = ref.watch(
       mainBrowseCurrentAssetLayer2DisplayReadyProvider,
     );
@@ -48,6 +51,7 @@ class Cap25ShareEntryIcon extends ConsumerWidget {
       actionable: actionable,
       verticalFeedSettled: settled,
       transitionCovering: covering,
+      mediaCoverVisible: coverVisible,
       layer2DisplayReady: layer2Ready,
       liveMotionMounted: liveMotion,
     );

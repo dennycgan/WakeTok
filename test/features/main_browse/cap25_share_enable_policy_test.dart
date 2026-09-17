@@ -2,11 +2,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/features/main_browse/cap25_share_enable_policy.dart';
 
 void main() {
-  group('cap25ShareEnablePredicate (ADR-051 Decision 14)', () {
+  group('cap25ShareEnablePredicate (ADR-051 Decision 14 + ADR-054)', () {
     Cap25ShareEnable eval({
       bool actionable = true,
       bool settled = true,
       bool covering = false,
+      bool coverVisible = true,
       bool layer2Ready = true,
       bool liveMotion = false,
     }) {
@@ -14,6 +15,7 @@ void main() {
         actionable: actionable,
         verticalFeedSettled: settled,
         transitionCovering: covering,
+        mediaCoverVisible: coverVisible,
         layer2DisplayReady: layer2Ready,
         liveMotionMounted: liveMotion,
       );
@@ -46,7 +48,6 @@ void main() {
     test(
       'T-25.14-5 iCloud unreadiness does not skip L2 / Live limbs',
       () {
-        // Availability is not an enable input; same as local ¬L2 + Live.
         final e = eval(layer2Ready: false, liveMotion: true);
         expect(e.chromeVisible, isTrue);
         expect(e.tapEnabled, isFalse);
@@ -85,5 +86,19 @@ void main() {
       expect(e.chromeVisible, isFalse);
       expect(e.tapEnabled, isFalse);
     });
+
+    test('ADR-054: cover not visible → tap disabled even when L2 ready', () {
+      final e = eval(coverVisible: false, layer2Ready: true);
+      expect(e.chromeVisible, isTrue);
+      expect(e.tapEnabled, isFalse);
+    });
+
+    test(
+      'ADR-054: cover visible + L2 ready → tap enabled (D14 unchanged)',
+      () {
+        final e = eval(coverVisible: true, layer2Ready: true);
+        expect(e.tapEnabled, isTrue);
+      },
+    );
   });
 }

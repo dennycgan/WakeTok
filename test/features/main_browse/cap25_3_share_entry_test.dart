@@ -20,6 +20,7 @@ import 'package:waketok/l10n/app_localizations.dart';
 import '../../library_smoke/fake_asset_share_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 FakeAssetSourceRepository _localSources([String id = 'a1']) {
   return FakeAssetSourceRepository(
@@ -189,6 +190,7 @@ void main() {
 
       sources.availabilityById['a1'] = AssetAvailability.unavailable;
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap25ShareEntryIcon')));
       await tester.pumpAndSettle();
 
@@ -205,6 +207,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Deny path uses try/finally → latch must clear; second tap re-probes.
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap25ShareEntryIcon')));
       await tester.pumpAndSettle();
       expect(
@@ -230,6 +233,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap25ShareEntryIcon')));
       await tester.pumpAndSettle();
 
@@ -258,6 +262,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap25ShareEntryIcon')));
       await tester.pumpAndSettle();
 
@@ -285,6 +290,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap25ShareEntryIcon')));
       await tester.pump();
       expect(share.callCount, 1);

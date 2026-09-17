@@ -41,6 +41,7 @@ void main() {
         leftSwipeAddEnabled: true,
         isCurrentStillMagnified: true,
         cap19PanelOpen: false,
+        currentAssetMediaCoverVisible: true,
         currentAssetActionable: true,
       ),
       isFalse,
@@ -53,7 +54,21 @@ void main() {
         leftSwipeAddEnabled: true,
         isCurrentStillMagnified: false,
         cap19PanelOpen: false,
+        currentAssetMediaCoverVisible: true,
         currentAssetActionable: false,
+      ),
+      isFalse,
+    );
+  });
+
+  test('ADR-054 cover not visible blocks left-swipe arming', () {
+    expect(
+      leftSwipeArmingAllowed(
+        leftSwipeAddEnabled: true,
+        isCurrentStillMagnified: false,
+        cap19PanelOpen: false,
+        currentAssetMediaCoverVisible: false,
+        currentAssetActionable: true,
       ),
       isFalse,
     );

@@ -57,6 +57,9 @@ final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
   final mag = ref.watch(browseMagnificationProvider);
   final panelOpen = ref.watch(cap19ActionsPanelOpenProvider);
   final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
+  final coverVisible = ref.watch(
+    mainBrowseCurrentAssetMediaCoverVisibleProvider,
+  );
   return leftSwipeArmingAllowed(
     leftSwipeAddEnabled: appendState.leftSwipeAddEnabled,
     isCurrentStillMagnified: magnified,
@@ -64,6 +67,7 @@ final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
     stillPinchContact: mag.stillPinchContact,
     cap19PanelOpen: panelOpen,
     currentAssetActionable: actionable,
+    currentAssetMediaCoverVisible: coverVisible,
   );
 });
 

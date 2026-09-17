@@ -30,6 +30,7 @@ import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../../library_smoke/fake_playback_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 const _wakeTokAlbumId = 'waketok-album-cap20-video';
 
@@ -515,6 +516,7 @@ void main() {
         isTrue,
         reason: 'mounted video surface must set MagnificationHostMode.transient',
       );
+      await ensureShellMediaCoverVisible(tester);
       expect(container.read(browseStillMagnifiedProvider), isFalse);
       expect(container.read(cap19LeftSwipeArmingProvider), isTrue);
       expect(find.byKey(const Key('cap19LeftSwipeGesture')), findsOneWidget);

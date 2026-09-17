@@ -32,23 +32,29 @@ class Cap24MoreEntryIcon extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
+    final coverVisible = ref.watch(
+      mainBrowseCurrentAssetMediaCoverVisibleProvider,
+    );
     final chromeReady = mainBrowseTrailingMutationChromeVisible(
       actionable: actionable,
       verticalFeedSettled: settled,
       transitionCovering: covering,
     );
+    // Cap 26.4c / ADR-054: cover-visible AND chrome (Opacity + Semantics).
+    final entryEnabled = chromeReady && coverVisible;
+    final entryOpaque = actionable && coverVisible;
 
     return Semantics(
       button: true,
-      enabled: chromeReady,
+      enabled: entryEnabled,
       label: l10n.cap24MoreEntryIconSemantics,
       child: Opacity(
-        opacity: actionable ? 1.0 : kActionColumnEntryIconDisabledOpacity,
+        opacity: entryOpaque ? 1.0 : kActionColumnEntryIconDisabledOpacity,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             key: const Key('cap24MoreEntryIcon'),
-            onTap: chromeReady
+            onTap: entryEnabled
                 ? () async {
                     final allowed =
                         await ensureCurrentAssetStillInLibraryForMutation(

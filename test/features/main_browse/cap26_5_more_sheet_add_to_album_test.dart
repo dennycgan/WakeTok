@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
@@ -20,7 +21,8 @@ FakeAssetSourceRepository _localSources([String id = 'a1']) {
 }
 
 Future<void> _openMoreSheet(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
+  await ensureShellMediaCoverVisible(tester);
+      await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
 }

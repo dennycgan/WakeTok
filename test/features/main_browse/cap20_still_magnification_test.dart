@@ -24,6 +24,7 @@ import '../../domain/library/fake_waketok_album_store.dart';
 import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 const _wakeTokAlbumId = 'waketok-album-cap20';
 
@@ -32,6 +33,7 @@ Future<void> _pumpFeed(WidgetTester tester) async {
   for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 20));
   }
+  await ensureShellMediaCoverVisible(tester);
 }
 
 ProviderContainer _feedContainer(WidgetTester tester) {

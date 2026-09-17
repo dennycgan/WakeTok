@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
@@ -106,6 +107,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await ensureShellMediaCoverVisible(tester);
       final inkWell = tester.widget<InkWell>(
         find.byKey(const Key('cap19EntryIcon')),
       );

@@ -320,6 +320,27 @@ class MainBrowseCurrentAssetLayer2DisplayReady extends Notifier<bool> {
   }
 }
 
+/// Cap 26.4c / ADR-054: current page has painted a real media cover.
+///
+/// Written by [MediaFeedPage] only (see [mediaCoverVisiblePredicate]).
+/// Cleared on leave-current. Orthogonal to actionable / Layer2DisplayReady.
+final mainBrowseCurrentAssetMediaCoverVisibleProvider =
+    NotifierProvider<MainBrowseCurrentAssetMediaCoverVisible, bool>(
+      MainBrowseCurrentAssetMediaCoverVisible.new,
+    );
+
+class MainBrowseCurrentAssetMediaCoverVisible extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void setVisible(bool visible) {
+    if (state == visible) {
+      return;
+    }
+    state = visible;
+  }
+}
+
 /// Cap 25 / ADR-051 Decision 14: Live motion UiKitView mounted on current item.
 ///
 /// Published from [BrowseMagnificationNotifier.onLiveMotionMountedChanged]

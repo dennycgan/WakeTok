@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
@@ -35,9 +36,19 @@ FakeAssetSourceRepository _localSources([String id = 'a1']) {
 }
 
 Future<void> _openMoreSheet(WidgetTester tester) async {
+  await ensureShellMediaCoverVisible(tester);
   await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
+}
+
+/// Scope finders to the half-sheet — cover-visible also paints Meta Overlay
+/// with the same size / ~ minute strings.
+Finder _inMoreSheet(Finder matching) {
+  return find.descendant(
+    of: find.byKey(const Key('cap24MoreHalfSheet')),
+    matching: matching,
+  );
 }
 
 void main() {
@@ -169,6 +180,7 @@ void main() {
 
       sources.availabilityById['a1'] = AssetAvailability.unavailable;
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
       await tester.pumpAndSettle();
 
@@ -502,6 +514,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
       await tester.pump();
       await tester.pump();
@@ -526,8 +539,11 @@ void main() {
         findsNothing,
       );
 
-      // No tilde honesty mark on EXIF bare path.
-      for (final text in tester.widgetList<Text>(find.byType(Text))) {
+      // No tilde honesty mark on EXIF bare path (sheet only — Overlay may
+      // show library ~ when cover is visible).
+      for (final text in tester.widgetList<Text>(
+        _inMoreSheet(find.byType(Text)),
+      )) {
         final data = text.data;
         if (data != null && data.startsWith('~ ')) {
           texts.add(data);
@@ -568,6 +584,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
       await tester.pump();
       expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);
@@ -823,10 +840,15 @@ void main() {
       final sheetContext =
           tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
       final l10n = AppLocalizations.of(sheetContext)!;
-      expect(find.text(l10n.cap24MoreSheetFileSizeTitle), findsOneWidget);
       expect(
-        find.text(
-          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 2_886_627),
+        _inMoreSheet(find.text(l10n.cap24MoreSheetFileSizeTitle)),
+        findsOneWidget,
+      );
+      expect(
+        _inMoreSheet(
+          find.text(
+            formatOverlayFileSize(l10n: l10n, fileSizeBytes: 2_886_627),
+          ),
         ),
         findsOneWidget,
       );
@@ -939,6 +961,7 @@ void main() {
       );
       expect(presentation.sizeCalls, greaterThanOrEqualTo(1));
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
       await tester.pump();
       await tester.pump();
@@ -1028,8 +1051,10 @@ void main() {
           tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
       final l10n = AppLocalizations.of(sheetContext)!;
       expect(
-        find.text(
-          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 4096),
+        _inMoreSheet(
+          find.text(
+            formatOverlayFileSize(l10n: l10n, fileSizeBytes: 4096),
+          ),
         ),
         findsOneWidget,
       );
@@ -1076,6 +1101,7 @@ void main() {
         isFalse,
       );
 
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
       await tester.pump();
       await tester.pump();
@@ -1149,12 +1175,17 @@ void main() {
           tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
       final l10n = AppLocalizations.of(sheetContext)!;
       expect(
-        find.text(
-          formatOverlayFileSize(l10n: l10n, fileSizeBytes: 5555),
+        _inMoreSheet(
+          find.text(
+            formatOverlayFileSize(l10n: l10n, fileSizeBytes: 5555),
+          ),
         ),
         findsOneWidget,
       );
-      expect(find.text(l10n.cap24MoreSheetUnavailableValue), findsNothing);
+      expect(
+        _inMoreSheet(find.text(l10n.cap24MoreSheetUnavailableValue)),
+        findsNothing,
+      );
       expect(presentation.sizeCalls, callsBeforeOpen);
     },
   );
@@ -1245,6 +1276,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      await ensureShellMediaCoverVisible(tester);
       await tester.tap(find.byKey(const Key('cap24MoreEntryIcon')));
       await tester.pump();
       expect(find.byKey(const Key('cap24MoreHalfSheet')), findsOneWidget);

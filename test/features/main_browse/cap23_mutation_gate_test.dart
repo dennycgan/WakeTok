@@ -13,6 +13,7 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_append_controller.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 
 import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_favorite_repository.dart';
@@ -60,6 +61,20 @@ Future<void> _pumpBrowse({
     ),
   );
   await tester.pumpAndSettle();
+  // Cap 26.4c: Action Column needs cover-visible; FakeAsync / FileImage may
+  // not fire frameBuilder — force painted cover when a current page exists.
+  await tester.pump();
+  final coverFinder = find.byWidgetPredicate(
+    (w) => w is MediaFeedPage && w.isCurrent,
+  );
+  if (coverFinder.evaluate().isNotEmpty) {
+    final page = tester.state<MediaFeedPageState>(coverFinder);
+    if (!page.debugStillCoverReady || page.debugStillCoverDecodeBroken) {
+      page.debugForceStillCoverDecodeBroken(false);
+    }
+    await tester.pump();
+    await tester.pump();
+  }
 }
 
 ProviderContainer _containerOf(WidgetTester tester) {
@@ -280,6 +295,7 @@ void main() {
           leftSwipeAddEnabled: true,
           isCurrentStillMagnified: false,
           cap19PanelOpen: false,
+          currentAssetMediaCoverVisible: true,
           currentAssetActionable: true,
         ),
         isTrue,

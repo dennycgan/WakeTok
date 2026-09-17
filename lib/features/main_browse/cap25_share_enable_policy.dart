@@ -1,12 +1,13 @@
 import 'package:waketok/features/main_browse/main_browse_trailing_chrome_policy.dart';
 
-/// Cap 25 / ADR-051 Decision 14: Share tap-enable axes beyond Decision 8
-/// chrome visibility.
+/// Cap 25 / ADR-051 Decision 14 + Cap 26.4c / ADR-054: Share tap-enable
+/// axes beyond Decision 8 chrome visibility.
 ///
 /// [chromeVisible] is Decision 8 (`actionable ∧ settled ∧ ¬covering`).
-/// [tapEnabled] requires current-item Layer-2 display ready and no Live
-/// motion mounted — same rule for local decode and iCloud download.
-/// Peek / covering hide is owned by the entry icon (shrink), not this dim axis.
+/// [tapEnabled] requires cover-visible (ADR-054), current-item Layer-2
+/// display ready, and no Live motion mounted — same L2/Live rule for local
+/// decode and iCloud download. Peek / covering hide is owned by the entry
+/// icon (shrink), not this dim axis.
 class Cap25ShareEnable {
   const Cap25ShareEnable({
     required this.chromeVisible,
@@ -20,11 +21,12 @@ class Cap25ShareEnable {
   bool get dimmed => !tapEnabled;
 }
 
-/// Pure Decision 14 predicate (no Riverpod).
+/// Pure Decision 14 + ADR-054 predicate (no Riverpod).
 Cap25ShareEnable cap25ShareEnablePredicate({
   required bool actionable,
   required bool verticalFeedSettled,
   required bool transitionCovering,
+  required bool mediaCoverVisible,
   required bool layer2DisplayReady,
   required bool liveMotionMounted,
 }) {
@@ -37,6 +39,7 @@ Cap25ShareEnable cap25ShareEnablePredicate({
     return const Cap25ShareEnable(chromeVisible: false, tapEnabled: false);
   }
 
-  final tapEnabled = layer2DisplayReady && !liveMotionMounted;
+  final tapEnabled =
+      mediaCoverVisible && layer2DisplayReady && !liveMotionMounted;
   return Cap25ShareEnable(chromeVisible: true, tapEnabled: tapEnabled);
 }

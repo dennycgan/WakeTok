@@ -1,8 +1,26 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:waketok/domain/playback/media_display_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
+
+/// 1×1 PNG — decodable by [Image.file] so Cap 26.4c cover-ready can clear
+/// in widget tests (non-decodable `/tmp/fake_*.jpg` never fired frameBuilder).
+const _kFakeDecodablePngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+String _fakeDecodableStillPath(String assetIdentifier, {required String tag}) {
+  final safe = assetIdentifier.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+  final file = File(
+    '${Directory.systemTemp.path}/wt_fake_${tag}_$safe.png',
+  );
+  if (!file.existsSync()) {
+    file.writeAsBytesSync(base64Decode(_kFakeDecodablePngBase64));
+  }
+  return file.path;
+}
 
 class FakeMediaDisplayRepository implements MediaDisplayRepository {
   FakeMediaDisplayRepository({this.display, this.video, this.displayErrorCode});
@@ -81,7 +99,10 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
         DisplayAsset(
           assetIdentifier: assetIdentifier,
           mediaKind: PlaybackMediaKind.image,
-          localFilePath: '/tmp/fake_$assetIdentifier.jpg',
+          localFilePath: _fakeDecodableStillPath(
+            assetIdentifier,
+            tag: 'display',
+          ),
         );
   }
 
@@ -135,7 +156,10 @@ class FakeMediaDisplayRepository implements MediaDisplayRepository {
         DisplayAsset(
           assetIdentifier: assetIdentifier,
           mediaKind: PlaybackMediaKind.image,
-          localFilePath: '/tmp/fake_preview_$assetIdentifier.jpg',
+          localFilePath: _fakeDecodableStillPath(
+            assetIdentifier,
+            tag: 'preview',
+          ),
         );
   }
 

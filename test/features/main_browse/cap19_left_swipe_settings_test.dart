@@ -19,6 +19,7 @@ import '../../library_smoke/fake_album_mutation_repository.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 const _wakeTokAlbumId = 'waketok-album-1';
 
@@ -53,6 +54,8 @@ Future<void> _openBrowse(WidgetTester tester) async {
 }
 
 Future<void> _leftSwipe(WidgetTester tester) async {
+  // Cap 26.4c / ADR-054: arming ANDs cover-visible.
+  await ensureShellMediaCoverVisible(tester);
   final gesture = await tester.startGesture(
     tester.getCenter(find.byType(PageView)),
   );

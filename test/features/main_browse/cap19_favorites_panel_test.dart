@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/source/asset_source.dart';
@@ -37,7 +38,8 @@ FakeAssetSourceRepository _feedSources() => FakeAssetSourceRepository(
     );
 
 Future<void> _openFullSheet(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('cap19EntryIcon')));
+  await ensureShellMediaCoverVisible(tester);
+      await tester.tap(find.byKey(const Key('cap19EntryIcon')));
   await tester.pumpAndSettle();
 }
 

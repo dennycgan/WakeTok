@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'still_cover_test_helpers.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
@@ -424,7 +425,8 @@ void main() {
         );
         expect(opacity.opacity, kCap19EntryIconDisabledOpacity);
 
-        await tester.tap(find.byKey(const Key('cap19EntryIcon')));
+        await ensureShellMediaCoverVisible(tester);
+      await tester.tap(find.byKey(const Key('cap19EntryIcon')));
         await tester.pumpAndSettle();
         final l10n = await AppLocalizations.delegate.load(const Locale('en'));
         expect(find.text(l10n.cap19PanelAddToAlbumTitle), findsNothing);

@@ -26,6 +26,7 @@ import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
 import '../../library_smoke/fake_media_display_repository.dart';
 import '../../library_smoke/fake_playback_repository.dart';
 import '../authorization/permission_ui_test_harness.dart';
+import 'still_cover_test_helpers.dart';
 
 const _wakeTokAlbumId = 'waketok-album-1';
 
@@ -60,6 +61,8 @@ Future<void> _pumpAsyncWork(WidgetTester tester) async {
 }
 
 Future<void> _simulateLeftSwipeOnPageView(WidgetTester tester) async {
+  // Cap 26.4c / ADR-054: arming ANDs cover-visible.
+  await ensureShellMediaCoverVisible(tester);
   final gesture = await tester.startGesture(
     tester.getCenter(find.byType(PageView)),
   );
@@ -382,6 +385,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await ensureShellMediaCoverVisible(tester);
       expect(find.byKey(const Key('cap19LeftSwipeGesture')), findsOneWidget);
 
       final element = tester.element(find.byType(VerticalMediaFeed));

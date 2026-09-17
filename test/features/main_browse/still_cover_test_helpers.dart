@@ -76,6 +76,9 @@ Future<void> pumpUntilStillCoverReady(
     page.debugForceStillCoverDecodeBroken(false);
     await tester.pump();
     if (page.debugStillCoverReady && !page.debugStillCoverDecodeBroken) {
+      // Cap 26.4c: [_syncMediaCoverVisibleGate] publishes post-frame.
+      await tester.pump();
+      await tester.pump();
       return;
     }
   }
@@ -85,6 +88,7 @@ Future<void> pumpUntilStillCoverReady(
     });
     await tester.pump();
     if (page.debugStillCoverReady && !page.debugStillCoverDecodeBroken) {
+      await tester.pump();
       await tester.pump();
       return;
     }
@@ -104,4 +108,23 @@ Future<void> pumpUntilStillCoverReadyForAsset(
     tester,
     mediaFeedPageState(tester, assetIdentifier),
   );
+}
+
+/// Cap 26.4c: make shell Action Column cover-visible for mutation taps.
+///
+/// Widget tests often never complete [Image.file] frameBuilder; force the
+/// page cover-ready seam then pump so the shell provider publishes.
+Future<void> ensureShellMediaCoverVisible(WidgetTester tester) async {
+  final finder = find.byWidgetPredicate(
+    (w) => w is MediaFeedPage && w.isCurrent,
+  );
+  if (finder.evaluate().isEmpty) {
+    return;
+  }
+  final page = tester.state<MediaFeedPageState>(finder);
+  if (!page.debugStillCoverReady || page.debugStillCoverDecodeBroken) {
+    page.debugForceStillCoverDecodeBroken(false);
+  }
+  await tester.pump();
+  await tester.pump();
 }
