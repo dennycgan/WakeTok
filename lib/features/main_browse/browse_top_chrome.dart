@@ -23,8 +23,25 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// Shared chrome control metrics (Temp / Saved chip / Built-in / Create / Saved menu).
 const double _kChromeControlHeight = 32;
 const double _kChromeControlHPad = 10;
-const double _kSavedChipMaxWidth = 112;
 const double _kChromeDropdownIconSize = 16;
+
+/// Cap 26.4b: selected / leading pill width matches Temp Pool label + pads.
+///
+/// Locale-dependent (`mainBrowseTempPoolChip` ARB). Used for Temp chip,
+/// Saved chip (name replaces label, centered + ellipsis), and selected
+/// Built-in control so All / Photos / Videos share one capsule size.
+double _chromeTempPoolPillWidth(BuildContext context) {
+  final l10n = AppLocalizations.of(context)!;
+  final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+  final style = _chromeOnMediaLabelStyle(tokens, tokens.accent);
+  final painter = TextPainter(
+    text: TextSpan(text: l10n.mainBrowseTempPoolChip, style: style),
+    textDirection: Directionality.of(context),
+    maxLines: 1,
+    textHeightBehavior: _kChromeTextHeightBehavior,
+  )..layout();
+  return painter.width + 2 * _kChromeControlHPad;
+}
 
 /// Drop font leading so glyphs sit in the geometric middle of the fixed hit.
 const TextHeightBehavior _kChromeTextHeightBehavior = TextHeightBehavior(
@@ -45,34 +62,33 @@ Widget _chromeLabelText(
   String text,
   TextStyle style, {
   int maxLines = 1,
+  TextAlign textAlign = TextAlign.start,
 }) {
   return Text(
     text,
     maxLines: maxLines,
     overflow: TextOverflow.ellipsis,
+    textAlign: textAlign,
     textHeightBehavior: _kChromeTextHeightBehavior,
     style: style,
   );
 }
 
 /// Fixed-height chrome hit; [child] is centered on both axes inside the pad.
+///
+/// When [width] is set (Cap 26.4b Temp-Pool pill budget), the shell is that
+/// exact width — labels ellipsize rather than growing the capsule.
 Widget _chromeControlShell({
   required Widget child,
-  double? maxWidth,
+  double? width,
 }) {
-  final body = SizedBox(
+  return SizedBox(
     height: _kChromeControlHeight,
+    width: width,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: _kChromeControlHPad),
       child: Center(child: child),
     ),
-  );
-  if (maxWidth == null) {
-    return body;
-  }
-  return ConstrainedBox(
-    constraints: BoxConstraints(maxWidth: maxWidth),
-    child: body,
   );
 }
 
@@ -80,13 +96,15 @@ Widget _chromeDropdownRow({
   required String label,
   required TextStyle style,
   required Color iconColor,
+  bool expandLabel = false,
 }) {
+  final labelWidget = _chromeLabelText(label, style);
   return Row(
-    mainAxisSize: MainAxisSize.min,
+    mainAxisSize: expandLabel ? MainAxisSize.max : MainAxisSize.min,
     mainAxisAlignment: MainAxisAlignment.center,
     crossAxisAlignment: CrossAxisAlignment.center,
     children: [
-      _chromeLabelText(label, style),
+      if (expandLabel) Flexible(child: labelWidget) else labelWidget,
       Icon(
         Icons.arrow_drop_down,
         size: _kChromeDropdownIconSize,
@@ -330,9 +348,11 @@ class _TempPoolChip extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: _chromeControlShell(
+            width: _chromeTempPoolPillWidth(context),
             child: _chromeLabelText(
               l10n.mainBrowseTempPoolChip,
               _chromeOnMediaLabelStyle(tokens, color),
+              textAlign: TextAlign.center,
             ),
           ),
         ),
@@ -350,6 +370,7 @@ class _SavedPoolChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    // Cap 26.4b: same fixed pill as Temp Pool; name replaces label (centered).
     return Material(
       key: const Key('mainBrowseSavedPoolChip'),
       color: tokens.surface.withValues(alpha: 0.92),
@@ -358,10 +379,11 @@ class _SavedPoolChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: _chromeControlShell(
-          maxWidth: _kSavedChipMaxWidth,
+          width: _chromeTempPoolPillWidth(context),
           child: _chromeLabelText(
             label,
             _chromeOnMediaLabelStyle(tokens, tokens.accent),
+            textAlign: TextAlign.center,
           ),
         ),
       ),
@@ -472,10 +494,16 @@ class _BuiltInControl extends StatelessWidget {
             onTap: () => _openBuiltInOverlay(context),
             borderRadius: BorderRadius.circular(16),
             child: _chromeControlShell(
+              // Cap 26.4b: selected Built-in uses Temp Pool pill width so
+              // All / Photos / Videos do not grow different capsules.
+              width: highlightAsSelected
+                  ? _chromeTempPoolPillWidth(context)
+                  : null,
               child: _chromeDropdownRow(
                 label: label,
                 style: _chromeOnMediaLabelStyle(tokens, color),
                 iconColor: color,
+                expandLabel: highlightAsSelected,
               ),
             ),
           ),

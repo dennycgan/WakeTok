@@ -133,6 +133,68 @@ void main() {
       expect(find.byKey(const Key('mainBrowseSavedPoolChip')), findsNothing);
     });
 
+    testWidgets(
+      'W-26.4b-1 Saved short name uses Temp Pool pill width; Built-in selected matches',
+      (tester) async {
+        final pools = FakeSavedPoolRepository(createId: () => 'p1');
+        await pools.save(
+          displayName: 'W',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
+        await _pump(tester: tester, savedPools: pools);
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+
+        container
+            .read(browseChromeStateProvider.notifier)
+            .startEphemeralPool(_eph(), compositionLabels: const ['Photos']);
+        await tester.pumpAndSettle();
+        final tempWidth =
+            tester.getSize(find.byKey(const Key('mainBrowseTempPoolChip'))).width;
+
+        container
+            .read(browseChromeStateProvider.notifier)
+            .openSavedPool((await pools.loadAll()).single);
+        await tester.pumpAndSettle();
+        final savedWidth = tester
+            .getSize(find.byKey(const Key('mainBrowseSavedPoolChip')))
+            .width;
+        expect(
+          savedWidth,
+          closeTo(tempWidth, 0.5),
+          reason: 'Saved chip pill must match Temp Pool fixed width',
+        );
+        expect(find.text('W'), findsWidgets);
+
+        // Built-in selected (All) uses the same Temp Pool pill width.
+        await tester.tap(find.byKey(const Key('mainBrowseBuiltInMenu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('mainBrowseBuiltInOptionAll')));
+        await tester.pumpAndSettle();
+        // Temp chip returns when leaving Saved; measure selected Built-in.
+        final allWidth =
+            tester.getSize(find.byKey(const Key('mainBrowseBuiltInMenu'))).width;
+        expect(
+          allWidth,
+          closeTo(tempWidth, 0.5),
+          reason: 'Selected All pill must match Temp Pool width',
+        );
+
+        await tester.tap(find.byKey(const Key('mainBrowseBuiltInMenu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const Key('mainBrowseBuiltInOptionVideos')));
+        await tester.pumpAndSettle();
+        final videosWidth =
+            tester.getSize(find.byKey(const Key('mainBrowseBuiltInMenu'))).width;
+        expect(
+          videosWidth,
+          closeTo(tempWidth, 0.5),
+          reason: 'Selected Videos pill must match Temp Pool width (not content)',
+        );
+      },
+    );
+
     testWidgets('Saved chip tap opens composition peek (not center Info)', (
       tester,
     ) async {

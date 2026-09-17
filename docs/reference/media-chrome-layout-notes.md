@@ -3,7 +3,8 @@
 > **Status:** Working snapshot. Media-area visual lock (owner device, 2026-09-05,
 > work `81904e1`). **Browse shell** top/bottom chrome metrics added Cap 22.5
 > polish (see §11; keep in sync with `browse_top_chrome.dart` /
-> `main_browse_shell_page.dart`).  
+> `main_browse_shell_page.dart`). Cap **26.4b** selected-capsule standard:
+> §**11.3.1** (Temp-Pool pill — reuse for Clips / new shell chrome).  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -313,8 +314,8 @@ So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt bel
 |------|---------|
 | **Top chrome / four-control row** | Cap 21.3 row: leading chip · Built-in · Saved · Create (`BrowseTopChrome`). |
 | **Chip** | Leading pill control. Either **Temp Pool** (`_TempPoolChip`, parked ephemeral) or **Saved Pool** (`_SavedPoolChip`, active saved preset name). Not the center Built-in/Saved menus. |
-| **Temp Pool chip** | Fixed short ARB label (`mainBrowseTempPoolChip`). Accent + surface pill while ephemeral is active; muted / no pill while parked but Built-in/Saved is current. |
-| **Saved Pool chip** | Shows active saved `displayName` (ellipsis). Always surface pill + accent when shown. |
+| **Temp Pool chip** | Fixed short ARB label (`mainBrowseTempPoolChip`). Accent + surface pill while ephemeral is active; muted / no pill while parked but Built-in/Saved is current. **Pill width** = label intrinsic + `_kChromeControlHPad`×2 (Cap **26.4b** canon for selected capsules). |
+| **Saved Pool chip** | Same **fixed** Temp-Pool pill width/height; `displayName` replaces the Temp label (centered, ellipsis). Always surface pill + accent when shown. |
 | **Built-in control** | Center-left dropdown: All / Photos / Videos (`_BuiltInControl`). Selected → accent + surface pill. |
 | **Saved pools menu** | Center-right dropdown opener (`_SavedControl`); lists presets in an overlay. |
 | **Create** | Trailing control (`_CreateControl`); opens Build a Pool cover. Disabled + helper line under Limited access. |
@@ -344,33 +345,77 @@ So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt bel
 
 ### 11.3 Top chrome layout metrics
 
-Constants in `browse_top_chrome.dart` (file-private; change there, then update this table):
+Constants in `browse_top_chrome.dart` (file-private today; change there, then
+update this section). Cap **26.4b** freezes the **selected capsule** recipe
+below so later surfaces (e.g. Clips chrome) can copy it without re-deriving.
 
 | Symbol | Value | Role |
 |--------|-------|------|
-| `_kChromeControlHeight` | **32** | Fixed hit / pill height for Temp, Saved chip, Built-in, Saved menu, Create label |
-| `_kChromeControlHPad` | **10** | Horizontal padding inside the hit |
-| `_kSavedChipMaxWidth` | **112** | Saved chip ellipsis budget (second line of defense vs naming weight) |
+| `_kChromeControlHeight` | **32** | Fixed hit / pill **height** (Temp, Saved chip, Built-in, Saved menu, Create label) |
+| `_kChromeControlHPad` | **10** | Horizontal padding inside the hit (left + right) |
+| `_chromeTempPoolPillWidth(context)` | see §11.3.1 | Cap **26.4b** fixed pill **width** |
 | `_kChromeDropdownIconSize` | **16** | `Icons.arrow_drop_down` next to Built-in / Saved labels |
 | Chrome band height | **52** (Create enabled) / **70** (Limited + Create helper) | `SizedBox` under `SafeArea` |
+| Leading chip inset | **8** | `Positioned(left: 8)` for Temp / Saved chip |
+| Create inset | **8** | `Positioned(right: 8)` |
+| Center-pair gap | **12** | Between Built-in and Saved menu |
 
-**Layout model:** `Stack` — center pair `Align(center)`; leading chip / Create `Positioned` + `Align` vertically centered in the band. Equal H pad + `Center` inside `_chromeControlShell` keep label (+ dropdown) geometrically centered in the 32pt hit.
-
-**Selected / active fill:** `tokens.surface` @ **0.92** alpha; `BorderRadius.circular(16)`.
+**Layout model:** `Stack` — center pair `Align(center)`; leading chip / Create `Positioned` + `Align` vertically centered in the band. Equal H pad + `Center` inside `_chromeControlShell` keep label (+ dropdown) geometrically centered in the 32pt hit. Fixed-width shells ellipsize overflow (`TextOverflow.ellipsis`); dropdown rows use `Flexible` on the label when the shell is fixed-width.
 
 **Do not:** push the center pair sideways when the leading chip appears (owner lock — chip show/hide must not shift Built-in/Saved).
 
+#### 11.3.1 Selected capsule standard (Cap 26.4b — copy for Clips / new chrome)
+
+> **Canon name:** Temp-Pool selected pill.  
+> **Code today:** `browse_top_chrome.dart` — `_chromeTempPoolPillWidth`,
+> `_chromeControlShell(width:)`, `_chromeOnMediaLabelStyle`.  
+> **Not yet a shared `lib/core` helper** — when Clips (or another shell)
+> needs the same capsule, either call the same formula or extract a shared
+> helper and keep this table as the contract.
+
+| Parameter | Locked value / formula | Notes |
+|-----------|------------------------|-------|
+| **Height** | **32** (`_kChromeControlHeight`) | Outer hit = visual pill height |
+| **Width** | `TextPainter(mainBrowseTempPoolChip).width + 2 × 10` | Locale-dependent. Reference EN ≈ **128** (`Temp Pool` text ≈ 108 + pad 20). Do **not** hard-code 128 — remeasure via the Temp ARB string + style. |
+| **H pad** | **10** each side | Inside the 32pt shell |
+| **Corner radius** | **16** (`BorderRadius.circular(16)`) | Full capsule |
+| **Fill (selected / active)** | `tokens.surface` @ **0.92** alpha | Unselected Built-in / parked Temp: **transparent** (no fill) |
+| **Label token** | `WakeTokTokens.labelOnMedia` | Size **12**, weight **w600** |
+| **Label runtime** | `copyWith(inherit: false, height: 1.0, shadows: onMediaLabelShadows, color: …)` | + `TextHeightBehavior` (no first ascent / last descent) |
+| **Label color** | `tokens.accent` when selected/active; `tokens.onMediaMuted` when parked/unselected | |
+| **Overflow** | `TextOverflow.ellipsis`, `maxLines: 1`, **centered** (`TextAlign.center`) | Longer Saved names / Built-in+▾ stay inside the Temp width |
+| **Dropdown icon** (Built-in only) | **16** pt, same color as label; label in `Flexible` when shell is fixed-width | EN Videos+▾ ≈ **108** &lt; Temp **128** — fits without ellipsis (owner-verified class) |
+
+**Who must use this capsule today**
+
+| Control | When filled | Width |
+|---------|-------------|-------|
+| Temp Pool chip | Ephemeral active | Fixed Temp width |
+| Saved Pool chip | Saved origin current | **Same** fixed width; string = `displayName` only |
+| Built-in (All / Photos / Videos) | `highlightAsSelected` | **Same** fixed width |
+
+**Reuse checklist (Clips / future)**
+
+1. Height **32**, H pad **10**, radius **16**, fill `surface@0.92`.  
+2. Width = **Temp Pool ARB** intrinsic under `_chromeOnMediaLabelStyle` + **20** — not content-sized, not a magic constant.  
+3. Label = `labelOnMedia` recipe above; replace text only; center + ellipsis.  
+4. Do not invent a second “short name” pill geometry.  
+5. Update this § when extracting a shared helper or changing numbers.
+
+**Cap 26.4b lock:** Leading Saved name must not invent a different pill geometry than Temp — only the string changes (centered). Short names (e.g. `"W"`) stay in the Temp-sized capsule; they must not grow a wider pill that overlaps Built-in.
+
 ### 11.4 Related product limits (naming → chip)
 
-Saved preset **display names** use a visual weight budget (domain `saved_pool_display_name.dart`): wide (EAW W/F, ideograph/kana/Hangul/fullwidth) ×3, else ×1, max **32**. Chip `maxWidth` 112 is independent UI truncation. IME composing is not weighed; over-budget commit/paste truncates to the longest in-budget **prefix**.
+Saved preset **display names** use a visual weight budget (domain `saved_pool_display_name.dart`): wide (EAW W/F, ideograph/kana/Hangul/fullwidth) ×3, else ×1, max **32**. Chip UI truncation is the fixed Temp-Pool pill width (Cap 26.4b), independent of that naming budget. IME composing is not weighed; over-budget commit/paste truncates to the longest in-budget **prefix**.
 
 ### 11.5 Shell device check (after retune)
 
 1. ZH + EN: Temp/Saved chip, Built-in, Saved, Create share one optical baseline; Create not lower than center pair.  
-2. Selected Built-in / active chip: label + dropdown (if any) centered in the gray pill.  
-3. Chip appear/disappear: center pair `dx` unchanged (`cap22_4` / `cap21_3` chrome tests).  
-4. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`).  
-5. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/`.
+2. Selected Built-in / active chip: label + dropdown (if any) centered in the gray pill; All / Photos / Videos pills **same width** as Temp.  
+3. Saved short name (e.g. `"W"`): pill width equals Temp; does not cover Built-in.  
+4. Chip appear/disappear: center pair `dx` unchanged (`cap22_4` / `cap21_3` chrome tests).  
+5. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`).  
+6. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/` (includes **W-26.4b-1**).
 
 ---
 
