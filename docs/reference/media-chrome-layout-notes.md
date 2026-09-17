@@ -4,7 +4,7 @@
 > work `81904e1`). **Browse shell** top/bottom chrome metrics added Cap 22.5
 > polish (see §11; keep in sync with `browse_top_chrome.dart` /
 > `main_browse_shell_page.dart`). Cap **26.4b** selected-capsule standard:
-> §**11.3.1** (Temp-Pool pill — reuse for Clips / new shell chrome).  
+> §**11.3.1**; action-column disabled opacity: §**7.1** (Share lock **0.22**).  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -214,6 +214,7 @@ long-press** (ADR-052) — not a control leading of LIVE. Do **not** widen
 | Index 2 = album | Cap 19 entry | `Cap19EntryIcon` / `actionColumnBottomInsetForIndex(2, …)` |
 | Lowest **icon** bottom | = Reset visual bottom | see formula below |
 | Index `i` bottom | `lowest + i×(48+16)` | `actionColumnBottomInsetForIndex` |
+| **Disabled opacity** | **0.22** | Cap **26.4b** — see §7.1 |
 
 ```
 resetBottom = overlayBottom + 3×20 + kResetAboveMetaGap
@@ -223,6 +224,24 @@ actionLowestBottom (Positioned) = resetBottom − 8
 ```
 
 So the **visible** 32pt glyph bottom matches Reset; the 48pt hit extends 8pt below the icon.
+
+#### 7.1 Disabled / not-actionable icon standard (Cap 26.4b)
+
+> **Canon:** Cap 25 Share not-tappable dim.  
+> **Empty / no-item / not-actionable chrome** must match across the column —
+> owner device: Cap 19 + Cap 24 looked brighter than Share at the old **0.38**.
+
+| Parameter | Locked value | Notes |
+|-----------|--------------|-------|
+| **Opacity** | **0.22** (`kActionColumnEntryIconDisabledOpacity`) | Single column lock. Aliases: `kCap19EntryIconDisabledOpacity`, `kCap25ShareEntryIconDisabledOpacity` |
+| **Icon color** | `tokens.onMedia` | Unchanged vs enabled — do **not** switch to `onMediaMuted` for disabled |
+| **Shadows** | `tokens.onMediaLabelShadows` | Same as enabled |
+| **Mechanism** | Wrap hit in `Opacity` | Enabled = `1.0`; not-actionable / not tap-enabled = `0.22` |
+| **Who** | Cap 19 album, Cap 25 Share, Cap 24 `"…"` | All three — empty source / not-actionable must look identical |
+
+**Do not:** keep a second “softer” dim for outline glyphs (former Cap 19/24 **0.38**). Glyph shape (fill Share vs outline stack / ellipsis) may still read slightly differently at the same opacity; that is acceptable — opacity/color/shadow must match.
+
+**Code:** `cap19_entry_layout.dart` (`kActionColumnEntryIconDisabledOpacity`); consumers in `cap19_entry_icon.dart`, `cap25_share_entry_icon.dart`, `cap24_more_entry_icon.dart`.
 
 **Deviation from earlier “keep bottom inset = 88” lock:** an earlier layout decision point said keep Cap 19’s fixed **`kActionColumnBottomInset = 88`** and not micro-tune it. During final device polish, tying the lowest action **icon** bottom to Reset (`resetBottom − 8`, ≈71.2 today) read better and keeps the column moving with meta/Reset instead of a second magic number. **This notes file records that deliberate override** — it was not the original plan; owner accepted it after on-device review (“大概满意”). Do not “restore 88” without a new owner pass.
 

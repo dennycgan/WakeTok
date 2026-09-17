@@ -57,7 +57,7 @@ class Cap25ShareEntryIcon extends ConsumerWidget {
       enabled: enable.tapEnabled,
       label: l10n.cap25ShareEntryIconSemantics,
       child: Opacity(
-        opacity: enable.tapEnabled ? 1.0 : kCap25ShareEntryIconDisabledOpacity,
+        opacity: enable.tapEnabled ? 1.0 : kActionColumnEntryIconDisabledOpacity,
         child: Material(
           color: Colors.transparent,
           child: InkWell(

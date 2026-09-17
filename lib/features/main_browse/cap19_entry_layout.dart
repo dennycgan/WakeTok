@@ -35,12 +35,21 @@ const double kCap19ActionsHalfSheetMaxHeightFactor = 0.5;
 /// Album / Favorites picker row thumbnail edge length.
 const double kCap19PanelRowThumbnailSize = 52;
 
-/// Opacity for Cap 19 entry (and Cap 24 "…") when current asset is not actionable.
-const double kCap19EntryIconDisabledOpacity = 0.38;
+/// Cap 26.4b action-column not-actionable dim (Share lock).
+///
+/// Cap 19 album / Cap 24 `"…"` / Cap 25 Share all use this when the current
+/// asset is not tappable. Color stays `tokens.onMedia` +
+/// `onMediaLabelShadows`; only [Opacity] changes. Do not invent a second
+/// disabled gray or alpha per icon.
+const double kActionColumnEntryIconDisabledOpacity = 0.22;
 
-/// Cap 25 Share dim (ADR-051 Decision 14). Darker than Cap 19/24 actionable-dim
-/// so "not tappable" reads clearly on on-media chrome.
-const double kCap25ShareEntryIconDisabledOpacity = 0.22;
+/// Alias — Cap 19 / Cap 24 entry icons (same value as action-column lock).
+const double kCap19EntryIconDisabledOpacity =
+    kActionColumnEntryIconDisabledOpacity;
+
+/// Alias — Cap 25 Share historical name (same value as action-column lock).
+const double kCap25ShareEntryIconDisabledOpacity =
+    kActionColumnEntryIconDisabledOpacity;
 
 /// Top chrome body below [MediaQuery.padding.top] (SafeArea + cells; ADR-016).
 const double kCap19BrowseTopChromeBodyHeight = 56;

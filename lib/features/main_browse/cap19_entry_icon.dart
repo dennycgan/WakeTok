@@ -48,7 +48,7 @@ class Cap19EntryIcon extends ConsumerWidget {
       enabled: chromeReady,
       label: l10n.cap19EntryIconSemantics,
       child: Opacity(
-        opacity: actionable ? 1.0 : kCap19EntryIconDisabledOpacity,
+        opacity: actionable ? 1.0 : kActionColumnEntryIconDisabledOpacity,
         child: Material(
           color: Colors.transparent,
           child: InkWell(

@@ -82,6 +82,38 @@ void main() {
   );
 
   testWidgets(
+    'W-26.4b-3 empty session: Cap 19 / Share / More share disabled opacity',
+    (tester) async {
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(allIds: const []),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      Opacity opacityOf(Key key) => tester.widget<Opacity>(
+        find.ancestor(of: find.byKey(key), matching: find.byType(Opacity)),
+      );
+
+      final moreOpacity = opacityOf(const Key('cap24MoreEntryIcon'));
+      final shareOpacity = opacityOf(const Key('cap25ShareEntryIcon'));
+      final cap19Opacity = opacityOf(const Key('cap19EntryIcon'));
+      expect(moreOpacity.opacity, kActionColumnEntryIconDisabledOpacity);
+      expect(shareOpacity.opacity, kActionColumnEntryIconDisabledOpacity);
+      expect(cap19Opacity.opacity, kActionColumnEntryIconDisabledOpacity);
+      expect(moreOpacity.opacity, shareOpacity.opacity);
+      expect(cap19Opacity.opacity, shareOpacity.opacity);
+      expect(
+        tester.widget<InkWell>(find.byKey(const Key('cap24MoreEntryIcon'))).onTap,
+        isNull,
+      );
+    },
+  );
+
+  testWidgets(
     'W-24.3-2 empty session dims more icon like Cap 19 (opacity)',
     (tester) async {
       final repo =
