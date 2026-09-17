@@ -6392,10 +6392,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album second entry
 
-- Status: Proposed (2026-09-15) — design locked; flip to Accepted with
-  real implementing-work anchor when Cap 26.2+ lands (no fake anchors
-  while Proposed)
-- Commit/PR anchor: pending Cap 26 implementing work
+- Status: Proposed (2026-09-15); Cap 26.5a narrow amend of Decisions 3 / 6
+  (release-to-stop) locked in design review 2026-09-18 — still flip to
+  Accepted only at Cap 26.6 with full implementing anchors
+- Commit/PR anchor: pending Cap 26 close (26.6); Cap 26.5a work sha TBD
 - Plain summary (owner reads this):
   On a Live Photo’s still key frame, a long-press replays the motion
   once (the only replay control — no new button next to LIVE). Opening
@@ -6407,7 +6407,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   (zero-height slot; **locked product home** = half-sheet, not Overlay
   row 4 — layout notes §12.6). If automatic Live play was silently
   skipped this session after a stuck motion, the user’s long-press still
-  retries.
+  retries. Cap 26.5a: while the finger that fired long-press remains
+  down, App long-press owns press-and-hold playback — release stops
+  motion and returns to the Live still (Photos parity); natural
+  play-once end is unchanged.
 - Context / what problem forced this:
   ADR-040 Decision 17 reserved an explicit Live replay control and
   rejected Photos-style long-press; that control was never shipped
@@ -6433,11 +6436,41 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      long-press is the directed exception (replaces the never-built
      explicit control). Accidental tap / recognizer-driven replay
      remains forbidden.
-  3. **Replay path (ADR-037).** Prefer `_playLiveMotionOnce` when Host
-     still holds a prepared LivePhoto. After Q7 / watchdog unload,
-     allow **silent re-request** (Host request without arming
-     `_livePreparing` / gold prepare chrome). Do **not** invent
-     mid-motion interrupt / restart Host branches (owner Q3=A).
+  3. **Replay path (ADR-037) + Cap 26.5a user-hold release-stop.**
+     Prefer `_playLiveMotionOnce` when Host still holds a prepared
+     LivePhoto (Path R). After Q7 / watchdog unload, allow silent
+     re-request without `_livePreparing` / gold prepare chrome (Path S).
+
+     Cap 26.5a — user-hold release-stop (Photos press-hold parity):
+     - After long-press **fires**, keep the same pointer session until
+       pointer up/cancel. Release **must** stop Live motion and return
+       to the Live still key frame (Host `stopPlayback` + existing
+       unload that clears `_liveMotionMounted` / Share signal).
+     - Path R (mounted / started): release → cancel ended-watchdog
+       (no `skip.add`) → `stopPlayback` + unload. Keep
+       `_liveHostPhotoRetained` (same as natural ended → Path R may
+       remount later).
+     - Path S in-flight (request not ready): release → **immediate**
+       cancel (reuse lifecycle Path S cancel + clear
+       `_liveSilentReplayInFlight` + ¬retained for that attempt). Do
+       **not** wait for ready then stop (would play after the user
+       already released).
+     - Natural `playbackEnded` / `.full` play-once end: **unchanged**
+       (existing unload to still). If the finger is still down after
+       natural end: **no** special handling — stay still; do **not**
+       loop; do **not** re-fire until a **new** pointer down. Owner
+       soak (iPhone 17 iOS 26.6.2 + iPhone 13 Pro iOS 26.6): default
+       Photos Live (no Loop/Bounce) holds past natural duration →
+       play once then still/key, same frame as natural end — matches
+       WakeTok `.full` + unload; Cap 26.5a must not regress this.
+     - Watchdog: user-release path **cancels** `kLiveMotionEndedWatchdog`
+       and **never** `browseLiveMotionWatchdogSkipIdsProvider.add`.
+       Timeout / skip rules in Decision 4 unchanged.
+
+     Still **forbidden** (owner Q3=A limb retained as **restart** ban):
+     mid-motion / preparing **second fire** or Host restart state
+     machine; long-press does not “replay from start while already
+     playing.” Release-stop is interrupt/stop only, not restart.
   4. **Live-ended watchdog / session skip (ADR-051 Decision 14
      reliability) — mandatory Cap 26 rule.**
      - **Mount / Share signal line unchanged (orthogonal to watchdog
@@ -6471,6 +6504,9 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
        replay; skip remains an auto-play gate only.
      - Do **not** clear skip on leave-current or revisit of the same id
        (no “revisit heals skip”); Origin / Session end clear unchanged.
+     - Cap 26.5a user-release stop: cancel the armed watchdog timer and
+       unload without `skip.add` (orthogonal to timeout skip). Same
+       Share mount signal line as Decision 4 opening bullet.
      - Rejected: arming at successful mount / sync `requestLivePhoto`
        return (conflates iCloud/prepare latency with hung playback).
      - Rejected: letting long-press share the auto skip early-return.
@@ -6483,12 +6519,25 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
        (same as `kCap19LeftSwipeEarlyMotionThreshold`)
      Cancel pending long-press if translation exceeds slop before hold
      elapses (vertical → PageView; horizontal → left-swipe family).
-  6. **Feedback / eligibility (owner Q2–Q4).** Haptic only on recognize
-     (no visual scale / highlight). Fire only on Live **static key
-     frame** (ignore while preparing or motion mounted). Ignore while
-     persistently magnified / transient pinch active — user must return
-     to fit first. Still / video: do not register this recognizer.
-     Live identity for this gate is Decision 11 (`.photoLive` only).
+  6. **Feedback / eligibility (owner Q2–Q4) + Cap 26.5a hold-through.**
+     Haptic only on recognize (no visual scale / highlight).
+     **Fire** only from Live **static** key frame when not already in a
+     user-hold replay session (`¬_livePreparing` for auto prepare chrome;
+     ¬mounted unless the active session is the same finger’s
+     post-fire hold). Still / video: do not register this recognizer.
+     Ignore while persistently magnified / transient pinch / still
+     pinch contact — user must return to fit first (debt **470** /
+     Decision 10 Out unchanged). Live identity: Decision 11
+     (`.photoLive` only).
+
+     Cap 26.5a structural rule: after fire, the Cap 26 `Listener`
+     **must remain mounted** for that pointer until up/cancel so
+     release can be delivered. Do **not** shrink/`enabled: false` solely
+     because `_liveMotionMounted` became true mid-hold (today’s
+     `shouldArmLiveLongPress(... liveMotionMounted: true)` early-return
+     must not tear down an in-flight user-hold session). Split
+     “may **fire** a new replay” from “may **listen** for release on the
+     active hold.” Panels open / leave-current / cancel still abort.
   7. **Narrow reopen ADR-050 Decision 8 / Rejected “Second Add-to-Album
      or location in MVP '…' sheet — deferred”.** Reopen **Add-to-Album
      entry button only** (Cap 26.5). Location **row content** stays deferred
@@ -6544,8 +6593,9 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      reuse Cap 19 behaviour.
   10. **Out of Cap 26.** Location **content** (slot reserved zero-height);
       debt **405** disclaimer; explicit trailing replay button; Mute /
-      Fit / 2×; mid-motion restart; magnified long-press; product work
-      on debts **436** / **456a** / **457** / **458**.
+      Fit / 2×; mid-motion **restart** (release-stop is In via Cap 26.5a
+      Decision 3); magnified long-press; product work on debts **436** /
+      **456a** / **457** / **458**.
   11. **Live effect variants (Loop / Bounce / Long Exposure) —
       intentional non-discrimination.** Long-press eligibility uses the
       same gate as Cap 9 Live motion:
@@ -6582,8 +6632,16 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Arm ended-watchdog at successful mount / sync `requestLivePhoto`
     return — rejected (Cap 26.4b); conflates iCloud/prepare latency with
     hung playback (false session skip).
-  - Mid-motion / preparing long-press restart (owner Q3 B/C) — rejected;
-    new Host interrupt state machine out of Cap 26.
+  - Mid-motion / preparing long-press **restart** (owner Q3 B/C) —
+    rejected; Cap 26.5a allows **release-stop** only (Decision 3),
+    not a second fire / Host restart while motion is already playing.
+  - Wait for Path S ready then stop after the user already released —
+    rejected; contradicts press-hold “release stops immediately.”
+  - Clear `_liveHostPhotoRetained` on user release but not on natural
+    ended — rejected; keep Path R parity with natural ended.
+  - Loop or re-fire while finger remains down after natural ended —
+    rejected; owner Photos soak (default Live) + existing `.full`
+    play-once; Cap 26.5a must not add hold-past-end looping.
   - Magnified long-press that force-fits then plays (owner Q4=B) —
     rejected; two semantic changes on one gesture.
   - Fixed ms delay between "…" dismiss and Cap 19 sheet — rejected;
@@ -6616,6 +6674,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     **Timeout behavior** (C0) implemented — arm after
     `startPlayback` issued; ¬startIssued timeout unloads without
     `skip.add`.
+  - Cap 26.5a: implement release-to-stop (gesture hold-through +
+    `_userLongPressReleaseStop`); regression-lock natural ended →
+    still while finger may still be down; no new hold-past-end
+    product branch. ADR remains Proposed until 26.6 Accepted flip.
   - Cap 26.4 "…" File size uses `presentationSizeCacheProvider` +
     `mainBrowseCurrentAssetLayer2DisplayReadyProvider` for post-L2
     size refresh (same reliability class as Overlay `43c984a`); never
@@ -6631,7 +6693,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Supersedes ADR-040 Decision 17 no-long-press limb + matching Rejected
   alternative. Narrowly supplements ADR-019 Decision 8 (directed
   exception = App long-press). Continues ADR-037 play-only / silent
-  re-request discipline. Narrowly reopens ADR-050 Add-to-Album
+  re-request discipline. Cap 26.5a narrowly amends Decisions 3 / 6
+  (release-stop vs restart ban). Narrowly reopens ADR-050 Add-to-Album
   entry-button deferral only (location content / **401** remain
   deferred; half-sheet is Location’s **locked** product home).
   Orthogonal to ADR-051 D12/D13 Host share path; depends on D14 mounted
