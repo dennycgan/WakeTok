@@ -131,19 +131,11 @@
 > rediscovering your own photo and video library." + album random-browse /
 > light organize. Clip Export / Clip-dedicated Auto-play = v2 track below.
 
-- [ ] Live Photo long-press replay + "…" half-sheet size field
+- [x] Live Photo long-press replay + "…" half-sheet size field
       and Add-to-Album second entry
-      (+ Overlay row-3 Animated still label / ADR-053)
-      (supersedes ADR-040 D17 no-long-press limb; D17's explicit
-      replay control was Decision-17'd but never actually shipped —
-      no existing UI to remove; long-press replaces it as the sole
-      replay affordance; narrowly reopens ADR-050 "Second
-      Add-to-Album…deferred" for the entry-button half only —
-      location stays deferred; second entry = close "…" sheet then
-      present existing Cap 19 Album half-sheet, no new transition UI;
-      size field reuses existing requestPresentationFileSize Pigeon
-      path; Animated = presentation-only `isAnimated`, Cap 26.3
-      before size 26.4) <-- YOU ARE HERE
+      (Cap 26 / ADR-052 Accepted `cab0747`; ADR-053 / ADR-054;
+      debt **439** Closed; `docs/acceptance/cap26-26.6-notes.md`;
+      PHASE_HISTORY)
 - [ ] Auto bottom-nav slot redefinition — pull-up order-control sheet
       (Layer 1 only: newest / oldest / random switch, immediate
       requeue, default stays random; Auto is no longer a standalone
@@ -153,6 +145,7 @@
       resolve Clips stub visibility for Review; Layer 2/3 — autoplay
       on/off + autoplay-internal ordering — stay in "Auto-play Presets
       and Mode Eligibility Rule" below, paired with Clips v2)
+      <-- YOU ARE HERE
 - [ ] Debt 421 — Limited Access manage entry restored
       (presentLimitedLibraryPicker + Open Settings entry point;
       extracted from "Settings and localisation completion" below;
@@ -240,78 +233,25 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Live Photo long-press replay + "…" half-sheet size
-field and Add-to-Album second entry
-Contract: owner-locked Cap kickoff (2026-09-15) — ADR-052 **Proposed**
-in `docs/DECISIONS.md`; Overlay Animated — ADR-053 **Accepted**
-(`fc0bfcc`; 26.3 done; "…" size is 26.4). Supersedes ADR-040 D17
-no-long-press limb; narrow-reopens ADR-050 "…" Add-to-Album entry-button
-half only (location / debt **401** stay Out); ADR-019 D8 directed
-exception = App long-press; manual long-press **bypasses** Cap 25
-Live-ended watchdog session skip set
-(`browseLiveMotionWatchdogSkipIdsProvider`).
-Owner Q1–Q9 locked (hold **400 ms** / haptic B / static-only A / mag A
-/ sheet A / size A+omit-overridden-to-em-dash / row-order A / 405 Out A
-/ single ADR A).
+Active capability: Auto bottom-nav slot redefinition — pull-up
+order-control sheet
+Contract: awaiting owner scope / kickoff (narrow ADR-027 leave-Browse
+amend; Layer 1 newest/oldest/random; Clips stub visibility for Review;
+Layer 2/3 autoplay stays on Auto-play Presets Cap below)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 26.1 Contract freeze
-      (ADR-052 Proposed appended; debt **439** Picks it up → Cap 26;
-      no `lib/` in this phase)
-- [x] 26.2 Live long-press → play-only / silent re-request replay
-      (work `cab0747`; Path R+S; silent in-flight lock; lifecycle Path S
-      cancel; skip bypass; D11; debt **470** Accepted (phase) magnified
-      ignore; i17 Profile smoke PASS)
-- [x] 26.3 Overlay row-3 Animated still label
-      (work `fc0bfcc`; ADR-053 Accepted; `isAnimated` via
-      `playbackStyle == .imageAnimated`; no badge; Kafka + i17 Profile
-      smoke PASS)
-- [x] 26.4 "…" half-sheet size row
-      (work `c1a0d13`; `presentationSizeCacheProvider` shared with
-      Overlay; title always; never omit; resolved ∧ nil → "—"; L2-ready
-      refresh; layout notes §12 + §12.6 Location home locked; Kafka +
-      i17 Profile smoke PASS)
-- [x] 26.4a Meta Overlay: keep chrome across still L1→L2 cover path
-      upgrade
-      (work `aee8ba5`; `_trackStillCoverPath` keep-ready; layout notes
-      §13; debt **472** Closed — video Out structurally, not side-fix;
-      Kafka + i17 Profile PASS)
-- [x] 26.5 "…" Add-to-Album second entry
-      (work `7001e6e`; muted Add above Delete; Cap 23 → pop → Cap 19;
-      mutual latch; layout notes §12; W-26.5-1…7; Kafka + i17 Profile
-      smoke PASS)
-- [x] 26.4b Misc polish (media / "…" chrome layout) + Live ended-
-      watchdog arm tighten
-      (chrome work `8a0494e` — LIVE top-leading / gap / ShapeDecoration /
-      scrim; watchdog work `2d12e39` — arm after `startPlayback` issued;
-      timeout skip only if `_liveStartIssued` (C0); ADR-052 D4 narrow
-      tighten; Kafka Profile revisit PASS on slow Live)
-- [x] 26.4c Action Column mute while Layer 1 not painted
-      (work `32dd521`; ADR-054 Accepted; cover-visible gate for … /
-      Share / Album + left-swipe; Share = D14 ∧ coverVisible; debt
-      **473** Closed; Kafka + i17 Profile smoke PASS)
-- [x] 26.5a Live long-press release-to-stop (Photos press-hold parity)
-      (work `a106484`; ADR-052 Proposed D3/D6 amend — hard-cut
-      release-stop; Path S cancel-on-up; no Flutter fade — debt
-      **474** Accepted (phase); debt **475** Monitoring; i17 Profile
-      hard-cut smoke PASS)
-- [ ] 26.6 Device acceptance (Kafka + i17) + Cap close
-      (debt **439** Closed; ADR-052 Accepted + anchors; PHASE_HISTORY;
-      two-commit discipline)
-      <-- YOU ARE HERE
+- [ ] Phase list pending owner-approved Cap kickoff / contract freeze.
+      YOU ARE HERE = this Cap on the MVP v1 submission track.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.6 — device acceptance + Cap 26 close
-- Sub-steps done: 26.1–26.5a (`a106484`; ADR-052 still Proposed;
-      debts **474** Accepted (phase), **475** Monitoring); ADR-053 /
-      ADR-054 Accepted
-- Next step: Kafka + i17 device acceptance for Cap 26; flip ADR-052
-      Accepted + anchors; Close debt **439**; PHASE_HISTORY + Cap
-      roadmap flip
-- Related decisions: ADR-052 Proposed (D1–D11; D3/D6 26.5a; D4
-      Cap 26.4b); ADR-053 / ADR-054 Accepted; layout notes §12 /
-      §12.6 / §13; Cap 25 Share / Live mounted; debt **439** → Cap 26;
-      **470** Accepted (phase); **473** Closed; **474** / **475**
+- Goal (one line): Cap kickoff — Auto bottom-nav slot redefinition
+      (pull-up order-control sheet; Layer 1 only)
+- Sub-steps done: Cap 26 closed (26.6 notes PASS; ADR-052 Accepted
+      `cab0747`; debt **439** Closed)
+- Next step: owner-approved Cap kickoff / contract freeze for Auto
+      bottom-nav sheet
+- Related decisions: ADR-027 leave-Browse (narrow amend expected);
+      Auto-play Presets Cap owns Layer 2/3
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -550,14 +490,15 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Accepted** (2026-09-12), anchor `99c2e73` (25.2 Host present;
       related Cap 25 work in PHASE_HISTORY)
 - ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album
-      second entry — **Proposed** (2026-09-15); D11 effect
-      non-discrimination; 26.2 work `cab0747` (Path R+S); 26.5a
-      release-to-stop work `a106484` (hard cut); Accepted + full
-      anchors at Cap 26 close (26.6)
+      second entry — **Accepted** (2026-09-15), anchor `cab0747`
+      (26.2 Path R/S; related Cap 26 work in PHASE_HISTORY; 26.6 notes
+      `docs/acceptance/cap26-26.6-notes.md`)
 - ADR-053: Overlay row-3 Animated still label — **Accepted**
       (2026-09-15); work `fc0bfcc`; `isAnimated` via
       `playbackStyle == .imageAnimated`; Cap 26.3 closed before "…"
       size (26.4)
+- Cap 26.6 device acceptance notes (Kafka + i17 C/D/I/J **PASS**):
+      `docs/acceptance/cap26-26.6-notes.md`
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`
@@ -716,7 +657,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 436 | Open | Live Photo (Cap 9.7) |  | Offline/weak-net iCloud Live: preparing spinner may be zero-duration (fail too fast) | POC-08 #5/#6 PASS with static fallback; owner wants later brief visible spin-then-fail so users see “needs network” (not progress-copy / Waiting for Media) | Live chrome / iCloud feedback polish | ADR-019; historical acceptance label: UX-1 |
 | 437 | Closed | Live Photo (Cap 9.7) |  | LIVE badge + preparing spinner top-left overlaps status-bar time | **Closed by 14.6b** (`77afb23`). Badge + item Layer 2 / Live-prepare spinner share `_FeedCornerChrome` at bottom-right; Overlay `trailingInset` 123. Library resolve loading stays centered. Q7 play-once hide/show unchanged. Kafka Profile PASS. Debt **436** untouched. | Closed by 14.6b | ADR-019; historical acceptance label: UX-2 |
 | 438 | Closed | Cap 13 (13.8) |  | **First launch right after granting Limited access shows an empty All tab and does not self-heal** | **Closed by 14.6** (`d32a309` + `b9c2d68`). Bounded re-resolve on successful empty remains; Kafka showed the empty All was started by resume `currentStatus()=.limited` **before** `requestAuthorization` completed. Skip that invalidate while `requestAccess` is in flight, then `restartSession` when the grant completes. Kafka Profile: loading then selected media, not empty copy. ADR-024 empty-not-cached remains as tab-switch backup. | Closed by 14.6 (ADR-025 D8 + grant-complete restart) | ADR-025 / ADR-024 / ADR-014 / ADR-021 |
-| 439 | Open | Live Photo | Cap 18.1 | Live explicit replay control | Owning Cap was unassigned; ADR-019 Decision 8 narrow supplement pending that Cap. Persistent anchor for ADR-040 Decision 17 and Phase 18.1 `owning Cap TBD`. Cap 26 / ADR-052 Proposed supersedes D17 no-long-press with App long-press as sole replay affordance (explicit button never shipped). Do not delete until Cap 26 lands implementation and closes this row. | Cap 26 (ADR-052) | ADR-019 / ADR-040 / ADR-052 |
+| 439 | Closed | Live Photo | Cap 18.1 | Live explicit replay control | Owning Cap was unassigned; ADR-019 Decision 8 narrow supplement pending that Cap. Persistent anchor for ADR-040 Decision 17 and Phase 18.1 `owning Cap TBD`. Cap 26 / ADR-052 supersedes D17 no-long-press with App long-press as sole replay affordance (explicit button never shipped). **Closed by Cap 26** (`cab0747` + Cap 26.6 close): long-press is the sole replay control; debt row complete. | Closed by Cap 26 | ADR-019 / ADR-040 / ADR-052 |
 | 440 | Closed | Main Browse Screen | Cap 18.3 | Seven existing spinner / preparing-chrome widget tests are red on `main` | Verified against clean baseline `9e4a04e` before Cap 18.3: W-16.4e, W-L2, L-S6, W-14.6b-L1/L4, W-15.3, and W-14.4 all fail identically before and after the 18.3 worktree changes. Failures concern missing Layer3 / Live-preparing chrome within test timing windows, except W-15.3's LIVE-badge strut height (`16.0`, expected `>16.0`). They are not Cap 18.3 playback-intent regressions. W-16.4e probe (still a2 + L1 + dwell; real arm+dwell, not debugForce; elapsed synced to FakeAsync): asserts spinner at t≈0, which conflicts with ADR-034 G (suppress &lt;150 ms); at t≥150 ms spinner paints — product chrome healthy. That assert's timepoint is obsolete post-17.3 (stale assertion, not product regression). Does not re-prove the other six reds in this row. Widget tests reconciled to ADR-034 G/F1 clock semantics (elapsed sync + F1 timer pump); W-16.4e asserts ≥T dwell chrome; strut-height assertions removed post–Cap 17.5b layout. Seven tests green on `main` as of work commit `6682582`. | Closed before Cap 18.6 (test/chrome reconciliation) | ADR-032 / ADR-034 / ADR-039 |
 | 441 | Monitoring | Main Browse Screen | Cap 18.4 | Session **video** revisit: landing settle may show one-frame full black between blur Layer 1 poster and Layer 2 play | **Known phenomenon family** — same lineage as `cap15-15.10-notes.md` §D (peek blur poster → transition empty window → L2 play). Cap 18.4 device (Kafka Profile, Optimize ON): iCloud video first-visit L2 complete → Session revisit; peek blur L1 OK; **landing settle occasional one-frame full black** then L2 plays directly. Not debt **400** (blur poster present). **15.11** closed local→local matrix only — this trigger outside that matrix. **Suspected mechanism cross-ref (not confirmed):** debt **427** Host-temp cover eviction on a4 video L2-ready revisit may worsen landing flash; **441** can also reproduce as a one-frame settle handoff without ≥T empty window or corner spinner. **Continue observation** — no Cap scheduled. | Unassigned | ADR-006 / ADR-025 / ADR-032 / ADR-034; `cap15-15.10-notes.md` §D; debt **427** |
 | 442 | Accepted (phase) | Main Browse Screen | Cap 18.5 | Cap 18.5 scrub preview bubble may show async JPEG placeholder gaps (fast-drag strip, first-scrub cold start, in-flight bucket transition) | AVAssetImageGenerator + Host single-flight coalesce + 1.0s preview bucket + ADR-040 Decision 13 §2.1 borrow (max one bucket step, 350 ms wall-clock) do **not** guarantee a continuous real-frame strip at competitor parity. **Three distinct triggers, same architecture:** (1) **fast horizontal drag** — borrow cannot cover every bucket crossing; (2) **first scrub engagement** — no prior successful JPEG to borrow, bubble waits on first Host decode; (3) **mid-drag in-flight / bucket switch** — `#000000` placeholder (or bounded borrow) until async JPEG arrives; **trigger (3) is not fast-drag-specific** — every bucket switch clears the current frame and waits on async Host return; at normal scrub speed that window is often below perception (BENCH typical **14–150 ms**) but is not guaranteed to stay sub-threshold (BENCH max **388 ms** on sparse-GOP zero-tolerance decode). **Accepted for Cap 18.5 ship** (`b2ceabd` eliminated sparse-GOP drift-reject **permanent** black on hold; placeholder-then-JPEG remains by design per supplement item 8). Cap 18.6 soak: owner-acceptable, not Photos parity. Further optional tuning: scrub-touch prefetch, `maximumSize`; widening borrow is **not** a candidate (violates §2.1). | Unassigned | ADR-040 Decision 13; `docs/acceptance/cap18-18.5-notes.md`; `docs/acceptance/cap18-18.6-notes.md` |

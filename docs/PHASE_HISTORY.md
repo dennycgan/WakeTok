@@ -1274,3 +1274,49 @@ Known debt at close: Cap 25 close count = **0**. Out of Cap 25:
 Bug#2 / `WT_CAP25_PROBE` cleanup (scheduled after Bug#2); **456a** /
 **457** Open; **458** Monitoring; **469** Accepted (permanent).
 
+
+## Live Photo long-press replay + "…" size + Add-to-Album (Cap 26) — 2026-09-18
+
+- [x] 26.1 Contract freeze — ADR-052 Proposed
+      — docs `fd7d720`
+- [x] 26.2 Live long-press → play-only / silent re-request replay
+      — work `cab0747`; docs `ae5b7bc` (D11; debt **470** Accepted
+        (phase))
+- [x] 26.3 Overlay row-3 Animated still label
+      — work `fc0bfcc`; docs `8e3d163` (ADR-053 Accepted)
+- [x] 26.4 "…" half-sheet size row
+      — work `c1a0d13`; docs `f119b41`
+- [x] 26.4a Meta Overlay: keep chrome across still L1→L2 cover path
+      upgrade
+      — work `aee8ba5`; docs `a76be46` (debt **472** Closed)
+- [x] 26.5 "…" Add-to-Album second entry
+      — work `7001e6e`; docs `768c295`
+- [x] 26.4b Misc polish (media / "…" chrome) + Live ended-watchdog
+      arm tighten
+      — chrome `8a0494e`; watchdog `2d12e39`; docs `eec4ca9`
+        (ADR-052 D4 narrow tighten)
+- [x] 26.4c Action Column mute while Layer 1 not painted
+      — work `32dd521`; docs `f7fd505` (ADR-054 Accepted; debt
+        **473** Closed)
+- [x] 26.5a Live long-press release-to-stop (Photos press-hold parity)
+      — work `a106484`; ADR amend `22b13bc`; docs `5cbbb68`
+        (debts **474** Accepted (phase), **475** Monitoring)
+- [x] 26.6 Device acceptance (Kafka + i17) + Cap close
+      — notes `docs/acceptance/cap26-26.6-notes.md`; neighbour-wipe
+        fix `f4d0009` / debt **476** Open (`5532bf8`); C/D/I/J both
+        devices PASS 2026-09-18; ADR-052 Accepted (`cab0747`);
+        debt **439** Closed; YOU ARE HERE → Auto bottom-nav slot
+        redefinition…
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-052 Accepted + 26.6
+notes): (this commit)
+
+Related ADR: ADR-052 (`cab0747`; related `fc0bfcc`, `c1a0d13`,
+`aee8ba5`, `7001e6e`, `8a0494e`, `2d12e39`, `32dd521`, `a106484`,
+`f4d0009`; Proposed `fd7d720`; 26.5a amend `22b13bc`). ADR-053
+(`fc0bfcc`); ADR-054 (`32dd521`).
+Known debt at close: **439** Closed by Cap 26. Out of Cap 26:
+**470** Accepted (phase); **474** Accepted (phase); **475**
+Monitoring; **476** Open. Do not flip **475** / **476** in this
+close-out.
