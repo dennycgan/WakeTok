@@ -126,4 +126,48 @@ void main() {
       );
     });
   });
+
+  group('U-26.5a shouldMountLiveLongPressListener', () {
+    test('keeps Listener after fire when mounted disarms mayFire', () {
+      expect(
+        shouldMountLiveLongPressListener(
+          mayFire: false,
+          holdingAfterFire: true,
+          isCurrent: true,
+        ),
+        isTrue,
+      );
+    });
+
+    test('shrinks when panels open or leave-current (abort hold)', () {
+      expect(
+        shouldMountLiveLongPressListener(
+          mayFire: false,
+          holdingAfterFire: true,
+          isCurrent: true,
+          cap19PanelOpen: true,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldMountLiveLongPressListener(
+          mayFire: true,
+          holdingAfterFire: false,
+          isCurrent: false,
+        ),
+        isFalse,
+      );
+    });
+
+    test('idle without mayFire or hold does not mount', () {
+      expect(
+        shouldMountLiveLongPressListener(
+          mayFire: false,
+          holdingAfterFire: false,
+          isCurrent: true,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

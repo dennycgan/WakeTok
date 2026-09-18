@@ -30,7 +30,10 @@ LiveLongPressPhase classifyLiveLongPress({
   return LiveLongPressPhase.tracking;
 }
 
-/// Whether the Cap 26 long-press Listener may arm / fire (U-26.2-2).
+/// Whether Cap 26 may **fire** a new long-press replay (U-26.2-2 / Cap 26.5a).
+///
+/// Does not answer “keep Listener mounted after fire” — see
+/// [shouldMountLiveLongPressListener].
 bool shouldArmLiveLongPress({
   required bool isCurrent,
   required bool isLiveStill,
@@ -56,4 +59,24 @@ bool shouldArmLiveLongPress({
     return false;
   }
   return true;
+}
+
+/// Whether the Cap 26 [Listener] must stay mounted (Cap 26.5a hold-through).
+///
+/// [mayFire] = [shouldArmLiveLongPress]. After fire, pass
+/// [holdingAfterFire] true so `liveMotionMounted` / Path S in-flight does
+/// **not** tear the Listener before pointer up. Panels / leave-current force
+/// `false` so [Cap26LiveLongPressGesture] can deliver release-stop via
+/// enabled→false.
+bool shouldMountLiveLongPressListener({
+  required bool mayFire,
+  required bool holdingAfterFire,
+  required bool isCurrent,
+  bool cap19PanelOpen = false,
+  bool cap24MorePanelOpen = false,
+}) {
+  if (!isCurrent || cap19PanelOpen || cap24MorePanelOpen) {
+    return false;
+  }
+  return mayFire || holdingAfterFire;
 }

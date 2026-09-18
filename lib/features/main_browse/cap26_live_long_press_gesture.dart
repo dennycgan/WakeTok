@@ -10,17 +10,28 @@ import 'package:waketok/features/main_browse/cap26_live_long_press_arbitration.d
 /// Uses [Listener] (not [GestureDetector]) so vertical [PageView] and Cap 19
 /// left-swipe keep receiving the same pointer stream (same discipline as
 /// [Cap19LeftSwipeGesture]).
+///
+/// Cap 26.5a: after fire, keep the Listener mounted until pointer up/cancel
+/// ([holdingAfterFire]) so release-to-stop can run. Parent must keep
+/// [enabled] true via [shouldMountLiveLongPressListener] while holding.
 class Cap26LiveLongPressGesture extends StatefulWidget {
   const Cap26LiveLongPressGesture({
     super.key,
     required this.enabled,
     required this.onLongPressFire,
+    required this.onLongPressRelease,
   });
 
   /// When false, shrinks to nothing (do not leave a dead Listener mounted).
+  /// Disable while [holdingAfterFire] still delivers [onLongPressRelease]
+  /// once (panels / leave-current abort).
   final bool enabled;
 
   final VoidCallback onLongPressFire;
+
+  /// Cap 26.5a: pointer up/cancel after fire, or enabled→false abort while
+  /// holding after fire.
+  final VoidCallback onLongPressRelease;
 
   @override
   State<Cap26LiveLongPressGesture> createState() =>
@@ -32,13 +43,20 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
   Offset _lastDelta = Offset.zero;
   bool _tracking = false;
   bool _fired = false;
+  bool _holdingAfterFire = false;
   Timer? _holdTimer;
 
   @override
   void didUpdateWidget(Cap26LiveLongPressGesture oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.enabled && !widget.enabled && _tracking) {
-      _reset();
+    if (oldWidget.enabled && !widget.enabled) {
+      if (_holdingAfterFire) {
+        _emitReleaseAndReset();
+        return;
+      }
+      if (_tracking) {
+        _reset();
+      }
     }
   }
 
@@ -53,7 +71,18 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
     _holdTimer = null;
     _tracking = false;
     _fired = false;
+    _holdingAfterFire = false;
     _lastDelta = Offset.zero;
+  }
+
+  void _emitReleaseAndReset() {
+    _holdingAfterFire = false;
+    _fired = false;
+    _tracking = false;
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    _lastDelta = Offset.zero;
+    widget.onLongPressRelease();
   }
 
   void _onDown(PointerDownEvent event) {
@@ -78,6 +107,7 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
       return;
     }
     _fired = true;
+    _holdingAfterFire = true;
     _tracking = false;
     _holdTimer = null;
     HapticFeedback.lightImpact();
@@ -95,8 +125,8 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
   }
 
   void _onUpOrCancel(PointerEvent event) {
-    if (_fired) {
-      _reset();
+    if (_holdingAfterFire) {
+      _emitReleaseAndReset();
       return;
     }
     _reset();

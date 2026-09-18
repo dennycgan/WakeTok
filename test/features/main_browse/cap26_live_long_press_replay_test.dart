@@ -95,6 +95,7 @@ void main() {
   group('W-26.2 gesture Listener', () {
     testWidgets('fires after hold within slop', (tester) async {
       var fires = 0;
+      var releases = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -103,6 +104,7 @@ void main() {
                 Cap26LiveLongPressGesture(
                   enabled: true,
                   onLongPressFire: () => fires += 1,
+                  onLongPressRelease: () => releases += 1,
                 ),
               ],
             ),
@@ -117,11 +119,15 @@ void main() {
       await tester.pump(kLiveLongPressHoldDuration);
       await tester.pump();
       expect(fires, 1);
+      expect(releases, 0);
       await gesture.up();
+      await tester.pump();
+      expect(releases, 1);
     });
 
     testWidgets('cancels when slop exceeded before hold', (tester) async {
       var fires = 0;
+      var releases = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -130,6 +136,7 @@ void main() {
                 Cap26LiveLongPressGesture(
                   enabled: true,
                   onLongPressFire: () => fires += 1,
+                  onLongPressRelease: () => releases += 1,
                 ),
               ],
             ),
@@ -146,6 +153,7 @@ void main() {
       await tester.pump();
       expect(fires, 0);
       await gesture.up();
+      expect(releases, 0);
     });
   });
 
@@ -571,6 +579,287 @@ void main() {
           isFalse,
           reason: '¬startIssued timeout must not skip.add (C0)',
         );
+        expect(page.debugLiveMotionMounted, isFalse);
+      },
+    );
+  });
+
+  group('Cap 26.5a release-to-stop', () {
+    testWidgets(
+      'W-26.5a-1 after fire, Listener stays when liveMotionMounted becomes true',
+      (tester) async {
+        var mayFire = true;
+        var holdingAfterFire = false;
+        var fires = 0;
+        var releases = 0;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  return Stack(
+                    children: [
+                      Cap26LiveLongPressGesture(
+                        enabled: shouldMountLiveLongPressListener(
+                          mayFire: mayFire,
+                          holdingAfterFire: holdingAfterFire,
+                          isCurrent: true,
+                        ),
+                        onLongPressFire: () {
+                          fires += 1;
+                          setState(() {
+                            holdingAfterFire = true;
+                            // Simulate Path R remount disarming mayFire.
+                            mayFire = false;
+                          });
+                        },
+                        onLongPressRelease: () {
+                          releases += 1;
+                          setState(() => holdingAfterFire = false);
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        final center = tester.getCenter(
+          find.byKey(const Key('cap26LiveLongPressGesture')),
+        );
+        final gesture = await tester.startGesture(center);
+        await tester.pump(kLiveLongPressHoldDuration);
+        await tester.pump();
+        expect(fires, 1);
+        expect(mayFire, isFalse);
+        expect(holdingAfterFire, isTrue);
+        expect(
+          find.byKey(const Key('cap26LiveLongPressGesture')),
+          findsOneWidget,
+          reason: 'Listener must not shrink solely because mayFire→false '
+              'after Path R mount',
+        );
+        await gesture.up();
+        await tester.pump();
+        expect(releases, 1);
+      },
+    );
+
+    testWidgets(
+      'W-26.5a-2 release cancels watchdog and never skip.add',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: true);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        final element = tester.element(find.byType(VerticalMediaFeed));
+        final container = ProviderScope.containerOf(element);
+        final page = await _settleToStaticKeyFrame(
+          tester,
+          live,
+          clearRetained: false,
+        );
+
+        page.debugUserHoldReplayActive = true;
+        await page.debugUserLongPressReplay();
+        await _pumpAsyncWork(tester);
+        expect(page.debugLiveMotionMounted, isTrue);
+        expect(page.debugLiveEndedWatchdogArmed, isTrue);
+
+        live.calls.clear();
+        await page.debugUserLongPressReleaseStop();
+        await _pumpAsyncWork(tester);
+
+        expect(page.debugUserHoldReplayActive, isFalse);
+        expect(page.debugLiveMotionMounted, isFalse);
+        expect(page.debugLiveEndedWatchdogArmed, isFalse);
+        expect(page.debugLiveHostPhotoRetained, isTrue);
+        expect(live.calls, contains('stopPlayback'));
+        expect(
+          container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(
+                'live-1',
+              ),
+          isFalse,
+          reason: 'user-release must never skip.add',
+        );
+
+        // Watchdog must stay cancelled — pumping full duration must not skip.
+        await tester.pump(kLiveMotionEndedWatchdog);
+        await tester.pump(const Duration(milliseconds: 1));
+        await _pumpAsyncWork(tester);
+        expect(
+          container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(
+                'live-1',
+              ),
+          isFalse,
+        );
+      },
+    );
+
+    testWidgets(
+      'W-26.5a-3 Path S in-flight: release cancels immediately (no wait for ready)',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: false);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        final page = await _settleToStaticKeyFrame(
+          tester,
+          live,
+          clearRetained: true,
+        );
+
+        final requestHold = Completer<void>();
+        live.requestHold = requestHold;
+        live.requestHoldAssetId = 'live-1';
+
+        page.debugUserHoldReplayActive = true;
+        unawaited(page.debugUserLongPressReplay());
+        await tester.pump();
+        await tester.idle();
+        await tester.pump();
+        expect(page.debugLiveSilentReplayInFlight, isTrue);
+        expect(
+          live.calls.where((c) => c == 'requestLivePhoto:live-1').length,
+          1,
+        );
+
+        // Do not await releaseStop while request is held — cancel queues
+        // behind LiveHostOpSerial (same discipline as W-26.2-e Path S).
+        unawaited(page.debugUserLongPressReleaseStop());
+        await tester.pump();
+        await tester.idle();
+        await tester.pump();
+
+        expect(page.debugLiveSilentReplayInFlight, isFalse);
+        expect(page.debugLiveHostPhotoRetained, isFalse);
+        expect(page.debugUserHoldReplayActive, isFalse);
+        requestHold.complete();
+        await _pumpAsyncWork(tester);
+        expect(live.calls, contains('cancel:live-1'));
+        expect(live.calls, contains('stopPlayback'));
+        expect(
+          live.calls.where((c) => c == 'startPlayback'),
+          isEmpty,
+          reason: 'release must not wait for ready then play',
+        );
+
+        // Late ready must not start playback after cancel.
+        live.readyController.add(
+          const LivePhotoReadyEvent(assetIdentifier: 'live-1'),
+        );
+        await _pumpAsyncWork(tester);
+        expect(
+          live.calls.where((c) => c == 'startPlayback'),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets(
+      'W-26.5a-4 natural ended while finger down: no loop / no re-fire',
+      (tester) async {
+        var mayFire = true;
+        var holdingAfterFire = false;
+        var fires = 0;
+        late StateSetter treeSetState;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  treeSetState = setState;
+                  return Stack(
+                    children: [
+                      Cap26LiveLongPressGesture(
+                        enabled: shouldMountLiveLongPressListener(
+                          mayFire: mayFire,
+                          holdingAfterFire: holdingAfterFire,
+                          isCurrent: true,
+                        ),
+                        onLongPressFire: () {
+                          fires += 1;
+                          setState(() {
+                            holdingAfterFire = true;
+                            mayFire = false;
+                          });
+                        },
+                        onLongPressRelease: () {
+                          setState(() {
+                            holdingAfterFire = false;
+                            mayFire = true;
+                          });
+                        },
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        final center = tester.getCenter(
+          find.byKey(const Key('cap26LiveLongPressGesture')),
+        );
+        final gesture = await tester.startGesture(center);
+        await tester.pump(kLiveLongPressHoldDuration);
+        await tester.pump();
+        expect(fires, 1);
+
+        // Natural ended → static: mayFire becomes true again while same
+        // finger is still down — must not start a new hold timer / fire.
+        treeSetState(() => mayFire = true);
+        await tester.pump();
+        await tester.pump(kLiveLongPressHoldDuration);
+        await tester.pump(kLiveLongPressHoldDuration);
+        expect(
+          fires,
+          1,
+          reason: 'natural end must not re-fire until a new pointer down',
+        );
+        await gesture.up();
+        await tester.pump();
+        expect(fires, 1);
+      },
+    );
+
+    testWidgets(
+      'W-26.5a-4b feed: natural ended unload while hold active stays still',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: true);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        final page = await _settleToStaticKeyFrame(
+          tester,
+          live,
+          clearRetained: false,
+        );
+
+        page.debugUserHoldReplayActive = true;
+        await page.debugUserLongPressReplay();
+        await _pumpAsyncWork(tester);
+        expect(page.debugLiveMotionMounted, isTrue);
+
+        live.calls.clear();
+        live.endedController.add(
+          const LivePhotoPlaybackEndedEvent(assetIdentifier: 'live-1'),
+        );
+        await _pumpAsyncWork(tester);
+
+        expect(page.debugLiveMotionMounted, isFalse);
+        expect(page.debugUserHoldReplayActive, isTrue);
+        expect(
+          live.calls.where((c) => c == 'startPlayback'),
+          isEmpty,
+          reason: 'natural ended must not loop / restart while finger down',
+        );
+
+        await page.debugUserLongPressReleaseStop();
+        await _pumpAsyncWork(tester);
+        expect(page.debugUserHoldReplayActive, isFalse);
         expect(page.debugLiveMotionMounted, isFalse);
       },
     );

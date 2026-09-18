@@ -1887,6 +1887,19 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @visibleForTesting
   Future<void> debugUserLongPressReplay() => _userLongPressReplay();
 
+  /// Test seam: Cap 26.5a release-to-stop.
+  @visibleForTesting
+  Future<void> debugUserLongPressReleaseStop() => _userLongPressReleaseStop();
+
+  @visibleForTesting
+  bool get debugUserHoldReplayActive => _userHoldReplayActive;
+
+  @visibleForTesting
+  set debugUserHoldReplayActive(bool value) => _userHoldReplayActive = value;
+
+  @visibleForTesting
+  bool get debugLiveEndedWatchdogArmed => _liveEndedWatchdog != null;
+
   /// Test seam: force in-flight + path for widget chrome tests (W-17.3*).
   ///
   /// [mediaKind] overrides [_media] so G (still-only) vs video a2 can be locked.
@@ -2250,6 +2263,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 26.2 / ADR-052: Path S in-flight (no prepare chrome). Cleared only on
   /// ready-mount / failed / cancelled — never on bare [requestLivePhoto] await.
   bool _liveSilentReplayInFlight = false;
+
+  /// Cap 26.5a: finger that fired long-press is still down (hold-through).
+  /// Keeps Cap 26 Listener mounted after `_liveMotionMounted` / Path S.
+  bool _userHoldReplayActive = false;
 
   /// Cap 9.5 Q4=A: motion **prepare** spinner (generation-gated writes).
   ///
@@ -3123,6 +3140,65 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _liveHostPhotoRetained = false;
     }
     await _silentReRequestLiveForUserReplay();
+  }
+
+  /// Cap 26.5a / ADR-052 Decision 3 — release-to-stop (Photos press-hold).
+  ///
+  /// Path S in-flight: immediate cancel (do not wait for ready). Path R /
+  /// mounted: cancel ended-watchdog (never skip.add) + stop + unload; keep
+  /// [_liveHostPhotoRetained]. Natural ended while finger still down: no-op
+  /// Host work (already still). Idempotent.
+  Future<void> _userLongPressReleaseStop() async {
+    if (!mounted) {
+      return;
+    }
+    final wasHolding = _userHoldReplayActive;
+    if (wasHolding) {
+      _userHoldReplayActive = false;
+    }
+    // Allow gesture release even if flag already cleared (double delivery).
+    final wasSilentInFlight = _liveSilentReplayInFlight;
+    if (wasSilentInFlight) {
+      _liveSilentReplayInFlight = false;
+      _liveHostPhotoRetained = false;
+      final LivePhotoRepository live =
+          _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+      _liveRepo = live;
+      final id = widget.assetIdentifier;
+      await _unloadLiveMotionSurface();
+      if (!mounted) {
+        return;
+      }
+      await _enqueueLiveOp(() async {
+        try {
+          await live.cancel(id);
+          await live.stopPlayback();
+        } catch (_) {
+          // Best-effort — Host may already have stopped / surface gone.
+        }
+      });
+      return;
+    }
+
+    if (_liveMotionMounted || _liveStartIssued || _livePreparing) {
+      final LivePhotoRepository live =
+          _liveRepo ?? ref.read(livePhotoRepositoryProvider);
+      _liveRepo = live;
+      // Watchdog cancel without skip.add (unload cancels timer; never add).
+      _cancelLiveEndedWatchdog();
+      await _unloadLiveMotionSurface();
+      if (!mounted) {
+        return;
+      }
+      // Keep [_liveHostPhotoRetained] — same as natural ended → Path R later.
+      await _enqueueLiveOp(() async {
+        try {
+          await live.stopPlayback();
+        } catch (_) {
+          // Best-effort.
+        }
+      });
+    }
   }
 
   /// Path R: remount PV + play-only while Host pending is retained (no request).
@@ -5408,23 +5484,33 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               onScrubComplete != null && video != null,
         ),
         Cap26LiveLongPressGesture(
-          enabled: shouldArmLiveLongPress(
+          enabled: shouldMountLiveLongPressListener(
+            mayFire: shouldArmLiveLongPress(
+              isCurrent: playbackTapIsCurrent,
+              isLiveStill: _isLiveStillMedia(_media),
+              liveMotionMounted: _liveMotionMounted,
+              livePreparing: _livePreparing,
+              liveSilentReplayInFlight: _liveSilentReplayInFlight,
+              isCurrentStillMagnified:
+                  ref.watch(browseMagnificationProvider).isStillMagnified,
+              transientPinchActive:
+                  ref.watch(browseMagnificationProvider).transientPinchActive,
+              stillPinchContact:
+                  ref.watch(browseMagnificationProvider).stillPinchContact,
+              cap19PanelOpen: ref.watch(cap19ActionsPanelOpenProvider),
+              cap24MorePanelOpen: ref.watch(cap24MorePanelOpenProvider),
+            ),
+            holdingAfterFire: _userHoldReplayActive,
             isCurrent: playbackTapIsCurrent,
-            isLiveStill: _isLiveStillMedia(_media),
-            liveMotionMounted: _liveMotionMounted,
-            livePreparing: _livePreparing,
-            liveSilentReplayInFlight: _liveSilentReplayInFlight,
-            isCurrentStillMagnified:
-                ref.watch(browseMagnificationProvider).isStillMagnified,
-            transientPinchActive:
-                ref.watch(browseMagnificationProvider).transientPinchActive,
-            stillPinchContact:
-                ref.watch(browseMagnificationProvider).stillPinchContact,
             cap19PanelOpen: ref.watch(cap19ActionsPanelOpenProvider),
             cap24MorePanelOpen: ref.watch(cap24MorePanelOpenProvider),
           ),
           onLongPressFire: () {
+            _userHoldReplayActive = true;
             unawaited(_userLongPressReplay());
+          },
+          onLongPressRelease: () {
+            unawaited(_userLongPressReleaseStop());
           },
         ),
         // Cap 20.3 D2-A: last layer (defensive); arming already shrinks swipe.
