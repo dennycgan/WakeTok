@@ -245,4 +245,74 @@ void main() {
       expect(mutations.addCalls, 0);
     },
   );
+
+  testWidgets(
+    'W-26.4c-10 neighbour sync must not wipe current coverVisible '
+    '(Live mounted; off-current frameReady path)',
+    (tester) async {
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1', 'a2'],
+            availabilityById:
+                FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await ensureShellMediaCoverVisible(tester);
+
+      final container = _containerOf(tester);
+      final current = tester.state<MediaFeedPageState>(
+        find.byWidgetPredicate((w) => w is MediaFeedPage && w.isCurrent),
+      );
+      final neighbourFinder = find.byWidgetPredicate(
+        (w) => w is MediaFeedPage && !w.isCurrent,
+        skipOffstage: false,
+      );
+      expect(neighbourFinder, findsWidgets);
+      final neighbour = tester.state<MediaFeedPageState>(neighbourFinder.first);
+
+      // Current: cover true + Live motion mounted (shell Share-dim window).
+      current.debugSetLiveMotionMounted(true);
+      container
+          .read(mainBrowseCurrentLiveMotionMountedProvider.notifier)
+          .setMounted(true);
+      current.debugSyncMediaCoverVisibleGate();
+      await tester.pump();
+      await tester.pump();
+
+      expect(current.debugLiveMotionMounted, isTrue);
+      expect(
+        container.read(mainBrowseCurrentLiveMotionMountedProvider),
+        isTrue,
+      );
+      expect(
+        container.read(mainBrowseCurrentAssetMediaCoverVisibleProvider),
+        isTrue,
+      );
+
+      // Neighbour preheat "frame ready" → production sync (must no-op).
+      expect(neighbour.widget.isCurrent, isFalse);
+      neighbour.debugSyncMediaCoverVisibleGate();
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        container.read(mainBrowseCurrentAssetMediaCoverVisibleProvider),
+        isTrue,
+        reason: 'off-current _syncMediaCoverVisibleGate must not publish '
+            'false over the current page cover gate',
+      );
+      expect(
+        container.read(mainBrowseCurrentLiveMotionMountedProvider),
+        isTrue,
+      );
+      expect(_ink(tester, const Key('cap19EntryIcon')).onTap, isNotNull);
+      expect(_ink(tester, const Key('cap24MoreEntryIcon')).onTap, isNotNull);
+    },
+  );
 }

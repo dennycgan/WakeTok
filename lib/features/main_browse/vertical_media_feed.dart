@@ -1557,18 +1557,23 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   /// Cap 26.4c / ADR-054: publish cover-visible to shell Action Column.
+  ///
+  /// Shared provider — **current page only**. Off-current callers (neighbour
+  /// preheat [_onStillCoverFrameReady], etc.) must not write: previously
+  /// `isCurrent && compute` published `false` and wiped the current page's
+  /// `true` (Action Column dim-while-settled; Cap 26.5a / debt **475** probe).
+  /// Leave-current clearing stays on [_clearMediaCoverVisibleGate].
   void _syncMediaCoverVisibleGate() {
-    if (!mounted) {
+    if (!mounted || !widget.isCurrent) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
+      if (!mounted || !widget.isCurrent) {
         return;
       }
-      final next = widget.isCurrent && _computeMediaCoverVisible();
       ref
           .read(mainBrowseCurrentAssetMediaCoverVisibleProvider.notifier)
-          .setVisible(next);
+          .setVisible(_computeMediaCoverVisible());
     });
   }
 
@@ -1799,6 +1804,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(apply);
     _syncMediaCoverVisibleGate();
   }
+
+  /// Test seam: production [_syncMediaCoverVisibleGate] (post-frame publish).
+  @visibleForTesting
+  void debugSyncMediaCoverVisibleGate() => _syncMediaCoverVisibleGate();
 
   /// Test seam: run production [_reloadPreviewFile] (A-class clear path).
   @visibleForTesting
