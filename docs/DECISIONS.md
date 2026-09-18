@@ -6393,9 +6393,11 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 ## ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album second entry
 
 - Status: Proposed (2026-09-15); Cap 26.5a narrow amend of Decisions 3 / 6
-  (release-to-stop) locked in design review 2026-09-18 — still flip to
-  Accepted only at Cap 26.6 with full implementing anchors
-- Commit/PR anchor: pending Cap 26 close (26.6); Cap 26.5a work sha TBD
+  (release-to-stop) implemented `a106484` (hard cut; fade Path B
+  reverted — debt **474**) — still flip to Accepted only at Cap 26.6
+  with full implementing anchors
+- Commit/PR anchor: pending Cap 26 close (26.6); Cap 26.5a work
+  `a106484`
 - Plain summary (owner reads this):
   On a Live Photo’s still key frame, a long-press replays the motion
   once (the only replay control — no new button next to LIVE). Opening

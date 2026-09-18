@@ -290,26 +290,28 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (work `32dd521`; ADR-054 Accepted; cover-visible gate for … /
       Share / Album + left-swipe; Share = D14 ∧ coverVisible; debt
       **473** Closed; Kafka + i17 Profile smoke PASS)
-- [ ] 26.5a Live long-press release-to-stop (Photos press-hold parity)
-      (design-first; ADR-052 Proposed narrow amend — stop on finger
-      up while motion / Path S in flight; not mid-motion restart)
-      <-- YOU ARE HERE
+- [x] 26.5a Live long-press release-to-stop (Photos press-hold parity)
+      (work `a106484`; ADR-052 Proposed D3/D6 amend — hard-cut
+      release-stop; Path S cancel-on-up; no Flutter fade — debt
+      **474** Accepted (phase); debt **475** Monitoring; i17 Profile
+      hard-cut smoke PASS)
 - [ ] 26.6 Device acceptance (Kafka + i17) + Cap close
       (debt **439** Closed; ADR-052 Accepted + anchors; PHASE_HISTORY;
       two-commit discipline)
+      <-- YOU ARE HERE
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 26.5a — Live long-press release stops motion
-- Sub-steps done: 26.1–26.5; 26.4b–26.4c (`32dd521`; ADR-054
-      Accepted; debt **473** Closed); ADR-053 Accepted; ADR-052 still
-      Proposed
-- Next step: design release-to-stop (gesture hold-through-play,
-      watchdog cancel without skip.add, Path S cancel-on-up); owner
-      lock then implement
-- Related decisions: ADR-052 Proposed (D1–D11; D3/D6 narrow amend
-      candidate for 26.5a; D4 Cap 26.4b); ADR-053 / ADR-054 Accepted;
-      layout notes §12 / §12.6 / §13; Cap 25 Share / Live mounted;
-      debt **439** → Cap 26; **470** Accepted (phase); **473** Closed
+- Goal (one line): Cap 26.6 — device acceptance + Cap 26 close
+- Sub-steps done: 26.1–26.5a (`a106484`; ADR-052 still Proposed;
+      debts **474** Accepted (phase), **475** Monitoring); ADR-053 /
+      ADR-054 Accepted
+- Next step: Kafka + i17 device acceptance for Cap 26; flip ADR-052
+      Accepted + anchors; Close debt **439**; PHASE_HISTORY + Cap
+      roadmap flip
+- Related decisions: ADR-052 Proposed (D1–D11; D3/D6 26.5a; D4
+      Cap 26.4b); ADR-053 / ADR-054 Accepted; layout notes §12 /
+      §12.6 / §13; Cap 25 Share / Live mounted; debt **439** → Cap 26;
+      **470** Accepted (phase); **473** Closed; **474** / **475**
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
@@ -549,8 +551,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       related Cap 25 work in PHASE_HISTORY)
 - ADR-052: Cap 26 Live long-press replay + "…" size + Add-to-Album
       second entry — **Proposed** (2026-09-15); D11 effect
-      non-discrimination; 26.2 work `cab0747` (Path R+S); Accepted
-      + full anchors at Cap 26 close (26.6)
+      non-discrimination; 26.2 work `cab0747` (Path R+S); 26.5a
+      release-to-stop work `a106484` (hard cut); Accepted + full
+      anchors at Cap 26 close (26.6)
 - ADR-053: Overlay row-3 Animated still label — **Accepted**
       (2026-09-15); work `fc0bfcc`; `isAnimated` via
       `playbackStyle == .imageAnimated`; Cap 26.3 closed before "…"
