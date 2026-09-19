@@ -18,7 +18,7 @@ abstract final class DefaultSessionProfile {
 
   /// Pure Generated Clip Pool default (reserved until Generated Clip Cap).
   static const SessionConfiguration pureGeneratedClip = SessionConfiguration(
-    orderPolicy: OrderPolicy.sequential,
+    orderPolicy: OrderPolicy.newestFirst,
     advanceMode: AdvanceMode.manual,
     repeatPolicy: RepeatPolicy.repeatAll,
   );

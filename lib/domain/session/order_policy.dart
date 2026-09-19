@@ -1,17 +1,16 @@
-/// Session order strategy (Glossary §9 Order Policy / ADR-022).
+/// Session order strategy (Glossary §9 Order Policy / ADR-022 / ADR-056).
 ///
-/// Three Session Configuration axes are independent; Cap 12 does not
-/// validate combinations. Queue construction for [shuffle] is Cap 13
-/// (ADR-022 D6).
+/// Cap 27: `{ newestFirst, oldestFirst, shuffle }` replaces former
+/// `sequential`. Three Session Configuration axes remain independent.
 enum OrderPolicy {
-  /// Follow the Resolved Pool Snapshot / Source Reference order.
-  sequential,
+  /// Global / Snapshot creation-date descending (All-rank for multi-source).
+  ///
+  /// Single-source: same as former `sequential` (working / coalesced order).
+  newestFirst,
+
+  /// Full reverse of [newestFirst] (ADR-056 Decision 2 — one comparator).
+  oldestFirst,
 
   /// Random arrangement of eligible items (Endless Shuffle semantics).
-  ///
-  /// Constructible in Cap 12 so Default Profile derivation (12.3) can
-  /// return a type-correct General/Mixed default. Cap 12
-  /// `buildSessionQueue` documents a domain refusal for this value
-  /// (ADR-022 D6); Cap 13 implements shuffle construction.
   shuffle,
 }

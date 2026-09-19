@@ -103,17 +103,21 @@ List<String> sessionWorkingAssetIds(ConsumptionSession session) {
 
 /// Starts an in-memory session: builds a [SessionQueue] from [snapshot] +
 /// [configuration], clamps [initialIndex], stores optional playback position.
+///
+/// Cap 27 / ADR-056: pass [allRanks] for multi-source newestFirst/oldestFirst.
 ConsumptionSession startConsumptionSession({
   required ResolvedPoolSnapshot snapshot,
   required SessionConfiguration configuration,
   Random? random,
   int initialIndex = 0,
   int? playbackPositionMs,
+  Map<String, int>? allRanks,
 }) {
   final queue = buildSessionQueue(
     snapshot: snapshot,
     configuration: configuration,
     random: random,
+    allRanks: allRanks,
   );
   final n = queue.orderedAssetIds.length;
   final index = n == 0 ? 0 : initialIndex.clamp(0, n - 1);
@@ -150,6 +154,7 @@ ConsumptionSession applySessionConfiguration({
   required ConsumptionSession session,
   required SessionConfiguration newConfiguration,
   Random? random,
+  Map<String, int>? allRanks,
 }) {
   final oldConfig = session.queue.configuration;
   if (newConfiguration == oldConfig) {
@@ -177,6 +182,7 @@ ConsumptionSession applySessionConfiguration({
     configuration: newConfiguration,
     random: random,
     workingAssetIds: sessionWorkingAssetIds(session),
+    allRanks: allRanks,
   );
   final newIndex = _remapIndex(
     previousAssetId: session.currentAssetId,

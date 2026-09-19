@@ -172,6 +172,10 @@ Widget permissionUiHarness({
       browseLocalFirstVisitDwellProvider.overrideWithValue(
         browseLocalFirstVisitDwell,
       ),
+      // Cap 27.3: widget harnesses assert resolve-call counts; disable
+      // post-auth All prefetch so those contracts stay stable. Production
+      // shell still watches [browseAllPrefetchBinderProvider].
+      browseAllPrefetchBinderProvider.overrideWith((ref) {}),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)

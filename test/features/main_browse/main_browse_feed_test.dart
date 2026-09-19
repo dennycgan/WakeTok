@@ -5315,7 +5315,10 @@ void main() {
       container
           .read(mainBrowseSelectedSourceProvider.notifier)
           .select(SourceReference.photos);
-      await pumpAsyncWork(tester);
+      // Short pumps: first L2 fails; install gate before production dwell
+      // (300 ms) elapses so the fallback attempt cannot complete early.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 40));
       final ids = await _feedOrderedIds(tester);
       final head = ids[0];
       display.displayGates[head] = gate;
@@ -5323,6 +5326,10 @@ void main() {
       // Fast-path L2 failed (1st display). Fallback re-arms 300 ms dwell;
       // 2nd display must not start until dwell elapses.
       expect(display.displayCalls.where((id) => id == head).length, 1);
+
+      await tester.pump(const Duration(milliseconds: 300));
+      // Gated: second attempt may have started but must not complete.
+      expect(display.displayCalls.where((id) => id == head).length, lessThan(3));
 
       gate.complete();
       await pumpAsyncWork(tester);

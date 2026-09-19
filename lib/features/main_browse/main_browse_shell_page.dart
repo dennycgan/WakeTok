@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
@@ -27,6 +28,11 @@ class MainBrowseShellPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Cap 27 / ADR-056 D9: post-auth All prefetch (fire-and-forget).
+    // watch keeps the binder alive for the shell lifetime (void provider;
+    // does not notify / rebuild).
+    ref.watch(browseAllPrefetchBinderProvider);
+
     final destination = ref.watch(mainBrowseDestinationProvider);
     final immersiveContent = destination != MainBrowseDestination.settings;
     final l10n = AppLocalizations.of(context)!;
@@ -338,3 +344,4 @@ class _SettingsStubPane extends StatelessWidget {
     );
   }
 }
+

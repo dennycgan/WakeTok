@@ -11,8 +11,8 @@ import 'package:waketok/domain/source/resolved_pool_snapshot.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/domain/source/source_resolve_status.dart';
 
-const _sequentialManualRepeatAll = SessionConfiguration(
-  orderPolicy: OrderPolicy.sequential,
+const _newestFirstManualRepeatAll = SessionConfiguration(
+  orderPolicy: OrderPolicy.newestFirst,
   advanceMode: AdvanceMode.manual,
   repeatPolicy: RepeatPolicy.repeatAll,
 );
@@ -50,7 +50,7 @@ void main() {
     final snap = _snapshot(id: 's1', ids: const ['a', 'b', 'c']);
     final session = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     expect(session.queue.orderedAssetIds, ['a', 'b', 'c']);
     expect(session.currentIndex, 0);
@@ -61,7 +61,7 @@ void main() {
   test('SESS-2 empty Snapshot: empty queue, index 0', () {
     final session = startConsumptionSession(
       snapshot: _snapshot(id: 'empty', ids: const []),
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     expect(session.queue.orderedAssetIds, isEmpty);
     expect(session.currentIndex, 0);
@@ -71,7 +71,7 @@ void main() {
   test('SESS-3 slim surface: no Runtime Presentation / Checkpoint fields', () {
     final session = startConsumptionSession(
       snapshot: _snapshot(id: 'slim', ids: const ['x']),
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     // Public fields are only snapshot / queue / currentIndex /
     // playbackPositionMs (+ currentAssetId getter).
@@ -85,12 +85,12 @@ void main() {
     final snap = _snapshot(id: 'eq', ids: const ['a', 'b']);
     final a = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
       playbackPositionMs: 12,
     );
     final b = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
       playbackPositionMs: 12,
     );
     expect(a, b);
@@ -98,7 +98,7 @@ void main() {
 
     final differentPos = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
       playbackPositionMs: 99,
     );
     expect(a, isNot(differentPos));
@@ -110,7 +110,7 @@ void main() {
     final snap = _snapshot(id: 'freeze', ids: const ['a', 'b', 'c']);
     final session = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     expect(session.snapshot.coalescedAssetIds, ['a', 'b', 'c']);
     expect(
@@ -129,13 +129,13 @@ void main() {
       final snap = _snapshot(id: 'stable', ids: const ['a', 'b', 'c']);
       final session = startConsumptionSession(
         snapshot: snap,
-        configuration: _sequentialManualRepeatAll,
+        configuration: _newestFirstManualRepeatAll,
         initialIndex: 1,
         playbackPositionMs: 50,
       );
       final applied = applySessionConfiguration(
         session: session,
-        newConfiguration: _sequentialManualRepeatAll,
+        newConfiguration: _newestFirstManualRepeatAll,
       );
       expect(identical(applied, session), isTrue);
       expect(applied.queue.orderedAssetIds, ['a', 'b', 'c']);
@@ -157,7 +157,7 @@ void main() {
       );
       final session = startConsumptionSession(
         snapshot: snap,
-        configuration: _sequentialManualRepeatAll,
+        configuration: _newestFirstManualRepeatAll,
         initialIndex: 2,
       );
       expect(session.currentAssetId, 'c');
@@ -192,7 +192,7 @@ void main() {
 
     final sequential = applySessionConfiguration(
       session: shuffled,
-      newConfiguration: _sequentialManualRepeatAll,
+      newConfiguration: _newestFirstManualRepeatAll,
     );
     expect(sequential.queue.orderedAssetIds, ['a', 'b', 'c', 'd', 'e']);
     expect(sequential.currentAssetId, 'c');
@@ -205,11 +205,11 @@ void main() {
       final snap = _snapshot(id: 'cont3', ids: const ['a', 'b', 'c']);
       final session = startConsumptionSession(
         snapshot: snap,
-        configuration: _sequentialManualRepeatAll,
+        configuration: _newestFirstManualRepeatAll,
         initialIndex: 1,
       );
       const autoOne = SessionConfiguration(
-        orderPolicy: OrderPolicy.sequential,
+        orderPolicy: OrderPolicy.newestFirst,
         advanceMode: AdvanceMode.auto,
         repeatPolicy: RepeatPolicy.repeatOne,
       );
@@ -221,7 +221,7 @@ void main() {
       expect(next.currentIndex, 1);
       expect(next.currentAssetId, 'b');
       expect(next.queue.configuration, autoOne);
-      expect(next.queue.configuration, isNot(_sequentialManualRepeatAll));
+      expect(next.queue.configuration, isNot(_newestFirstManualRepeatAll));
     },
   );
 
@@ -229,7 +229,7 @@ void main() {
     final snap = _snapshot(id: 'cont4', ids: const ['a', 'b', 'c', 'd', 'e']);
     final session = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
       initialIndex: 2,
       playbackPositionMs: 1234,
     );
@@ -246,7 +246,7 @@ void main() {
     final snap = _snapshot(id: 'cont5', ids: const ['a', 'b', 'c', 'd', 'e']);
     final session = startConsumptionSession(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
       initialIndex: 4, // 'e'
     );
     expect(session.currentAssetId, 'e');

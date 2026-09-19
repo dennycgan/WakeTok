@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/session/advance_mode.dart';
+import 'package:waketok/domain/session/all_rank_order.dart';
 import 'package:waketok/domain/session/build_session_queue.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
 import 'package:waketok/domain/session/order_policy.dart';
@@ -15,8 +16,8 @@ import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/domain/source/source_resolve_status.dart';
 
-const _sequentialManualRepeatAll = SessionConfiguration(
-  orderPolicy: OrderPolicy.sequential,
+const _newestFirstManualRepeatAll = SessionConfiguration(
+  orderPolicy: OrderPolicy.newestFirst,
   advanceMode: AdvanceMode.manual,
   repeatPolicy: RepeatPolicy.repeatAll,
 );
@@ -48,15 +49,15 @@ ResolvedPoolSnapshot _snapshot({
 }
 
 void main() {
-  test('SQ-1 Sequential non-empty Snapshot preserves coalesced order', () {
+  test('SQ-1 newestFirst non-empty Snapshot preserves coalesced order', () {
     final snap = _snapshot(id: 'pool-a', ids: const ['c', 'a', 'b']);
     final queue = buildSessionQueue(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
 
     expect(queue.snapshotId, 'pool-a');
-    expect(queue.configuration, _sequentialManualRepeatAll);
+    expect(queue.configuration, _newestFirstManualRepeatAll);
     expect(queue.orderedAssetIds, ['c', 'a', 'b']);
     expect(queue.orderedAssetIds.length, snap.coalescedAssetIds.length);
     for (var i = 0; i < queue.orderedAssetIds.length; i++) {
@@ -64,11 +65,11 @@ void main() {
     }
   });
 
-  test('SQ-2 Sequential empty Snapshot → empty Queue', () {
+  test('SQ-2 newestFirst empty Snapshot → empty Queue', () {
     final snap = _snapshot(id: 'pool-empty', ids: const []);
     final queue = buildSessionQueue(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     expect(queue.snapshotId, 'pool-empty');
     expect(queue.orderedAssetIds, isEmpty);
@@ -77,7 +78,7 @@ void main() {
   test('SQ-3 orderedAssetIds is unmodifiable', () {
     final queue = buildSessionQueue(
       snapshot: _snapshot(id: 'pool-imm', ids: const ['x']),
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     expect(
       () => queue.orderedAssetIds.add('y'),
@@ -85,22 +86,22 @@ void main() {
     );
   });
 
-  test('SQ-5 Advance/Repeat changes do not alter Sequential id list', () {
+  test('SQ-5 Advance/Repeat changes do not alter newestFirst id list', () {
     final snap = _snapshot(id: 'pool-axes', ids: const ['1', '2', '3']);
     const autoStop = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.auto,
       repeatPolicy: RepeatPolicy.stopAtEnd,
     );
     const autoOne = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.auto,
       repeatPolicy: RepeatPolicy.repeatOne,
     );
 
     final q1 = buildSessionQueue(
       snapshot: snap,
-      configuration: _sequentialManualRepeatAll,
+      configuration: _newestFirstManualRepeatAll,
     );
     final q2 = buildSessionQueue(snapshot: snap, configuration: autoStop);
     final q3 = buildSessionQueue(snapshot: snap, configuration: autoOne);
@@ -113,7 +114,7 @@ void main() {
   });
 
   test('SQ-6 SessionQueue equality uses element-wise orderedAssetIds', () {
-    const config = _sequentialManualRepeatAll;
+    const config = _newestFirstManualRepeatAll;
     final a = SessionQueue(
       snapshotId: 'same',
       configuration: config,
@@ -305,4 +306,63 @@ void main() {
       expect(queue.orderedAssetIds.toSet(), {'m1', 'm2', 'm3'});
     },
   );
+
+  // --- Cap 27.3 / ADR-056 newestFirst / oldestFirst / All-rank ---
+
+  const oldestFirstManualRepeatAll = SessionConfiguration(
+    orderPolicy: OrderPolicy.oldestFirst,
+    advanceMode: AdvanceMode.manual,
+    repeatPolicy: RepeatPolicy.repeatAll,
+  );
+
+  test('SQ-7 single-source oldestFirst is reverse of coalesced', () {
+    final snap = _snapshot(id: 'pool-old', ids: const ['c', 'a', 'b']);
+    final newest = buildSessionQueue(
+      snapshot: snap,
+      configuration: _newestFirstManualRepeatAll,
+    );
+    final oldest = buildSessionQueue(
+      snapshot: snap,
+      configuration: oldestFirstManualRepeatAll,
+    );
+    expect(newest.orderedAssetIds, ['c', 'a', 'b']);
+    expect(oldest.orderedAssetIds, ['b', 'a', 'c']);
+    expect(
+      oldest.orderedAssetIds,
+      newest.orderedAssetIds.reversed.toList(),
+    );
+  });
+
+  test('SQ-8 multi-source newestFirst sorts by All rank; oldest reverses', () {
+    // All (newest→oldest): a, b, c, d. Working is subset out of All order.
+    final ranks = buildAllRankMap(const ['a', 'b', 'c', 'd']);
+    final snap = _snapshot(id: 'pool-ms', ids: const ['c', 'a', 'd']);
+    final newest = buildSessionQueue(
+      snapshot: snap,
+      configuration: _newestFirstManualRepeatAll,
+      allRanks: ranks,
+    );
+    final oldest = buildSessionQueue(
+      snapshot: snap,
+      configuration: oldestFirstManualRepeatAll,
+      allRanks: ranks,
+    );
+    expect(newest.orderedAssetIds, ['a', 'c', 'd']);
+    expect(oldest.orderedAssetIds, ['d', 'c', 'a']);
+    expect(
+      oldest.orderedAssetIds,
+      newest.orderedAssetIds.reversed.toList(),
+    );
+  });
+
+  test('SQ-9 unknown rank ids sort by id and append after known (defensive)', () {
+    final ranks = buildAllRankMap(const ['a', 'b']);
+    final snap = _snapshot(id: 'pool-unk', ids: const ['z', 'a', 'm', 'b']);
+    final newest = buildSessionQueue(
+      snapshot: snap,
+      configuration: _newestFirstManualRepeatAll,
+      allRanks: ranks,
+    );
+    expect(newest.orderedAssetIds, ['a', 'b', 'm', 'z']);
+  });
 }

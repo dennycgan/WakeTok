@@ -6,13 +6,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/app/browse/browse_live_motion_watchdog.dart';
+import 'package:waketok/app/browse/browse_order_preference.dart';
 import 'package:waketok/app/browse/browse_origin_session_delta.dart';
 import 'package:waketok/app/browse/browse_sticky_feed_data_source_id.dart';
 import 'package:waketok/app/browse/process_soft_deleted_asset_ids.dart';
+import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/domain/session/all_rank_order.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
+import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/session/remove_asset_from_session_queue.dart';
-import 'package:waketok/domain/session/session_queue.dart';
+import 'package:waketok/domain/session/repeat_policy.dart';
+import 'package:waketok/domain/session/session_configuration.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/resolve_pool.dart';
@@ -20,10 +25,12 @@ import 'package:waketok/domain/source/resolved_pool_snapshot.dart';
 import 'package:waketok/domain/source/saved_pool_record.dart';
 import 'package:waketok/domain/source/source_pool_definition.dart';
 import 'package:waketok/domain/source/source_reference.dart';
+import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/source_resolve_attempt_mapping.dart';
 
 export 'package:waketok/app/browse/browse_chrome_state.dart';
+export 'package:waketok/app/browse/browse_order_preference.dart';
 export 'package:waketok/app/browse/browse_origin_session_delta.dart';
 export 'package:waketok/app/browse/browse_sticky_feed_data_source_id.dart';
 
@@ -36,6 +43,88 @@ typedef BrowseShuffleRandomFactory = Random Function();
 final browseShuffleRandomFactoryProvider = Provider<BrowseShuffleRandomFactory>(
   (ref) => Random.new,
 );
+
+/// Cap 27 / ADR-056 D10: injectable All-rank map builder (tests override).
+typedef BrowseAllRankMapFactory = Map<String, int> Function(List<String> allIds);
+
+final browseAllRankMapFactoryProvider = Provider<BrowseAllRankMapFactory>(
+  (ref) => buildAllRankMap,
+);
+
+/// Memoized ranks for the cached All Snapshot (same lifetime as that entry).
+///
+/// `null` when All is missing or empty. Watching [browseSnapshotCacheProvider]
+/// drops ranks when All is invalidated (ADR-048 / ADR-056 D10).
+final browseAllRankMapProvider = Provider<Map<String, int>?>((ref) {
+  final cache = ref.watch(browseSnapshotCacheProvider);
+  final snap = cache[BrowseSnapshotCache.keyFor(SourceReference.all)];
+  if (snap == null || snap.coalescedAssetIds.isEmpty) {
+    return null;
+  }
+  return ref.watch(browseAllRankMapFactoryProvider)(snap.coalescedAssetIds);
+});
+
+/// Cap 27 / ADR-056 D9: at most one in-flight All resolve (prefetch + ranks).
+Future<ResolvedPoolSnapshot?>? _allResolveInFlight;
+
+/// Fire-and-forget All Snapshot after Photos authorization settles.
+///
+/// Put only when successful non-empty (ADR-024). No prefetch-only retry
+/// loop. Does not restart Session. Watch from Main Browse shell.
+final browseAllPrefetchBinderProvider = Provider<void>((ref) {
+  ref.listen<AsyncValue<PhotosAccess>>(
+    photosAuthorizationProvider,
+    (previous, next) {
+      final access = next.asData?.value;
+      if (access == PhotosAccess.full || access == PhotosAccess.limited) {
+        unawaited(ensureBrowseAllSnapshotCached(ref));
+      }
+    },
+    fireImmediately: true,
+  );
+});
+
+/// Shared All resolve for prefetch and multi-source rank waits (ADR-056 D9).
+Future<ResolvedPoolSnapshot?> ensureBrowseAllSnapshotCached(Ref ref) {
+  final key = BrowseSnapshotCache.keyFor(SourceReference.all);
+  final hit = ref.read(browseSnapshotCacheProvider)[key];
+  if (hit != null && hit.coalescedAssetIds.isNotEmpty) {
+    return Future<ResolvedPoolSnapshot?>.value(hit);
+  }
+
+  final inFlight = _allResolveInFlight;
+  if (inFlight != null) {
+    return inFlight;
+  }
+
+  final future = _resolveAllOnce(ref);
+  _allResolveInFlight = future;
+  return future.whenComplete(() {
+    if (identical(_allResolveInFlight, future)) {
+      _allResolveInFlight = null;
+    }
+  });
+}
+
+Future<ResolvedPoolSnapshot?> _resolveAllOnce(Ref ref) async {
+  final definition = browsePoolDefinition(SourceReference.all);
+  final repo = ref.read(assetSourceRepositoryProvider);
+  try {
+    final snapshot = await resolvePool(
+      definition: definition,
+      resolveOne: (reference) => resolveOneFromRepository(repo, reference),
+    );
+    if (snapshot.coalescedAssetIds.isNotEmpty) {
+      ref
+          .read(browseSnapshotCacheProvider.notifier)
+          .put(SourceReference.all, snapshot);
+    }
+    return snapshot;
+  } catch (_) {
+    // Prefetch must not surface Host/test resolve failures (ADR-056 D9).
+    return null;
+  }
+}
 
 /// Cap 14.6 / ADR-025 D8: extra waits after a successful empty Snapshot.
 ///
@@ -457,14 +546,23 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       return _parkStaleBuild();
     }
     final forSession = _snapshotForNewSession(snapshot);
-    final configuration = deriveDefaultSessionProfile(
+    final configuration = _configurationFor(
       definition: definition,
       snapshot: forSession,
     );
+    final ranks = await _ranksForOrder(
+      definition: definition,
+      order: configuration.orderPolicy,
+      gen: gen,
+    );
+    if (!_isCurrentLoad(gen)) {
+      return _parkStaleBuild();
+    }
     final session = startConsumptionSession(
       snapshot: forSession,
       configuration: configuration,
       random: _random(),
+      allRanks: ranks,
     );
     _roundEpoch += 1;
     return BrowseSessionView(session: session, roundEpoch: _roundEpoch);
@@ -515,24 +613,49 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     );
   }
 
-  /// Endless Shuffle: reshuffle immediately on the same Snapshot and bump
-  /// [BrowseSessionView.roundEpoch] (PageView remount). Cap 22.5 scheme A
-  /// calls this after placeholder ScrollEnd settle or true overscroll.
+  /// Endless round advance (ADR-056 D8): shuffle reshuffles; newest/oldest
+  /// return to index 0 on the same ordered list. Bumps [roundEpoch].
   void advanceToNextRound() {
     final current = state.asData?.value;
     if (current == null) {
       return;
     }
-    final next = startNextShuffleRound(
-      session: current.session,
-      random: _random(),
-    );
-    if (identical(next, current.session)) {
+    final session = current.session;
+    final config = session.queue.configuration;
+    if (config.repeatPolicy != RepeatPolicy.repeatAll) {
       return;
     }
+    if (session.queue.orderedAssetIds.length <= 1) {
+      return;
+    }
+
+    if (config.orderPolicy == OrderPolicy.shuffle) {
+      final next = startNextShuffleRound(
+        session: session,
+        random: _random(),
+      );
+      if (identical(next, session)) {
+        return;
+      }
+      _roundEpoch += 1;
+      state = AsyncData(
+        BrowseSessionView(session: next, roundEpoch: _roundEpoch),
+      );
+      return;
+    }
+
+    // newestFirst / oldestFirst: same list, land at 0.
     _roundEpoch += 1;
     state = AsyncData(
-      BrowseSessionView(session: next, roundEpoch: _roundEpoch),
+      BrowseSessionView(
+        session: ConsumptionSession(
+          snapshot: session.snapshot,
+          queue: session.queue,
+          currentIndex: 0,
+          playbackPositionMs: null,
+        ),
+        roundEpoch: _roundEpoch,
+      ),
     );
   }
 
@@ -597,14 +720,23 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         return;
       }
       final forSession = _snapshotForNewSession(snapshot);
-      final configuration = deriveDefaultSessionProfile(
+      final configuration = _configurationFor(
         definition: definition,
         snapshot: forSession,
       );
+      final ranks = await _ranksForOrder(
+        definition: definition,
+        order: configuration.orderPolicy,
+        gen: gen,
+      );
+      if (!_isCurrentLoad(gen)) {
+        return;
+      }
       final session = startConsumptionSession(
         snapshot: forSession,
         configuration: configuration,
         random: _random(),
+        allRanks: ranks,
       );
       if (!_isCurrentLoad(gen)) {
         return;
@@ -619,6 +751,45 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       }
       state = AsyncError(error, stackTrace);
     }
+  }
+
+  SessionConfiguration _configurationFor({
+    required SourcePoolDefinition definition,
+    required ResolvedPoolSnapshot snapshot,
+  }) {
+    final derived = deriveDefaultSessionProfile(
+      definition: definition,
+      snapshot: snapshot,
+    );
+    final preference = ref.read(browseOrderPreferenceProvider);
+    if (preference == null) {
+      return derived;
+    }
+    return SessionConfiguration(
+      orderPolicy: preference,
+      advanceMode: derived.advanceMode,
+      repeatPolicy: derived.repeatPolicy,
+    );
+  }
+
+  /// All-rank map for multi-source newest/oldest; null for shuffle / single
+  /// source / when All is missing (Session falls back to coalesced order).
+  Future<Map<String, int>?> _ranksForOrder({
+    required SourcePoolDefinition definition,
+    required OrderPolicy order,
+    required int gen,
+  }) async {
+    if (order == OrderPolicy.shuffle) {
+      return null;
+    }
+    if (definition.orderedSourceReferences.length <= 1) {
+      return null;
+    }
+    await ensureBrowseAllSnapshotCached(ref);
+    if (!_isCurrentLoad(gen)) {
+      return null;
+    }
+    return ref.read(browseAllRankMapProvider);
   }
 
   /// Riverpod still applies [build]'s return if this Future completes with

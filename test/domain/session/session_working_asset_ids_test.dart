@@ -19,7 +19,7 @@ const _shuffle = SessionConfiguration(
 );
 
 const _sequential = SessionConfiguration(
-  orderPolicy: OrderPolicy.sequential,
+  orderPolicy: OrderPolicy.newestFirst,
   advanceMode: AdvanceMode.manual,
   repeatPolicy: RepeatPolicy.repeatAll,
 );

@@ -11,7 +11,7 @@ import 'package:waketok/domain/source/source_reference.dart';
 import 'package:waketok/domain/source/source_resolve_status.dart';
 
 const _sequential = SessionConfiguration(
-  orderPolicy: OrderPolicy.sequential,
+  orderPolicy: OrderPolicy.newestFirst,
   advanceMode: AdvanceMode.manual,
   repeatPolicy: RepeatPolicy.repeatAll,
 );

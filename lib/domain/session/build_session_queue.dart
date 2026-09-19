@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:waketok/domain/session/all_rank_order.dart';
 import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/session/session_configuration.dart';
 import 'package:waketok/domain/session/session_queue.dart';
@@ -10,40 +11,51 @@ import 'package:waketok/domain/source/resolved_pool_snapshot.dart';
 const int kShuffleFirstLastAvoidMaxAttempts = 32;
 
 /// Builds a finite [SessionQueue] from a Snapshot + Configuration
-/// (ADR-022 Sequential; ADR-023 Endless Shuffle).
+/// (ADR-022 / ADR-023 / ADR-056).
 ///
-/// **Sequential:** `orderedAssetIds` follows [workingAssetIds] when set,
-/// otherwise `snapshot.coalescedAssetIds` (no re-sort; ADR-022 D4/D5).
+/// **newestFirst (single-source):** `orderedAssetIds` follows
+/// [workingAssetIds] when set, otherwise `snapshot.coalescedAssetIds`
+/// (former `sequential`).
 ///
-/// **Shuffle (ADR-023 D4/D5):** Fisher–Yates over the working id list (or
-/// full Snapshot when [workingAssetIds] is omitted). No Eligibility.
-/// [random] defaults to [Random] when omitted. Retries (same [Random]
-/// instance) when [previousRoundLastId] is set, `n > 1`, and the shuffle
-/// would start with that id. Cap [kShuffleFirstLastAvoidMaxAttempts]; if
-/// still colliding, accept the last attempt (including n=2 pools where
-/// first≠last is often unsatisfiable — never spins forever).
+/// **newestFirst (multi-source):** when [allRanks] is non-null, sort working
+/// ids by All rank (ADR-056 D4). When [allRanks] is null, fall back to
+/// coalesced / working order (caller should supply ranks for multi-source).
+///
+/// **oldestFirst:** reverse of the newestFirst list (ADR-056 D2).
+///
+/// **Shuffle (ADR-023 D4/D5):** Fisher–Yates over the working id list.
 ///
 /// Cap 24.4b: mid-session rebuilds pass [workingAssetIds] =
 /// [sessionWorkingAssetIds] so soft-deleted ids stay out of the Queue.
-/// New Sessions omit it (full Snapshot).
-///
-/// Advance Mode and Repeat Policy are stored on the queue but do not change
-/// the id list within a round. Round boundary reshuffle is a new call with
-/// [previousRoundLastId] set.
 SessionQueue buildSessionQueue({
   required ResolvedPoolSnapshot snapshot,
   required SessionConfiguration configuration,
   Random? random,
   String? previousRoundLastId,
   List<String>? workingAssetIds,
+  Map<String, int>? allRanks,
 }) {
   final source = workingAssetIds ?? snapshot.coalescedAssetIds;
   switch (configuration.orderPolicy) {
-    case OrderPolicy.sequential:
+    case OrderPolicy.newestFirst:
+      final ordered = _newestFirstOrdered(
+        source: source,
+        allRanks: allRanks,
+      );
       return SessionQueue(
         snapshotId: snapshot.id,
         configuration: configuration,
-        orderedAssetIds: List<String>.from(source),
+        orderedAssetIds: ordered,
+      );
+    case OrderPolicy.oldestFirst:
+      final newest = _newestFirstOrdered(
+        source: source,
+        allRanks: allRanks,
+      );
+      return SessionQueue(
+        snapshotId: snapshot.id,
+        configuration: configuration,
+        orderedAssetIds: newest.reversed.toList(),
       );
     case OrderPolicy.shuffle:
       return _buildShuffleQueue(
@@ -54,6 +66,19 @@ SessionQueue buildSessionQueue({
         previousRoundLastId: previousRoundLastId,
       );
   }
+}
+
+List<String> _newestFirstOrdered({
+  required List<String> source,
+  required Map<String, int>? allRanks,
+}) {
+  if (allRanks == null || allRanks.isEmpty) {
+    return List<String>.from(source);
+  }
+  return sortWorkingNewestFirstByAllRank(
+    workingIds: source,
+    allRanks: allRanks,
+  );
 }
 
 SessionQueue _buildShuffleQueue({

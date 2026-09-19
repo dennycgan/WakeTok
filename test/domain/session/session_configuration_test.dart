@@ -6,9 +6,10 @@ import 'package:waketok/domain/session/session_configuration.dart';
 
 void main() {
   test('CFG-1 OrderPolicy / AdvanceMode / RepeatPolicy names and lengths', () {
-    expect(OrderPolicy.sequential.name, 'sequential');
+    expect(OrderPolicy.newestFirst.name, 'newestFirst');
+    expect(OrderPolicy.oldestFirst.name, 'oldestFirst');
     expect(OrderPolicy.shuffle.name, 'shuffle');
-    expect(OrderPolicy.values, hasLength(2));
+    expect(OrderPolicy.values, hasLength(3));
 
     expect(AdvanceMode.manual.name, 'manual');
     expect(AdvanceMode.auto.name, 'auto');
@@ -21,12 +22,12 @@ void main() {
   });
 
   test(
-    'CFG-2 OrderPolicy must include sequential and shuffle (ADR-022 D6=a)',
+    'CFG-2 OrderPolicy must include newestFirst, oldestFirst, shuffle (ADR-056 D1)',
     () {
-      expect(OrderPolicy.values, contains(OrderPolicy.sequential));
+      expect(OrderPolicy.values, contains(OrderPolicy.newestFirst));
+      expect(OrderPolicy.values, contains(OrderPolicy.oldestFirst));
       expect(OrderPolicy.values, contains(OrderPolicy.shuffle));
-      // Rejected D6 option b: Sequential-only enum until Cap 13.
-      expect(OrderPolicy.values, isNot(hasLength(1)));
+      expect(OrderPolicy.values, hasLength(3));
     },
   );
 
@@ -41,14 +42,14 @@ void main() {
     expect(mixedDefault.repeatPolicy, RepeatPolicy.repeatAll);
 
     const pureClipDefault = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.manual,
       repeatPolicy: RepeatPolicy.repeatAll,
     );
-    expect(pureClipDefault.orderPolicy, OrderPolicy.sequential);
+    expect(pureClipDefault.orderPolicy, OrderPolicy.newestFirst);
 
     const playOnceShape = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.auto,
       repeatPolicy: RepeatPolicy.stopAtEnd,
     );
@@ -58,12 +59,12 @@ void main() {
 
   test('CFG-4 SessionConfiguration equality / hashCode', () {
     const a = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.manual,
       repeatPolicy: RepeatPolicy.repeatAll,
     );
     const b = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.manual,
       repeatPolicy: RepeatPolicy.repeatAll,
     );
@@ -78,14 +79,14 @@ void main() {
     expect(a, isNot(orderChanged));
 
     const advanceChanged = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.auto,
       repeatPolicy: RepeatPolicy.repeatAll,
     );
     expect(a, isNot(advanceChanged));
 
     const repeatChanged = SessionConfiguration(
-      orderPolicy: OrderPolicy.sequential,
+      orderPolicy: OrderPolicy.newestFirst,
       advanceMode: AdvanceMode.manual,
       repeatPolicy: RepeatPolicy.repeatOne,
     );
@@ -94,7 +95,8 @@ void main() {
 
   test('CFG-5 enum switches are exhaustive (smoke)', () {
     String orderName(OrderPolicy p) => switch (p) {
-          OrderPolicy.sequential => 'sequential',
+          OrderPolicy.newestFirst => 'newestFirst',
+          OrderPolicy.oldestFirst => 'oldestFirst',
           OrderPolicy.shuffle => 'shuffle',
         };
     String advanceName(AdvanceMode m) => switch (m) {

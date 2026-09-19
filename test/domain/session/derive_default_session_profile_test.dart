@@ -48,7 +48,7 @@ void main() {
     'Sequential+Manual+RepeatAll',
     () {
       const c = DefaultSessionProfile.pureGeneratedClip;
-      expect(c.orderPolicy, OrderPolicy.sequential);
+      expect(c.orderPolicy, OrderPolicy.newestFirst);
       expect(c.advanceMode, AdvanceMode.manual);
       expect(c.repeatPolicy, RepeatPolicy.repeatAll);
     },
