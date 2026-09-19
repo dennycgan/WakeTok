@@ -877,7 +877,7 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final asyncSession = ref.watch(browseSessionProvider);
     final chrome = ref.watch(browseChromeStateProvider);
-    final feedDataSourceId = chrome.feedDataSourceId;
+    final feedDataSourceId = ref.watch(browseEffectiveFeedDataSourceIdProvider);
     final feedSourceKind = chrome.feedSourceKind;
     final feedIndex = ref.watch(mainBrowseFeedIndexProvider);
     final destination = ref.watch(mainBrowseDestinationProvider);
@@ -959,10 +959,17 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     ref.listen<BrowseOrigin>(
       browseChromeStateProvider.select((s) => s.activeOrigin),
       (prev, next) {
-        if (prev != next) {
-          _clearMagnificationSession();
-          unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
+        if (prev == null || prev == next) {
+          return;
         }
+        // ADR-057 D3: shared signal only — no private promote heuristic.
+        if (ref
+            .read(browseOriginSessionDeltaProvider)
+            .isIdentityPreservingPromote) {
+          return;
+        }
+        _clearMagnificationSession();
+        unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
       },
     );
 

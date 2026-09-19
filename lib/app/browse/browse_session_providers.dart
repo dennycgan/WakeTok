@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_chrome_state.dart';
 import 'package:waketok/app/browse/browse_l2_ready_session.dart';
 import 'package:waketok/app/browse/browse_live_motion_watchdog.dart';
+import 'package:waketok/app/browse/browse_origin_session_delta.dart';
+import 'package:waketok/app/browse/browse_sticky_feed_data_source_id.dart';
 import 'package:waketok/app/browse/process_soft_deleted_asset_ids.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
@@ -22,6 +24,8 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/source_resolve_attempt_mapping.dart';
 
 export 'package:waketok/app/browse/browse_chrome_state.dart';
+export 'package:waketok/app/browse/browse_origin_session_delta.dart';
+export 'package:waketok/app/browse/browse_sticky_feed_data_source_id.dart';
 
 /// Creates Shuffle entropy (ADR-023 D5).
 ///
@@ -69,6 +73,17 @@ final browseChromeStateProvider =
       BrowseChromeStateNotifier.new,
     );
 
+/// Cap 27 / ADR-057 Decision 5: effective feed id (sticky ?? origin-derived).
+///
+/// Kept separate from [browseOriginSessionDeltaProvider] (Decision 3).
+final browseEffectiveFeedDataSourceIdProvider = Provider<String>((ref) {
+  final sticky = ref.watch(browseStickyFeedDataSourceIdProvider);
+  if (sticky != null) {
+    return sticky;
+  }
+  return ref.watch(browseChromeStateProvider).feedDataSourceId;
+});
+
 class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
   @override
   BrowseChromeState build() {
@@ -80,6 +95,17 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     );
   }
 
+  /// ADR-057 D3+D5: real Session boundary — shared signal + clear sticky id.
+  ///
+  /// Call **before** writing [state] on every Origin path except Temp-peek
+  /// promote ([BrowseSessionNotifier.promoteCurrentSessionToSavedPool]).
+  void _noteRealSessionBoundary() {
+    ref
+        .read(browseOriginSessionDeltaProvider.notifier)
+        .markRealSessionBoundary();
+    ref.read(browseStickyFeedDataSourceIdProvider.notifier).clear();
+  }
+
   /// Select a built-in tab. Preserves [BrowseChromeState.parkedEphemeralPool].
   void selectBuiltIn(SourceReference next) {
     // Pools is not a SourceReference — callers must not pass it.
@@ -87,6 +113,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     if (current is BrowseOriginBuiltIn && current.source == next) {
       return;
     }
+    _noteRealSessionBoundary();
     state = BrowseChromeState(
       activeOrigin: BrowseOriginBuiltIn(next),
       parkedEphemeralPool: state.parkedEphemeralPool,
@@ -120,6 +147,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     if (current is BrowseOriginEphemeralPool && current.definition == parked) {
       return;
     }
+    _noteRealSessionBoundary();
     state = BrowseChromeState(
       activeOrigin: BrowseOriginEphemeralPool(parked),
       parkedEphemeralPool: parked,
@@ -154,6 +182,7 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
             '(${definition.orderedSourceReferences.length})',
       );
     }
+    _noteRealSessionBoundary();
     state = BrowseChromeState(
       activeOrigin: BrowseOriginEphemeralPool(definition),
       parkedEphemeralPool: definition,
@@ -164,8 +193,46 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     );
   }
 
-  /// Cap 22.3 / ADR-046 D3–D4: activate a Saved preset and clear park.
+  /// Cap 22 / ADR-047 D3: Build Save & browse — new Session (not promote).
   void startSavedPool(SavedPoolRecord record) {
+    final definition = record.toDefinition();
+    _noteRealSessionBoundary();
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginSavedPool(
+        poolId: record.id,
+        definition: definition,
+      ),
+      parkedEphemeralPool: null,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: null,
+    );
+  }
+
+  /// Cap 22.4 / ADR-046 D7: open from Saved menu — keep park; always new Session.
+  ///
+  /// No-op when [record] is already the active Saved origin (caller peeks).
+  /// Must **not** call [BrowseSessionNotifier.promoteCurrentSessionToSavedPool]
+  /// even when the recipe matches the current sources.
+  void openSavedPool(SavedPoolRecord record) {
+    final current = state.activeOrigin;
+    if (current is BrowseOriginSavedPool && current.poolId == record.id) {
+      return;
+    }
+    _noteRealSessionBoundary();
+    state = BrowseChromeState(
+      activeOrigin: BrowseOriginSavedPool(
+        poolId: record.id,
+        definition: record.toDefinition(),
+      ),
+      parkedEphemeralPool: state.parkedEphemeralPool,
+      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
+      parkedCompositionLabels: state.parkedCompositionLabels,
+    );
+  }
+
+  /// Chrome-only write for Temp-peek promote (ADR-057). Does **not** mark a
+  /// real Session boundary or clear sticky feed id.
+  void applyPromoteToSavedPool(SavedPoolRecord record) {
     final definition = record.toDefinition();
     state = BrowseChromeState(
       activeOrigin: BrowseOriginSavedPool(
@@ -178,31 +245,13 @@ class BrowseChromeStateNotifier extends Notifier<BrowseChromeState> {
     );
   }
 
-  /// Cap 22.4 / ADR-046 D7: open from Saved menu — keep park.
-  ///
-  /// No-op when [record] is already the active Saved origin (caller peeks).
-  void openSavedPool(SavedPoolRecord record) {
-    final current = state.activeOrigin;
-    if (current is BrowseOriginSavedPool && current.poolId == record.id) {
-      return;
-    }
-    state = BrowseChromeState(
-      activeOrigin: BrowseOriginSavedPool(
-        poolId: record.id,
-        definition: record.toDefinition(),
-      ),
-      parkedEphemeralPool: state.parkedEphemeralPool,
-      lastRememberedBuiltIn: state.lastRememberedBuiltIn,
-      parkedCompositionLabels: state.parkedCompositionLabels,
-    );
-  }
-
   /// Refresh the active Saved recipe snapshot after Rename (same [poolId]).
   void replaceActiveSavedPool(SavedPoolRecord record) {
     final current = state.activeOrigin;
     if (current is! BrowseOriginSavedPool || current.poolId != record.id) {
       return;
     }
+    // Same poolId — Origin equality unchanged; not a Session boundary.
     state = BrowseChromeState(
       activeOrigin: BrowseOriginSavedPool(
         poolId: record.id,
@@ -353,9 +402,10 @@ class BrowseSessionView {
 /// Main Browse Consumption Session: Snapshot cache + Shuffle Queue (ADR-023).
 ///
 /// Watches [browseChromeStateProvider].activeOrigin (ADR-044 D6.1). Each
-/// distinct Origin (including built-in revisit) starts a **new** Session on
-/// the cached Snapshot (D8). [advanceToNextRound] reshuffles in-place for
-/// Endless Repeat All (Cap 22.5 scheme A: placeholder settle / overscroll).
+/// distinct Origin starts a **new** Session unless ADR-057 classifies the
+/// delta as identity-preserving promote via
+/// [browseOriginSessionDeltaProvider]. [advanceToNextRound] reshuffles
+/// in-place for Endless Repeat All (Cap 22.5 scheme A).
 final browseSessionProvider =
     AsyncNotifierProvider<BrowseSessionNotifier, BrowseSessionView>(
       BrowseSessionNotifier.new,
@@ -367,6 +417,9 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   /// Cap 14.6: one generation for both [build] and [restartSession] loads.
   int _loadGen = 0;
 
+  /// ADR-057: capture before Origin write — [build] may see AsyncLoading.
+  BrowseSessionView? _identityPreservingPromoteKeep;
+
   Random _random() => ref.read(browseShuffleRandomFactoryProvider)();
 
   bool _isCurrentLoad(int gen) => gen == _loadGen && ref.mounted;
@@ -377,9 +430,21 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
 
   @override
   Future<BrowseSessionView> build() async {
-    final gen = ++_loadGen;
     // Watch Origin only — parked-only updates must not rebuild Session.
     ref.watch(browseChromeStateProvider.select((s) => s.activeOrigin));
+    // ADR-057 D3: read shared signal (do not invent a private promote flag).
+    final delta = ref.read(browseOriginSessionDeltaProvider);
+    if (delta.isIdentityPreservingPromote) {
+      final previous =
+          _identityPreservingPromoteKeep ?? state.asData?.value;
+      if (previous != null) {
+        return previous;
+      }
+    } else {
+      _identityPreservingPromoteKeep = null;
+    }
+
+    final gen = ++_loadGen;
     final chrome = ref.read(browseChromeStateProvider);
     final definition = _definitionFor(chrome);
     final snapshot = await _snapshotFor(definition, gen: gen);
@@ -398,6 +463,43 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     );
     _roundEpoch += 1;
     return BrowseSessionView(session: session, roundEpoch: _roundEpoch);
+  }
+
+  /// Cap 27 / ADR-057 D1: sole keep-Session path (Temp peek Save this pool).
+  ///
+  /// Decision 5 sticky hold and Decision 3 promote mark are applied as
+  /// **separate** steps (not one conflated if). Chrome write uses
+  /// [BrowseChromeStateNotifier.applyPromoteToSavedPool] only.
+  void promoteCurrentSessionToSavedPool(SavedPoolRecord record) {
+    final chrome = ref.read(browseChromeStateProvider);
+    if (chrome.activeOrigin is! BrowseOriginEphemeralPool) {
+      throw StateError(
+        'promoteCurrentSessionToSavedPool requires active ephemeral Origin',
+      );
+    }
+    final current = state.asData?.value;
+    if (current == null) {
+      throw StateError(
+        'promoteCurrentSessionToSavedPool requires a loaded Session',
+      );
+    }
+    // Capture before Origin write — AsyncNotifier rebuild may clear [state].
+    _identityPreservingPromoteKeep = current;
+
+    // Decision 5 — independent sticky hold (before Origin write).
+    final sticky = ref.read(browseStickyFeedDataSourceIdProvider);
+    if (sticky == null) {
+      ref
+          .read(browseStickyFeedDataSourceIdProvider.notifier)
+          .hold(chrome.feedDataSourceId);
+    }
+
+    // Decision 3 — shared signal before Origin write.
+    ref
+        .read(browseOriginSessionDeltaProvider.notifier)
+        .markIdentityPreservingPromote();
+
+    ref.read(browseChromeStateProvider.notifier).applyPromoteToSavedPool(record);
   }
 
   /// Cap 24.4c: filter process soft-deletes for Session start only — never
@@ -474,6 +576,11 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   /// spinner). [_loadGen] plus [Ref.mounted] guard writes across the async gap
   /// so a superseded restart cannot overwrite a newer load (Cap 14.6).
   Future<void> restartSession() async {
+    // Real Session boundary on the same Origin (ADR-027 / ADR-057 D5 clear).
+    ref
+        .read(browseOriginSessionDeltaProvider.notifier)
+        .markRealSessionBoundary();
+    ref.read(browseStickyFeedDataSourceIdProvider.notifier).clear();
     ref.read(browseL2ReadySessionProvider.notifier).clear();
     ref.read(browseLiveMotionWatchdogSkipIdsProvider.notifier).clear();
     final gen = ++_loadGen;

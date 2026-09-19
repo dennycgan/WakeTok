@@ -1200,7 +1200,9 @@ class _CompositionPeekCard extends ConsumerWidget {
         await showSavedPoolCapacityDialog(host);
         return;
       case SavedPoolNamingSaved(:final record):
-        container.read(browseChromeStateProvider.notifier).startSavedPool(record);
+        container
+            .read(browseSessionProvider.notifier)
+            .promoteCurrentSessionToSavedPool(record);
     }
   }
 

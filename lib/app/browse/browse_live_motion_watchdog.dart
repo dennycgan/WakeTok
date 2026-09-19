@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart'
-    show BrowseOrigin, browseChromeStateProvider;
+    show
+        BrowseOrigin,
+        browseChromeStateProvider,
+        browseOriginSessionDeltaProvider;
 
 /// Cap 25 / ADR-051 Decision 14 + Cap 26.4b / ADR-052 Decision 4:
 /// Live motion ended watchdog.
@@ -25,9 +28,14 @@ class BrowseLiveMotionWatchdogSkipIds
     ref.listen<BrowseOrigin>(
       browseChromeStateProvider.select((s) => s.activeOrigin),
       (previous, next) {
-        if (previous != null && previous != next) {
-          state = const {};
+        if (previous == null || previous == next) {
+          return;
         }
+        // ADR-057 D3: shared signal only — no private promote heuristic.
+        if (ref.read(browseOriginSessionDeltaProvider).isIdentityPreservingPromote) {
+          return;
+        }
+        state = const {};
       },
     );
     return const {};

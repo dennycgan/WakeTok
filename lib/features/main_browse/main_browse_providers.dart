@@ -32,11 +32,14 @@ export 'package:waketok/app/browse/browse_session_providers.dart'
         BrowseSessionView,
         browseChromeStateProvider,
         browseEmptyRetryDelaysProvider,
+        browseEffectiveFeedDataSourceIdProvider,
         browseLayer2DwellProvider,
         browseLocalFirstVisitDwellProvider,
+        browseOriginSessionDeltaProvider,
         browseSessionProvider,
         browseShuffleRandomFactoryProvider,
         browseSnapshotCacheProvider,
+        browseStickyFeedDataSourceIdProvider,
         BrowseSnapshotCache,
         mainBrowseSelectedSourceProvider,
         MainBrowseSelectedSource;
@@ -121,9 +124,14 @@ class MainBrowseFeedIndex extends Notifier<int> {
     ref.listen<BrowseOrigin>(
       browseChromeStateProvider.select((s) => s.activeOrigin),
       (prev, next) {
-        if (prev != next) {
-          state = 0;
+        if (prev == null || prev == next) {
+          return;
         }
+        // ADR-057 D3: shared signal only — no private promote heuristic.
+        if (ref.read(browseOriginSessionDeltaProvider).isIdentityPreservingPromote) {
+          return;
+        }
+        state = 0;
       },
     );
     return 0;
