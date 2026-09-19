@@ -4963,7 +4963,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-044: Cap 21 Build a Pool — BrowseChromeState, ephemeral park, four-control chrome
 
-- Status: Accepted (2026-09-05)
+- Status: Accepted (2026-09-05); Decision 6.1’s “changing `activeOrigin`
+  ⇒ new Session” default is **narrowly amended by ADR-057** (Accepted
+  2026-09-19, anchor `9a61b0e`) — sole exception is Temp peek promote
+  keep-Session (shared Origin-delta signal + imperative Session listen).
 - Commit/PR anchor: a695d2f
 - Plain summary (owner reads this):
   Cap 21 lets you build a temporary multi-source Pool and browse it from a
@@ -5262,9 +5265,11 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   by ADR-047** (Accepted 2026-09-09, anchor `0b68e01`). Decision 7’s
   “Start-after-matching-Save … clear `parkedEphemeralPool`” clause is
   superseded with Decision 3 under ADR-047 (Promote / Build Save & browse
-  remain the clear-park writers). D1–D2, D4 ephemeral peek Save, D6
-  menu/unique names, D7 chip occupancy (aside from that clear-park
-  clause), D8–D9 remain binding.
+  remain the clear-park writers). Decision 4 ephemeral peek Save is
+  **narrowly amended by ADR-057** (Accepted 2026-09-19, anchor `9a61b0e`)
+  — promote keeps Consumption Session (sticky feed id; no remount).
+  D1–D2, D6 menu/unique names, D7 chip occupancy (aside from that
+  clear-park clause), D8–D9 remain binding.
 - Commit/PR anchor: d62e962
 - Plain summary (owner reads this):
   You can save a multi-source Pool recipe under a name, reopen it from
@@ -7119,15 +7124,16 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-057: Cap 27 Temp peek promote keeps Consumption Session
 
-- Status: Proposed (Cap 27.1 contract freeze; Accepted + anchor after
-  Cap 27.2 work commit)
-- Commit/PR anchor: (pending Cap 27.2 work)
+- Status: Accepted (2026-09-19)
+- Commit/PR anchor: 9a61b0e
 - Plain summary (owner reads this):
   Saving the Temp pool you are already browsing ("Save this pool")
   only changes the chip from Temp to Saved. The feed, queue position,
   and playback continue — no reshuffle and no jump to the first item.
   Opening another Saved preset always starts fresh, even if it has the
   same sources. Build "Save & browse" still starts a new Session.
+  Session reacts to Origin changes by explicit dispatch (listen), not by
+  automatically rebuilding whenever Origin is watched.
 - Context / what problem forced this:
   ADR-046 D4 promote writes `activeOrigin = savedPool(...)` and clears
   park. ADR-044 D6.1 wired Session / leave-current / L2-ready /
@@ -7136,15 +7142,19 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   only asked to persist the recipe. A prior design using recipe
   fingerprint equality to skip new Sessions would wrongly keep Session
   when opening a different Saved preset with the same sources (allowed
-  unique names, duplicate recipes) — rejected.
+  unique names, duplicate recipes) — rejected. Cap 27.2 device smoke
+  then showed an intermittent promote failure class: queue order stayed
+  the same but the feed jumped to index 0 — caused by
+  `watch(activeOrigin)` forcing Session `isReloading` and feed `.when()`
+  tearing down PageView even when Decisions 1–5 kept the Queue.
 - Decision (what was chosen):
-  1. **Explicit promote API is the sole keep-Session path.** Example
-     shape (names may refine in 27.2): after successful peek Save,
-     chrome updates to `savedPool` + clear park **and**
-     `BrowseSessionNotifier.promoteCurrentSessionToSavedPool(poolId)`
-     (or equivalent paired API) preserves Queue, index, playback
-     position, and `roundEpoch`. **Do not** use ordered-SourceReference
-     fingerprint equality as a general “skip new Session” rule.
+  1. **Explicit promote API is the sole keep-Session path.** After
+     successful peek Save, chrome updates to `savedPool` + clear park
+     **and** `BrowseSessionNotifier.promoteCurrentSessionToSavedPool`
+     (paired with chrome `applyPromoteToSavedPool`) preserves Queue,
+     index, playback position, and `roundEpoch`. **Do not** use
+     ordered-SourceReference fingerprint equality as a general “skip
+     new Session” rule.
   2. **Default remains: any other `activeOrigin` change ⇒ new Session.**
      Includes Saved menu Open (even identical recipe / different
      `poolId`), Build Save & browse (ADR-047 D3), built-in tabs,
@@ -7155,9 +7165,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      behaviour cannot be “suppressed” from outside. Cap 27 therefore
      requires **one** composition-root signal living in
      `browse_session_providers.dart` **alongside**
-     `browseChromeStateProvider` (concrete type chosen in 27.2: e.g. a
-     dedicated provider, or a field on a root notifier — **one**
-     authoritative read site). That signal answers only:
+     `browseChromeStateProvider` — concrete type
+     `browseOriginSessionDeltaProvider`. That signal answers only:
      *identity-preserving promote* vs *real Session boundary* for the
      latest Origin delta (written exclusively by the explicit promote
      API in Decision 1, and cleared/advanced by normal Session-boundary
@@ -7169,20 +7178,19 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      same anti-pattern ADR-048 Decision 2 rejected for Snapshot
      invalidation (“Feature callers must not each call … directly”).
      Vague wording such as “somehow suppress rebuilds” is not compliant.
-     Exact signal shape is a 27.2 detail; the single-read-point rule is
-     not.
-  4. **Exhaustive listener audit before 27.2 code (mandatory).** Re-scan
-     `lib/` for `activeOrigin` / `BrowseOrigin` session side effects;
-     table each site: read shared signal → suppress vs allow. Known
-     baseline at contract freeze (all must use Decision 3’s signal):
-     - `BrowseSessionNotifier.build` watch → suppress rebuild on promote
+  4. **Exhaustive listener audit (mandatory; verified in Cap 27.2).**
+     Re-scan `lib/` for `activeOrigin` / `BrowseOrigin` session side
+     effects; table each site: read shared signal → suppress vs allow.
+     Sites (all use Decision 3’s signal except chrome identity):
+     - `BrowseSessionNotifier` Origin `listen` → Decision 6 (promote
+       no-op; real boundary → `restartSession`)
      - `VerticalMediaFeed` leave-current + magnification clear → suppress
-     - `MainBrowseFeedIndex` reset to 0 → suppress
-     - `BrowseL2ReadySession` clear → suppress
-     - `BrowseLiveMotionWatchdogSkipIds` clear → suppress
+       on promote
+     - `MainBrowseFeedIndex` reset to 0 → suppress on promote
+     - `BrowseL2ReadySession` clear → suppress on promote
+     - `BrowseLiveMotionWatchdogSkipIds` clear → suppress on promote
      - Chrome chip / peek / titles → **allow** (Temp→Saved identity;
        does not consult the Session-boundary signal for keep-Session)
-     Re-verify at implement time; do not ship without the table.
   5. **Sticky `feedDataSourceId` — independent switch from Decision 3
      (locked).** Decision 3 answers “rebuild Consumption Session?”
      Decision 5 answers “recompute `feedDataSourceId`?” — **two
@@ -7194,7 +7202,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      `saved:$poolId`. **Clear / recompute (sole invalidate condition):**
      the next time a **real Session boundary** occurs — i.e. any Origin
      / Session path that Decision 3’s shared signal classifies as a
-     *real Session boundary* (normal Origin-watch new-Session path,
+     *real Session boundary* (Decision 6 real-boundary dispatch,
      `restartSession`, Build Save & browse, Saved menu Open, built-in
      tab change, etc.), **not** the explicit promote path. On that
      boundary, recompute `feedDataSourceId` from the then-current
@@ -7202,18 +7210,35 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      Rationale: PageView key `feed-$feedDataSourceId-r$roundEpoch` must
      not remount on promote; ADR-039 Layer-1 center-label delay keys off
      dataSourceId change and must not treat promote as a tab/pool
-     switch. Sticky storage location is a 27.2 detail.
-  6. **ADR-044 D6.1 narrow amend (text applied on Accept):** “changing
+     switch. Sticky storage: `browseStickyFeedDataSourceIdProvider` +
+     `browseEffectiveFeedDataSourceIdProvider`.
+  6. **Session responds to Origin imperatively (`listen`), not via
+     reactive `watch`.** `BrowseSessionNotifier` must **not**
+     `watch(activeOrigin)`. A watch-driven rebuild always enters
+     AsyncNotifier `isReloading`; Main Browse feed `.when()` defaults
+     (`skipLoadingOnReload: false`) tear down PageView; remount can
+     land on `PageController.initialPage` (often 0) and
+     `onPageChanged(0)` writes feed index to 0 — even when Decision 1
+     kept the Queue. Required shape: `ref.listen(activeOrigin)` in
+     `build`, read Decision 3’s shared signal only — identity-preserving
+     promote → **no-op** (leave existing `AsyncData` untouched); real
+     Session boundary → `restartSession()` (same path as ADR-027
+     leave-Browse). First mount still loads once through `build` (listen
+     does not replace that). Do not reintroduce `watch(activeOrigin)` on
+     Session, and do not invent a second private “is promote?” heuristic
+     inside the listen callback.
+  7. **ADR-044 D6.1 narrow amend (text applied on Accept):** “changing
      `activeOrigin` ⇒ new Session” remains the **default**. The **sole**
      exception is this ADR’s explicit Temp-peek promote path (shared
-     signal). Do not infer exceptions from recipe fingerprint equality.
-  7. **ADR-046 D4 narrow amend (text applied on Accept):** On Temp peek
+     signal + Decision 6 no-op). Do not infer exceptions from recipe
+     fingerprint equality.
+  8. **ADR-046 D4 narrow amend (text applied on Accept):** On Temp peek
      Save this pool success: persist → `activeOrigin = savedPool(...)`
      → clear park → **explicit promote keep-Session path** (same Queue /
      index / playback / `roundEpoch`; sticky `feedDataSourceId`; no
      PageView remount). ADR-047 D3 Build Save & browse unchanged (new
      Session).
-  8. **Out:** recipe-equality Session elision; leave-Browse keep;
+  9. **Out:** recipe-equality Session elision; leave-Browse keep;
      changing Build Save & browse; fixing debt **476**.
 - Rejected alternatives (why not):
   - Recipe fingerprint equality suppresses new Session — rejected;
@@ -7231,13 +7256,18 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     shared signal).
   - Keep Session for Build Save & browse — rejected; user was not
     browsing that pool yet.
+  - `watch(activeOrigin)` plus “return previous Session on promote”
+    (including a promote-only Session capture field) — rejected; still
+    pays `isReloading` / PageView teardown; Decision 6 requires listen
+    + no-op instead.
 - Consequences / constraints accepted:
   - Cap 27.2 is the first `lib/` phase (before preference overlay) so
     Origin/Session wiring is fixed once.
   - Acceptance: P-27-E (promote keeps progress) and P-27-E′ (Open
-    same-recipe other Saved ⇒ new Session at head).
-  - Docs workflow: Proposed at 27.1; Accepted with Cap 27.2 work sha /
-    `git log -1 --format=%cs`.
+    same-recipe other Saved ⇒ new Session at head); Kafka + i17
+    multi-promote smoke PASS.
+  - Docs workflow: Proposed at 27.1; Accepted with Cap 27.2 final work
+    sha `9a61b0e` / `git log -1 --format=%cs`.
 - Relationship:
   Narrowly amends ADR-044 D6.1 and ADR-046 D4 on Accept. Does not
   amend ADR-047 D3. Complements ADR-055 / ADR-056. Parallel discipline

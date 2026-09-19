@@ -240,27 +240,28 @@
 Active capability: Auto bottom-nav slot redefinition — pull-up
 order-control sheet
 Contract: Cap 27 Layer 1 confirm-to-apply order sheet + Temp peek
-promote keep-Session; ADR-055 / ADR-056 / ADR-057 Proposed; narrow
-amends ADR-022 D4/D5, ADR-027, ADR-044 D6.1, ADR-046 D4 (text in
-Proposed ADRs; Status flip on old entries when Accepted)
+promote keep-Session; ADR-057 Accepted `9a61b0e`; ADR-055 / ADR-056
+Proposed; narrow amends ADR-022 D4/D5, ADR-027, ADR-044 D6.1,
+ADR-046 D4
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [~] 27.1 Contract freeze — STATE Cap line + Phase Roadmap;
+- [x] 27.1 Contract freeze — STATE Cap line + Phase Roadmap;
       ADR-055/056/057 Proposed; amend texts locked; debt 421 overlay
       audit note; v2 leave-Browse-keep dependency row; no `lib/`
-      <-- YOU ARE HERE
-- [ ] 27.2 Temp peek promote (ADR-057) — explicit
+- [x] 27.2 Temp peek promote (ADR-057) — explicit
       promoteCurrentSessionToSavedPool; shared composition-root
       Origin-delta signal (ADR-048-style; no per-listener patches);
       exhaustive activeOrigin side-effect audit; sticky
-      `feedDataSourceId` (`ephemeral:$id` across promote); unit+widget;
-      Kafka+i17 smoke
-- [ ] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
+      `feedDataSourceId` (`ephemeral:$id` across promote); Session
+      Origin `listen` (not `watch`); unit+widget; Kafka+i17 smoke
+      PASS (`0b9246b` / `9a61b0e`)
+- [~] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
       newestFirst/oldestFirst/shuffle; oldestFirst =
       reverse(newestFirst); unknown = defensive only; All prefetch C
       (post-auth settle); rank map memoize+injectable; CFG/SQ/SHUF
       test rename; All-rank probe (Host API only on FAIL —
       stop-and-re-discuss)
+      <-- YOU ARE HERE
 - [ ] 27.4 Bottom bar + order sheet UI (ADR-055) — delete Clips/Auto
       enum+ARB; action slot shows `preference ?? shuffle`;
       confirm/cancel sheet; gesture absorb; overlay hygiene vs debt
@@ -271,16 +272,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       docs
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 27.1 contract freeze — order sheet + promote
-      keep-Session (docs only)
-- Sub-steps done: Cap 26 closed; Cap 27 kickoff design locked (explicit
-      promote API; shared Origin-delta signal; sticky feedDataSourceId;
-      ADR-022 D4/D5 narrow amend; §8 owner choices A/A/defensive/A/C/A)
-- Next step: owner review of landed 27.1 docs → then 27.2 `lib/`
-- Related decisions: ADR-055 / ADR-056 / ADR-057 Proposed; ADR-027 /
-      ADR-044 D6.1 / ADR-046 D4 / ADR-022 D4–D5 narrow amends on Accept
+- Goal (one line): Cap 27.3 OrderPolicy rename + process preference +
+      queue builders (ADR-056)
+- Sub-steps done: Cap 27.2 promote keep-Session + Origin listen
+      (`0b9246b` / `9a61b0e`; ADR-057 Accepted); Kafka + i17 multi-
+      promote smoke PASS
+- Next step: design/implement ADR-056 enum rename + preference +
+      builders; All-rank probe gate
+- Related decisions: ADR-056 Proposed; ADR-057 Accepted; ADR-055
+      Proposed; ADR-022 D4/D5 narrow amend on Accept
 
 ## Contract pointers (don't memorize, go read the source)
+- **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
+  `listen` `activeOrigin` and read `browseOriginSessionDeltaProvider` —
+  promote → no-op; real boundary → `restartSession`. **Do not**
+  `watch(activeOrigin)` on Session (reload/`isReloading` tears down
+  PageView and can jump feed index to 0 while Queue order is unchanged).
+  Sticky `feedDataSourceId` is a separate switch (ADR-057 D5).
 - Domain terms (bilingual, **local only / gitignored**):
   docs/GLOSSARY.en-zh.md — not published; Cap-frozen terms also in
   DECISIONS.md (e.g. ADR-043 Display Magnification)
