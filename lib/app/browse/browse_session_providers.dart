@@ -401,11 +401,14 @@ class BrowseSessionView {
 
 /// Main Browse Consumption Session: Snapshot cache + Shuffle Queue (ADR-023).
 ///
-/// Watches [browseChromeStateProvider].activeOrigin (ADR-044 D6.1). Each
-/// distinct Origin starts a **new** Session unless ADR-057 classifies the
-/// delta as identity-preserving promote via
-/// [browseOriginSessionDeltaProvider]. [advanceToNextRound] reshuffles
-/// in-place for Endless Repeat All (Cap 22.5 scheme A).
+/// Origin changes are handled **imperatively** (ADR-057): [build] registers a
+/// `listen` on [BrowseChromeState.activeOrigin] and reads
+/// [browseOriginSessionDeltaProvider]. Identity-preserving promote → no-op
+/// (Session [AsyncData] is left untouched — avoids `watch`-driven
+/// `isReloading` / PageView teardown). Real Session boundary →
+/// [restartSession]. First mount still loads once via [build] (no `watch`
+/// required). [advanceToNextRound] reshuffles in-place for Endless Repeat
+/// All (Cap 22.5 scheme A).
 final browseSessionProvider =
     AsyncNotifierProvider<BrowseSessionNotifier, BrowseSessionView>(
       BrowseSessionNotifier.new,
@@ -417,9 +420,6 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   /// Cap 14.6: one generation for both [build] and [restartSession] loads.
   int _loadGen = 0;
 
-  /// ADR-057: capture before Origin write — [build] may see AsyncLoading.
-  BrowseSessionView? _identityPreservingPromoteKeep;
-
   Random _random() => ref.read(browseShuffleRandomFactoryProvider)();
 
   bool _isCurrentLoad(int gen) => gen == _loadGen && ref.mounted;
@@ -430,19 +430,24 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
 
   @override
   Future<BrowseSessionView> build() async {
-    // Watch Origin only — parked-only updates must not rebuild Session.
-    ref.watch(browseChromeStateProvider.select((s) => s.activeOrigin));
-    // ADR-057 D3: read shared signal (do not invent a private promote flag).
-    final delta = ref.read(browseOriginSessionDeltaProvider);
-    if (delta.isIdentityPreservingPromote) {
-      final previous =
-          _identityPreservingPromoteKeep ?? state.asData?.value;
-      if (previous != null) {
-        return previous;
-      }
-    } else {
-      _identityPreservingPromoteKeep = null;
-    }
+    // Imperative Origin dispatch (ADR-057): do **not** `watch` Origin —
+    // a watch rebuild always enters AsyncLoading/isReloading and can tear
+    // down PageView even when Decision 1 keeps the Session.
+    ref.listen<BrowseOrigin>(
+      browseChromeStateProvider.select((s) => s.activeOrigin),
+      (previous, next) {
+        if (previous == null || previous == next) {
+          return;
+        }
+        // ADR-057 D3: shared signal only — no private promote heuristic.
+        if (ref
+            .read(browseOriginSessionDeltaProvider)
+            .isIdentityPreservingPromote) {
+          return;
+        }
+        unawaited(restartSession());
+      },
+    );
 
     final gen = ++_loadGen;
     final chrome = ref.read(browseChromeStateProvider);
@@ -469,7 +474,9 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
   ///
   /// Decision 5 sticky hold and Decision 3 promote mark are applied as
   /// **separate** steps (not one conflated if). Chrome write uses
-  /// [BrowseChromeStateNotifier.applyPromoteToSavedPool] only.
+  /// [BrowseChromeStateNotifier.applyPromoteToSavedPool] only. Session
+  /// [state] is intentionally **not** rewritten — the Origin `listen`
+  /// no-ops on the shared promote signal, so [AsyncData] stays put.
   void promoteCurrentSessionToSavedPool(SavedPoolRecord record) {
     final chrome = ref.read(browseChromeStateProvider);
     if (chrome.activeOrigin is! BrowseOriginEphemeralPool) {
@@ -477,14 +484,11 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         'promoteCurrentSessionToSavedPool requires active ephemeral Origin',
       );
     }
-    final current = state.asData?.value;
-    if (current == null) {
+    if (state.asData?.value == null) {
       throw StateError(
         'promoteCurrentSessionToSavedPool requires a loaded Session',
       );
     }
-    // Capture before Origin write — AsyncNotifier rebuild may clear [state].
-    _identityPreservingPromoteKeep = current;
 
     // Decision 5 — independent sticky hold (before Origin write).
     final sticky = ref.read(browseStickyFeedDataSourceIdProvider);

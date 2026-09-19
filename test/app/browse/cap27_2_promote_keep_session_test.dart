@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,6 +81,13 @@ void main() {
         queue.first,
       );
 
+      final sessionTransitions = <AsyncValue<BrowseSessionView>>[];
+      container.listen<AsyncValue<BrowseSessionView>>(
+        browseSessionProvider,
+        (previous, next) => sessionTransitions.add(next),
+        fireImmediately: false,
+      );
+
       final record = _record(id: 'saved-from-temp', name: 'From Temp', refs: refs);
       container
           .read(browseSessionProvider.notifier)
@@ -125,6 +133,14 @@ void main() {
         container.read(browseLiveMotionWatchdogSkipIdsProvider).contains(queue.first),
         isTrue,
       );
+      // Imperative Origin listen: promote must not push Session through
+      // AsyncLoading/isReloading (PageView teardown class).
+      expect(
+        sessionTransitions.any((v) => v.isLoading),
+        isFalse,
+        reason: 'promote must not reload browseSessionProvider',
+      );
+      expect(sessionTransitions, isEmpty);
     });
 
     test(
@@ -151,6 +167,13 @@ void main() {
           'saved:pool-a',
         );
 
+        final sessionTransitions = <AsyncValue<BrowseSessionView>>[];
+        container.listen<AsyncValue<BrowseSessionView>>(
+          browseSessionProvider,
+          (previous, next) => sessionTransitions.add(next),
+          fireImmediately: false,
+        );
+
         container.read(browseChromeStateProvider.notifier).openSavedPool(b);
         final second = await container.read(browseSessionProvider.future);
 
@@ -170,6 +193,11 @@ void main() {
         expect(
           container.read(browseOriginSessionDeltaProvider).isRealSessionBoundary,
           isTrue,
+        );
+        expect(
+          sessionTransitions.any((v) => v.isLoading),
+          isTrue,
+          reason: 'Open other Saved must show Session loading',
         );
       },
     );
@@ -205,6 +233,46 @@ void main() {
         expect(
           container.read(browseEffectiveFeedDataSourceIdProvider),
           'saved:from-build',
+        );
+      },
+    );
+
+    test(
+      'tab selectBuiltIn real boundary ⇒ loading + index 0',
+      () async {
+        final fake = FakeAssetSourceRepository(
+          allIds: const ['a', 'b', 'c'],
+          photosIds: const ['p1', 'p2', 'p3'],
+        );
+        final container = _container(fake: fake);
+        addTearDown(container.dispose);
+
+        final first = await container.read(browseSessionProvider.future);
+        container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
+        expect(container.read(mainBrowseFeedIndexProvider), 2);
+
+        final sessionTransitions = <AsyncValue<BrowseSessionView>>[];
+        container.listen<AsyncValue<BrowseSessionView>>(
+          browseSessionProvider,
+          (previous, next) => sessionTransitions.add(next),
+          fireImmediately: false,
+        );
+
+        container
+            .read(browseChromeStateProvider.notifier)
+            .selectBuiltIn(SourceReference.photos);
+        final second = await container.read(browseSessionProvider.future);
+
+        expect(second.roundEpoch, greaterThan(first.roundEpoch));
+        expect(container.read(mainBrowseFeedIndexProvider), 0);
+        expect(
+          sessionTransitions.any((v) => v.isLoading),
+          isTrue,
+          reason: 'tab switch must reload Session through AsyncLoading',
+        );
+        expect(
+          container.read(browseOriginSessionDeltaProvider).isRealSessionBoundary,
+          isTrue,
         );
       },
     );
