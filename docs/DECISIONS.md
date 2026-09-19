@@ -6915,3 +6915,330 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Supplements ADR-042 / ADR-050 / ADR-051 consumer gates without
   rewriting their Accepted Decision bodies. Orthogonal to ADR-052 /
   ADR-053. Closes Known debt **473** when Cap 26.4c lands.
+
+## ADR-055: Cap 27 bottom-nav order slot + Layer 1 order-control sheet
+
+- Status: Proposed (Cap 27.1 contract freeze; Accepted + anchor after
+  first Cap 27 implementing work commit)
+- Commit/PR anchor: (pending Cap 27 work)
+- Plain summary (owner reads this):
+  The bottom bar becomes Browse, an Order action slot, and Settings.
+  Clips and Auto are removed from the bar. Tapping Order opens a
+  Layer-1-only sheet (Newest / Oldest / Shuffle) with Confirm and
+  Cancel — no grayed Layer 2/3 placeholders. Confirm writes a
+  process-lifetime order preference and, when the value actually
+  changed, rebuilds the queue from the start. Auto-play Layer 2/3
+  stay on a later Cap.
+- Context / what problem forced this:
+  Kickoff §1.3 / §3.1 put Auto as a bottom-nav destination that opens
+  an Auto-play Preset Sheet. MVP v1 submission track redefines that
+  slot as in-Browse order control only (STATE Cap 27). Clips remains
+  a v2 track feature with no Review-visible stub. ADR-027 leave-Browse
+  must not fire when opening the in-Browse sheet. Overlay stacking
+  must not repeat the debt **421** notch / SafeArea class of bug.
+- Decision (what was chosen):
+  1. **Bottom bar = Browse | Order action slot | Settings.** Delete
+     `MainBrowseDestination.clips` and `.auto` (no hidden stubs).
+     Delete ARB keys `mainBrowseNavClips` / `mainBrowseNavAuto` with
+     the enum. Cap19 / Cap24 / Cap25 entry icon slots remain Browse-
+     only overlays — unaffected beyond shell layout to three cells.
+  2. **Order slot is an action cell, not a destination.** No selected
+     state; shows the **effective** policy label
+     (`processOrderPreference ?? OrderPolicy.shuffle`) plus an expand
+     affordance; visually distinct from destination cells. Reserved
+     two-line height; v1 paints one line. EN short labels: Newest /
+     Oldest / Shuffle; zh per Cap 7 product-copy / ARB.
+  3. **Sheet = Layer 1 only + Confirm / Cancel.** Draft edits apply
+     only on Confirm. `isDismissible: false` and `enableDrag: false`
+     (stricter than Cap 24 "…" `isDismissible: true`). Layout reserves
+     vertical space for future Layer 2/3 blocks but does **not** show
+     disabled placeholders (App Store Guideline 2.1). Playback while
+     open follows existing covering-route / "…" half-sheet behaviour
+     (`browseCoveringRouteOpenProvider` family) — no separate rule.
+  4. **Confirm feedback:** no Cap 19 toast; dismiss sheet; if the
+     confirmed value differs from the applied preference, rebuild
+     Queue to index 0 (ADR-056). Same-value Confirm (including
+     Shuffle→Shuffle) is a no-op aside from dismissing.
+  5. **Empty source:** preference may still be set; takes effect on
+     the next Session that has items.
+  6. **Build a Pool source reorder UI:** keep as-is, no new copy
+     (owner §8 A). Under Cap 27 newest/oldest/shuffle, source order
+     has no observable Manual browse effect in v1; retained for v2
+     clip / Source-order uses.
+  7. **Overlay stack hygiene (debt 421 class):** mount the order sheet
+     with the same shell / SafeArea discipline as Cap 19 / Cap 24
+     sheets — do not hang chrome above IndexedStack in a way that
+     affects Settings. Does **not** close debt **421** (Limited manage
+     entry remains the Debt 421 Cap).
+  8. **ADR-027 narrow amend (text applied on Accept):** Decision 3
+     trigger set reduces from `{Settings, Clips, Auto}` to
+     `{Settings}` only. Opening the order sheet must not call
+     `MainBrowseDestinationNotifier.select`. Leave-Browse **reset
+     strength** (new Session + requeue + index 0; Snapshot cache
+     retained) is **unchanged** in Cap 27 v1.
+  9. **Out of Cap 27 / this ADR:** Layer 2/3 Auto-play, Mode
+     Eligibility, Background Audio / Now Playing, SessionCheckpoint,
+     leave-Browse keep-progress (STATE v2 dependency row), Generated /
+     Pure Clip paths, Clips product UI.
+- Rejected alternatives (why not):
+  - Keep Clips/Auto enum values hidden — rejected; dead leave-Browse
+    triggers and shell tests; restore cost of re-adding enum+cell is
+    intentional for Clips Cap.
+  - Grayed Layer 2/3 placeholders in v1 — rejected; Guideline 2.1 risk.
+  - Swipe-down / barrier dismiss — rejected; owner confirm/cancel-only.
+  - Immediate apply without Confirm — rejected; owner confirm-to-apply.
+  - Success toast on Confirm — rejected; owner §8 A.
+- Consequences / constraints accepted:
+  - Kickoff §1.3 Auto → Auto-play Preset Sheet and §3.1 Auto-play
+    Preset Sheet as that entry are superseded for the bottom-nav slot
+    by this Cap; full Layer 2/3 Preset UI remains the Auto-play Presets
+    Cap.
+  - Architecture / localization guards mandatory on `lib/` phases
+    (ADR-009/010/012).
+  - Docs workflow: Proposed at 27.1; Accepted date/anchor from first
+    Cap 27 work commit (`git log -1 --format=%cs <sha>`).
+
+---
+
+## ADR-056: Cap 27 OrderPolicy newest/oldest/shuffle + process preference + All-rank sort
+
+- Status: Proposed (Cap 27.1 contract freeze; Accepted + anchor after
+  first Cap 27 implementing work commit that lands this contract —
+  typically 27.3)
+- Commit/PR anchor: (pending Cap 27 work)
+- Plain summary (owner reads this):
+  Browse order choices become Newest, Oldest, and Shuffle. A
+  process-only preference remembers the last confirmed choice and
+  overrides the default Shuffle for every new Session. Multi-source
+  Newest/Oldest follow the whole library creation-date order (using
+  the All Snapshot as a rank map), not album-then-album concat.
+  Oldest is simply Newest reversed.
+- Context / what problem forced this:
+  ADR-022 D4 locked Sequential Session Queue to
+  `snapshot.coalescedAssetIds` (Source Reference concat). Cap 13 made
+  Mixed→Shuffle the product default via derive. Cap 27 needs user-
+  selectable newest/oldest/random with confirm-to-apply, process-scoped
+  preference (ADR-023 D3 / ADR-044 D6.3 memory discipline), and global
+  creationDate order for multi-source pools — which redefines former
+  Sequential multi-source meaning. Prefer All Snapshot ranks over a
+  new Host sort API.
+- Decision (what was chosen):
+  1. **`OrderPolicy` = `{ newestFirst, oldestFirst, shuffle }`.**
+     Replaces `sequential`. Domain/tests (CFG-* / SQ-* / SHUF-* and
+     kin) rename in Cap 27.3. Product EN: Newest / Oldest / Shuffle.
+  2. **Canonical sort:** compute `newestFirst` once; `oldestFirst` =
+     reverse of that full list (single- and multi-source). Do not
+     maintain two independent comparators.
+  3. **Single-source newestFirst** = existing Snapshot / working-list
+     order (former `sequential`). **Single-source oldestFirst** =
+     reverse.
+  4. **Multi-source newestFirst** = sort working ids by rank in the
+     process All Snapshot (`creationDate` descending coalesced list);
+     tie-break `localIdentifier` ascending. **Unknown rank** (id not
+     in All): v1 product pools (User `albumRegular` + Cap 21.4b smart
+     whitelist + built-ins; Hidden / Recently Deleted / Shared excluded)
+     make this branch unreachable — keep a **defensive** fallback only
+     (sort unknown by `localIdentifier` at the end of newestFirst).
+     Do not ship dual product semantics or heavy unknown tests.
+  5. **Limited Access:** multi-source album pools remain unavailable
+     (ADR-021 D3) — confirm only; no new Limited fork.
+  6. **Process preference:** `OrderPolicy?` in memory; null until first
+     Confirm; never persisted. Background / lock do not clear; process
+     death → null → derive default (Mixed→shuffle). All new Session
+     paths (`build` / `restartSession` / equivalent) apply
+     `preference ?? derive.orderPolicy` on the Configuration before
+     `buildSessionQueue`. Preference provider must **not** pre-freeze
+     Advance/Repeat/Eligibility fields (ADR-020 D2 / ADR-022 D7);
+     v1 exposes order only without blocking a later overrides object.
+  7. **Confirm apply (Layer 1):** when confirmed value ≠ applied
+     preference, write preference, rebuild Queue from
+     `sessionWorkingAssetIds` (Cap 24.4b), bump `roundEpoch`,
+     `setIndex(0)`, clear playback position — **new Session shape**,
+     **not** `applySessionConfiguration` Continuity remap (ADR-023 D7
+     Continuity retained for v2 Layer 2/3). Soft-deleted ids must not
+     re-enter. Same-value Confirm = no-op.
+  8. **Round end under newest/oldest:** Endless Repeat All returns to
+     index 0 on the same ordered list (toast path unchanged). Generalize
+     `advanceToNextRound` / domain helpers beyond shuffle-only naming
+     as needed; add tests.
+  9. **All prefetch (owner §8 C, tightened):** after Photos
+     authorization has **settled**, when Browse chrome/session is
+     ready, fire-and-forget resolve of All into
+     `browseSnapshotCacheProvider` (put only if successful non-empty —
+     ADR-024). Do not block UI; do not `restartSession` when prefetch
+     completes; cache hit → no-op. If Confirm needs ranks before
+     prefetch finishes, synchronously await one All resolve (brief
+     wait allowed). **Prefetch empty/failure:** do **not** invent a
+     prefetch-only retry state machine; leave empty uncached (ADR-024)
+     and rely on the existing Cap 14.6 / ADR-025 D8 empty re-resolve
+     schedule (**500 / 1000 / 2000 ms**) on the normal Session
+     `_snapshotFor` path when All is next resolved (Confirm wait or
+     All tab). At most one in-flight All resolve shared with cache —
+     no parallel duplicate timers.
+  10. **Rank map memoization:** build once per cached All Snapshot;
+      same lifetime as that cache entry; invalidate with ADR-048 /
+      existing All key invalidation. Injectable rank/All source for
+      unit tests (same injection style as
+      `browseShuffleRandomFactoryProvider`).
+  11. **ADR-022 D4/D5 narrow amend (text applied on Accept):**
+      Decision 4’s product-visible Sequential order for **multi-source**
+      pools — Session Queue = Snapshot.coalescedAssetIds (Source
+      Reference concat) — is superseded for Cap 27 `newestFirst` /
+      `oldestFirst` only: those policies use **global creationDate**
+      order (All rank; oldestFirst = reverse). Single-source
+      newestFirst remains identical to former `sequential`. Shuffle
+      unchanged. Decision 5 (`segmentIndex` at Generated Clip
+      resolve-time) unchanged. Concatenated coalesced order is no
+      longer the product meaning of newest/oldest for multi-source
+      Manual queues.
+  12. **Host API fallback:** only if All-rank probe FAIL on device
+      (stop-and-re-discuss) — not the default 27.3 path.
+- Rejected alternatives (why not):
+  - Keep `sequential` name + add ascending — rejected; owner §8 A.
+  - Per-source segment order for newest/oldest — rejected; owner global
+    creationDate.
+  - Full unknown-asset product rules / dual sort implementations —
+    rejected; unreachable in v1 catalog.
+  - Persist preference — rejected; ADR-023 D3 / process-memory.
+  - Continuity remap on Layer 1 Confirm — rejected; owner requeue-to-0.
+  - Prefetch-only parallel retry loop — rejected; reuse ADR-024 +
+    Cap 14.6 schedule on normal resolve.
+  - Require user to open All tab before newest/oldest (old §8 B) —
+    rejected; owner C.
+  - Pre-build Layer 2/3 fields on the preference provider — rejected;
+    ADR-020 D2 / ADR-022 D7.
+- Consequences / constraints accepted:
+  - Cap 27.3 owns enum rename test churn and All-rank probe.
+  - Debt **476** not in scope; promote/order paths must not worsen
+    leave-current / remount classes.
+  - Architecture / localization guards on `lib/` phases.
+  - Docs workflow: Proposed at 27.1; Accepted with implementing work
+    sha / `git log -1 --format=%cs`.
+
+---
+
+## ADR-057: Cap 27 Temp peek promote keeps Consumption Session
+
+- Status: Proposed (Cap 27.1 contract freeze; Accepted + anchor after
+  Cap 27.2 work commit)
+- Commit/PR anchor: (pending Cap 27.2 work)
+- Plain summary (owner reads this):
+  Saving the Temp pool you are already browsing ("Save this pool")
+  only changes the chip from Temp to Saved. The feed, queue position,
+  and playback continue — no reshuffle and no jump to the first item.
+  Opening another Saved preset always starts fresh, even if it has the
+  same sources. Build "Save & browse" still starts a new Session.
+- Context / what problem forced this:
+  ADR-046 D4 promote writes `activeOrigin = savedPool(...)` and clears
+  park. ADR-044 D6.1 wired Session / leave-current / L2-ready /
+  magnification / feed-index reset off `activeOrigin` changes, so
+  promote reshuffles and jumps to index 0. Users who are mid-browse
+  only asked to persist the recipe. A prior design using recipe
+  fingerprint equality to skip new Sessions would wrongly keep Session
+  when opening a different Saved preset with the same sources (allowed
+  unique names, duplicate recipes) — rejected.
+- Decision (what was chosen):
+  1. **Explicit promote API is the sole keep-Session path.** Example
+     shape (names may refine in 27.2): after successful peek Save,
+     chrome updates to `savedPool` + clear park **and**
+     `BrowseSessionNotifier.promoteCurrentSessionToSavedPool(poolId)`
+     (or equivalent paired API) preserves Queue, index, playback
+     position, and `roundEpoch`. **Do not** use ordered-SourceReference
+     fingerprint equality as a general “skip new Session” rule.
+  2. **Default remains: any other `activeOrigin` change ⇒ new Session.**
+     Includes Saved menu Open (even identical recipe / different
+     `poolId`), Build Save & browse (ADR-047 D3), built-in tabs,
+     resume parked ephemeral, leave-Browse Settings restart, etc.
+  3. **One shared Origin-delta signal — single read point (ADR-048
+     discipline).** Riverpod `watch` / `listen` on `activeOrigin`
+     reschedules dependents when Origin changes; that framework
+     behaviour cannot be “suppressed” from outside. Cap 27 therefore
+     requires **one** composition-root signal living in
+     `browse_session_providers.dart` **alongside**
+     `browseChromeStateProvider` (concrete type chosen in 27.2: e.g. a
+     dedicated provider, or a field on a root notifier — **one**
+     authoritative read site). That signal answers only:
+     *identity-preserving promote* vs *real Session boundary* for the
+     latest Origin delta (written exclusively by the explicit promote
+     API in Decision 1, and cleared/advanced by normal Session-boundary
+     writers). **Hard constraint:** every Origin-sensitive Session side
+     effect listed in Decision 4 **must read this same signal** to
+     decide promote vs boundary. **Forbidden:** each listener (or each
+     feature file) maintaining its own promote flag, local bool, or
+     private “if this looks like promote, skip” heuristic — that is the
+     same anti-pattern ADR-048 Decision 2 rejected for Snapshot
+     invalidation (“Feature callers must not each call … directly”).
+     Vague wording such as “somehow suppress rebuilds” is not compliant.
+     Exact signal shape is a 27.2 detail; the single-read-point rule is
+     not.
+  4. **Exhaustive listener audit before 27.2 code (mandatory).** Re-scan
+     `lib/` for `activeOrigin` / `BrowseOrigin` session side effects;
+     table each site: read shared signal → suppress vs allow. Known
+     baseline at contract freeze (all must use Decision 3’s signal):
+     - `BrowseSessionNotifier.build` watch → suppress rebuild on promote
+     - `VerticalMediaFeed` leave-current + magnification clear → suppress
+     - `MainBrowseFeedIndex` reset to 0 → suppress
+     - `BrowseL2ReadySession` clear → suppress
+     - `BrowseLiveMotionWatchdogSkipIds` clear → suppress
+     - Chrome chip / peek / titles → **allow** (Temp→Saved identity;
+       does not consult the Session-boundary signal for keep-Session)
+     Re-verify at implement time; do not ship without the table.
+  5. **Sticky `feedDataSourceId` — independent switch from Decision 3
+     (locked).** Decision 3 answers “rebuild Consumption Session?”
+     Decision 5 answers “recompute `feedDataSourceId`?” — **two
+     independent rules** that may both *observe* the shared signal but
+     must **not** be collapsed into one if-branch in product contract
+     text or in a single conflated helper that secretly couples them.
+     **Hold:** on identity-preserving promote, keep emitting the
+     pre-promote id (`ephemeral:$definitionId`); do not switch to
+     `saved:$poolId`. **Clear / recompute (sole invalidate condition):**
+     the next time a **real Session boundary** occurs — i.e. any Origin
+     / Session path that Decision 3’s shared signal classifies as a
+     *real Session boundary* (normal Origin-watch new-Session path,
+     `restartSession`, Build Save & browse, Saved menu Open, built-in
+     tab change, etc.), **not** the explicit promote path. On that
+     boundary, recompute `feedDataSourceId` from the then-current
+     `activeOrigin` as today (`saved:$poolId` when Saved is active).
+     Rationale: PageView key `feed-$feedDataSourceId-r$roundEpoch` must
+     not remount on promote; ADR-039 Layer-1 center-label delay keys off
+     dataSourceId change and must not treat promote as a tab/pool
+     switch. Sticky storage location is a 27.2 detail.
+  6. **ADR-044 D6.1 narrow amend (text applied on Accept):** “changing
+     `activeOrigin` ⇒ new Session” remains the **default**. The **sole**
+     exception is this ADR’s explicit Temp-peek promote path (shared
+     signal). Do not infer exceptions from recipe fingerprint equality.
+  7. **ADR-046 D4 narrow amend (text applied on Accept):** On Temp peek
+     Save this pool success: persist → `activeOrigin = savedPool(...)`
+     → clear park → **explicit promote keep-Session path** (same Queue /
+     index / playback / `roundEpoch`; sticky `feedDataSourceId`; no
+     PageView remount). ADR-047 D3 Build Save & browse unchanged (new
+     Session).
+  8. **Out:** recipe-equality Session elision; leave-Browse keep;
+     changing Build Save & browse; fixing debt **476**.
+- Rejected alternatives (why not):
+  - Recipe fingerprint equality suppresses new Session — rejected;
+    duplicate Saved presets with same sources must still Open as new
+    Sessions (acceptance P-27-E′).
+  - Per-listener local suppress ifs — rejected; ADR-048 shared-hook
+    discipline; race class with `restartSession`/`build`; Decision 3
+    hard-requires one shared read point.
+  - Switch `feedDataSourceId` to `saved:$poolId` immediately on promote
+    but “hope” epoch stability prevents remount — rejected; ADR-039
+    delay still misfires; owner locks sticky ephemeral id (Decision 5).
+  - Collapse Decision 3 and Decision 5 into one combined “promote
+    handling” switch — rejected; Session rebuild and feedDataSourceId
+    recompute are independent product rules (even if both observe the
+    shared signal).
+  - Keep Session for Build Save & browse — rejected; user was not
+    browsing that pool yet.
+- Consequences / constraints accepted:
+  - Cap 27.2 is the first `lib/` phase (before preference overlay) so
+    Origin/Session wiring is fixed once.
+  - Acceptance: P-27-E (promote keeps progress) and P-27-E′ (Open
+    same-recipe other Saved ⇒ new Session at head).
+  - Docs workflow: Proposed at 27.1; Accepted with Cap 27.2 work sha /
+    `git log -1 --format=%cs`.
+- Relationship:
+  Narrowly amends ADR-044 D6.1 and ADR-046 D4 on Accept. Does not
+  amend ADR-047 D3. Complements ADR-055 / ADR-056. Parallel discipline
+  to ADR-048 Decision 2 (shared composition-root hook).

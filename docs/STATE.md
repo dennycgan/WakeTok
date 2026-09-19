@@ -137,21 +137,19 @@
       debt **439** Closed; `docs/acceptance/cap26-26.6-notes.md`;
       PHASE_HISTORY)
 - [ ] Auto bottom-nav slot redefinition — pull-up order-control sheet
-      (Layer 1 only: newest / oldest / random switch, immediate
-      requeue, default stays random; Auto is no longer a standalone
-      bottom-nav destination — narrowly amend ADR-027 leave-Browse
-      trigger: session end only on leave to remaining destinations
-      (Settings / Clips if kept), not on opening the in-Browse sheet;
-      resolve Clips stub visibility for Review; Layer 2/3 — autoplay
-      on/off + autoplay-internal ordering — stay in "Auto-play Presets
-      and Mode Eligibility Rule" below, paired with Clips v2)
+      (Layer 1 only: newest / oldest / random, confirm-to-apply,
+      default random; Auto is no longer a bottom-nav destination;
+      v1 removes Clips from bottom nav; narrowly amend ADR-027
+      leave-Browse trigger to Settings only; Temp peek "Save this
+      pool" promote keeps the current Session (no requeue); Layer 2/3
+      stay in "Auto-play Presets and Mode Eligibility Rule", v2)
       <-- YOU ARE HERE
 - [ ] Debt 421 — Limited Access manage entry restored
       (presentLimitedLibraryPicker + Open Settings entry point;
       extracted from "Settings and localisation completion" below;
       pre-work: audit MainBrowseShellPage overlay stack alongside the
-      new Auto sheet entry to avoid repeating the original notch /
-      SafeArea layering bug that caused this debt)
+      Cap 27 order-control sheet entry to avoid repeating the original
+      notch / SafeArea layering bug that caused this debt)
 - [ ] First-launch vertical-swipe guidance
       (minimal TikTok-style up/down hint; must not time-overlap with
       existing Cap 19.7 left-swipe guide — flexible scheduling, may
@@ -177,12 +175,18 @@
 > TestFlight / App Store Caps below are a second release event (Clip /
 > background privacy disclosures etc.), not a merge of the v1 track.
 
+- [ ] Leave Browse keep queue progress
+      (supersede ADR-027 reset strength: Browse→Settings→Browse keeps
+      Queue / index / playback; also required for meta three-row hide;
+      must land **before or with** "Auto-play Presets and Mode
+      Eligibility Rule" below — Cap 27 v1 only narrows leave trigger
+      to Settings, does **not** change reset strength)
 - [ ] Auto-play Presets and Mode Eligibility Rule
       (Layer 2/3 only: autoplay on/off + autoplay-internal ordering
       e.g. single-asset replay; bottom-nav Auto destination nature is
       already decided in "Auto bottom-nav slot redefinition" above —
       this Cap owns eligibility rules and Layer 2/3 settings only;
-      paired with Clips v2)
+      paired with Clips v2; depends on leave-Browse keep above)
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
       (renamed so "iCloud Fallback" is Auto-play / ADR-O, not Cap 14)
@@ -235,23 +239,46 @@
 ## Phase Roadmap (active capability only)
 Active capability: Auto bottom-nav slot redefinition — pull-up
 order-control sheet
-Contract: awaiting owner scope / kickoff (narrow ADR-027 leave-Browse
-amend; Layer 1 newest/oldest/random; Clips stub visibility for Review;
-Layer 2/3 autoplay stays on Auto-play Presets Cap below)
+Contract: Cap 27 Layer 1 confirm-to-apply order sheet + Temp peek
+promote keep-Session; ADR-055 / ADR-056 / ADR-057 Proposed; narrow
+amends ADR-022 D4/D5, ADR-027, ADR-044 D6.1, ADR-046 D4 (text in
+Proposed ADRs; Status flip on old entries when Accepted)
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] Phase list pending owner-approved Cap kickoff / contract freeze.
-      YOU ARE HERE = this Cap on the MVP v1 submission track.
+- [~] 27.1 Contract freeze — STATE Cap line + Phase Roadmap;
+      ADR-055/056/057 Proposed; amend texts locked; debt 421 overlay
+      audit note; v2 leave-Browse-keep dependency row; no `lib/`
+      <-- YOU ARE HERE
+- [ ] 27.2 Temp peek promote (ADR-057) — explicit
+      promoteCurrentSessionToSavedPool; shared composition-root
+      Origin-delta signal (ADR-048-style; no per-listener patches);
+      exhaustive activeOrigin side-effect audit; sticky
+      `feedDataSourceId` (`ephemeral:$id` across promote); unit+widget;
+      Kafka+i17 smoke
+- [ ] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
+      newestFirst/oldestFirst/shuffle; oldestFirst =
+      reverse(newestFirst); unknown = defensive only; All prefetch C
+      (post-auth settle); rank map memoize+injectable; CFG/SQ/SHUF
+      test rename; All-rank probe (Host API only on FAIL —
+      stop-and-re-discuss)
+- [ ] 27.4 Bottom bar + order sheet UI (ADR-055) — delete Clips/Auto
+      enum+ARB; action slot shows `preference ?? shuffle`;
+      confirm/cancel sheet; gesture absorb; overlay hygiene vs debt
+      421 class
+- [ ] 27.5 Confirm apply + ADR-027 Settings-only — requeue-to-0 (no
+      Continuity); shuffle→shuffle no-op; architecture+l10n green
+- [ ] 27.6 Device acceptance — Kafka + i17 matrix; notes; Cap close
+      docs
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap kickoff — Auto bottom-nav slot redefinition
-      (pull-up order-control sheet; Layer 1 only)
-- Sub-steps done: Cap 26 closed (26.6 notes PASS; ADR-052 Accepted
-      `cab0747`; debt **439** Closed)
-- Next step: owner-approved Cap kickoff / contract freeze for Auto
-      bottom-nav sheet
-- Related decisions: ADR-027 leave-Browse (narrow amend expected);
-      Auto-play Presets Cap owns Layer 2/3
+- Goal (one line): Cap 27.1 contract freeze — order sheet + promote
+      keep-Session (docs only)
+- Sub-steps done: Cap 26 closed; Cap 27 kickoff design locked (explicit
+      promote API; shared Origin-delta signal; sticky feedDataSourceId;
+      ADR-022 D4/D5 narrow amend; §8 owner choices A/A/defensive/A/C/A)
+- Next step: owner review of landed 27.1 docs → then 27.2 `lib/`
+- Related decisions: ADR-055 / ADR-056 / ADR-057 Proposed; ADR-027 /
+      ADR-044 D6.1 / ADR-046 D4 / ADR-022 D4–D5 narrow amends on Accept
 
 ## Contract pointers (don't memorize, go read the source)
 - Domain terms (bilingual, **local only / gitignored**):
