@@ -1741,7 +1741,12 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 ## ADR-022: Cap 12 Session Queue + Default Profile + Sequential Item Ordering lock
 
-- Status: Accepted (2026-08-12)
+- Status: Accepted (2026-08-12); Decision 4’s product-visible
+  Sequential order for **multi-source** pools is **narrowly amended by
+  ADR-056** (Accepted 2026-09-20, anchor `ec7fbb1`) — Cap 27
+  `newestFirst` / `oldestFirst` use global creationDate (All rank;
+  oldestFirst = reverse). Single-source newestFirst remains identical
+  to former `sequential`. Shuffle unchanged. Decision 5 unchanged.
 - Commit/PR anchor: 87d7dce
 - Plain summary (owner reads this):
   Cap 12 adds Dart-only Session Configuration and a Sequential Session
@@ -7007,10 +7012,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-056: Cap 27 OrderPolicy newest/oldest/shuffle + process preference + All-rank sort
 
-- Status: Proposed (Cap 27.1 contract freeze; Accepted + anchor after
-  first Cap 27 implementing work commit that lands this contract —
-  typically 27.3)
-- Commit/PR anchor: (pending Cap 27 work)
+- Status: Accepted (2026-09-20)
+- Commit/PR anchor: ec7fbb1
 - Plain summary (owner reads this):
   Browse order choices become Newest, Oldest, and Shuffle. A
   process-only preference remembers the last confirmed choice and

@@ -255,32 +255,31 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       `feedDataSourceId` (`ephemeral:$id` across promote); Session
       Origin `listen` (not `watch`); unit+widget; Kafka+i17 smoke
       PASS (`0b9246b` / `9a61b0e`)
-- [~] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
+- [x] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
       newestFirst/oldestFirst/shuffle; oldestFirst =
       reverse(newestFirst); unknown = defensive only; All prefetch C
       (post-auth settle); rank map memoize+injectable; CFG/SQ/SHUF
-      test rename; All-rank probe (Host API only on FAIL —
-      stop-and-re-discuss)
-      <-- YOU ARE HERE
+      test rename; All-rank probe PASS (`ec7fbb1`)
 - [ ] 27.4 Bottom bar + order sheet UI (ADR-055) — delete Clips/Auto
       enum+ARB; action slot shows `preference ?? shuffle`;
       confirm/cancel sheet; gesture absorb; overlay hygiene vs debt
       421 class
+      <-- YOU ARE HERE
 - [ ] 27.5 Confirm apply + ADR-027 Settings-only — requeue-to-0 (no
       Continuity); shuffle→shuffle no-op; architecture+l10n green
 - [ ] 27.6 Device acceptance — Kafka + i17 matrix; notes; Cap close
       docs
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 27.3 OrderPolicy rename + process preference +
-      queue builders (ADR-056)
-- Sub-steps done: Cap 27.2 promote keep-Session + Origin listen
-      (`0b9246b` / `9a61b0e`; ADR-057 Accepted); Kafka + i17 multi-
-      promote smoke PASS
-- Next step: design/implement ADR-056 enum rename + preference +
-      builders; All-rank probe gate
-- Related decisions: ADR-056 Proposed; ADR-057 Accepted; ADR-055
-      Proposed; ADR-022 D4/D5 narrow amend on Accept
+- Goal (one line): Cap 27.4 bottom bar + Layer 1 order-control sheet
+      (ADR-055)
+- Sub-steps done: Cap 27.3 OrderPolicy + preference + All-rank
+      (`ec7fbb1`; ADR-056 Accepted); harness prefetch opt-in
+      (`e2d5c4e`); i17 light smoke PASS
+- Next step: delete Clips/Auto from bottom bar; order action slot +
+      confirm/cancel sheet UI
+- Related decisions: ADR-055 Proposed; ADR-056 Accepted; ADR-057
+      Accepted
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
