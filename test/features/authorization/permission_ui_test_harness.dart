@@ -123,6 +123,13 @@ Widget permissionUiHarness({
 
   /// Cap 24.3: override minute-landmark loader (flash / mounted tests).
   Cap24MinuteLandmarkLoader? minuteLandmarkLoader,
+
+  /// Cap 27.3: when true, stub [browseAllPrefetchBinderProvider] so
+  /// resolve-call-count assertions stay stable. **Default false** — shared
+  /// harness keeps production prefetch so promote / leave-Browse / tab
+  /// paths can still race with All resolve. Opt in only from
+  /// resolve-count contracts (e.g. [main_browse_feed_test]).
+  bool disableBrowseAllPrefetch = false,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -172,10 +179,8 @@ Widget permissionUiHarness({
       browseLocalFirstVisitDwellProvider.overrideWithValue(
         browseLocalFirstVisitDwell,
       ),
-      // Cap 27.3: widget harnesses assert resolve-call counts; disable
-      // post-auth All prefetch so those contracts stay stable. Production
-      // shell still watches [browseAllPrefetchBinderProvider].
-      browseAllPrefetchBinderProvider.overrideWith((ref) {}),
+      if (disableBrowseAllPrefetch)
+        browseAllPrefetchBinderProvider.overrideWith((ref) {}),
       if (openSettings != null)
         openAppSettingsProvider.overrideWithValue(openSettings),
       if (sharedMuteInitiallyMuted)

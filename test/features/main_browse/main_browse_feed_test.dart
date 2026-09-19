@@ -123,6 +123,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
       ),
@@ -139,7 +140,11 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(allIds: const ['a', 'b', 'c']);
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -179,6 +184,7 @@ void main() {
 
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -202,13 +208,13 @@ void main() {
         boxSize.width < viewport.width - 1 ||
             boxSize.height < viewport.height - 1,
         isTrue,
-        reason: 'letterbox: fitted box must be smaller than viewport on an axis',
+        reason:
+            'letterbox: fitted box must be smaller than viewport on an axis',
       );
 
-      final images = tester.widgetList<Image>(find.descendant(
-        of: boxFinder,
-        matching: find.byType(Image),
-      ));
+      final images = tester.widgetList<Image>(
+        find.descendant(of: boxFinder, matching: find.byType(Image)),
+      );
       expect(images, isNotEmpty);
       for (final image in images) {
         expect(
@@ -239,6 +245,7 @@ void main() {
 
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -292,59 +299,59 @@ void main() {
     },
   );
 
-  testWidgets(
-    'W-15.5b broken JPEG hits errorBuilder after gapless change',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      // Path need not resolve: invoke Image.errorBuilder directly (FileImage
-      // decode is unreliable under widget tests). Same closure as production.
-      const broken = DisplayAsset(
-        assetIdentifier: 'a1',
-        mediaKind: PlaybackMediaKind.image,
-        localFilePath: '/tmp/waketok_15_5b_unused.jpg',
-      );
-      display.previewsById['a1'] = broken;
-      display.displaysById['a1'] = broken;
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
-          mediaDisplay: display,
-        ),
-      );
-      await pumpAsyncWork(tester);
-      expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
+  testWidgets('W-15.5b broken JPEG hits errorBuilder after gapless change', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    // Path need not resolve: invoke Image.errorBuilder directly (FileImage
+    // decode is unreliable under widget tests). Same closure as production.
+    const broken = DisplayAsset(
+      assetIdentifier: 'a1',
+      mediaKind: PlaybackMediaKind.image,
+      localFilePath: '/tmp/waketok_15_5b_unused.jpg',
+    );
+    display.previewsById['a1'] = broken;
+    display.displaysById['a1'] = broken;
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    expect(find.byKey(const Key('mainBrowseFeedStill_a1')), findsOneWidget);
 
-      final imageFinder = find.descendant(
-        of: find.byKey(const Key('mainBrowseFeedStill_a1')),
-        matching: find.byType(Image),
-      );
-      expect(imageFinder, findsOneWidget);
-      final image = tester.widget<Image>(imageFinder);
-      expect(image.gaplessPlayback, isTrue);
-      expect(image.key, isNull);
-      expect(image.errorBuilder, isNotNull);
-      expect(image.image, isA<ResizeImage>());
-      expect((image.image! as ResizeImage).policy, ResizeImagePolicy.fit);
+    final imageFinder = find.descendant(
+      of: find.byKey(const Key('mainBrowseFeedStill_a1')),
+      matching: find.byType(Image),
+    );
+    expect(imageFinder, findsOneWidget);
+    final image = tester.widget<Image>(imageFinder);
+    expect(image.gaplessPlayback, isTrue);
+    expect(image.key, isNull);
+    expect(image.errorBuilder, isNotNull);
+    expect(image.image, isA<ResizeImage>());
+    expect((image.image! as ResizeImage).policy, ResizeImagePolicy.fit);
 
-      final placeholder = image.errorBuilder!(
-        tester.element(imageFinder),
-        Exception('forced decode failure'),
-        StackTrace.current,
-      );
-      expect(
-        placeholder,
-        isA<ColoredBox>(),
-        reason: 'errorBuilder must return the broken-file placeholder',
-      );
-      expect(
-        (placeholder as ColoredBox).key,
-        const Key('mainBrowseFeedStillBrokenPlaceholder'),
-      );
-      expect(tester.takeException(), isNull);
-    },
-  );
+    final placeholder = image.errorBuilder!(
+      tester.element(imageFinder),
+      Exception('forced decode failure'),
+      StackTrace.current,
+    );
+    expect(
+      placeholder,
+      isA<ColoredBox>(),
+      reason: 'errorBuilder must return the broken-file placeholder',
+    );
+    expect(
+      (placeholder as ColoredBox).key,
+      const Key('mainBrowseFeedStillBrokenPlaceholder'),
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'W-15.5c still Image cache size matches LayoutBuilder box × DPR',
@@ -369,6 +376,7 @@ void main() {
 
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -402,6 +410,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(),
       ),
@@ -432,6 +441,7 @@ void main() {
       );
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: sources,
           browseEmptyRetryDelays: _feedZeroEmptyRetries,
@@ -460,6 +470,7 @@ void main() {
     final sources = FakeAssetSourceRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         browseEmptyRetryDelays: _feedZeroEmptyRetries,
@@ -478,7 +489,11 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = _ThrowingResolveRepository();
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -500,7 +515,11 @@ void main() {
       resolveException: PlatformException(code: AppError.unauthorized.name),
     );
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -521,7 +540,11 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(allIds: const ['a', 'b', 'c']);
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -544,7 +567,11 @@ void main() {
       photosIds: const ['ph-1'],
     );
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -571,7 +598,11 @@ void main() {
       photosIds: const ['ph-1'],
     );
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -602,7 +633,11 @@ void main() {
         photosIds: const ['ph-1'],
       );
       await tester.pumpWidget(
-        permissionUiHarness(repo: repo, assetSources: sources),
+        permissionUiHarness(
+          disableBrowseAllPrefetch: true,
+          repo: repo,
+          assetSources: sources,
+        ),
       );
       await tester.pumpAndSettle();
 
@@ -636,7 +671,11 @@ void main() {
       photosIds: const ['ph-1'],
     );
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -671,7 +710,11 @@ void main() {
       photosIds: const ['ph-only'],
     );
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -697,7 +740,11 @@ void main() {
       failTimes: 1,
     );
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -753,6 +800,7 @@ void main() {
 
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         mediaDisplay: display,
@@ -788,6 +836,7 @@ void main() {
     );
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         playback: playback,
@@ -813,6 +862,7 @@ void main() {
     display.displayErrorById['v1'] = 'unsupportedMedia';
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'still']),
         mediaDisplay: display,
@@ -846,10 +896,13 @@ void main() {
       display.displayErrorById['cloud'] = 'iCloudDownloadFailed';
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['v1', 'cloud'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1', 'cloud']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['v1', 'cloud'],
+            ),
           ),
           mediaDisplay: display,
           playback: playback,
@@ -880,38 +933,38 @@ void main() {
     },
   );
 
-  testWidgets(
-    'W-16.2 leave Browse (Settings) cancels in-flight prepare',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final playback = FakePlaybackRepository();
-      final display = FakeMediaDisplayRepository();
-      display.displayErrorById['v1'] = 'unsupportedMedia';
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
-          mediaDisplay: display,
-          playback: playback,
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+  testWidgets('W-16.2 leave Browse (Settings) cancels in-flight prepare', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final playback = FakePlaybackRepository();
+    final display = FakeMediaDisplayRepository();
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
 
-      playback.calls.clear();
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      container
-          .read(mainBrowseDestinationProvider.notifier)
-          .select(MainBrowseDestination.settings);
-      await tester.pump();
+    playback.calls.clear();
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container
+        .read(mainBrowseDestinationProvider.notifier)
+        .select(MainBrowseDestination.settings);
+    await tester.pump();
 
-      expect(
-        playback.calls.where((c) => c == 'cancelInFlightPrepare:v1'),
-        isNotEmpty,
-      );
-    },
-  );
+    expect(
+      playback.calls.where((c) => c == 'cancelInFlightPrepare:v1'),
+      isNotEmpty,
+    );
+  });
 
   test('U-1 Videos source skips display and goes playable', () async {
     final display = FakeMediaDisplayRepository();
@@ -1099,6 +1152,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
@@ -1124,6 +1178,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
         mediaDisplay: display,
@@ -1139,11 +1194,14 @@ void main() {
     expect(playback.calls, contains('load:v1'));
   });
 
-  testWidgets('W-16.4c leave during dwell never starts Layer 2', (tester) async {
+  testWidgets('W-16.4c leave during dwell never starts Layer 2', (
+    tester,
+  ) async {
     final display = FakeMediaDisplayRepository();
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
@@ -1171,6 +1229,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
           mediaDisplay: display,
@@ -1212,11 +1271,14 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
-          ),
+          allIds: const ['a1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'a1',
+          ]),
+        ),
         mediaDisplay: display,
         browseLayer2Dwell: const Duration(milliseconds: 300),
       ),
@@ -1249,12 +1311,11 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['a1'],
-          availabilityById: const {
-            'a1': AssetAvailability.iCloudNotDownloaded,
-          },
+          availabilityById: const {'a1': AssetAvailability.iCloudNotDownloaded},
         ),
         mediaDisplay: display,
         browseLayer2Dwell: const Duration(milliseconds: 300),
@@ -1267,7 +1328,8 @@ void main() {
     expect(
       find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
       findsNothing,
-      reason: 'ADR-034 G suppresses still a2 corner chrome below T at dwell start',
+      reason:
+          'ADR-034 G suppresses still a2 corner chrome below T at dwell start',
     );
     await tester.pump(const Duration(milliseconds: 149));
     expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsNothing);
@@ -1291,6 +1353,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
@@ -1319,6 +1382,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a', 'b', 'c', 'd', 'e'],
@@ -1357,24 +1421,27 @@ void main() {
     },
   );
 
-  test('U-14.4b Layer 2 maps assetUnavailable to assetUnavailable fail', () async {
-    final display = FakeMediaDisplayRepository();
-    display.displayErrorById['a1'] = 'assetUnavailable';
-    final gate = FeedMediaRequestGate();
-    final media = await loadFeedPageLayer2(
-      gate: gate,
-      generation: gate.begin(),
-      sourceKind: AssetSourceKind.entireLibrary,
-      assetIdentifier: 'a1',
-      feedIndex: 0,
-      isCurrent: true,
-      layer1: null,
-      displayRepository: display,
-      playbackRepository: FakePlaybackRepository(),
-    );
-    expect(media?.kind, FeedPageMediaKind.failed);
-    expect(media?.failureReason, FeedFailureReason.assetUnavailable);
-  });
+  test(
+    'U-14.4b Layer 2 maps assetUnavailable to assetUnavailable fail',
+    () async {
+      final display = FakeMediaDisplayRepository();
+      display.displayErrorById['a1'] = 'assetUnavailable';
+      final gate = FeedMediaRequestGate();
+      final media = await loadFeedPageLayer2(
+        gate: gate,
+        generation: gate.begin(),
+        sourceKind: AssetSourceKind.entireLibrary,
+        assetIdentifier: 'a1',
+        feedIndex: 0,
+        isCurrent: true,
+        layer1: null,
+        displayRepository: display,
+        playbackRepository: FakePlaybackRepository(),
+      );
+      expect(media?.kind, FeedPageMediaKind.failed);
+      expect(media?.failureReason, FeedFailureReason.assetUnavailable);
+    },
+  );
 
   test('U-14.4b Layer 2 maps iCloudDownloadFailed to download fail', () async {
     final display = FakeMediaDisplayRepository();
@@ -1457,11 +1524,14 @@ void main() {
     );
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
-          ),
+          allIds: const ['a1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'a1',
+          ]),
+        ),
         mediaDisplay: display,
         presentationMetadata: presentation,
       ),
@@ -1524,10 +1594,13 @@ void main() {
       seedDecodableStillPaths(display, const ['a1', 'a2']);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1', 'a2'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['a1', 'a2'],
+            ),
           ),
           mediaDisplay: display,
           presentationMetadata: presentation,
@@ -1573,7 +1646,11 @@ void main() {
     final sources = _HangingResolveRepository(allIds: const ['a1']);
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: sources),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+      ),
     );
     await tester.pump();
     await tester.pump();
@@ -1581,10 +1658,7 @@ void main() {
     expect(find.text(l10n.mainBrowseFeedLoading), findsOneWidget);
     expect(find.byKey(const Key('mediaInfoOverlay')), findsNothing);
     expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsNothing);
-    expect(
-      find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
-      findsNothing,
-    );
+    expect(find.byKey(const Key('mainBrowseFeedLayer3Spinner')), findsNothing);
 
     sources.gate.complete();
     await tester.pumpAndSettle();
@@ -1613,6 +1687,7 @@ void main() {
       display.displayGates['a1'] = Completer<void>();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
@@ -1667,10 +1742,13 @@ void main() {
       display.displayErrorById['a1'] = 'iCloudDownloadFailed';
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['a1'],
+            ),
           ),
           mediaDisplay: display,
         ),
@@ -1697,6 +1775,7 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
@@ -1716,7 +1795,11 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final hanging = _HangingResolveRepository(allIds: const ['a1']);
     await tester.pumpWidget(
-      permissionUiHarness(repo: repo, assetSources: hanging),
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: hanging,
+      ),
     );
     await tester.pump();
     await tester.pump();
@@ -1755,10 +1838,13 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['cloud', 'bad'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['cloud']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['cloud'],
+            ),
           ),
           mediaDisplay: display,
           presentationMetadata: presentation,
@@ -1826,10 +1912,13 @@ void main() {
       seedDecodableStillPaths(display, const ['loc1']);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['loc1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['loc1']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['loc1'],
+            ),
           ),
           mediaDisplay: display,
           presentationMetadata: presentation,
@@ -1860,6 +1949,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -1899,6 +1989,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['live-1', 'still-2'],
@@ -1938,6 +2029,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -1972,19 +2064,19 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      seedDecodableStillPaths(
-        display,
-        const ['live-1'],
-        mediaKind: PlaybackMediaKind.livePhoto,
-      );
+      seedDecodableStillPaths(display, const [
+        'live-1',
+      ], mediaKind: PlaybackMediaKind.livePhoto);
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1'],
-            availabilityById:
-                FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['live-1'],
+            ),
           ),
           mediaDisplay: display,
           livePhoto: live,
@@ -1999,7 +2091,9 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(VerticalMediaFeed)),
       );
-      container.read(browseMagnificationProvider.notifier).setStillMagnified(true);
+      container
+          .read(browseMagnificationProvider.notifier)
+          .setStillMagnified(true);
       await tester.pump();
       expect(
         find.byKey(const Key('mainBrowseLiveBadge')),
@@ -2027,6 +2121,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
           mediaDisplay: display,
@@ -2085,6 +2180,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
           mediaDisplay: display,
@@ -2129,6 +2225,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
           mediaDisplay: display,
@@ -2203,6 +2300,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -2233,6 +2331,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -2278,6 +2377,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1', 'still-2'],
@@ -2334,6 +2434,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['live-1', 'still-2'],
@@ -2378,6 +2479,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1', 'still-2'],
@@ -2450,19 +2552,20 @@ void main() {
   testWidgets('L-S1 preparing Key while waiting for ready', (tester) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    seedDecodableStillPaths(
-      display,
-      const ['live-1'],
-      mediaKind: PlaybackMediaKind.livePhoto,
-    );
+    seedDecodableStillPaths(display, const [
+      'live-1',
+    ], mediaKind: PlaybackMediaKind.livePhoto);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['live-1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
-          ),
+          allIds: const ['live-1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'live-1',
+          ]),
+        ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2484,19 +2587,20 @@ void main() {
   testWidgets('L-S2 ready clears preparing Key', (tester) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    seedDecodableStillPaths(
-      display,
-      const ['live-1'],
-      mediaKind: PlaybackMediaKind.livePhoto,
-    );
+    seedDecodableStillPaths(display, const [
+      'live-1',
+    ], mediaKind: PlaybackMediaKind.livePhoto);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['live-1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
-          ),
+          allIds: const ['live-1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'live-1',
+          ]),
+        ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2537,6 +2641,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -2559,19 +2664,20 @@ void main() {
   ) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    seedDecodableStillPaths(
-      display,
-      const ['live-1'],
-      mediaKind: PlaybackMediaKind.livePhoto,
-    );
+    seedDecodableStillPaths(display, const [
+      'live-1',
+    ], mediaKind: PlaybackMediaKind.livePhoto);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['live-1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
-          ),
+          allIds: const ['live-1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'live-1',
+          ]),
+        ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2605,20 +2711,22 @@ void main() {
   ) async {
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    seedDecodableStillPaths(
-      display,
-      const ['live-1'],
-      mediaKind: PlaybackMediaKind.livePhoto,
-    );
+    seedDecodableStillPaths(display, const [
+      'live-1',
+    ], mediaKind: PlaybackMediaKind.livePhoto);
     seedDecodableStillPaths(display, const ['still-2']);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['live-1', 'still-2'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1', 'still-2']),
-          ),
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'live-1',
+            'still-2',
+          ]),
+        ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2651,20 +2759,22 @@ void main() {
     // (not a stream-reproducible dual-listener race; see hook doc).
     final live = FakeLivePhotoRepository();
     final display = FakeMediaDisplayRepository();
-    seedDecodableStillPaths(
-      display,
-      const ['live-1'],
-      mediaKind: PlaybackMediaKind.livePhoto,
-    );
+    seedDecodableStillPaths(display, const [
+      'live-1',
+    ], mediaKind: PlaybackMediaKind.livePhoto);
     seedDecodableStillPaths(display, const ['still-2']);
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['live-1', 'still-2'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1', 'still-2']),
-          ),
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'live-1',
+            'still-2',
+          ]),
+        ),
         mediaDisplay: display,
         livePhoto: live,
       ),
@@ -2762,15 +2872,14 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      seedDecodableStillPaths(
-        display,
-        const ['live-1'],
-        mediaKind: PlaybackMediaKind.livePhoto,
-      );
+      seedDecodableStillPaths(display, const [
+        'live-1',
+      ], mediaKind: PlaybackMediaKind.livePhoto);
       display.displayGates['live-1'] = Completer<void>();
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1'],
@@ -2810,17 +2919,16 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      seedDecodableStillPaths(
-        display,
-        const ['live-1'],
-        mediaKind: PlaybackMediaKind.livePhoto,
-      );
+      seedDecodableStillPaths(display, const [
+        'live-1',
+      ], mediaKind: PlaybackMediaKind.livePhoto);
       // Hold L2 with elapsed ≥ T so wait chrome latches — ADR-037 continuity.
       final gate = Completer<void>();
       display.displayGates['live-1'] = gate;
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1'],
@@ -2872,11 +2980,9 @@ void main() {
     (tester) async {
       final live = FakeLivePhotoRepository();
       final display = FakeMediaDisplayRepository();
-      seedDecodableStillPaths(
-        display,
-        const ['live-1'],
-        mediaKind: PlaybackMediaKind.livePhoto,
-      );
+      seedDecodableStillPaths(display, const [
+        'live-1',
+      ], mediaKind: PlaybackMediaKind.livePhoto);
       final presentation = FakePresentationMetadataRepository(
         basicsById: {
           'live-1': PresentationMetadata(
@@ -2896,10 +3002,13 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['live-1']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['live-1'],
+            ),
           ),
           mediaDisplay: display,
           livePhoto: live,
@@ -2913,7 +3022,9 @@ void main() {
       final chrome = tester.getRect(
         find.byKey(const Key('mainBrowseFeedLiveChrome_live-1')),
       );
-      final badge = tester.getRect(find.byKey(const Key('mainBrowseLiveBadge')));
+      final badge = tester.getRect(
+        find.byKey(const Key('mainBrowseLiveBadge')),
+      );
       final overlay = tester.getRect(find.byKey(const Key('mediaInfoOverlay')));
       final badgeContext = tester.element(
         find.byKey(const Key('mainBrowseLiveBadge')),
@@ -2960,6 +3071,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
@@ -3001,10 +3113,7 @@ void main() {
       );
       // Debt 454: trailing stays kMediaChromeTrailingInset; bottom follows
       // mainBrowseLiveStatusBottomInset since 81904e1 (was hardcoded 12).
-      expect(
-        feed.right - chrome.right,
-        closeTo(kMediaChromeTrailingInset, 1),
-      );
+      expect(feed.right - chrome.right, closeTo(kMediaChromeTrailingInset, 1));
       expect(
         feed.bottom - chrome.bottom,
         closeTo(mainBrowseLiveStatusBottomInset(tokens), 1),
@@ -3012,7 +3121,8 @@ void main() {
       expect(
         spinner.center.dy,
         closeTo(chrome.center.dy, 1),
-        reason: 'non-Live spinner is vertically centered in the corner chrome row',
+        reason:
+            'non-Live spinner is vertically centered in the corner chrome row',
       );
     },
   );
@@ -3026,6 +3136,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -3033,7 +3144,10 @@ void main() {
       );
       await pumpAsyncWork(tester);
 
-      expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseFeedPageLoading')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(const Key('mainBrowseFeedPageLoadingChrome')),
         findsOneWidget,
@@ -3047,10 +3161,7 @@ void main() {
         find.byKey(const Key('mainBrowseFeedLayer3Spinner')),
         findsNothing,
       );
-      expect(
-        find.byKey(const Key('mainBrowseFeedLayer3Chrome')),
-        findsNothing,
-      );
+      expect(find.byKey(const Key('mainBrowseFeedLayer3Chrome')), findsNothing);
       expect(
         find.bySemanticsLabel(l10n.mainBrowseFeedLayer1Loading),
         findsOneWidget,
@@ -3074,7 +3185,8 @@ void main() {
       expect(
         spinner.center.dx,
         greaterThan(feed.center.dx),
-        reason: 'Layer 1 miss spinner must be right of feed center, not centered',
+        reason:
+            'Layer 1 miss spinner must be right of feed center, not centered',
       );
       expect(
         spinner.center.dy,
@@ -3083,10 +3195,7 @@ void main() {
       );
       // Debt 454: trailing stays kMediaChromeTrailingInset; bottom follows
       // mainBrowseLiveStatusBottomInset since 81904e1 (was hardcoded 12).
-      expect(
-        feed.right - chrome.right,
-        closeTo(kMediaChromeTrailingInset, 1),
-      );
+      expect(feed.right - chrome.right, closeTo(kMediaChromeTrailingInset, 1));
       expect(
         feed.bottom - chrome.bottom,
         closeTo(mainBrowseLiveStatusBottomInset(tokens), 1),
@@ -3116,6 +3225,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -3145,6 +3255,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['live-1']),
         mediaDisplay: display,
@@ -3178,6 +3289,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['live-1', 'v1'],
@@ -3221,6 +3333,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'live-1']),
         mediaDisplay: display,
@@ -3258,6 +3371,7 @@ void main() {
     final sources = FakeAssetSourceRepository(allIds: const ['x', 'y', 'z']);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         browseShuffleSeed: 0,
@@ -3313,6 +3427,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a', 'b', 'c', 'd', 'e'],
@@ -3334,6 +3449,7 @@ void main() {
     );
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         browseShuffleSeed: 0,
@@ -3363,63 +3479,16 @@ void main() {
     expect(after.roundEpoch, greaterThan(before.roundEpoch));
   });
 
-  testWidgets(
-    'W-END-2 last real page in-range ScrollUpdate does not advance',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final sources = FakeAssetSourceRepository(
-        allIds: const ['a', 'b', 'c', 'd', 'e'],
-      );
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: sources,
-          browseShuffleSeed: 0,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      final before = container.read(browseSessionProvider).requireValue;
-      // Last real item (n-1), not the placeholder page.
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
-      await tester.pump();
-      await tester.pump();
-
-      final pageContext = tester.element(find.byType(PageView));
-      final metrics = FixedScrollMetrics(
-        minScrollExtent: 0,
-        maxScrollExtent: 800,
-        pixels: 800,
-        viewportDimension: 400,
-        axisDirection: AxisDirection.down,
-        devicePixelRatio: tester.view.devicePixelRatio,
-      );
-      expect(metrics.extentAfter, 0);
-      expect(metrics.outOfRange, isFalse);
-      ScrollUpdateNotification(
-        metrics: metrics,
-        context: pageContext,
-        depth: 0,
-        dragDetails: null,
-        scrollDelta: 12,
-      ).dispatch(pageContext);
-      await tester.pump();
-
-      final after = container.read(browseSessionProvider).requireValue;
-      expect(after.roundEpoch, before.roundEpoch);
-      expect(container.read(mainBrowseFeedIndexProvider), 4);
-    },
-  );
-
-  testWidgets('W-END-3 placeholder exists when n>1', (tester) async {
+  testWidgets('W-END-2 last real page in-range ScrollUpdate does not advance', (
+    tester,
+  ) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     final sources = FakeAssetSourceRepository(
       allIds: const ['a', 'b', 'c', 'd', 'e'],
     );
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         browseShuffleSeed: 0,
@@ -3429,8 +3498,59 @@ void main() {
 
     final element = tester.element(find.byType(VerticalMediaFeed));
     final container = ProviderScope.containerOf(element);
-    final n =
-        container.read(browseSessionProvider).requireValue.orderedAssetIds.length;
+    final before = container.read(browseSessionProvider).requireValue;
+    // Last real item (n-1), not the placeholder page.
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(4);
+    await tester.pump();
+    await tester.pump();
+
+    final pageContext = tester.element(find.byType(PageView));
+    final metrics = FixedScrollMetrics(
+      minScrollExtent: 0,
+      maxScrollExtent: 800,
+      pixels: 800,
+      viewportDimension: 400,
+      axisDirection: AxisDirection.down,
+      devicePixelRatio: tester.view.devicePixelRatio,
+    );
+    expect(metrics.extentAfter, 0);
+    expect(metrics.outOfRange, isFalse);
+    ScrollUpdateNotification(
+      metrics: metrics,
+      context: pageContext,
+      depth: 0,
+      dragDetails: null,
+      scrollDelta: 12,
+    ).dispatch(pageContext);
+    await tester.pump();
+
+    final after = container.read(browseSessionProvider).requireValue;
+    expect(after.roundEpoch, before.roundEpoch);
+    expect(container.read(mainBrowseFeedIndexProvider), 4);
+  });
+
+  testWidgets('W-END-3 placeholder exists when n>1', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    final n = container
+        .read(browseSessionProvider)
+        .requireValue
+        .orderedAssetIds
+        .length;
     expect(n, greaterThan(1));
 
     final pageView = tester.widget<PageView>(find.byType(PageView));
@@ -3487,6 +3607,7 @@ void main() {
       );
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: sources,
           browseShuffleSeed: 0,
@@ -3521,6 +3642,7 @@ void main() {
       );
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: sources,
           browseShuffleSeed: 0,
@@ -3562,6 +3684,7 @@ void main() {
     );
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: sources,
         browseShuffleSeed: 0,
@@ -3603,72 +3726,72 @@ void main() {
     await tester.pump(kCap19BrowseToastDuration);
   });
 
-  testWidgets(
-    'W-END-7 starting-over toast hides when leaving remounted head',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final sources = FakeAssetSourceRepository(
-        allIds: const ['a', 'b', 'c', 'd', 'e'],
-      );
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: sources,
-          browseShuffleSeed: 0,
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('W-END-7 starting-over toast hides when leaving remounted head', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      expect(container.read(mainBrowseFeedIndexProvider), 0);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
 
-      final feedState = tester.state<VerticalMediaFeedState>(
-        find.byType(VerticalMediaFeed),
-      );
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      feedState.debugShowNewRoundToastArmed(l10n);
-      await tester.pump();
-      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsOneWidget);
-      expect(feedState.debugNewRoundToastDismissOnLeaveHead, isTrue);
+    final feedState = tester.state<VerticalMediaFeedState>(
+      find.byType(VerticalMediaFeed),
+    );
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    feedState.debugShowNewRoundToastArmed(l10n);
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsOneWidget);
+    expect(feedState.debugNewRoundToastDismissOnLeaveHead, isTrue);
 
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
-      await tester.pump();
-      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsNothing);
-      expect(feedState.debugNewRoundToastDismissOnLeaveHead, isFalse);
-    },
-  );
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsNothing);
+    expect(feedState.debugNewRoundToastDismissOnLeaveHead, isFalse);
+  });
 
-  testWidgets(
-    'W-END-8 Settings off skips starting-over toast after advance',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final sources = FakeAssetSourceRepository(
-        allIds: const ['a', 'b', 'c', 'd', 'e'],
-      );
-      final prefs = FakeNewRoundToastPreferences()..newRoundToastEnabled = false;
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: sources,
-          browseShuffleSeed: 0,
-          newRoundToastPreferences: prefs,
-        ),
-      );
-      await tester.pumpAndSettle();
+  testWidgets('W-END-8 Settings off skips starting-over toast after advance', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a', 'b', 'c', 'd', 'e'],
+    );
+    final prefs = FakeNewRoundToastPreferences()..newRoundToastEnabled = false;
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: sources,
+        browseShuffleSeed: 0,
+        newRoundToastPreferences: prefs,
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final feedState = tester.state<VerticalMediaFeedState>(
-        find.byType(VerticalMediaFeed),
-      );
-      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-      feedState.debugAdvanceEndlessRound(l10n);
-      await tester.pump();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 150));
-      await tester.pump();
-      expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsNothing);
-    },
-  );
+    final feedState = tester.state<VerticalMediaFeedState>(
+      find.byType(VerticalMediaFeed),
+    );
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    feedState.debugAdvanceEndlessRound(l10n);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump();
+    expect(find.byKey(const Key('mainBrowseNewRoundToast')), findsNothing);
+  });
 
   test('U-14.4 Layer 1 miss is null not failed', () async {
     final display = FakeMediaDisplayRepository();
@@ -3712,6 +3835,7 @@ void main() {
     display.displayGates['a1'] = Completer<void>();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
@@ -3739,6 +3863,7 @@ void main() {
     display.displayGates['a1'] = Completer<void>();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
@@ -3760,6 +3885,7 @@ void main() {
     final display = FakeMediaDisplayRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
@@ -3805,11 +3931,14 @@ void main() {
     playback.loadGates['v1'] = Completer<void>();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['v1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1']),
-          ),
+          allIds: const ['v1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'v1',
+          ]),
+        ),
         mediaDisplay: display,
         playback: playback,
       ),
@@ -3846,6 +3975,7 @@ void main() {
       display.displaysById['a1'] = missing;
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -3866,6 +3996,7 @@ void main() {
       display.displayErrorById['a1'] = 'assetUnavailable';
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -3892,10 +4023,13 @@ void main() {
       display.displayErrorById['a1'] = 'iCloudDownloadFailed';
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['a1'],
+            ),
           ),
           mediaDisplay: display,
         ),
@@ -3926,6 +4060,7 @@ void main() {
     final display = FakeMediaDisplayRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         mediaDisplay: display,
@@ -3969,10 +4104,13 @@ void main() {
       seedDecodableStillPaths(display, const ['a1']);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(
+              const ['a1'],
+            ),
           ),
           mediaDisplay: display,
           presentationMetadata: presentation,
@@ -4002,6 +4140,7 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
         presentationMetadata: presentation,
@@ -4046,11 +4185,15 @@ void main() {
     seedDecodableStillPaths(display, const ['a1', 'a2']);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['a1', 'a2'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1', 'a2']),
-          ),
+          allIds: const ['a1', 'a2'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'a1',
+            'a2',
+          ]),
+        ),
         mediaDisplay: display,
         presentationMetadata: presentation,
       ),
@@ -4085,11 +4228,14 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['a1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
-          ),
+          allIds: const ['a1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'a1',
+          ]),
+        ),
         mediaDisplay: display,
         presentationMetadata: presentation,
       ),
@@ -4138,11 +4284,14 @@ void main() {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
-            allIds: const ['v1'],
-            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['v1']),
-          ),
+          allIds: const ['v1'],
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const [
+            'v1',
+          ]),
+        ),
         mediaDisplay: display,
         playback: playback,
         presentationMetadata: presentation,
@@ -4168,6 +4317,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -4202,6 +4352,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         ),
@@ -4246,6 +4397,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         ),
@@ -4284,6 +4436,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -4318,6 +4471,7 @@ void main() {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1']),
           mediaDisplay: display,
@@ -4356,6 +4510,7 @@ void main() {
     final display = FakeMediaDisplayRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['a1', 'a2', 'a3'],
@@ -4377,6 +4532,7 @@ void main() {
     final display = FakeMediaDisplayRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(
           allIds: const ['a1', 'a2', 'a3'],
@@ -4401,6 +4557,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1', 'a2', 'a3', 'a4'],
@@ -4447,6 +4604,7 @@ void main() {
     display.previewErrorById['a2'] = 'iCloudDownloadRequired';
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
@@ -4470,6 +4628,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
           mediaDisplay: display,
@@ -4527,6 +4686,7 @@ void main() {
       );
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
           mediaDisplay: display,
@@ -4582,61 +4742,59 @@ void main() {
     },
   );
 
-  testWidgets(
-    'W-15.4a promote joins neighbour preview; Layer 2 once',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
-          mediaDisplay: display,
-        ),
-      );
-      await pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final neighbor = ids[1];
-      final previewsForNeighbor = display.previewCalls
-          .where((id) => id == neighbor)
-          .length;
-      expect(previewsForNeighbor, greaterThan(0));
+  testWidgets('W-15.4a promote joins neighbour preview; Layer 2 once', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final neighbor = ids[1];
+    final previewsForNeighbor = display.previewCalls
+        .where((id) => id == neighbor)
+        .length;
+    expect(previewsForNeighbor, greaterThan(0));
 
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
-      await pumpAsyncWork(tester);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
 
-      expect(
-        display.previewCalls.where((id) => id == neighbor).length,
-        previewsForNeighbor,
-      );
-      expect(display.displayCalls.where((id) => id == neighbor).length, 1);
-    },
-  );
+    expect(
+      display.previewCalls.where((id) => id == neighbor).length,
+      previewsForNeighbor,
+    );
+    expect(display.displayCalls.where((id) => id == neighbor).length, 1);
+  });
 
-  testWidgets(
-    'W-15.4b become-current begins activation once',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
-        ),
-      );
-      await pumpAsyncWork(tester);
-      final feed = tester.state<VerticalMediaFeedState>(
-        find.byType(VerticalMediaFeed),
-      );
-      final begins = feed.debugActivationBeginCount;
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
-      await pumpAsyncWork(tester);
-      expect(feed.debugActivationBeginCount, begins + 1);
-    },
-  );
+  testWidgets('W-15.4b become-current begins activation once', (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final feed = tester.state<VerticalMediaFeedState>(
+      find.byType(VerticalMediaFeed),
+    );
+    final begins = feed.debugActivationBeginCount;
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
+    expect(feed.debugActivationBeginCount, begins + 1);
+  });
 
   testWidgets(
     'W-15.4d join then leave ±1 window releases preview and does not write',
@@ -4660,6 +4818,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1', 'a2', 'a3', 'a4'],
@@ -4708,6 +4867,7 @@ void main() {
     final display = FakeMediaDisplayRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
         mediaDisplay: display,
@@ -4724,32 +4884,32 @@ void main() {
     expect(display.previewCalls.length, n);
   });
 
-  testWidgets(
-    'W-15.7a video keeps Layer 1 poster after surface ready',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      display.previewsById['v1'] = const DisplayAsset(
-        assetIdentifier: 'v1',
-        mediaKind: PlaybackMediaKind.video,
-        localFilePath: '/tmp/fake_preview_v1.jpg',
-      );
-      display.displayErrorById['v1'] = 'unsupportedMedia';
-      final playback = FakePlaybackRepository();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
-          mediaDisplay: display,
-          playback: playback,
-        ),
-      );
-      await pumpAsyncWork(tester);
+  testWidgets('W-15.7a video keeps Layer 1 poster after surface ready', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    display.previewsById['v1'] = const DisplayAsset(
+      assetIdentifier: 'v1',
+      mediaKind: PlaybackMediaKind.video,
+      localFilePath: '/tmp/fake_preview_v1.jpg',
+    );
+    display.displayErrorById['v1'] = 'unsupportedMedia';
+    final playback = FakePlaybackRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await pumpAsyncWork(tester);
 
-      expect(find.byKey(const Key('mainBrowseFeedStill_v1')), findsOneWidget);
-      expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
-    },
-  );
+    expect(find.byKey(const Key('mainBrowseFeedStill_v1')), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
+  });
 
   testWidgets(
     'W-15.7b leave current keeps poster Image State (not pendingVideo)',
@@ -4768,6 +4928,7 @@ void main() {
       final playback = FakePlaybackRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['v1', 'v2', 'v3', 'v4', 'v5'],
@@ -4813,8 +4974,7 @@ void main() {
       );
       expect(still, findsOneWidget);
       expect(imageFinder, findsOneWidget);
-      final stateAfter =
-          (tester.element(imageFinder) as StatefulElement).state;
+      final stateAfter = (tester.element(imageFinder) as StatefulElement).state;
       expect(
         identical(stateBefore, stateAfter),
         isTrue,
@@ -4843,52 +5003,49 @@ void main() {
     },
   );
 
-  testWidgets(
-    'W-15.7c leave current without poster may become pendingVideo',
-    (tester) async {
-      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
-      final display = FakeMediaDisplayRepository();
-      for (final id in const ['v1', 'v2']) {
-        display.previewErrorById[id] = 'iCloudDownloadRequired';
-        display.displayErrorById[id] = 'unsupportedMedia';
-      }
-      final playback = FakePlaybackRepository();
-      await tester.pumpWidget(
-        permissionUiHarness(
-          repo: repo,
-          assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
-          mediaDisplay: display,
-          playback: playback,
-        ),
-      );
-      await pumpAsyncWork(tester);
-      final ids = await _feedOrderedIds(tester);
-      final leaving = ids[0];
+  testWidgets('W-15.7c leave current without poster may become pendingVideo', (
+    tester,
+  ) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    for (final id in const ['v1', 'v2']) {
+      display.previewErrorById[id] = 'iCloudDownloadRequired';
+      display.displayErrorById[id] = 'unsupportedMedia';
+    }
+    final playback = FakePlaybackRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
+        mediaDisplay: display,
+        playback: playback,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final ids = await _feedOrderedIds(tester);
+    final leaving = ids[0];
 
-      expect(find.byKey(Key('mainBrowseFeedStill_$leaving')), findsNothing);
-      expect(find.byKey(Key('mainBrowseFeedVideo_$leaving')), findsOneWidget);
+    expect(find.byKey(Key('mainBrowseFeedStill_$leaving')), findsNothing);
+    expect(find.byKey(Key('mainBrowseFeedVideo_$leaving')), findsOneWidget);
 
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
-      await pumpAsyncWork(tester);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
 
-      expect(
-        find.byKey(
-          Key('mainBrowseFeedVideoPending_$leaving'),
-          skipOffstage: false,
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          Key('mainBrowseFeedStill_$leaving'),
-          skipOffstage: false,
-        ),
-        findsNothing,
-      );
-    },
-  );
+    expect(
+      find.byKey(
+        Key('mainBrowseFeedVideoPending_$leaving'),
+        skipOffstage: false,
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(Key('mainBrowseFeedStill_$leaving'), skipOffstage: false),
+      findsNothing,
+    );
+  });
 
   testWidgets(
     'W-15.7d neighbour Layer 1 must not flip off-current video+poster to still',
@@ -4906,6 +5063,7 @@ void main() {
       final playback = FakePlaybackRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['v1', 'v2', 'v3', 'v4', 'v5'],
@@ -4981,6 +5139,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['a1', 'a2', 'a3'],
@@ -5020,6 +5179,7 @@ void main() {
       display.displayGates['a2'] = gateB;
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['a1', 'a2']),
           mediaDisplay: display,
@@ -5059,6 +5219,7 @@ void main() {
       final playback = FakePlaybackRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
           mediaDisplay: display,
@@ -5072,8 +5233,9 @@ void main() {
       await pumpAsyncWork(tester);
       expect(playback.calls.any((c) => c.startsWith('load:')), isTrue);
 
-      final previewsBefore =
-          display.previewCalls.where((id) => id == head).length;
+      final previewsBefore = display.previewCalls
+          .where((id) => id == head)
+          .length;
 
       final element = tester.element(find.byType(VerticalMediaFeed));
       final container = ProviderScope.containerOf(element);
@@ -5111,6 +5273,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['a1', 'a2'],
@@ -5149,6 +5312,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             allIds: const ['still1', 'still2'],
@@ -5184,6 +5348,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['cloud1', 'a2'],
@@ -5224,6 +5389,7 @@ void main() {
       final playback = FakePlaybackRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             videosIds: const ['v1', 'v2'],
@@ -5262,6 +5428,7 @@ void main() {
       final display = _FailOnceDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['a1', 'a2'],
@@ -5297,6 +5464,7 @@ void main() {
       final gate = Completer<void>();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['a1', 'a2'],
@@ -5329,7 +5497,10 @@ void main() {
 
       await tester.pump(const Duration(milliseconds: 300));
       // Gated: second attempt may have started but must not complete.
-      expect(display.displayCalls.where((id) => id == head).length, lessThan(3));
+      expect(
+        display.displayCalls.where((id) => id == head).length,
+        lessThan(3),
+      );
 
       gate.complete();
       await pumpAsyncWork(tester);
@@ -5362,6 +5533,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['a1', 'a2', 'a3'],
@@ -5402,6 +5574,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['a1', 'a2'],
@@ -5446,6 +5619,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           // Cap 22.5: pad past n=2 so leave 0→1 does not mount bridge.
           assetSources: FakeAssetSourceRepository(
@@ -5489,6 +5663,7 @@ void main() {
       final display = FakeMediaDisplayRepository();
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             photosIds: const ['a1', 'a2'],
@@ -5557,6 +5732,7 @@ void main() {
       )..resolveOmitsAvailability = true;
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: sources,
           mediaDisplay: display,
@@ -5599,6 +5775,7 @@ void main() {
       )..resolveOmitsAvailability = true;
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: sources,
           mediaDisplay: display,
@@ -5643,6 +5820,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             videosIds: const ['v1', 'v2'],
@@ -5702,10 +5880,7 @@ void main() {
         ),
       );
       expect(page.debugMedia?.kind, FeedPageMediaKind.video);
-      expect(
-        page.debugMedia?.display?.localFilePath,
-        paths[target],
-      );
+      expect(page.debugMedia?.display?.localFilePath, paths[target]);
 
       loadGate.complete();
       await pumpAsyncWork(tester);
@@ -5734,6 +5909,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             videosIds: const ['v1', 'v2'],
@@ -5802,6 +5978,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(
             videosIds: const ['v1', 'v2'],
@@ -5854,7 +6031,8 @@ void main() {
       expect(
         page.debugHoldPosterUntilFirstFrame,
         isTrue,
-        reason: '15.14c: DEVICE_LOCAL APPLY arms hold even when cover file gone',
+        reason:
+            '15.14c: DEVICE_LOCAL APPLY arms hold even when cover file gone',
       );
       final opacityFinder = find.byKey(Key('feedVideoOpacity_$target'));
       expect(opacityFinder, findsOneWidget);
@@ -5888,7 +6066,10 @@ void main() {
       feedState.debugDispatchPvScrollArm(0);
       await pumpAsyncWork(tester);
 
-      expect(container.read(pvTransitionGuardProvider).isCovering(target), isTrue);
+      expect(
+        container.read(pvTransitionGuardProvider).isCovering(target),
+        isTrue,
+      );
       expect(
         find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
         findsNothing,
@@ -5917,14 +6098,16 @@ void main() {
         find.byType(VerticalMediaFeed),
       );
       final gate = feedState.debugCurrentDisplayGate;
-      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: ids[0],
-        targetAssetId: target,
-        displayGeneration: gate.generation,
-        displayGate: gate,
-      );
+      await container
+          .read(pvTransitionGuardProvider.notifier)
+          .tryArmOnScroll(
+            currentFeedIndex: 0,
+            targetFeedIndex: 1,
+            sourceAssetId: ids[0],
+            targetAssetId: target,
+            displayGeneration: gate.generation,
+            displayGate: gate,
+          );
       await pumpAsyncWork(tester);
 
       expect(playback.transitionAudioSuppressed, isTrue);
@@ -5939,7 +6122,10 @@ void main() {
       );
       await pumpAsyncWork(tester);
       expect(playback.transitionAudioSuppressed, isTrue);
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNotNull);
+      expect(
+        container.read(pvTransitionGuardProvider).targetAssetId,
+        isNotNull,
+      );
 
       playback.emitSurfaceReadyForDisplay(
         PlaybackSurfaceReadyForDisplayEvent(
@@ -5958,89 +6144,82 @@ void main() {
     },
   );
 
-  test(
-    'W-15.11c stale attach-ack does not unwrap guard',
-    () async {
-      final playback = FakePlaybackRepository()..playbackPoolEpoch = 5;
-      final container = ProviderContainer(
-        overrides: [
-          playbackRepositoryProvider.overrideWithValue(playback),
-        ],
-      );
-      addTearDown(container.dispose);
-      final gate = FeedMediaRequestGate();
-      final generation = gate.generation;
-      final notifier = container.read(pvTransitionGuardProvider.notifier);
-      notifier.updatePageSnapshot(
-        'v1',
-        const PvHandoffPageSnapshot(
-          isVideoWithPoster: true,
-          isCurrentSurfaceReady: true,
-          posterPath: '/tmp/v1.jpg',
-        ),
-      );
-      notifier.updatePageSnapshot(
-        'v2',
-        const PvHandoffPageSnapshot(
-          isVideoWithPoster: true,
-          posterPath: '/tmp/v2.jpg',
-        ),
-      );
-      await notifier.tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: 'v1',
-        targetAssetId: 'v2',
-        displayGeneration: generation,
-        displayGate: gate,
-      );
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+  test('W-15.11c stale attach-ack does not unwrap guard', () async {
+    final playback = FakePlaybackRepository()..playbackPoolEpoch = 5;
+    final container = ProviderContainer(
+      overrides: [playbackRepositoryProvider.overrideWithValue(playback)],
+    );
+    addTearDown(container.dispose);
+    final gate = FeedMediaRequestGate();
+    final generation = gate.generation;
+    final notifier = container.read(pvTransitionGuardProvider.notifier);
+    notifier.updatePageSnapshot(
+      'v1',
+      const PvHandoffPageSnapshot(
+        isVideoWithPoster: true,
+        isCurrentSurfaceReady: true,
+        posterPath: '/tmp/v1.jpg',
+      ),
+    );
+    notifier.updatePageSnapshot(
+      'v2',
+      const PvHandoffPageSnapshot(
+        isVideoWithPoster: true,
+        posterPath: '/tmp/v2.jpg',
+      ),
+    );
+    await notifier.tryArmOnScroll(
+      currentFeedIndex: 0,
+      targetFeedIndex: 1,
+      sourceAssetId: 'v1',
+      targetAssetId: 'v2',
+      displayGeneration: generation,
+      displayGate: gate,
+    );
+    expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
 
-      playback.emitSurfaceReadyForDisplay(
-        const PlaybackSurfaceReadyForDisplayEvent(
-          assetIdentifier: 'wrong-id',
-          feedIndex: 1,
-          clearEpoch: 5,
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+    playback.emitSurfaceReadyForDisplay(
+      const PlaybackSurfaceReadyForDisplayEvent(
+        assetIdentifier: 'wrong-id',
+        feedIndex: 1,
+        clearEpoch: 5,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
 
-      playback.emitSurfaceReadyForDisplay(
-        const PlaybackSurfaceReadyForDisplayEvent(
-          assetIdentifier: 'v2',
-          feedIndex: 1,
-          clearEpoch: 99,
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
+    playback.emitSurfaceReadyForDisplay(
+      const PlaybackSurfaceReadyForDisplayEvent(
+        assetIdentifier: 'v2',
+        feedIndex: 1,
+        clearEpoch: 99,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(pvTransitionGuardProvider).targetAssetId, 'v2');
 
-      // User settled on an unrelated index → disarm clears target before ack.
-      notifier.onFeedIndexChanged(2);
-      await Future<void>.delayed(Duration.zero);
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+    // User settled on an unrelated index → disarm clears target before ack.
+    notifier.onFeedIndexChanged(2);
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
 
-      playback.emitSurfaceReadyForDisplay(
-        const PlaybackSurfaceReadyForDisplayEvent(
-          assetIdentifier: 'v2',
-          feedIndex: 1,
-          clearEpoch: 5,
-        ),
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
-    },
-  );
+    playback.emitSurfaceReadyForDisplay(
+      const PlaybackSurfaceReadyForDisplayEvent(
+        assetIdentifier: 'v2',
+        feedIndex: 1,
+        clearEpoch: 5,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+  });
 
   test(
     'W-15.11h ready-for-display triple match matches attach-ack trust model',
     () async {
       final playback = FakePlaybackRepository()..playbackPoolEpoch = 5;
       final container = ProviderContainer(
-        overrides: [
-          playbackRepositoryProvider.overrideWithValue(playback),
-        ],
+        overrides: [playbackRepositoryProvider.overrideWithValue(playback)],
       );
       addTearDown(container.dispose);
       final gate = FeedMediaRequestGate();
@@ -6111,10 +6290,7 @@ void main() {
       final head = ids[0];
 
       final pageFinder = find.byWidgetPredicate(
-        (w) =>
-            w is MediaFeedPage &&
-            w.assetIdentifier == head &&
-            w.isCurrent,
+        (w) => w is MediaFeedPage && w.assetIdentifier == head && w.isCurrent,
       );
       final page = tester.state<MediaFeedPageState>(pageFinder);
       expect(page.debugHoldPosterUntilFirstFrame, isTrue);
@@ -6146,68 +6322,65 @@ void main() {
       expect(page.debugHoldPosterUntilFirstFrame, isFalse);
       expect(tester.widget<Opacity>(opacityFinder).opacity, 1.0);
       expect(imageFinder, findsOneWidget);
-      final stateAfter =
-          (tester.element(imageFinder) as StatefulElement).state;
+      final stateAfter = (tester.element(imageFinder) as StatefulElement).state;
       expect(
         identical(stateBefore, stateAfter),
         isTrue,
-        reason:
-            'hold↔ready must not reorder Stack; poster Image State stays',
+        reason: 'hold↔ready must not reorder Stack; poster Image State stays',
       );
     },
   );
 
-  testWidgets(
-    'W-15.11d timeout and manual disarm unmute without attach-ack',
-    (tester) async {
-      final display = FakeMediaDisplayRepository();
-      final playback = FakePlaybackRepository();
-      await _pumpTwoVideoPosterFeed(
-        tester,
-        display: display,
-        playback: playback,
-      );
+  testWidgets('W-15.11d timeout and manual disarm unmute without attach-ack', (
+    tester,
+  ) async {
+    final display = FakeMediaDisplayRepository();
+    final playback = FakePlaybackRepository();
+    await _pumpTwoVideoPosterFeed(tester, display: display, playback: playback);
 
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      final ids = await _feedOrderedIds(tester);
-      _seedPvHandoffSnapshots(container, ids);
-      final feedState = tester.state<VerticalMediaFeedState>(
-        find.byType(VerticalMediaFeed),
-      );
-      final gate = feedState.debugCurrentDisplayGate;
-      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: ids[0],
-        targetAssetId: ids[1],
-        displayGeneration: gate.generation,
-        displayGate: gate,
-      );
-      await pumpAsyncWork(tester);
-      expect(playback.transitionAudioSuppressed, isTrue);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    final ids = await _feedOrderedIds(tester);
+    _seedPvHandoffSnapshots(container, ids);
+    final feedState = tester.state<VerticalMediaFeedState>(
+      find.byType(VerticalMediaFeed),
+    );
+    final gate = feedState.debugCurrentDisplayGate;
+    await container
+        .read(pvTransitionGuardProvider.notifier)
+        .tryArmOnScroll(
+          currentFeedIndex: 0,
+          targetFeedIndex: 1,
+          sourceAssetId: ids[0],
+          targetAssetId: ids[1],
+          displayGeneration: gate.generation,
+          displayGate: gate,
+        );
+    await pumpAsyncWork(tester);
+    expect(playback.transitionAudioSuppressed, isTrue);
 
-      await container.read(pvTransitionGuardProvider.notifier).disarm();
-      await pumpAsyncWork(tester);
-      expect(playback.transitionAudioSuppressed, isFalse);
+    await container.read(pvTransitionGuardProvider.notifier).disarm();
+    await pumpAsyncWork(tester);
+    expect(playback.transitionAudioSuppressed, isFalse);
 
-      _seedPvHandoffSnapshots(container, ids);
-      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: ids[0],
-        targetAssetId: ids[1],
-        displayGeneration: gate.generation,
-        displayGate: gate,
-      );
-      await pumpAsyncWork(tester);
-      expect(playback.transitionAudioSuppressed, isTrue);
+    _seedPvHandoffSnapshots(container, ids);
+    await container
+        .read(pvTransitionGuardProvider.notifier)
+        .tryArmOnScroll(
+          currentFeedIndex: 0,
+          targetFeedIndex: 1,
+          sourceAssetId: ids[0],
+          targetAssetId: ids[1],
+          displayGeneration: gate.generation,
+          displayGate: gate,
+        );
+    await pumpAsyncWork(tester);
+    expect(playback.transitionAudioSuppressed, isTrue);
 
-      await tester.pump(const Duration(seconds: 2));
-      await pumpAsyncWork(tester);
-      expect(playback.transitionAudioSuppressed, isFalse);
-    },
-  );
+    await tester.pump(const Duration(seconds: 2));
+    await pumpAsyncWork(tester);
+    expect(playback.transitionAudioSuppressed, isFalse);
+  });
 
   testWidgets(
     'W-15.11f scroll-back settle triggers maybeDisarmOnSettled and unmutes',
@@ -6278,14 +6451,16 @@ void main() {
         find.byType(VerticalMediaFeed),
       );
       final gate = feedState.debugCurrentDisplayGate;
-      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: ids[0],
-        targetAssetId: target,
-        displayGeneration: gate.generation,
-        displayGate: gate,
-      );
+      await container
+          .read(pvTransitionGuardProvider.notifier)
+          .tryArmOnScroll(
+            currentFeedIndex: 0,
+            targetFeedIndex: 1,
+            sourceAssetId: ids[0],
+            targetAssetId: target,
+            displayGeneration: gate.generation,
+            displayGate: gate,
+          );
       await pumpAsyncWork(tester);
       expect(playback.transitionAudioSuppressed, isTrue);
 
@@ -6300,20 +6475,22 @@ void main() {
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
       await pumpAsyncWork(tester);
 
-      expect(container.read(pvTransitionGuardProvider).isCovering(target), isFalse);
+      expect(
+        container.read(pvTransitionGuardProvider).isCovering(target),
+        isFalse,
+      );
       expect(playback.transitionAudioSuppressed, isTrue);
       expect(
         find.byKey(Key('mainBrowseFeedVideo_$target'), skipOffstage: false),
         findsOneWidget,
       );
       final pageFinder = find.byWidgetPredicate(
-        (w) =>
-            w is MediaFeedPage &&
-            w.assetIdentifier == target &&
-            w.isCurrent,
+        (w) => w is MediaFeedPage && w.assetIdentifier == target && w.isCurrent,
       );
       expect(
-        tester.state<MediaFeedPageState>(pageFinder).debugHoldPosterUntilFirstFrame,
+        tester
+            .state<MediaFeedPageState>(pageFinder)
+            .debugHoldPosterUntilFirstFrame,
         isTrue,
       );
 
@@ -6335,78 +6512,80 @@ void main() {
     },
   );
 
-  testWidgets(
-    'W-15.11j stale post-settle ScrollUpdate does not re-arm guard',
-    (tester) async {
-      final display = FakeMediaDisplayRepository();
-      final playback = FakePlaybackRepository()..playbackPoolEpoch = 7;
-      await _pumpTwoVideoPosterFeed(
-        tester,
-        display: display,
-        playback: playback,
-      );
-      final ids = await _feedOrderedIds(tester);
-      final target = ids[1];
+  testWidgets('W-15.11j stale post-settle ScrollUpdate does not re-arm guard', (
+    tester,
+  ) async {
+    final display = FakeMediaDisplayRepository();
+    final playback = FakePlaybackRepository()..playbackPoolEpoch = 7;
+    await _pumpTwoVideoPosterFeed(tester, display: display, playback: playback);
+    final ids = await _feedOrderedIds(tester);
+    final target = ids[1];
 
-      final element = tester.element(find.byType(VerticalMediaFeed));
-      final container = ProviderScope.containerOf(element);
-      _seedPvHandoffSnapshots(container, ids);
-      final feedState = tester.state<VerticalMediaFeedState>(
-        find.byType(VerticalMediaFeed),
-      );
-      final gate = feedState.debugCurrentDisplayGate;
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+    _seedPvHandoffSnapshots(container, ids);
+    final feedState = tester.state<VerticalMediaFeedState>(
+      find.byType(VerticalMediaFeed),
+    );
+    final gate = feedState.debugCurrentDisplayGate;
 
-      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: ids[0],
-        targetAssetId: target,
-        displayGeneration: gate.generation,
-        displayGate: gate,
-      );
-      await pumpAsyncWork(tester);
-      expect(container.read(pvTransitionGuardProvider).isCovering(target), isTrue);
+    await container
+        .read(pvTransitionGuardProvider.notifier)
+        .tryArmOnScroll(
+          currentFeedIndex: 0,
+          targetFeedIndex: 1,
+          sourceAssetId: ids[0],
+          targetAssetId: target,
+          displayGeneration: gate.generation,
+          displayGate: gate,
+        );
+    await pumpAsyncWork(tester);
+    expect(
+      container.read(pvTransitionGuardProvider).isCovering(target),
+      isTrue,
+    );
 
-      // Settle: releaseCovering (same path as device feed-index commit).
-      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
-      await pumpAsyncWork(tester);
-      expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
+    // Settle: releaseCovering (same path as device feed-index commit).
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(1);
+    await pumpAsyncWork(tester);
+    expect(container.read(pvTransitionGuardProvider).targetAssetId, isNull);
 
-      // Device race: ScrollUpdate still carries pre-settle curIdx=0 → tgt=1.
-      // Defensive: tryArmOnScroll must refuse target-is-current.
-      await container.read(pvTransitionGuardProvider.notifier).tryArmOnScroll(
-        currentFeedIndex: 0,
-        targetFeedIndex: 1,
-        sourceAssetId: ids[0],
-        targetAssetId: target,
-        displayGeneration: gate.generation,
-        displayGate: gate,
-      );
-      await pumpAsyncWork(tester);
-      expect(
-        container.read(pvTransitionGuardProvider).targetAssetId,
-        isNull,
-        reason: 'stale tryArm args must not re-cover after settle',
-      );
+    // Device race: ScrollUpdate still carries pre-settle curIdx=0 → tgt=1.
+    // Defensive: tryArmOnScroll must refuse target-is-current.
+    await container
+        .read(pvTransitionGuardProvider.notifier)
+        .tryArmOnScroll(
+          currentFeedIndex: 0,
+          targetFeedIndex: 1,
+          sourceAssetId: ids[0],
+          targetAssetId: target,
+          displayGeneration: gate.generation,
+          displayGate: gate,
+        );
+    await pumpAsyncWork(tester);
+    expect(
+      container.read(pvTransitionGuardProvider).targetAssetId,
+      isNull,
+      reason: 'stale tryArm args must not re-cover after settle',
+    );
 
-      // Root-cause path: page already on settled index; live feedIndex read
-      // must not treat a stale dispatch arg as curIdx and re-arm.
-      final pageController = feedState.debugPageController!;
-      pageController.jumpToPage(1);
-      await tester.pump();
-      feedState.debugDispatchPvScrollArm(0);
-      await pumpAsyncWork(tester);
-      expect(
-        container.read(pvTransitionGuardProvider).targetAssetId,
-        isNull,
-        reason: 'live feedIndex must ignore stale scroll dispatch',
-      );
-      expect(
-        find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
-        findsNothing,
-      );
-    },
-  );
+    // Root-cause path: page already on settled index; live feedIndex read
+    // must not treat a stale dispatch arg as curIdx and re-arm.
+    final pageController = feedState.debugPageController!;
+    pageController.jumpToPage(1);
+    await tester.pump();
+    feedState.debugDispatchPvScrollArm(0);
+    await pumpAsyncWork(tester);
+    expect(
+      container.read(pvTransitionGuardProvider).targetAssetId,
+      isNull,
+      reason: 'live feedIndex must ignore stale scroll dispatch',
+    );
+    expect(
+      find.byKey(Key('pvTransitionCover_$target'), skipOffstage: false),
+      findsNothing,
+    );
+  });
 
   testWidgets(
     'W-15.11e video without poster does not arm transition guard on scroll',
@@ -6420,6 +6599,7 @@ void main() {
       }
       await tester.pumpWidget(
         permissionUiHarness(
+          disableBrowseAllPrefetch: true,
           repo: repo,
           assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
           mediaDisplay: display,
@@ -6463,6 +6643,7 @@ void main() {
     final playback = FakePlaybackRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
         mediaDisplay: display,
@@ -6492,8 +6673,7 @@ void main() {
     expect(returnIntent.wantsPlay, isTrue);
     final navIntentCall = playback.calls.firstWhere(
       (c) =>
-          c.startsWith('setPlaybackIntent:${ids[0]}') &&
-          c.contains('nav=true'),
+          c.startsWith('setPlaybackIntent:${ids[0]}') && c.contains('nav=true'),
     );
     final playIdx = playback.calls.lastIndexOf('play');
     expect(playback.calls.indexOf(navIntentCall), lessThan(playIdx));
@@ -6513,6 +6693,7 @@ void main() {
     final playback = FakePlaybackRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
         mediaDisplay: display,
@@ -6554,8 +6735,14 @@ void main() {
     tester,
   ) async {
     final playback = await _pumpSingleVideoFeed(tester);
-    expect(find.byKey(const Key('mainBrowsePlaybackTapTarget')), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+    expect(
+      find.byKey(const Key('mainBrowsePlaybackTapTarget')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+      findsNothing,
+    );
 
     playback.calls.clear();
     playback.intentCalls.clear();
@@ -6572,7 +6759,10 @@ void main() {
       isTrue,
     );
     expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
-    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('W-18.4-F2 affordance tap resumes and hides affordance', (
@@ -6581,7 +6771,10 @@ void main() {
     final playback = await _pumpSingleVideoFeed(tester);
     await tester.tap(find.byKey(const Key('mainBrowsePlaybackTapTarget')));
     await pumpAsyncWork(tester);
-    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsOneWidget);
+    expect(
+      find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+      findsOneWidget,
+    );
 
     playback.calls.clear();
     playback.intentCalls.clear();
@@ -6590,13 +6783,15 @@ void main() {
 
     expect(
       playback.intentCalls.any(
-        (i) =>
-            i.wantsPlay == true && i.startsNewNavigationActivation == false,
+        (i) => i.wantsPlay == true && i.startsNewNavigationActivation == false,
       ),
       isTrue,
     );
     expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
-    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+    expect(
+      find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+      findsNothing,
+    );
   });
 
   testWidgets(
@@ -6612,10 +6807,7 @@ void main() {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await pumpAsyncWork(tester);
 
-      expect(
-        playback.intentCalls.any((i) => i.wantsPlay == true),
-        isTrue,
-      );
+      expect(playback.intentCalls.any((i) => i.wantsPlay == true), isTrue);
       expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
       expect(
         find.byKey(const Key('mainBrowseCenterPlayAffordance')),
@@ -6630,7 +6822,10 @@ void main() {
       final playback = await _pumpSingleVideoFeed(tester);
       await tester.tap(find.byKey(const Key('mainBrowsePlaybackTapTarget')));
       await pumpAsyncWork(tester);
-      expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsOneWidget);
+      expect(
+        find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+        findsOneWidget,
+      );
 
       playback.calls.clear();
       playback.intentCalls.clear();
@@ -6669,14 +6864,8 @@ void main() {
       feedState.debugBumpForegroundResumeSyncEpoch();
       await tester.pump();
 
-      expect(
-        feedState.debugForegroundResumeSyncEpoch,
-        equals(epochBefore + 1),
-      );
-      expect(
-        playback.intentCalls.any((i) => i.wantsPlay == true),
-        isTrue,
-      );
+      expect(feedState.debugForegroundResumeSyncEpoch, equals(epochBefore + 1));
+      expect(playback.intentCalls.any((i) => i.wantsPlay == true), isTrue);
       expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
     },
   );
@@ -6699,6 +6888,7 @@ void main() {
     final playback = FakePlaybackRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['s1']),
         mediaDisplay: display,
@@ -6732,6 +6922,7 @@ void main() {
     final playback = FakePlaybackRepository();
     await tester.pumpWidget(
       permissionUiHarness(
+        disableBrowseAllPrefetch: true,
         repo: repo,
         assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
         mediaDisplay: display,
@@ -6751,7 +6942,10 @@ void main() {
   testWidgets('W-18.4-F6 scrubber band tap is no-op', (tester) async {
     final playback = await _pumpSingleVideoFeed(tester);
     expect(find.byKey(const Key('mainBrowseVideoScrubber')), findsOneWidget);
-    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+    expect(
+      find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+      findsNothing,
+    );
 
     playback.calls.clear();
     playback.intentCalls.clear();
@@ -6761,7 +6955,10 @@ void main() {
 
     expect(playback.intentCalls, isEmpty);
     expect(playback.calls.where((c) => c == 'play' || c == 'pause'), isEmpty);
-    expect(find.byKey(const Key('mainBrowseCenterPlayAffordance')), findsNothing);
+    expect(
+      find.byKey(const Key('mainBrowseCenterPlayAffordance')),
+      findsNothing,
+    );
   });
 
   testWidgets('W-18.5-5 band horizontal drag does not change page', (
@@ -6834,6 +7031,7 @@ Future<FakePlaybackRepository> _pumpSingleVideoFeed(WidgetTester tester) async {
   final playback = FakePlaybackRepository();
   await tester.pumpWidget(
     permissionUiHarness(
+      disableBrowseAllPrefetch: true,
       repo: repo,
       assetSources: FakeAssetSourceRepository(allIds: const ['v1']),
       mediaDisplay: display,
@@ -6843,7 +7041,10 @@ Future<FakePlaybackRepository> _pumpSingleVideoFeed(WidgetTester tester) async {
   await pumpAsyncWork(tester);
   expect(find.byKey(const Key('mainBrowseFeedVideo_v1')), findsOneWidget);
   for (var i = 0; i < 40; i++) {
-    if (find.byKey(const Key('mainBrowsePlaybackTapTarget')).evaluate().isNotEmpty &&
+    if (find
+            .byKey(const Key('mainBrowsePlaybackTapTarget'))
+            .evaluate()
+            .isNotEmpty &&
         playback.calls.any((c) => c == 'play')) {
       break;
     }
@@ -6853,10 +7054,7 @@ Future<FakePlaybackRepository> _pumpSingleVideoFeed(WidgetTester tester) async {
   return playback;
 }
 
-void _seedPvHandoffSnapshots(
-  ProviderContainer container,
-  List<String> ids,
-) {
+void _seedPvHandoffSnapshots(ProviderContainer container, List<String> ids) {
   final notifier = container.read(pvTransitionGuardProvider.notifier);
   notifier.updatePageSnapshot(
     ids[0],
@@ -6891,14 +7089,9 @@ State _reloadableFileImageState(WidgetTester tester, Finder root) {
 
     visit(element);
   }
-  expect(
-    count,
-    1,
-    reason: 'expected one _ReloadableFileImage under $root',
-  );
+  expect(count, 1, reason: 'expected one _ReloadableFileImage under $root');
   return found!;
 }
-
 
 Future<void> _pumpTwoVideoPosterFeed(
   WidgetTester tester, {
@@ -6916,6 +7109,7 @@ Future<void> _pumpTwoVideoPosterFeed(
   final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
   await tester.pumpWidget(
     permissionUiHarness(
+      disableBrowseAllPrefetch: true,
       repo: repo,
       assetSources: FakeAssetSourceRepository(allIds: const ['v1', 'v2']),
       mediaDisplay: display,
