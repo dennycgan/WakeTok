@@ -2471,15 +2471,20 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 ## ADR-027: Cap 14.4e leave Browse ends Consumption Session
 
-- Status: Accepted (2026-08-17)
+- Status: Accepted (2026-08-17); Decision 3 trigger set is **narrowly
+  amended by ADR-055** (Accepted 2026-09-20, anchor `893c296`) — Cap 27
+  removes Clips/Auto from the bottom bar, so leave-Browse triggers are
+  `{Settings}` only. Reset strength (new Session + requeue + index 0;
+  Snapshot cache retained) unchanged.
   <!-- Accepted date from `git log -1 --format=%cs 5658cf2` → 2026-08-17 -->
 - Commit/PR anchor: 5658cf2
 - Plain summary (owner reads this):
-  Leaving the Browse tab for Settings, Clips, or Auto ends the current
-  browse queue and starts a fresh shuffled session at the first item.
-  Locking the phone or sending the app to the background does not do
-  that. Switching All / Photos / Videos still starts a new session the
-  same way as before.
+  Leaving the Browse tab for Settings ends the current browse queue and
+  starts a fresh shuffled session at the first item. (Cap 27 / ADR-055:
+  Clips and Auto are no longer bottom-nav destinations.) Locking the
+  phone or sending the app to the background does not do that.
+  Switching All / Photos / Videos still starts a new session the same
+  way as before.
 - Context / what problem forced this:
   Cap 14.4c kept VerticalMediaFeed alive across Settings (IndexedStack
   Theme wrap) so non-head pages would not black-screen. That also kept
@@ -6928,9 +6933,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-055: Cap 27 bottom-nav order slot + Layer 1 order-control sheet
 
-- Status: Proposed (Cap 27.1 contract freeze; Accepted + anchor after
-  first Cap 27 implementing work commit)
-- Commit/PR anchor: (pending Cap 27 work)
+- Status: Accepted (2026-09-20)
+- Commit/PR anchor: 893c296
 - Plain summary (owner reads this):
   The bottom bar becomes Browse, an Order action slot, and Settings.
   Clips and Auto are removed from the bar. Tapping Order opens a
