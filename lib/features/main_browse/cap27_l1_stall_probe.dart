@@ -4,12 +4,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Cap 27.4 — Debt 468 / L1-stall + L2-ready observability probe.
+/// Cap 27 — L1-stall + L2-ready observability probe (debts 468/477 closed;
+/// kept for Open debt **478** non-`deviceLocal` / iCloud remount soak).
 ///
 /// Append-only log in App Documents. Pull via `devicectl appDataContainer`
 /// (`com.dennycgan.waketok`). Profile + Debug only ([cap27L1StallProbeEnabled]);
-/// Release builds are no-ops (no Documents I/O). Kept for soak / recurrence
-/// triage (`L2_READY_*`, remount skip) — not a TEMP throwaway.
+/// Release builds are no-ops (no Documents I/O). Settings UI lives in
+/// `cap27_l1_stall_probe_settings.dart` under Browse → Settings when
+/// `!kReleaseMode`.
 const String kCap27L1StallProbeLogFileName = 'cap27_l1_stall_probe.log';
 
 /// Profile + Debug only. Release builds are no-ops.

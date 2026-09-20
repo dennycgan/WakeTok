@@ -764,21 +764,21 @@
   "@mainBrowseOpenLibrarySmokeDebug": {
     "description": "kDebugMode-only button on Settings stub to open library_smoke"
   },
-  "cap27L1StallProbeSectionTitle": "L1-stall probe (temp)",
+  "cap27L1StallProbeSectionTitle": "L1-stall probe",
   "@cap27L1StallProbeSectionTitle": {
-    "description": "TEMP Cap 27 Debt 468 probe section title — remove after fix"
+    "description": "Debug/Profile Settings section title for Cap27L1StallProbe (debt 478 soak)"
   },
-  "cap27L1StallProbeBlurb": "Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.",
+  "cap27L1StallProbeBlurb": "Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.",
   "@cap27L1StallProbeBlurb": {
-    "description": "TEMP Cap 27 Debt 468 probe instructions"
+    "description": "Cap27L1StallProbe instructions; kept while debt 478 is Open"
   },
   "cap27L1StallProbeMarkStuck": "Mark stuck (L1 stall now)",
   "@cap27L1StallProbeMarkStuck": {
-    "description": "TEMP Cap 27 Debt 468 — owner marks stuck snapshot"
+    "description": "Owner marks stuck snapshot into cap27_l1_stall_probe.log"
   },
   "cap27L1StallProbeMarkHealed": "Mark healed (after swipe back)",
   "@cap27L1StallProbeMarkHealed": {
-    "description": "TEMP Cap 27 Debt 468 — owner marks heal snapshot"
+    "description": "Owner marks heal snapshot into cap27_l1_stall_probe.log"
   },
   "mainBrowseVideoTapToPlay": "Play video",
   "@mainBrowseVideoTapToPlay": {

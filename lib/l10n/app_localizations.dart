@@ -1140,25 +1140,25 @@ abstract class AppLocalizations {
   /// **'Library smoke (debug)'**
   String get mainBrowseOpenLibrarySmokeDebug;
 
-  /// TEMP Cap 27 Debt 468 probe section title — remove after fix
+  /// Debug/Profile Settings section title for Cap27L1StallProbe (debt 478 soak)
   ///
   /// In en, this message translates to:
-  /// **'L1-stall probe (temp)'**
+  /// **'L1-stall probe'**
   String get cap27L1StallProbeSectionTitle;
 
-  /// TEMP Cap 27 Debt 468 probe instructions
+  /// Cap27L1StallProbe instructions; kept while debt 478 is Open
   ///
   /// In en, this message translates to:
-  /// **'Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.'**
+  /// **'Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.'**
   String get cap27L1StallProbeBlurb;
 
-  /// TEMP Cap 27 Debt 468 — owner marks stuck snapshot
+  /// Owner marks stuck snapshot into cap27_l1_stall_probe.log
   ///
   /// In en, this message translates to:
   /// **'Mark stuck (L1 stall now)'**
   String get cap27L1StallProbeMarkStuck;
 
-  /// TEMP Cap 27 Debt 468 — owner marks heal snapshot
+  /// Owner marks heal snapshot into cap27_l1_stall_probe.log
   ///
   /// In en, this message translates to:
   /// **'Mark healed (after swipe back)'**

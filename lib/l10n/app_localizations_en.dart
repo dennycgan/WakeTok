@@ -594,11 +594,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
-  String get cap27L1StallProbeSectionTitle => 'L1-stall probe (temp)';
+  String get cap27L1StallProbeSectionTitle => 'L1-stall probe';
 
   @override
   String get cap27L1StallProbeBlurb =>
-      'Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.';
+      'Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.';
 
   @override
   String get cap27L1StallProbeMarkStuck => 'Mark stuck (L1 stall now)';

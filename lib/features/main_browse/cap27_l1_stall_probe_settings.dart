@@ -6,9 +6,10 @@ import 'package:waketok/features/main_browse/cap27_l1_stall_probe.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// Cap 27.4 TEMP — Debt 468 L1-stall probe controls (Profile/Debug).
+/// Cap 27 L1-stall probe controls (Profile/Debug; `!kReleaseMode`).
 ///
-/// Remove with [cap27_l1_stall_probe.dart] after the investigation.
+/// Kept while debt **478** (non-`deviceLocal` / iCloud remount soft L1 stick)
+/// is Open. Same gate as [cap27L1StallProbeEnabled] — Release is a no-op.
 class Cap27L1StallProbeSettingsSection extends ConsumerWidget {
   const Cap27L1StallProbeSettingsSection({super.key});
 

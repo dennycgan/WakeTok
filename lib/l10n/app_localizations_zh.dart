@@ -591,11 +591,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
-  String get cap27L1StallProbeSectionTitle => 'L1-stall probe (temp)';
+  String get cap27L1StallProbeSectionTitle => 'L1-stall probe';
 
   @override
   String get cap27L1StallProbeBlurb =>
-      'Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.';
+      'Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.';
 
   @override
   String get cap27L1StallProbeMarkStuck => 'Mark stuck (L1 stall now)';
@@ -1475,11 +1475,11 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseOpenLibrarySmokeDebug => '图库调试（debug）';
 
   @override
-  String get cap27L1StallProbeSectionTitle => 'L1卡住探测（临时）';
+  String get cap27L1StallProbeSectionTitle => 'L1卡住探测';
 
   @override
   String get cap27L1StallProbeBlurb =>
-      '写入 Documents/cap27_l1_stall_probe.log。刷完一轮卡在 Layer1 时：点「标记卡住」→ 滑走再滑回 → 点「标记已恢复」。';
+      '仅 Debug/Profile。写入 Documents/cap27_l1_stall_probe.log，用于 debt 478（非 deviceLocal / iCloud remount 软粘 L1）。remount 后卡在 Layer 1 时：点「标记卡住」→ 滑走再滑回 → 点「标记已恢复」。';
 
   @override
   String get cap27L1StallProbeMarkStuck => '标记卡住（当前 L1）';
