@@ -5333,6 +5333,155 @@ void main() {
     },
   );
 
+  // Cap 27.6 / debt 479: Settings leave remounts while browseActive=false;
+  // sticky prefer-Host must survive Settings dwell (not post-frame window).
+  Future<void> settingsLeavePreferHostCase(
+    WidgetTester tester, {
+    required OrderPolicy order,
+    required bool dwellOnSettings,
+  }) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final display = FakeMediaDisplayRepository();
+    const ids = ['a1', 'a2', 'a3', 'a4', 'a5'];
+    for (final id in ids) {
+      final path = File(
+        '${Directory.systemTemp.path}/wt_479_${order.name}_$id.png',
+      );
+      path.writeAsBytesSync(
+        base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        ),
+      );
+      display.displaysById[id] = DisplayAsset(
+        assetIdentifier: id,
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: path.path,
+      );
+      display.previewsById[id] = DisplayAsset(
+        assetIdentifier: id,
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: path.path,
+      );
+    }
+    await tester.pumpWidget(
+      permissionUiHarness(
+        disableBrowseAllPrefetch: true,
+        repo: repo,
+        assetSources: FakeAssetSourceRepository(
+          allIds: ids,
+          availabilityById: FakeAssetSourceRepository.deviceLocalForIds(ids),
+        ),
+        mediaDisplay: display,
+      ),
+    );
+    await pumpAsyncWork(tester);
+    final element = tester.element(find.byType(VerticalMediaFeed));
+    final container = ProviderScope.containerOf(element);
+
+    // Default Session may already be shuffle — Confirm no-ops then. Force a
+    // real remount under [order] (newest→target when target is shuffle).
+    if (order == OrderPolicy.shuffle) {
+      expect(
+        await container
+            .read(browseSessionProvider.notifier)
+            .applyConfirmedOrderPreference(OrderPolicy.newestFirst),
+        isTrue,
+      );
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+    }
+    expect(
+      await container
+          .read(browseSessionProvider.notifier)
+          .applyConfirmedOrderPreference(order),
+      isTrue,
+      reason: 'need a remount under $order',
+    );
+    container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    await pumpAsyncWork(tester);
+
+    final orderedBefore = await _feedOrderedIds(tester);
+    final headBefore = orderedBefore[0];
+    // Seed Cap 22.5 L1 via a completed Host display (sticky soft-L1 path).
+    expect(
+      display.displayCalls.where((id) => id == headBefore).length,
+      greaterThanOrEqualTo(1),
+    );
+    final displayCallsBeforeLeave = display.displayCalls.length;
+
+    container
+        .read(mainBrowseDestinationProvider.notifier)
+        .select(MainBrowseDestination.settings);
+    await tester.pump();
+    // Allow restartSession AsyncLoading → AsyncData while off Browse.
+    await pumpAsyncWork(tester);
+    if (dwellOnSettings) {
+      // Simulate 3–5s Settings dwell (many frames); sticky pending must hold.
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+    }
+
+    container
+        .read(mainBrowseDestinationProvider.notifier)
+        .select(MainBrowseDestination.browse);
+    await pumpAsyncWork(tester);
+
+    expect(container.read(mainBrowseFeedIndexProvider), 0);
+    expect(
+      display.displayCalls.length,
+      greaterThan(displayCallsBeforeLeave),
+      reason:
+          'Settings leave→Browse ($order, dwell=$dwellOnSettings) must '
+          'Host-load via sticky prefer-Host (debt 479)',
+    );
+    expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsNothing);
+  }
+
+  testWidgets(
+    'W-27.6-479 Settings×newestFirst prefer-Host after leave (immediate return)',
+    (tester) async {
+      await settingsLeavePreferHostCase(
+        tester,
+        order: OrderPolicy.newestFirst,
+        dwellOnSettings: false,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-27.6-479 Settings×oldestFirst prefer-Host after leave (immediate return)',
+    (tester) async {
+      await settingsLeavePreferHostCase(
+        tester,
+        order: OrderPolicy.oldestFirst,
+        dwellOnSettings: false,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-27.6-479 Settings×shuffle prefer-Host after leave (immediate return)',
+    (tester) async {
+      await settingsLeavePreferHostCase(
+        tester,
+        order: OrderPolicy.shuffle,
+        dwellOnSettings: false,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-27.6-479 Settings×newestFirst prefer-Host survives Settings dwell',
+    (tester) async {
+      await settingsLeavePreferHostCase(
+        tester,
+        order: OrderPolicy.newestFirst,
+        dwellOnSettings: true,
+      );
+    },
+  );
+
   testWidgets(
     'W-15.10b leave during in-flight L2 does not mint Session token',
     (tester) async {

@@ -101,11 +101,10 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   /// [PageController.initialPage] is fixed at construction; reusing the
   /// old controller after a new PageView key would flash page 0.
   int? _pageControllerEpoch;
-  /// Cap 27.4 A: prefer Host over Session L2-ready for the born-current head
-  /// on the first build after a roundEpoch PageView remount only. Cleared
-  /// post-frame so later PageView recycle births keep Cap 15.10 L2-ready
-  /// (W-15.10a).
-  bool _epochRemountPreferHostL2 = false;
+  /// Cap 27.4 / 27.6 (debt 479): prefer Host over Session L2-ready for the
+  /// remount landing page. Sticky until that page **consumes** prefer-Host
+  /// (not cleared post-frame — Settings dwell must not drop the arm).
+  bool _epochRemountPreferHostPending = false;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
   bool _advancingRound = false;
@@ -386,20 +385,20 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final previous = _pageController;
     _pageControllerEpoch = roundEpoch;
     _pageController = PageController(initialPage: initialPage);
-    // Cap 27.4 A: mark remount until the first post-frame so MediaFeedPage
-    // born current on this rebuild skips Session L2-ready.
-    _epochRemountPreferHostL2 = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      _epochRemountPreferHostL2 = false;
-    });
+    // Cap 27.4 / 27.6: arm sticky prefer-Host for the remount landing page.
+    // Do not clear on a post-frame timer — remount may finish while
+    // browseActive is false (Settings leave); become-current must still see
+    // pending (debt 479).
+    _epochRemountPreferHostPending = true;
     if (previous != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         previous.dispose();
       });
     }
+  }
+
+  void _onEpochRemountPreferHostConsumed() {
+    _epochRemountPreferHostPending = false;
   }
 
   Future<void> _showNewRoundToastAfterAdvance({
@@ -1298,7 +1297,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                       initialLayer1: _layer1Seeds[ids[index]],
                       onLayer1Available: _noteLayer1Seed,
                       preferHostOverSessionL2Ready:
-                          isCurrent && _epochRemountPreferHostL2,
+                          isCurrent && _epochRemountPreferHostPending,
+                      onEpochRemountPreferHostConsumed:
+                          _onEpochRemountPreferHostConsumed,
                     );
                   },
                 ),
@@ -1442,6 +1443,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     this.initialLayer1,
     this.onLayer1Available,
     this.preferHostOverSessionL2Ready = false,
+    this.onEpochRemountPreferHostConsumed,
   });
 
   final String assetIdentifier;
@@ -1479,9 +1481,12 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   /// Notifies parent when a still (or video poster) Layer 1 is available.
   final void Function(String assetId, FeedPageMedia media)? onLayer1Available;
 
-  /// Cap 27.4 A: roundEpoch PageView remount head — skip Session L2-ready,
-  /// take Host. False for swipe become-current / recycle births.
+  /// Cap 27.4 / 27.6: roundEpoch remount landing page — skip Session L2-ready,
+  /// take Host. True only while [isCurrent] and feed pending is armed.
   final bool preferHostOverSessionL2Ready;
+
+  /// Clears feed sticky pending after this page consumes prefer-Host once.
+  final VoidCallback? onEpochRemountPreferHostConsumed;
 
   static const String playbackViewType = 'waketok/playback_surface';
   static const String livePhotoViewType = 'waketok/live_photo_surface';
@@ -2817,6 +2822,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void didUpdateWidget(covariant MediaFeedPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     _maybeSyncForegroundResumePlayback(oldWidget.foregroundResumeSyncEpoch);
+    // Cap 27.6 / debt 479: arm prefer-Host before any _startLoad in this
+    // update so generation-change and become-current share one Host pass.
+    // Re-arming while already true is a no-op (idempotent).
+    if (widget.preferHostOverSessionL2Ready) {
+      _preferHostOverSessionL2ReadyOnce = true;
+    }
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
     if (!oldWidget.isCurrent && widget.isCurrent) {
       unawaited(
@@ -2828,6 +2839,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           'mediaKind': _media?.kind.name,
           'surfaceReady': _surfaceReady,
           'layer2InFlight': _layer2InFlight,
+          'preferHost': widget.preferHostOverSessionL2Ready,
           'l2ReadyToken': ref
               .read(browseL2ReadySessionProvider)
               .containsKey(widget.assetIdentifier),
@@ -2991,9 +3003,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         !widget.isCurrent) {
       _startLoad();
     } else if (!leftCurrent && oldWidget.isCurrent != widget.isCurrent) {
-      // Became current without identity/generation change (rare).
+      // Became current without identity/generation change (rare), or
+      // Settings→Browse when generation already matches — prefer-Host must
+      // still force Host (debt 479), not only sync playback on soft L1.
       if (widget.isCurrent) {
-        if (_needsFullReloadAfterHostUnavailable ||
+        if (widget.preferHostOverSessionL2Ready ||
+            _preferHostOverSessionL2ReadyOnce ||
+            _needsFullReloadAfterHostUnavailable ||
             _media?.kind == FeedPageMediaKind.pendingVideo ||
             _media?.kind == FeedPageMediaKind.video) {
           _startLoad();
@@ -4199,12 +4215,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         }
       } else if (!forceFullAfterHostUnavailable &&
           preferHostOverSessionL2Ready) {
-        // Remount Host (Confirm / Endless / order→shuffle): always skip
-        // All-tab L1 soft paint + hard-reload cover on APPLY — including
-        // heads with no Session token (shuffle lands on a never-visited id).
+        // Remount Host (Confirm / Endless / Settings leave / order→shuffle):
+        // always skip All-tab L1 soft paint + hard-reload cover on APPLY —
+        // including heads with no Session token (shuffle never-visited id).
         // Gating on hadSessionToken left those heads on sticky L1 (owner soak).
         _forceStillCoverHardReload = true;
         _skipLayer1PaintForRemountHost = true;
+        widget.onEpochRemountPreferHostConsumed?.call();
         unawaited(
           Cap27L1StallProbe.log('L2_READY_SKIP_BORN_CURRENT', {
             'assetId': widget.assetIdentifier,
