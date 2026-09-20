@@ -2479,12 +2479,11 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   <!-- Accepted date from `git log -1 --format=%cs 5658cf2` → 2026-08-17 -->
 - Commit/PR anchor: 5658cf2
 - Plain summary (owner reads this):
-  Leaving the Browse tab for Settings ends the current browse queue and
-  starts a fresh shuffled session at the first item. (Cap 27 / ADR-055:
-  Clips and Auto are no longer bottom-nav destinations.) Locking the
-  phone or sending the app to the background does not do that.
-  Switching All / Photos / Videos still starts a new session the same
-  way as before.
+  Leaving the Browse tab for Settings, Clips, or Auto ends the current
+  browse queue and starts a fresh shuffled session at the first item.
+  Locking the phone or sending the app to the background does not do
+  that. Switching All / Photos / Videos still starts a new session the
+  same way as before.
 - Context / what problem forced this:
   Cap 14.4c kept VerticalMediaFeed alive across Settings (IndexedStack
   Theme wrap) so non-head pages would not black-screen. That also kept
