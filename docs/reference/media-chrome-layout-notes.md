@@ -7,7 +7,9 @@
 > §**11.3.1**; action-column disabled opacity: §**7.1** (Share lock **0.22**);
 > top chrome Scheme **A** + Limited Saved mute / Create helper **8pt**: §**11.3**;
 > media-area **text-bottom** lock (Meta row-3 ≡ scrubber timestamp): §**2**;
-> Cap **26.4b** LIVE **top-leading** under Browse band (not bottom-trailing): §**2** / §**6**.  
+> Cap **26.4b** LIVE **top-leading** under Browse band (not bottom-trailing): §**2** / §**6**;
+> Cap **27.6** bottom-tab Destination / Action roles + Browse card-stack glyph:
+> §**11.4**.  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -23,7 +25,7 @@
 > - `lib/features/main_browse/cap25_share_entry_icon.dart` + `cap25_share_toast.dart`  
 > - `lib/features/main_browse/vertical_media_feed.dart` (`_LiveBadge` / `_FeedCornerChrome`)  
 > - `lib/features/main_browse/browse_top_chrome.dart` (shell top; §11)  
-> - `lib/features/main_browse/main_browse_shell_page.dart` (shell bottom; §11)  
+> - `lib/features/main_browse/main_browse_shell_page.dart` (shell bottom; §11 / §11.4)  
 > - `lib/core/theme/waketok_tokens.dart` (`labelOnMedia`, `onMediaPillFill`, `mediaScrim`)  
 > - Goldens: `test/features/main_browse/goldens/media_chrome_preview/` — local-only, manual maintenance required (no CI; see debt **449** for the repo-wide CI gap). After any chrome visual tweak, re-run `flutter test --update-goldens` on this machine and eyeball the diff before committing
 
@@ -378,14 +380,14 @@ control type, not copy the nearest number.
 | **Create** | Trailing control (`_CreateControl`); opens Build a Pool cover. Disabled + helper line under Limited access. |
 | **Center pair** | Built-in + Saved, screen-centered (`mainBrowseChromeCenterPair`). Chip show/hide must **not** translate this pair (Stack overlay). |
 | **Covering route** | Full-screen Build cover; `browseCoveringRouteOpenProvider` + `PlaybackCoordinator.onBrowseCoverOpened` (user-intent pause). |
-| **Bottom tab bar** | Browse / Clips / Auto / Settings (`_MainBrowseBottomBar`). Custom row — not Material 3 `NavigationBar`. |
+| **Bottom tab bar** | Cap 27: **Browse \| Order (action) \| Settings** (`main_browse_shell_page.dart`). Custom row — not Material 3 `NavigationBar`. Future Destination cells (e.g. Clips) must follow §**11.4**. |
 | **Disabled / not-actionable** (two recipes) | **Do not mix.** (1) **Icon column** — §**7.1**: keep `onMedia`, wrap in `Opacity` **0.22**. (2) **Top-chrome text / dropdown / Limited Create·Saved** — §**11.3**: paint `onMediaMuted` @ **0.35** alpha on the label (no `Opacity` wrapper). Pick by control type: glyph icon vs text/capsule. |
 
 ### 11.2 Shared typography (shell labels)
 
 **Canonical token for shell chrome labels:** `WakeTokTokens.labelOnMedia` (**12 / w600**, token default `height: 1.2`).
 
-| | Top chrome (All / Temp / Saved / Create) | Bottom tab (Browse / Clips / …) |
+| | Top chrome (All / Temp / Saved / Create) | Bottom tab (Browse / Order / Settings; §11.4) |
 |--|------------------------------------------|--------------------------------|
 | Token | `labelOnMedia` | `labelOnMedia` (same) |
 | Size | **12** | **12** |
@@ -500,17 +502,107 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 
 **Cap 26.4b lock:** Leading Saved name must not invent a different pill geometry than Temp — only the string changes (centered). Short names (e.g. `"W"`) stay in the Temp-sized capsule; they must not grow a wider pill that overlaps Built-in.
 
-### 11.4 Related product limits (naming → chip)
+### 11.4 Bottom tab cell roles (Cap 27.6 — ADR-055)
+
+> **Status:** Spec locked for Cap 27.6 UI polish (owner review 2026-09-20).  
+> **Code today (pre-polish):** `main_browse_shell_page.dart` —
+> `_BottomNavCell` / `_OrderActionCell` (icon **22**; selected destination
+> pill wraps icon only; action cell has no shell).  
+> **Rule:** every bottom-bar cell declares **Destination** or **Action**
+> before styling. New cells (e.g. future Clips) **must** reuse this
+> section — no one-off metrics.
+
+#### 11.4.1 Roles
+
+| Role | Examples | Selected solid pill? | Shell |
+|------|----------|----------------------|--------|
+| **Destination** | Browse, Settings; future Clips | Yes, when that destination is current | Equal outer geometry; fill only when selected |
+| **Action** | Order (order sheet); future Layer-3 listen entry if it keeps this slot | **Never** (ADR-055 D2) | Hairline **stroke** capsule; transparent fill |
+
+Order must **not** share the same “bare icon” look as an unselected
+destination.
+
+#### 11.4.2 Shared metrics
+
+| Symbol | Value | Role |
+|--------|-------|------|
+| `kBottomTabIconSlot` | **32×32** | Visual icon slot (all cells). **Not** the tap target — the full `Expanded` cell / bar row remains the hit area (≥ system min). |
+| `kBottomTabIconSize` | **24** | Glyph size inside the slot |
+| `kBottomTabIconLabelGap` | **4** | Slot bottom → label top (all cells) |
+| `kBottomTabLabelStyle` | `labelOnMedia` + `height: 1.0` | Same as §11.2 |
+| `kBottomTabCapsuleRadius` | **16** | Destination + Action outer capsules |
+| `kBottomTabExpandIconSize` | **14** | Order expand chevron |
+| `kBottomTabExpandGap` | **2** | Label ↔ chevron |
+
+Unselected destinations use the **same outer capsule padding** as
+selected (transparent fill) so icon slots share one cross-cell alignment.
+
+#### 11.4.3 Destination appearance
+
+| State | Capsule | Icon / label color |
+|-------|---------|-------------------|
+| Selected | `accent @ 0.20` fill, radius 16, wraps the **32** slot | `accent` |
+| Unselected | Same bounds, **no** fill | `onMediaMuted` |
+
+Colors come only from `Theme.of` → `WakeTokTokens` (`accent` /
+`onMediaMuted`). No hard-coded brand hex in the nav glyph.
+
+#### 11.4.4 Action appearance (hairline shell)
+
+| Property | Value |
+|----------|-------|
+| Geometry | Same outer capsule + **32** slot as destinations |
+| Fill | Transparent (never selected fill) |
+| Stroke | `onMediaMuted @ ~0.45`, **1.0** logical pt (tune on device if too faint / loud) |
+| Icon / label | `onMediaMuted` |
+
+#### 11.4.5 Browse glyph (brand card stack — monochrome)
+
+Replaces Material `home` / `home_outlined`.
+
+| | Spec |
+|--|------|
+| Motif | Stacked rounded cards from the app icon **center** (≈3 layers) |
+| **Omit** | Inner vertical line + up/down arrow strokes (those collide with Order `swap_vert`) |
+| Outlined | Stroke-only stack; color from icon theme (`onMediaMuted` when unselected) |
+| Filled | Solid / near-solid silhouette of the same stack; color `accent` when selected |
+| Forbidden | Multi-stop brand SVG (`#FC2555` / `#E0C590` baked in) as the nav glyph |
+
+Order keeps `Icons.swap_vert` (ordering). Browse = feed / card stack.
+
+#### 11.4.6 Label row + expand
+
+- One label baseline band under the slot for all cells.
+- Order chevron sits **in the label row**, not the icon slot.
+- Long order copy: keep `FittedBox.scaleDown` (SE).
+
+#### 11.4.7 Reuse (Clips / v2 listen)
+
+1. Label the cell Destination or Action.  
+2. Apply §11.4.3 or §11.4.4.  
+3. Clips returns as **Destination**.  
+4. If Order’s **content** becomes Layer-3 listen, keep the **Action** shell; swap glyph/copy only.  
+5. Change numbers here first, then code — no widget-local forks.
+
+#### 11.4.8 Regression before Cap 27.6 matrix
+
+| ID | Check |
+|----|--------|
+| R-SE | `COPY-1` SE width + chevron |
+| R-DT | Large textScale sheet / bar |
+| R-ALIGN | Device: slot centers + label baseline; Action stroke ≠ bare unselected Destination |
+
+### 11.5 Related product limits (naming → chip)
 
 Saved preset **display names** use a visual weight budget (domain `saved_pool_display_name.dart`): wide (EAW W/F, ideograph/kana/Hangul/fullwidth) ×3, else ×1, max **32**. Chip UI truncation is the fixed Temp-Pool pill width (Cap 26.4b), independent of that naming budget. IME composing is not weighed; over-budget commit/paste truncates to the longest in-budget **prefix**.
 
-### 11.5 Shell device check (after retune)
+### 11.6 Shell device check (after retune)
 
 1. ZH + EN: Temp/Saved chip, Built-in, Saved, Create share one optical baseline; Create not lower than center pair. **Limited:** Create still shares that baseline; helper sits under Create without shifting it (**W-26.4b-2**).  
 2. Selected Built-in / active chip: label + dropdown (if any) centered in the gray pill; All / Photos / Videos pills **same width** as Temp.  
 3. Saved short name (e.g. `"W"`): pill width equals Temp; does not cover Built-in.  
 4. Chip appear/disappear: center pair `dx` unchanged (`cap22_4` / `cap21_3` chrome tests).  
-5. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`).  
+5. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`); after Cap 27.6 polish also check §**11.4** slot alignment + Action hairline vs Destination fill.  
 6. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/` (includes **W-26.4b-1**, **W-26.4b-2**).
 
 ---
