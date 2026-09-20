@@ -264,20 +264,32 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       enum+ARB; action slot shows `preference ?? shuffle`;
       confirm/cancel sheet; gesture absorb; overlay hygiene vs debt
       421 class; device-local remount L1-stall fix (`893c296`)
-- [ ] 27.5 Confirm apply + ADR-027 Settings-only — requeue-to-0 (no
-      Continuity); shuffle→shuffle no-op; architecture+l10n green
-      <-- YOU ARE HERE
+- [x] 27.5 Confirm apply + ADR-027 Settings-only — short verification
+      against work `893c296` (no new product scope)
+      - [x] Confirm apply wiring (change → rebuild index 0; same-value
+            no-op) — `cap27_4_order_control_test.dart` CONFIRM-1 /
+            CONFIRM-2; SHEET-2
+      - [x] ADR-027 Settings-only leave-Browse — enum
+            `MainBrowseDestination { browse, settings }` + `select` →
+            `restartSession`; APP-8 / APP-8b; shell W-3 (no Clips/Auto)
+      - [x] Confirm does not use Continuity remap
+            (`applySessionConfiguration`) — method contract + body
+            uses `buildSessionQueue` only; CONFIRM-3 (not
+            `restartSession`); no dedicated spy (optional later)
+      - [x] shuffle→shuffle no-op — CONFIRM-1
+      - [x] architecture + l10n green —
+            `flutter test test/architecture/` PASS
 - [ ] 27.6 Device acceptance — Kafka + i17 matrix; notes; Cap close
       docs
+      <-- YOU ARE HERE
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 27.5 Confirm apply + ADR-027 Settings-only
-      residual close-out
-- Sub-steps done: Cap 27.4 bar + sheet + `applyConfirmedOrderPreference`
-      + device-local remount L1-stall (`893c296`; ADR-055 Accepted);
-      leave-Browse triggers already `{Settings}` only in shell
-- Next step: verify 27.5 residual vs already-shipped Confirm apply /
-      Settings-only; then 27.6 Kafka+i17 acceptance matrix
+- Goal (one line): Cap 27.6 device acceptance matrix (Kafka + i17)
+- Sub-steps done: Cap 27.5 short verification all five limbs PASS
+      against `893c296` (Confirm apply / Settings-only / no Continuity /
+      shuffle no-op / architecture+l10n)
+- Next step: lock 27.6 acceptance matrix scope + run device notes;
+      Cap close docs
 - Related decisions: ADR-055 Accepted; ADR-056 Accepted; ADR-057
       Accepted
 
