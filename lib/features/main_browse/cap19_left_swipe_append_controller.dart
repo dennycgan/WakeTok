@@ -11,6 +11,7 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/order_control_panel_open.dart';
 
 enum Cap19LeftSwipeAppendOutcome {
   success,
@@ -56,6 +57,7 @@ final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
   final magnified = ref.watch(browseStillMagnifiedProvider);
   final mag = ref.watch(browseMagnificationProvider);
   final panelOpen = ref.watch(cap19ActionsPanelOpenProvider);
+  final orderPanelOpen = ref.watch(orderControlPanelOpenProvider);
   final actionable = ref.watch(mainBrowseCurrentAssetActionableProvider);
   final coverVisible = ref.watch(
     mainBrowseCurrentAssetMediaCoverVisibleProvider,
@@ -66,6 +68,7 @@ final cap19LeftSwipeArmingProvider = Provider<bool>((ref) {
     transientPinchActive: mag.transientPinchActive,
     stillPinchContact: mag.stillPinchContact,
     cap19PanelOpen: panelOpen,
+    orderControlPanelOpen: orderPanelOpen,
     currentAssetActionable: actionable,
     currentAssetMediaCoverVisible: coverVisible,
   );

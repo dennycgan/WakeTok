@@ -40,21 +40,26 @@ void main() {
     expect(find.byKey(const Key('mainBrowseChromeCenterPair')), findsOneWidget);
   });
 
-  testWidgets('W-3 bottom nav stubs switch destinations', (tester) async {
+  testWidgets('W-3 bottom nav: Browse | Order | Settings; order opens sheet',
+      (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
 
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.byKey(const Key('mainBrowseNavigationBar')), findsOneWidget);
+    expect(find.text('Clips'), findsNothing);
+    expect(find.text('Auto'), findsNothing);
+    expect(find.byKey(const Key('mainBrowseOrderActionSlot')), findsOneWidget);
+    expect(find.text(l10n.mainBrowseOrderShuffle), findsOneWidget);
 
-    await tester.tap(find.text(l10n.mainBrowseNavClips));
+    await tester.tap(find.byKey(const Key('mainBrowseOrderActionSlot')));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.mainBrowseStubClipsBody), findsOneWidget);
+    expect(find.byKey(const Key('orderControlHalfSheet')), findsOneWidget);
 
-    await tester.tap(find.text(l10n.mainBrowseNavAuto));
+    await tester.tap(find.byKey(const Key('orderControlCancel')));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.mainBrowseStubAutoBody), findsOneWidget);
+    expect(find.byKey(const Key('orderControlHalfSheet')), findsNothing);
 
     await tester.tap(find.text(l10n.mainBrowseNavSettings));
     await tester.pumpAndSettle();
@@ -83,8 +88,6 @@ void main() {
 
     // Default destination is Browse — assert before switching.
     expect(find.byType(LimitedAccessBanner), findsNothing);
-    await expectNoBannerOn(l10n.mainBrowseNavClips);
-    await expectNoBannerOn(l10n.mainBrowseNavAuto);
     await expectNoBannerOn(l10n.mainBrowseNavSettings);
     await expectNoBannerOn(l10n.mainBrowseNavBrowse);
   });
@@ -166,8 +169,7 @@ void main() {
     expect(scaffoldOf().backgroundColor, lightTokens.background);
     // Unselected destinations must remain visible (not onMediaMuted-on-white).
     expect(find.text(l10n.mainBrowseNavBrowse), findsOneWidget);
-    expect(find.text(l10n.mainBrowseNavClips), findsOneWidget);
-    expect(find.text(l10n.mainBrowseNavAuto), findsOneWidget);
+    expect(find.byKey(const Key('mainBrowseOrderActionSlot')), findsOneWidget);
     expect(find.text(l10n.mainBrowseNavSettings), findsWidgets);
 
     await tester.tap(find.text(l10n.mainBrowseNavBrowse));

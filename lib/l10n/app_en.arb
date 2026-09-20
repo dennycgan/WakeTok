@@ -648,17 +648,49 @@
   "@mainBrowseNavBrowse": {
     "description": "Bottom navigation Browse destination"
   },
-  "mainBrowseNavClips": "Clips",
-  "@mainBrowseNavClips": {
-    "description": "Bottom navigation Clips stub destination"
-  },
-  "mainBrowseNavAuto": "Auto",
-  "@mainBrowseNavAuto": {
-    "description": "Bottom navigation Auto-play stub destination"
-  },
   "mainBrowseNavSettings": "Settings",
   "@mainBrowseNavSettings": {
     "description": "Bottom navigation Settings stub destination"
+  },
+  "mainBrowseOrderNewest": "New first",
+  "@mainBrowseOrderNewest": {
+    "description": "Cap 27 bottom-bar order slot label — newest first"
+  },
+  "mainBrowseOrderOldest": "Old first",
+  "@mainBrowseOrderOldest": {
+    "description": "Cap 27 bottom-bar order slot label — oldest first"
+  },
+  "mainBrowseOrderShuffle": "Shuffle",
+  "@mainBrowseOrderShuffle": {
+    "description": "Cap 27 bottom-bar order slot label — shuffle"
+  },
+  "mainBrowseOrderSlotSemantics": "Play order. Opens play order options.",
+  "@mainBrowseOrderSlotSemantics": {
+    "description": "Semantics for the bottom-bar order action slot (not a destination tab)"
+  },
+  "mainBrowseOrderSheetTitle": "Play Order",
+  "@mainBrowseOrderSheetTitle": {
+    "description": "Cap 27 Layer-1 order-control half-sheet title"
+  },
+  "mainBrowseOrderSheetNewest": "Newest → Oldest",
+  "@mainBrowseOrderSheetNewest": {
+    "description": "Cap 27 order-control sheet option — newest first"
+  },
+  "mainBrowseOrderSheetOldest": "Oldest → Newest",
+  "@mainBrowseOrderSheetOldest": {
+    "description": "Cap 27 order-control sheet option — oldest first"
+  },
+  "mainBrowseOrderSheetShuffle": "Shuffle",
+  "@mainBrowseOrderSheetShuffle": {
+    "description": "Cap 27 order-control sheet option — shuffle"
+  },
+  "mainBrowseOrderSheetConfirm": "Confirm",
+  "@mainBrowseOrderSheetConfirm": {
+    "description": "Cap 27 order-control sheet confirm button"
+  },
+  "mainBrowseOrderSheetCancel": "Cancel",
+  "@mainBrowseOrderSheetCancel": {
+    "description": "Cap 27 order-control sheet cancel button"
   },
   "mainBrowseFeedPlaceholder": "Feed arrives in a later step.",
   "@mainBrowseFeedPlaceholder": {
@@ -724,14 +756,6 @@
   "@mainBrowseMagnificationReset": {
     "description": "Cap 20 Reset pill visible label + semantics (short; Video-App-B class)"
   },
-  "mainBrowseStubClipsBody": "Clips — coming in a later capability.",
-  "@mainBrowseStubClipsBody": {
-    "description": "Clips tab stub body copy"
-  },
-  "mainBrowseStubAutoBody": "Auto-play — coming in a later capability.",
-  "@mainBrowseStubAutoBody": {
-    "description": "Auto tab stub body copy"
-  },
   "mainBrowseStubSettingsBody": "Settings — coming in a later capability.",
   "@mainBrowseStubSettingsBody": {
     "description": "Settings tab stub body copy"
@@ -739,6 +763,22 @@
   "mainBrowseOpenLibrarySmokeDebug": "Library smoke (debug)",
   "@mainBrowseOpenLibrarySmokeDebug": {
     "description": "kDebugMode-only button on Settings stub to open library_smoke"
+  },
+  "cap27L1StallProbeSectionTitle": "L1-stall probe (temp)",
+  "@cap27L1StallProbeSectionTitle": {
+    "description": "TEMP Cap 27 Debt 468 probe section title — remove after fix"
+  },
+  "cap27L1StallProbeBlurb": "Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.",
+  "@cap27L1StallProbeBlurb": {
+    "description": "TEMP Cap 27 Debt 468 probe instructions"
+  },
+  "cap27L1StallProbeMarkStuck": "Mark stuck (L1 stall now)",
+  "@cap27L1StallProbeMarkStuck": {
+    "description": "TEMP Cap 27 Debt 468 — owner marks stuck snapshot"
+  },
+  "cap27L1StallProbeMarkHealed": "Mark healed (after swipe back)",
+  "@cap27L1StallProbeMarkHealed": {
+    "description": "TEMP Cap 27 Debt 468 — owner marks heal snapshot"
   },
   "mainBrowseVideoTapToPlay": "Play video",
   "@mainBrowseVideoTapToPlay": {

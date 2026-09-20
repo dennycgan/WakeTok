@@ -501,13 +501,38 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseNavBrowse => 'Browse';
 
   @override
-  String get mainBrowseNavClips => 'Clips';
-
-  @override
-  String get mainBrowseNavAuto => 'Auto';
-
-  @override
   String get mainBrowseNavSettings => 'Settings';
+
+  @override
+  String get mainBrowseOrderNewest => 'New first';
+
+  @override
+  String get mainBrowseOrderOldest => 'Old first';
+
+  @override
+  String get mainBrowseOrderShuffle => 'Shuffle';
+
+  @override
+  String get mainBrowseOrderSlotSemantics =>
+      'Play order. Opens play order options.';
+
+  @override
+  String get mainBrowseOrderSheetTitle => 'Play Order';
+
+  @override
+  String get mainBrowseOrderSheetNewest => 'Newest → Oldest';
+
+  @override
+  String get mainBrowseOrderSheetOldest => 'Oldest → Newest';
+
+  @override
+  String get mainBrowseOrderSheetShuffle => 'Shuffle';
+
+  @override
+  String get mainBrowseOrderSheetConfirm => 'Confirm';
+
+  @override
+  String get mainBrowseOrderSheetCancel => 'Cancel';
 
   @override
   String get mainBrowseFeedPlaceholder => 'Feed arrives in a later step.';
@@ -559,18 +584,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseMagnificationReset => 'Reset';
 
   @override
-  String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';
-
-  @override
-  String get mainBrowseStubAutoBody =>
-      'Auto-play — coming in a later capability.';
-
-  @override
   String get mainBrowseStubSettingsBody =>
       'Settings — coming in a later capability.';
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
+
+  @override
+  String get cap27L1StallProbeSectionTitle => 'L1-stall probe (temp)';
+
+  @override
+  String get cap27L1StallProbeBlurb =>
+      'Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.';
+
+  @override
+  String get cap27L1StallProbeMarkStuck => 'Mark stuck (L1 stall now)';
+
+  @override
+  String get cap27L1StallProbeMarkHealed => 'Mark healed (after swipe back)';
 
   @override
   String get mainBrowseVideoTapToPlay => 'Play video';
@@ -1357,13 +1388,37 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseNavBrowse => '浏览';
 
   @override
-  String get mainBrowseNavClips => '切片';
-
-  @override
-  String get mainBrowseNavAuto => '自动播放';
-
-  @override
   String get mainBrowseNavSettings => '设置';
+
+  @override
+  String get mainBrowseOrderNewest => '新→旧';
+
+  @override
+  String get mainBrowseOrderOldest => '旧→新';
+
+  @override
+  String get mainBrowseOrderShuffle => '随机';
+
+  @override
+  String get mainBrowseOrderSlotSemantics => '播放顺序。点击打开播放顺序选项。';
+
+  @override
+  String get mainBrowseOrderSheetTitle => '播放顺序';
+
+  @override
+  String get mainBrowseOrderSheetNewest => '新到旧';
+
+  @override
+  String get mainBrowseOrderSheetOldest => '旧到新';
+
+  @override
+  String get mainBrowseOrderSheetShuffle => '随机';
+
+  @override
+  String get mainBrowseOrderSheetConfirm => '确认';
+
+  @override
+  String get mainBrowseOrderSheetCancel => '取消';
 
   @override
   String get mainBrowseFeedPlaceholder => '信息流将在后续步骤加入。';
@@ -1414,16 +1469,23 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseMagnificationReset => '还原';
 
   @override
-  String get mainBrowseStubClipsBody => '切片 — 将在后续能力提供。';
-
-  @override
-  String get mainBrowseStubAutoBody => '自动播放 — 将在后续能力提供。';
-
-  @override
   String get mainBrowseStubSettingsBody => '设置 — 将在后续能力提供。';
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => '图库调试（debug）';
+
+  @override
+  String get cap27L1StallProbeSectionTitle => 'L1卡住探测（临时）';
+
+  @override
+  String get cap27L1StallProbeBlurb =>
+      '写入 Documents/cap27_l1_stall_probe.log。刷完一轮卡在 Layer1 时：点「标记卡住」→ 滑走再滑回 → 点「标记已恢复」。';
+
+  @override
+  String get cap27L1StallProbeMarkStuck => '标记卡住（当前 L1）';
+
+  @override
+  String get cap27L1StallProbeMarkHealed => '标记已恢复（滑回后）';
 
   @override
   String get mainBrowseVideoTapToPlay => '播放视频';

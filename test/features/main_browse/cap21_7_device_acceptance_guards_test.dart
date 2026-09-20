@@ -65,13 +65,13 @@ void main() {
 
         // Production leave path: bottom-nav destination change (not a
         // hand-written chrome clear). Triggers restartSession per ADR-027.
-        await tester.tap(find.text(l10n.mainBrowseNavClips));
+        await tester.tap(find.text(l10n.mainBrowseNavSettings));
         await tester.pumpAndSettle();
         expect(
           container.read(mainBrowseDestinationProvider),
-          MainBrowseDestination.clips,
+          MainBrowseDestination.settings,
         );
-        expect(find.text(l10n.mainBrowseStubClipsBody), findsOneWidget);
+        expect(find.text(l10n.cap19SettingsGesturesSectionTitle), findsOneWidget);
 
         // IndexedStack keeps Browse pane mounted offstage — assert chrome
         // state only while away (not chip Finder visibility).

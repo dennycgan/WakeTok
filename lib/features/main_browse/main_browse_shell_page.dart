@@ -12,13 +12,16 @@ import 'package:waketok/features/main_browse/cap25_share_entry_icon.dart';
 import 'package:waketok/features/main_browse/browse_notifications_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
+import 'package:waketok/features/main_browse/cap27_l1_stall_probe_settings.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/order_control_half_sheet.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 7.4 Main Browse chrome shell + Cap 7.5 vertical Media Feed (ADR-014).
-/// Cap 8.2: immersive forced-dark for Browse/Clips/Auto content. Cap 8.2
-/// revision (ADR-016): transparent floating top chrome + compact bar.
+/// Cap 8.2: immersive forced-dark for Browse content. Cap 8.2 revision
+/// (ADR-016): transparent floating top chrome + compact bar.
+/// Cap 27.4 / ADR-055: bottom bar is Browse | Order action | Settings.
 /// Bottom bar is always dark (even on Settings) so on-media label colors stay
 /// legible — Settings *pane* still follows Appearance.
 class MainBrowseShellPage extends ConsumerWidget {
@@ -35,7 +38,6 @@ class MainBrowseShellPage extends ConsumerWidget {
 
     final destination = ref.watch(mainBrowseDestinationProvider);
     final immersiveContent = destination != MainBrowseDestination.settings;
-    final l10n = AppLocalizations.of(context)!;
     final ambientTheme = Theme.of(context);
 
     // Always wrap IndexedStack in immersive dark Theme. Do not restore a
@@ -50,14 +52,6 @@ class MainBrowseShellPage extends ConsumerWidget {
         sizing: StackFit.expand,
         children: [
           const _BrowsePane(),
-          _StubPane(
-            title: l10n.mainBrowseNavClips,
-            body: l10n.mainBrowseStubClipsBody,
-          ),
-          _StubPane(
-            title: l10n.mainBrowseNavAuto,
-            body: l10n.mainBrowseStubAutoBody,
-          ),
           Theme(
             data: ambientTheme,
             child: _SettingsStubPane(access: access),
@@ -130,7 +124,7 @@ class _BrowsePane extends ConsumerWidget {
   }
 }
 
-class _MainBrowseBottomBar extends StatelessWidget {
+class _MainBrowseBottomBar extends ConsumerWidget {
   const _MainBrowseBottomBar({
     required this.selected,
     required this.onSelect,
@@ -140,47 +134,22 @@ class _MainBrowseBottomBar extends StatelessWidget {
   final ValueChanged<MainBrowseDestination> onSelect;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    // Match top source chrome label size/weight (labelOnMedia 12 / w600);
-    // keep compact height for the icon+label strip.
     final labelStyle = tokens.labelOnMedia.copyWith(height: 1.0);
-
+    final preference = ref.watch(browseOrderPreferenceProvider);
+    final effective = effectiveBrowseOrderPolicy(preference);
+    final orderLabel = orderPolicySlotLabel(l10n, effective);
 
     // Do not use Material 3 [NavigationBar]: its SafeArea lives *inside*
     // Material, so height+Home Indicator paints a tall grey block even when
     // MediaQuery.removePadding is applied (and Profile rebuilds can still
     // look unchanged). Custom row = one icon+label strip; same surface
     // extends under the Home Indicator only.
-    final destinations = <(MainBrowseDestination, IconData, IconData, String)>[
-      (
-        MainBrowseDestination.browse,
-        Icons.home_outlined,
-        Icons.home,
-        l10n.mainBrowseNavBrowse,
-      ),
-      (
-        MainBrowseDestination.clips,
-        Icons.movie_outlined,
-        Icons.movie,
-        l10n.mainBrowseNavClips,
-      ),
-      (
-        MainBrowseDestination.auto,
-        Icons.play_circle_outline,
-        Icons.play_circle,
-        l10n.mainBrowseNavAuto,
-      ),
-      (
-        MainBrowseDestination.settings,
-        Icons.settings_outlined,
-        Icons.settings,
-        l10n.mainBrowseNavSettings,
-      ),
-    ];
-
+    // Cap 27.4: reserve two-line height for the order action cell; v1 draws
+    // one line of order label (+ expand affordance in the icon slot).
     return Material(
       key: const Key('mainBrowseNavigationBar'),
       color: tokens.surface,
@@ -192,19 +161,39 @@ class _MainBrowseBottomBar extends StatelessWidget {
             height: tokens.immersiveBottomBarHeight,
             child: Row(
               children: [
-                for (final entry in destinations)
-                  Expanded(
-                    child: _BottomNavCell(
-                      selected: selected == entry.$1,
-                      outlinedIcon: entry.$2,
-                      filledIcon: entry.$3,
-                      label: entry.$4,
-                      labelStyle: labelStyle,
-                      accent: tokens.accent,
-                      onMediaMuted: tokens.onMediaMuted,
-                      onTap: () => onSelect(entry.$1),
-                    ),
+                Expanded(
+                  child: _BottomNavCell(
+                    selected: selected == MainBrowseDestination.browse,
+                    outlinedIcon: Icons.home_outlined,
+                    filledIcon: Icons.home,
+                    label: l10n.mainBrowseNavBrowse,
+                    labelStyle: labelStyle,
+                    accent: tokens.accent,
+                    onMediaMuted: tokens.onMediaMuted,
+                    onTap: () => onSelect(MainBrowseDestination.browse),
                   ),
+                ),
+                Expanded(
+                  child: _OrderActionCell(
+                    label: orderLabel,
+                    labelStyle: labelStyle,
+                    onMediaMuted: tokens.onMediaMuted,
+                    semanticsLabel: l10n.mainBrowseOrderSlotSemantics,
+                    onTap: () => showOrderControlHalfSheet(context),
+                  ),
+                ),
+                Expanded(
+                  child: _BottomNavCell(
+                    selected: selected == MainBrowseDestination.settings,
+                    outlinedIcon: Icons.settings_outlined,
+                    filledIcon: Icons.settings,
+                    label: l10n.mainBrowseNavSettings,
+                    labelStyle: labelStyle,
+                    accent: tokens.accent,
+                    onMediaMuted: tokens.onMediaMuted,
+                    onTap: () => onSelect(MainBrowseDestination.settings),
+                  ),
+                ),
               ],
             ),
           ),
@@ -273,30 +262,60 @@ class _BottomNavCell extends StatelessWidget {
   }
 }
 
-class _StubPane extends StatelessWidget {
-  const _StubPane({required this.title, required this.body});
+/// Cap 27.4 action slot — no selected tint; does not call destination select.
+class _OrderActionCell extends StatelessWidget {
+  const _OrderActionCell({
+    required this.label,
+    required this.labelStyle,
+    required this.onMediaMuted,
+    required this.semanticsLabel,
+    required this.onTap,
+  });
 
-  final String title;
-  final String body;
+  final String label;
+  final TextStyle labelStyle;
+  final Color onMediaMuted;
+  final String semanticsLabel;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+    return Semantics(
+      key: const Key('mainBrowseOrderActionSlot'),
+      button: true,
+      label: semanticsLabel,
+      child: InkWell(
+        onTap: onTap,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              title,
-              style: tokens.titleChrome,
+            Icon(
+              Icons.swap_vert,
+              size: 22,
+              color: onMediaMuted,
             ),
-            const SizedBox(height: 12),
-            Text(
-              body,
-              style: tokens.bodyChrome.copyWith(color: tokens.onSurface),
+            const SizedBox(height: 2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: labelStyle.copyWith(color: onMediaMuted),
+                    ),
+                    Icon(
+                      Icons.expand_less,
+                      size: 16,
+                      color: onMediaMuted,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
@@ -339,9 +358,13 @@ class _SettingsStubPane extends StatelessWidget {
               child: Text(l10n.mainBrowseOpenLibrarySmokeDebug),
             ),
           ],
+          // After library-smoke debug (tests find that key without scrolling).
+          if (!kReleaseMode) ...[
+            const SizedBox(height: 28),
+            const Cap27L1StallProbeSettingsSection(),
+          ],
         ],
       ),
     );
   }
 }
-

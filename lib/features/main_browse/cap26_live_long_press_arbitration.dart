@@ -45,6 +45,7 @@ bool shouldArmLiveLongPress({
   required bool stillPinchContact,
   bool cap19PanelOpen = false,
   bool cap24MorePanelOpen = false,
+  bool orderControlPanelOpen = false,
 }) {
   if (!isCurrent || !isLiveStill) {
     return false;
@@ -55,7 +56,7 @@ bool shouldArmLiveLongPress({
   if (isCurrentStillMagnified || transientPinchActive || stillPinchContact) {
     return false;
   }
-  if (cap19PanelOpen || cap24MorePanelOpen) {
+  if (cap19PanelOpen || cap24MorePanelOpen || orderControlPanelOpen) {
     return false;
   }
   return true;
@@ -74,8 +75,12 @@ bool shouldMountLiveLongPressListener({
   required bool isCurrent,
   bool cap19PanelOpen = false,
   bool cap24MorePanelOpen = false,
+  bool orderControlPanelOpen = false,
 }) {
-  if (!isCurrent || cap19PanelOpen || cap24MorePanelOpen) {
+  if (!isCurrent ||
+      cap19PanelOpen ||
+      cap24MorePanelOpen ||
+      orderControlPanelOpen) {
     return false;
   }
   return mayFire || holdingAfterFire;

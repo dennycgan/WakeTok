@@ -46,6 +46,7 @@ bool leftSwipeArmingAllowed({
   required bool currentAssetMediaCoverVisible,
   bool transientPinchActive = false,
   bool stillPinchContact = false,
+  bool orderControlPanelOpen = false,
 }) {
   if (!leftSwipeAddEnabled) {
     return false;
@@ -58,7 +59,7 @@ bool leftSwipeArmingAllowed({
   if (transientPinchActive || stillPinchContact) {
     return false;
   }
-  if (cap19PanelOpen) {
+  if (cap19PanelOpen || orderControlPanelOpen) {
     return false;
   }
   if (!currentAssetActionable) {

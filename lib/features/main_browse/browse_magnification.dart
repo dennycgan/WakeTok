@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/magnification_arbitration.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/order_control_panel_open.dart';
 
 /// Cap 20 session-scoped magnification runtime state (ADR-043).
 @immutable
@@ -74,6 +75,9 @@ class BrowseMagnificationNotifier extends Notifier<BrowseMagnificationState> {
   @override
   BrowseMagnificationState build() {
     ref.listen<bool>(cap19ActionsPanelOpenProvider, (previous, next) {
+      onActionsPanelOpenChanged(next);
+    });
+    ref.listen<bool>(orderControlPanelOpenProvider, (previous, next) {
       onActionsPanelOpenChanged(next);
     });
     return const BrowseMagnificationState();

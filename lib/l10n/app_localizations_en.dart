@@ -504,13 +504,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseNavBrowse => 'Browse';
 
   @override
-  String get mainBrowseNavClips => 'Clips';
-
-  @override
-  String get mainBrowseNavAuto => 'Auto';
-
-  @override
   String get mainBrowseNavSettings => 'Settings';
+
+  @override
+  String get mainBrowseOrderNewest => 'New first';
+
+  @override
+  String get mainBrowseOrderOldest => 'Old first';
+
+  @override
+  String get mainBrowseOrderShuffle => 'Shuffle';
+
+  @override
+  String get mainBrowseOrderSlotSemantics =>
+      'Play order. Opens play order options.';
+
+  @override
+  String get mainBrowseOrderSheetTitle => 'Play Order';
+
+  @override
+  String get mainBrowseOrderSheetNewest => 'Newest → Oldest';
+
+  @override
+  String get mainBrowseOrderSheetOldest => 'Oldest → Newest';
+
+  @override
+  String get mainBrowseOrderSheetShuffle => 'Shuffle';
+
+  @override
+  String get mainBrowseOrderSheetConfirm => 'Confirm';
+
+  @override
+  String get mainBrowseOrderSheetCancel => 'Cancel';
 
   @override
   String get mainBrowseFeedPlaceholder => 'Feed arrives in a later step.';
@@ -562,18 +587,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseMagnificationReset => 'Reset';
 
   @override
-  String get mainBrowseStubClipsBody => 'Clips — coming in a later capability.';
-
-  @override
-  String get mainBrowseStubAutoBody =>
-      'Auto-play — coming in a later capability.';
-
-  @override
   String get mainBrowseStubSettingsBody =>
       'Settings — coming in a later capability.';
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
+
+  @override
+  String get cap27L1StallProbeSectionTitle => 'L1-stall probe (temp)';
+
+  @override
+  String get cap27L1StallProbeBlurb =>
+      'Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.';
+
+  @override
+  String get cap27L1StallProbeMarkStuck => 'Mark stuck (L1 stall now)';
+
+  @override
+  String get cap27L1StallProbeMarkHealed => 'Mark healed (after swipe back)';
 
   @override
   String get mainBrowseVideoTapToPlay => 'Play video';

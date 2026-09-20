@@ -47,7 +47,9 @@ export 'package:waketok/app/saved_pool_providers.dart'
     show savedPoolRepositoryProvider, savedPoolRecordsProvider;
 
 /// Bottom destinations for the Main Browse shell.
-enum MainBrowseDestination { browse, clips, auto, settings }
+/// Cap 27.4 / ADR-055: Browse + Settings only. Order is an action slot, not
+/// a destination (does not call [MainBrowseDestinationNotifier.select]).
+enum MainBrowseDestination { browse, settings }
 
 final mainBrowseDestinationProvider =
     NotifierProvider<MainBrowseDestinationNotifier, MainBrowseDestination>(
@@ -60,11 +62,12 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
 
   /// Bottom-nav destination change.
   ///
-  /// Cap 14.4e / ADR-027: leaving Browse (→ Settings / Clips / Auto) ends the
+  /// Cap 14.4e / ADR-027 (Cap 27.4 narrow): leaving Browse → Settings ends the
   /// current Consumption Session. Order is intentional — destination first so
   /// `browseActive` is already false before session/index reset (avoids a
   /// half-new Session while still current). App background / lock never calls
-  /// this method, so those paths do not reset.
+  /// this method, so those paths do not reset. Opening the order-control
+  /// sheet must not call this method.
   void select(MainBrowseDestination next) {
     final leavingBrowse =
         state == MainBrowseDestination.browse &&

@@ -43,6 +43,8 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_gesture.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/cap24_more_panel_open.dart';
+import 'package:waketok/features/main_browse/cap27_l1_stall_probe.dart';
+import 'package:waketok/features/main_browse/order_control_panel_open.dart';
 import 'package:waketok/features/main_browse/cap26_live_long_press_arbitration.dart';
 import 'package:waketok/features/main_browse/cap26_live_long_press_gesture.dart';
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
@@ -99,6 +101,11 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   /// [PageController.initialPage] is fixed at construction; reusing the
   /// old controller after a new PageView key would flash page 0.
   int? _pageControllerEpoch;
+  /// Cap 27.4 A: prefer Host over Session L2-ready for the born-current head
+  /// on the first build after a roundEpoch PageView remount only. Cleared
+  /// post-frame so later PageView recycle births keep Cap 15.10 L2-ready
+  /// (W-15.10a).
+  bool _epochRemountPreferHostL2 = false;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
   bool _advancingRound = false;
@@ -379,6 +386,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final previous = _pageController;
     _pageControllerEpoch = roundEpoch;
     _pageController = PageController(initialPage: initialPage);
+    // Cap 27.4 A: mark remount until the first post-frame so MediaFeedPage
+    // born current on this rebuild skips Session L2-ready.
+    _epochRemountPreferHostL2 = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _epochRemountPreferHostL2 = false;
+    });
     if (previous != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         previous.dispose();
@@ -505,6 +521,18 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final cached = _overlayCache[assetId];
     _activeAssetId = assetId;
     _activeDisplayGeneration = gens.display;
+    unawaited(
+      Cap27L1StallProbe.log('BEGIN_CURRENT_ACTIVATION', {
+        'source': source,
+        'assetId': assetId,
+        'displayGen': gens.display,
+        'metadataGen': gens.metadata,
+        'feedIndex': ref.read(mainBrowseFeedIndexProvider),
+        'roundEpoch':
+            ref.read(browseSessionProvider).asData?.value.roundEpoch,
+        'l2Ready': ref.read(browseL2ReadySessionProvider).containsKey(assetId),
+      }),
+    );
     _overlaySnapshot =
         cached ?? PresentationOverlaySnapshot(assetIdentifier: assetId);
     // Hydrate shared size from private cache when provider has no entry yet
@@ -651,10 +679,38 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     _advancingRound = true;
     _endlessPlaceholderArmed = false;
     final remountGen = ++_roundAdvanceGen;
+    final view = ref.read(browseSessionProvider).asData?.value;
+    final headId = view?.orderedAssetIds.isNotEmpty == true
+        ? view!.orderedAssetIds.first
+        : null;
+    unawaited(
+      Cap27L1StallProbe.log('ENDLESS_ADVANCE_UI_BEGIN', {
+        'remountGen': remountGen,
+        'roundEpoch': view?.roundEpoch,
+        'orderPolicy': view?.session.queue.configuration.orderPolicy.name,
+        'feedIndex': ref.read(mainBrowseFeedIndexProvider),
+        'activeAssetId': _activeAssetId,
+        'activeDisplayGen': _activeDisplayGeneration,
+        'headId': headId,
+        'l2ReadyHead': headId == null
+            ? null
+            : ref.read(browseL2ReadySessionProvider).containsKey(headId),
+      }),
+    );
     _clearCap19LeftSwipeBeforeFeedRemount();
     unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
     ref.read(browseSessionProvider.notifier).advanceToNextRound();
     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+    unawaited(
+      Cap27L1StallProbe.log('ENDLESS_ADVANCE_SET_INDEX_0', {
+        'remountGen': remountGen,
+        'roundEpoch':
+            ref.read(browseSessionProvider).asData?.value.roundEpoch,
+        'feedIndex': ref.read(mainBrowseFeedIndexProvider),
+        'activeAssetId': _activeAssetId,
+        'activeDisplayGen': _activeDisplayGeneration,
+      }),
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || remountGen != _roundAdvanceGen) {
         return;
@@ -664,6 +720,17 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
         controller.jumpToPage(0);
       }
       _advancingRound = false;
+      unawaited(
+        Cap27L1StallProbe.log('ENDLESS_ADVANCE_JUMP0_DONE', {
+          'remountGen': remountGen,
+          'roundEpoch':
+              ref.read(browseSessionProvider).asData?.value.roundEpoch,
+          'feedIndex': ref.read(mainBrowseFeedIndexProvider),
+          'activeAssetId': _activeAssetId,
+          'activeDisplayGen': _activeDisplayGeneration,
+          'page': controller?.hasClients == true ? controller!.page : null,
+        }),
+      );
       unawaited(
         _showNewRoundToastAfterAdvance(
           l10n: l10n,
@@ -1230,6 +1297,8 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                           : null,
                       initialLayer1: _layer1Seeds[ids[index]],
                       onLayer1Available: _noteLayer1Seed,
+                      preferHostOverSessionL2Ready:
+                          isCurrent && _epochRemountPreferHostL2,
                     );
                   },
                 ),
@@ -1372,6 +1441,7 @@ class MediaFeedPage extends ConsumerStatefulWidget {
     this.onCurrentLayer2MediaReady,
     this.initialLayer1,
     this.onLayer1Available,
+    this.preferHostOverSessionL2Ready = false,
   });
 
   final String assetIdentifier;
@@ -1408,6 +1478,10 @@ class MediaFeedPage extends ConsumerStatefulWidget {
 
   /// Notifies parent when a still (or video poster) Layer 1 is available.
   final void Function(String assetId, FeedPageMedia media)? onLayer1Available;
+
+  /// Cap 27.4 A: roundEpoch PageView remount head — skip Session L2-ready,
+  /// take Host. False for swipe become-current / recycle births.
+  final bool preferHostOverSessionL2Ready;
 
   static const String playbackViewType = 'waketok/playback_surface';
   static const String livePhotoViewType = 'waketok/live_photo_surface';
@@ -1508,7 +1582,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 26.4a: same-page still (incl. Live static) L1→L2 cover upgrade keeps
   /// ready so Meta Overlay is not torn down while Cap 15.5 gaplessPlayback
   /// holds the prior frame — see layout notes §13.
+  ///
+  /// Cap 27.4 remount Host APPLY sets [_forceStillCoverHardReload] so keep-ready
+  /// cannot stick a Cap 22.5 / All-tab L1 soft frame after [LAYER2_APPLY].
   void _trackStillCoverPath(String? path, {bool clearBroken = true}) {
+    if (_forceStillCoverHardReload) {
+      _forceStillCoverHardReload = false;
+      _stillCoverHardReloadEpoch++;
+      _stillCoverTrackedPath = path;
+      _stillCoverReady = false;
+      if (clearBroken) {
+        _stillCoverDecodeBroken = false;
+      }
+      return;
+    }
     if (path != _stillCoverTrackedPath) {
       final keepReadyAcrossStillCoverUpgrade = path != null &&
           _stillCoverTrackedPath != null &&
@@ -2543,9 +2630,24 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     return DateTime.now().difference(armedAt);
   }
 
+  /// Cap 27.4 A: one-shot from [MediaFeedPage.preferHostOverSessionL2Ready]
+  /// (roundEpoch remount head). Cleared after the first [_startLoad] so a
+  /// later swipe leave→become-current on the same [State] keeps Cap 15.10.
+  bool _preferHostOverSessionL2ReadyOnce = false;
+
+  /// After remount Host APPLY: force still cover Image reload (no Cap 26.4a
+  /// keep-ready / gapless stick on the Cap 22.5 / All-tab L1 soft frame).
+  bool _forceStillCoverHardReload = false;
+  int _stillCoverHardReloadEpoch = 0;
+
+  /// Cap 27.4: remount prefer-Host — skip painting All-tab L1 preview before
+  /// Host L2 (device-local path otherwise requestPreview→soft then APPLY).
+  bool _skipLayer1PaintForRemountHost = false;
+
   @override
   void initState() {
     super.initState();
+    _preferHostOverSessionL2ReadyOnce = widget.preferHostOverSessionL2Ready;
     _lastLifecycle = WidgetsBinding.instance.lifecycleState;
     WidgetsBinding.instance.addObserver(this);
     _armInitialLayer1CenterLabelDelay();
@@ -2554,8 +2656,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
     final seed = widget.initialLayer1;
     final seedDisplay = seed?.display;
+    // Cap 27.4: remount head that will Host-load must not paint Cap 22.5 L1
+    // seed — gaplessPlayback + Cap 26.4a keep-ready can stick the soft frame
+    // after LAYER2_APPLY (device soak: SKIP+APPLY yet owner still saw L1).
     if (seedDisplay != null &&
-        seedDisplay.assetIdentifier == widget.assetIdentifier) {
+        seedDisplay.assetIdentifier == widget.assetIdentifier &&
+        !widget.preferHostOverSessionL2Ready) {
       // Cap 22.5: remount with prior still/poster so round-head does not
       // flash bare feedBackground between peek L1 and L2.
       _media = seed;
@@ -2713,6 +2819,20 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _maybeSyncForegroundResumePlayback(oldWidget.foregroundResumeSyncEpoch);
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
     if (!oldWidget.isCurrent && widget.isCurrent) {
+      unawaited(
+        Cap27L1StallProbe.log('BECOME_CURRENT', {
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': widget.assignedDisplayGeneration,
+          'loading': _loading,
+          'mediaKind': _media?.kind.name,
+          'surfaceReady': _surfaceReady,
+          'layer2InFlight': _layer2InFlight,
+          'l2ReadyToken': ref
+              .read(browseL2ReadySessionProvider)
+              .containsKey(widget.assetIdentifier),
+        }),
+      );
       _armLayer2DwellTimer();
       final gen = widget.assignedDisplayGeneration;
       if (gen != null) {
@@ -2742,6 +2862,23 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     // isCurrent becomes false). Otherwise video→still / video→iCloud never
     // pause because _startLoad runs and skips the isCurrent-only branch.
     if (leftCurrent) {
+      unawaited(
+        Cap27L1StallProbe.log('LEAVE_CURRENT', {
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': oldWidget.assignedDisplayGeneration,
+          'loading': _loading,
+          'mediaKind': _media?.kind.name,
+          'displayLayer': _media?.displayLayer?.name,
+          'coverPath': _media?.display?.localFilePath,
+          'stillCoverReady': _stillCoverReady,
+          'surfaceReady': _surfaceReady,
+          'layer2InFlight': _layer2InFlight,
+          'l2ReadyToken': ref
+              .read(browseL2ReadySessionProvider)
+              .containsKey(widget.assetIdentifier),
+        }),
+      );
       _cancelLiveEndedWatchdog();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted || widget.isCurrent) {
@@ -3686,8 +3823,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Layer 1 took longer than N). [dwell] defaults to production 300 ms;
   /// Cap 15.12 first-visit fast path passes [browseLocalFirstVisitDwellProvider].
   void _armLayer2DwellTimer({Duration? dwellDuration}) {
-    _cancelLayer2DwellTimer();
+    _cancelLayer2DwellTimer(reason: 'rearm');
     final Duration n = dwellDuration ?? ref.read(browseLayer2DwellProvider);
+    unawaited(
+      Cap27L1StallProbe.log('DWELL_ARM', {
+        'assetId': widget.assetIdentifier,
+        'feedIndex': widget.feedIndex,
+        'isCurrent': widget.isCurrent,
+        'ms': n.inMilliseconds,
+        'assignedGen': widget.assignedDisplayGeneration,
+      }),
+    );
     if (n <= Duration.zero) {
       _layer2DwellCompleter = Completer<void>()..complete();
       return;
@@ -3699,16 +3845,35 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (!done.isCompleted) {
         done.complete();
       }
+      unawaited(
+        Cap27L1StallProbe.log('DWELL_COMPLETE', {
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': widget.assignedDisplayGeneration,
+        }),
+      );
     });
   }
 
-  void _cancelLayer2DwellTimer() {
+  void _cancelLayer2DwellTimer({String reason = 'cancel'}) {
+    final had = _layer2DwellTimer != null || _layer2DwellCompleter != null;
     _layer2DwellTimer?.cancel();
     _layer2DwellTimer = null;
     final pending = _layer2DwellCompleter;
     _layer2DwellCompleter = null;
     if (pending != null && !pending.isCompleted) {
       pending.complete();
+    }
+    if (had) {
+      unawaited(
+        Cap27L1StallProbe.log('DWELL_CANCEL', {
+          'reason': reason,
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'isCurrent': widget.isCurrent,
+          'assignedGen': widget.assignedDisplayGeneration,
+        }),
+      );
     }
   }
 
@@ -3902,6 +4067,18 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             _media?.display != null &&
             _media!.display!.assetIdentifier == widget.assetIdentifier;
         if (reuseLayer1) {
+          unawaited(
+            Cap27L1StallProbe.log('START_LOAD_EARLY_RETURN', {
+              'reason': 'gate_null_reuseLayer1',
+              'assetId': widget.assetIdentifier,
+              'feedIndex': widget.feedIndex,
+              'isCurrent': widget.isCurrent,
+              'assignedGen': assigned,
+              'hasGate': shared != null,
+              'mediaKind': _media?.kind.name,
+              'loading': _loading,
+            }),
+          );
           return;
         }
         final liveGeneration = _liveMotionGate.begin();
@@ -3921,6 +4098,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           }
         });
         _setLivePreparing(liveGeneration, false);
+        unawaited(
+          Cap27L1StallProbe.log('START_LOAD_EARLY_RETURN', {
+            'reason': 'gate_null_loading_wait',
+            'assetId': widget.assetIdentifier,
+            'feedIndex': widget.feedIndex,
+            'isCurrent': widget.isCurrent,
+            'assignedGen': assigned,
+            'hasGate': shared != null,
+            'l2ReadyToken': sessionTok != null,
+          }),
+        );
         return;
       }
       gate = shared;
@@ -3969,7 +4157,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       }
       // After Case B, skip Session L2-ready even if a token reappears — force
       // Host path so a Photos restore is observed.
-      if (!forceFullAfterHostUnavailable) {
+      // Cap 27.4 / debt 468: roundEpoch PageView remount head skips Session
+      // L2-ready once and takes Host (Confirm + Endless same_list_to_0).
+      // Swipe become-current keeps Cap 15.10 L2-ready.
+      final preferHostOverSessionL2Ready = _preferHostOverSessionL2ReadyOnce;
+      _preferHostOverSessionL2ReadyOnce = false;
+      if (!forceFullAfterHostUnavailable && !preferHostOverSessionL2Ready) {
         final l2Ready = await ref
             .read(browseL2ReadySessionProvider.notifier)
             .lookupIfCoverOnDisk(widget.assetIdentifier);
@@ -3980,14 +4173,49 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             _layer2WaitPath = l2Ready.kind == FeedL2ReadyKind.video
                 ? WaitChromePathClass.a4L2ReadyEvict
                 : WaitChromePathClass.a3L2ReadyHit;
-            await _startLoadFromL2Ready(
+            final applied = await _startLoadFromL2Ready(
               l2Ready: l2Ready,
               gate: gate!,
               generation: generation!,
             );
+            if (applied) {
+              return;
+            }
+            // Swipe become-current: preserve Cap 15 early-return on abandon.
+            // Remount head never enters this branch (A skips ENTER); Host is
+            // taken via [L2_READY_SKIP_BORN_CURRENT] instead.
             return;
           }
+        } else if (hadSessionToken) {
+          // Token present but cover missing / evicted — Host path follows.
+          unawaited(
+            Cap27L1StallProbe.log('L2_READY_MISS', {
+              'assetId': widget.assetIdentifier,
+              'feedIndex': widget.feedIndex,
+              'assignedGen': generation,
+              'reason': 'cover_missing_or_evicted',
+            }),
+          );
         }
+      } else if (!forceFullAfterHostUnavailable &&
+          preferHostOverSessionL2Ready) {
+        // Remount Host (Confirm / Endless / order→shuffle): always skip
+        // All-tab L1 soft paint + hard-reload cover on APPLY — including
+        // heads with no Session token (shuffle lands on a never-visited id).
+        // Gating on hadSessionToken left those heads on sticky L1 (owner soak).
+        _forceStillCoverHardReload = true;
+        _skipLayer1PaintForRemountHost = true;
+        unawaited(
+          Cap27L1StallProbe.log('L2_READY_SKIP_BORN_CURRENT', {
+            'assetId': widget.assetIdentifier,
+            'feedIndex': widget.feedIndex,
+            'assignedGen': generation,
+            'reason': hadSessionToken
+                ? 'epoch_remount_prefer_host'
+                : 'epoch_remount_prefer_host_no_token',
+            'hadSessionToken': hadSessionToken,
+          }),
+        );
       }
 
       // Cover missing after Session token → a4 eviction revisit band.
@@ -4080,6 +4308,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _media?.display != null &&
         _media!.display!.assetIdentifier == widget.assetIdentifier;
     if (reuseLayer1) {
+      // Remount Host took reuseLayer1 (seeded cover) — not device-local;
+      // drop the skip-L1-paint latch (hard-reload flag still covers APPLY).
+      _skipLayer1PaintForRemountHost = false;
       await Future<void>.value();
       if (!mounted || !widget.isCurrent) {
         return;
@@ -4312,9 +4543,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _displayRepo = displayRepo;
 
     FeedPageMedia? layer1;
+    // Cap 27.4 remount Host: do not requestPreview→paint soft before L2.
+    // Soft→full + Cap 26.4a keep-ready stuck L1 on device (SKIP+APPLY, LEAVE
+    // still seedLayer=preview until swipe Session heal).
+    final skipLayer1Paint = _skipLayer1PaintForRemountHost;
+    if (skipLayer1Paint) {
+      _skipLayer1PaintForRemountHost = false;
+    }
     final loadPoster =
-        widget.sourceKind == AssetSourceKind.mediaTypeVideos ||
-        widget.sourceKind == AssetSourceKind.entireLibrary;
+        !skipLayer1Paint &&
+        (widget.sourceKind == AssetSourceKind.mediaTypeVideos ||
+            widget.sourceKind == AssetSourceKind.entireLibrary);
     if (loadPoster) {
       if (canReuseCover) {
         // Skip second requestPreview (decision 1A). Mirror post-L1 branching
@@ -4442,6 +4681,23 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       });
       return;
     }
+    unawaited(
+      Cap27L1StallProbe.log('LAYER2_APPLY', {
+        'assetId': widget.assetIdentifier,
+        'feedIndex': widget.feedIndex,
+        'kind': layer2.kind.name,
+        'assignedGen': generation,
+        'loading': _loading,
+        'priorDisplayLayer': _media?.displayLayer?.name,
+        'displayLayer': layer2.displayLayer?.name,
+        'coverPath': layer2.display?.localFilePath,
+        'stillCoverReady': _stillCoverReady,
+        'hardReloadPending': _forceStillCoverHardReload,
+        'l2ReadyToken': ref
+            .read(browseL2ReadySessionProvider)
+            .containsKey(widget.assetIdentifier),
+      }),
+    );
     if (layer2.kind == FeedPageMediaKind.failed) {
       // Revisit model: if Photos says not still-in-library, never leave the
       // page on Case A (generic + Retry + actionable). Coerce to Cap 21.6 B.
@@ -4612,11 +4868,33 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
   /// Cap 15.10: Session L2-ready fast path — skip L1 (+ dwell); still shows
   /// sharp; video keeps poster until [onSurfaceReady].
-  Future<void> _startLoadFromL2Ready({
+  ///
+  /// Still success paints Session cover via [FeedDisplayLayer.full] here and
+  /// does **not** call [_applyLayer2Result] / Host L2 — probe that as
+  /// [L2_READY_APPLY], not [LAYER2_APPLY].
+  ///
+  /// Returns `true` when the fast path finished (still painted or video Host
+  /// apply attempted). Returns `false` on abandon / null-cover dead-end so a
+  /// **born-current** caller may fall through to Host (Cap 27.4 B).
+  Future<bool> _startLoadFromL2Ready({
     required FeedL2ReadyEntry l2Ready,
     required FeedMediaRequestGate gate,
     required int generation,
   }) async {
+    unawaited(
+      Cap27L1StallProbe.log('L2_READY_ENTER', {
+        'assetId': widget.assetIdentifier,
+        'feedIndex': widget.feedIndex,
+        'assignedGen': generation,
+        'kind': l2Ready.kind.name,
+        'hasCover': l2Ready.cover != null,
+        'coverPath': l2Ready.cover?.localFilePath,
+        'seedLayer': _media?.displayLayer?.name,
+        'liveMounted': _liveMotionMounted,
+        'isCurrent': widget.isCurrent,
+        'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
+      }),
+    );
     final isVideoFastPath = l2Ready.kind == FeedL2ReadyKind.video;
     if (isVideoFastPath) {
       _holdVideoSurfaceForL2ReloadIfNeeded(generation);
@@ -4647,8 +4925,22 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Clear→false only if this [generation] still owns inFlight (see
       // _abandonLayer2Attempt). canMountVideo still requires isCurrent, so
       // leave/off-current cannot mount; gate-stale leaves a newer arm intact.
+      unawaited(
+        Cap27L1StallProbe.log('L2_READY_ABANDON', {
+          'reason': 'l2-ready-teardown-early',
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': generation,
+          'kind': l2Ready.kind.name,
+          'mounted': mounted,
+          'gateCurrent': gate.isCurrent(generation),
+          'isCurrent': widget.isCurrent,
+          'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
+          'inFlightGen': _layer2InFlightGeneration,
+        }),
+      );
       _abandonLayer2Attempt(generation, reason: 'l2-ready-teardown-early');
-      return;
+      return false;
     }
 
     if (l2Ready.kind == FeedL2ReadyKind.stillFull && l2Ready.cover != null) {
@@ -4672,19 +4964,58 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _onLivePreparingChanged(true);
         }
       });
+      unawaited(
+        Cap27L1StallProbe.log('L2_READY_APPLY', {
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': generation,
+          'kind': 'stillFull',
+          'displayLayer': FeedDisplayLayer.full.name,
+          'liveStill': liveStill,
+          'coverPath': l2Ready.cover!.localFilePath,
+        }),
+      );
       widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
       _publishHostUnavailableGate();
       _publishLayer2DisplayReady(true);
       await _prepareLiveMotion();
-      return;
+      return true;
+    }
+
+    if (l2Ready.kind == FeedL2ReadyKind.stillFull && l2Ready.cover == null) {
+      // Dead-end without fall-through: still token without cover.
+      unawaited(
+        Cap27L1StallProbe.log('L2_READY_ABANDON', {
+          'reason': 'still_full_null_cover',
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': generation,
+          'kind': l2Ready.kind.name,
+          'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
+        }),
+      );
+      return false;
     }
 
     if (isVideoFastPath) {
       await _awaitLayer2Dwell(bypassDwell: true);
       if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
         // F2: post-dwell abandon — same ownership rule as F1.
+        unawaited(
+          Cap27L1StallProbe.log('L2_READY_ABANDON', {
+            'reason': 'l2-ready-dwell-early',
+            'assetId': widget.assetIdentifier,
+            'feedIndex': widget.feedIndex,
+            'assignedGen': generation,
+            'kind': l2Ready.kind.name,
+            'mounted': mounted,
+            'gateCurrent': gate.isCurrent(generation),
+            'isCurrent': widget.isCurrent,
+            'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
+          }),
+        );
         _abandonLayer2Attempt(generation, reason: 'l2-ready-dwell-early');
-        return;
+        return false;
       }
       final displayRepo = ref.read(mediaDisplayRepositoryProvider);
       final playbackRepo = ref.read(playbackRepositoryProvider);
@@ -4701,6 +5032,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         displayRepository: displayRepo,
         playbackRepository: playbackRepo,
       );
+      // Video L2-ready still goes through Host L2 + LAYER2_APPLY.
+      unawaited(
+        Cap27L1StallProbe.log('L2_READY_APPLY', {
+          'assetId': widget.assetIdentifier,
+          'feedIndex': widget.feedIndex,
+          'assignedGen': generation,
+          'kind': 'video',
+          'viaHostLayer2': true,
+          'layer2Kind': layer2?.kind.name,
+        }),
+      );
       await _applyLayer2Result(
         gate: gate,
         generation: generation,
@@ -4708,7 +5050,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         layer2: layer2,
         armPosterHoldOnL2Apply: true,
       );
+      return true;
     }
+    return false;
   }
 
   SystemPlaybackPermission _playbackPermission({
@@ -5047,7 +5391,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
     // Cap 15.14 / 4A: still + video poster share one asset-stable key so
     // STILL→VIDEO promote can reuse the Image Element (path must not be in key).
-    final coverKey = ValueKey<String>('feedCover_${widget.assetIdentifier}');
+    // Cap 27.4: hard-reload epoch bumps the key once so gapless State cannot
+    // retain a remount soft frame after Host L2.
+    final coverKey = ValueKey<String>(
+      'feedCover_${widget.assetIdentifier}_r$_stillCoverHardReloadEpoch',
+    );
     return switch (media.kind) {
       FeedPageMediaKind.still => _mediaStack(
         still: _StillPage(
@@ -5515,11 +5863,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                   ref.watch(browseMagnificationProvider).stillPinchContact,
               cap19PanelOpen: ref.watch(cap19ActionsPanelOpenProvider),
               cap24MorePanelOpen: ref.watch(cap24MorePanelOpenProvider),
+              orderControlPanelOpen: ref.watch(orderControlPanelOpenProvider),
             ),
             holdingAfterFire: _userHoldReplayActive,
             isCurrent: playbackTapIsCurrent,
             cap19PanelOpen: ref.watch(cap19ActionsPanelOpenProvider),
             cap24MorePanelOpen: ref.watch(cap24MorePanelOpenProvider),
+            orderControlPanelOpen: ref.watch(orderControlPanelOpenProvider),
           ),
           onLongPressFire: () {
             _userHoldReplayActive = true;

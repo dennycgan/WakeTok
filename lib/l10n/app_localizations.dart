@@ -966,23 +966,71 @@ abstract class AppLocalizations {
   /// **'Browse'**
   String get mainBrowseNavBrowse;
 
-  /// Bottom navigation Clips stub destination
-  ///
-  /// In en, this message translates to:
-  /// **'Clips'**
-  String get mainBrowseNavClips;
-
-  /// Bottom navigation Auto-play stub destination
-  ///
-  /// In en, this message translates to:
-  /// **'Auto'**
-  String get mainBrowseNavAuto;
-
   /// Bottom navigation Settings stub destination
   ///
   /// In en, this message translates to:
   /// **'Settings'**
   String get mainBrowseNavSettings;
+
+  /// Cap 27 bottom-bar order slot label — newest first
+  ///
+  /// In en, this message translates to:
+  /// **'New first'**
+  String get mainBrowseOrderNewest;
+
+  /// Cap 27 bottom-bar order slot label — oldest first
+  ///
+  /// In en, this message translates to:
+  /// **'Old first'**
+  String get mainBrowseOrderOldest;
+
+  /// Cap 27 bottom-bar order slot label — shuffle
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get mainBrowseOrderShuffle;
+
+  /// Semantics for the bottom-bar order action slot (not a destination tab)
+  ///
+  /// In en, this message translates to:
+  /// **'Play order. Opens play order options.'**
+  String get mainBrowseOrderSlotSemantics;
+
+  /// Cap 27 Layer-1 order-control half-sheet title
+  ///
+  /// In en, this message translates to:
+  /// **'Play Order'**
+  String get mainBrowseOrderSheetTitle;
+
+  /// Cap 27 order-control sheet option — newest first
+  ///
+  /// In en, this message translates to:
+  /// **'Newest → Oldest'**
+  String get mainBrowseOrderSheetNewest;
+
+  /// Cap 27 order-control sheet option — oldest first
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest → Newest'**
+  String get mainBrowseOrderSheetOldest;
+
+  /// Cap 27 order-control sheet option — shuffle
+  ///
+  /// In en, this message translates to:
+  /// **'Shuffle'**
+  String get mainBrowseOrderSheetShuffle;
+
+  /// Cap 27 order-control sheet confirm button
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm'**
+  String get mainBrowseOrderSheetConfirm;
+
+  /// Cap 27 order-control sheet cancel button
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get mainBrowseOrderSheetCancel;
 
   /// Legacy Cap 7.4 stub; unused after Cap 7.5 feed (kept for key stability)
   ///
@@ -1080,18 +1128,6 @@ abstract class AppLocalizations {
   /// **'Reset'**
   String get mainBrowseMagnificationReset;
 
-  /// Clips tab stub body copy
-  ///
-  /// In en, this message translates to:
-  /// **'Clips — coming in a later capability.'**
-  String get mainBrowseStubClipsBody;
-
-  /// Auto tab stub body copy
-  ///
-  /// In en, this message translates to:
-  /// **'Auto-play — coming in a later capability.'**
-  String get mainBrowseStubAutoBody;
-
   /// Settings tab stub body copy
   ///
   /// In en, this message translates to:
@@ -1103,6 +1139,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Library smoke (debug)'**
   String get mainBrowseOpenLibrarySmokeDebug;
+
+  /// TEMP Cap 27 Debt 468 probe section title — remove after fix
+  ///
+  /// In en, this message translates to:
+  /// **'L1-stall probe (temp)'**
+  String get cap27L1StallProbeSectionTitle;
+
+  /// TEMP Cap 27 Debt 468 probe instructions
+  ///
+  /// In en, this message translates to:
+  /// **'Writes Documents/cap27_l1_stall_probe.log. When stuck on Layer 1 after starting-over: tap Mark stuck, swipe away then back, tap Mark healed.'**
+  String get cap27L1StallProbeBlurb;
+
+  /// TEMP Cap 27 Debt 468 — owner marks stuck snapshot
+  ///
+  /// In en, this message translates to:
+  /// **'Mark stuck (L1 stall now)'**
+  String get cap27L1StallProbeMarkStuck;
+
+  /// TEMP Cap 27 Debt 468 — owner marks heal snapshot
+  ///
+  /// In en, this message translates to:
+  /// **'Mark healed (after swipe back)'**
+  String get cap27L1StallProbeMarkHealed;
 
   /// Semantics / accessibility label when paused video can resume via tap
   ///

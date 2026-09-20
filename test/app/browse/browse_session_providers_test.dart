@@ -218,7 +218,7 @@ void main() {
   );
 
   test(
-    'APP-8b leave Browse→Clips also resets; Settings→Clips does not reshuffle again',
+    'APP-8b leave Browse→Settings resets; re-select Settings does not reshuffle',
     () async {
       final fake = FakeAssetSourceRepository(
         allIds: const ['a', 'b', 'c', 'd', 'e'],
@@ -234,20 +234,20 @@ void main() {
       seed = 2;
       container
           .read(mainBrowseDestinationProvider.notifier)
-          .select(MainBrowseDestination.clips);
-      final afterClips = await container.read(browseSessionProvider.future);
-      expect(afterClips.roundEpoch, greaterThan(first.roundEpoch));
+          .select(MainBrowseDestination.settings);
+      final afterLeave = await container.read(browseSessionProvider.future);
+      expect(afterLeave.roundEpoch, greaterThan(first.roundEpoch));
       expect(container.read(mainBrowseFeedIndexProvider), 0);
 
-      final epochAfterLeave = afterClips.roundEpoch;
-      final orderAfterLeave = afterClips.orderedAssetIds;
+      final epochAfterLeave = afterLeave.roundEpoch;
+      final orderAfterLeave = afterLeave.orderedAssetIds;
       seed = 3;
       container
           .read(mainBrowseDestinationProvider.notifier)
           .select(MainBrowseDestination.settings);
-      final afterSettings = await container.read(browseSessionProvider.future);
-      expect(afterSettings.roundEpoch, epochAfterLeave);
-      expect(afterSettings.orderedAssetIds, orderAfterLeave);
+      final afterAgain = await container.read(browseSessionProvider.future);
+      expect(afterAgain.roundEpoch, epochAfterLeave);
+      expect(afterAgain.orderedAssetIds, orderAfterLeave);
       expect(fake.resolveCalls, 1);
     },
   );

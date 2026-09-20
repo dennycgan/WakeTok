@@ -12,12 +12,14 @@ import 'package:waketok/app/browse/browse_sticky_feed_data_source_id.dart';
 import 'package:waketok/app/browse/process_soft_deleted_asset_ids.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/session/all_rank_order.dart';
+import 'package:waketok/domain/session/build_session_queue.dart';
 import 'package:waketok/domain/session/consumption_session.dart';
 import 'package:waketok/domain/session/derive_default_session_profile.dart';
 import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/session/remove_asset_from_session_queue.dart';
 import 'package:waketok/domain/session/repeat_policy.dart';
 import 'package:waketok/domain/session/session_configuration.dart';
+import 'package:waketok/features/main_browse/cap27_l1_stall_probe.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/resolve_pool.dart';
@@ -613,6 +615,80 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
     );
   }
 
+  /// Cap 27.4 / ADR-055 + ADR-056 D7: confirm order preference.
+  ///
+  /// Compares against **effective** policy (`preference ?? shuffle`). Same
+  /// value → no-op (does not write preference). Changed value → write
+  /// preference, rebuild Queue from [sessionWorkingAssetIds] at index 0,
+  /// bump [roundEpoch]. Does **not** call [restartSession]: keeps L2-ready
+  /// session cache, live-motion watchdog skip ids, sticky feed id, and does
+  /// not mark a real Origin Session boundary. Does **not** use
+  /// [applySessionConfiguration] Continuity remap.
+  ///
+  /// Returns `true` when preference/queue were updated; `false` on no-op.
+  Future<bool> applyConfirmedOrderPreference(OrderPolicy confirmed) async {
+    final preference = ref.read(browseOrderPreferenceProvider);
+    final effective = preference ?? OrderPolicy.shuffle;
+    if (confirmed == effective) {
+      return false;
+    }
+
+    ref.read(browseOrderPreferenceProvider.notifier).setPreference(confirmed);
+
+    final current = state.asData?.value;
+    if (current == null) {
+      // Preference remembered for the next Session that has items (ADR-055 D5).
+      return true;
+    }
+
+    final session = current.session;
+    final oldConfig = session.queue.configuration;
+    final newConfig = SessionConfiguration(
+      orderPolicy: confirmed,
+      advanceMode: oldConfig.advanceMode,
+      repeatPolicy: oldConfig.repeatPolicy,
+    );
+
+    final chrome = ref.read(browseChromeStateProvider);
+    final definition = _definitionFor(chrome);
+    // Light path: do not bump [_loadGen] / enter AsyncLoading. Abort rebuild
+    // if a real [restartSession] superseded us while ranks were loading.
+    final loadGenAtStart = _loadGen;
+    final ranks = await _ranksForOrder(
+      definition: definition,
+      order: confirmed,
+      gen: loadGenAtStart,
+    );
+    if (!ref.mounted || _loadGen != loadGenAtStart) {
+      return true;
+    }
+    final latest = state.asData?.value;
+    if (latest == null) {
+      return true;
+    }
+
+    final newQueue = buildSessionQueue(
+      snapshot: latest.session.snapshot,
+      configuration: newConfig,
+      random: _random(),
+      workingAssetIds: sessionWorkingAssetIds(latest.session),
+      allRanks: ranks,
+    );
+    _roundEpoch += 1;
+    state = AsyncData(
+      BrowseSessionView(
+        session: ConsumptionSession(
+          snapshot: latest.session.snapshot,
+          queue: newQueue,
+          currentIndex: 0,
+          playbackPositionMs: null,
+        ),
+        roundEpoch: _roundEpoch,
+      ),
+    );
+    return true;
+  }
+
   /// Endless round advance (ADR-056 D8): shuffle reshuffles; newest/oldest
   /// return to index 0 on the same ordered list. Bumps [roundEpoch].
   void advanceToNextRound() {
@@ -629,6 +705,20 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       return;
     }
 
+    final beforeEpoch = current.roundEpoch;
+    final headBefore = session.queue.orderedAssetIds.isEmpty
+        ? null
+        : session.queue.orderedAssetIds.first;
+    unawaited(
+      Cap27L1StallProbe.log('ADVANCE_TO_NEXT_ROUND_BEGIN', {
+        'roundEpoch': beforeEpoch,
+        'orderPolicy': config.orderPolicy.name,
+        'queueLen': session.queue.orderedAssetIds.length,
+        'headId': headBefore,
+        'currentIndex': session.currentIndex,
+      }),
+    );
+
     if (config.orderPolicy == OrderPolicy.shuffle) {
       final next = startNextShuffleRound(
         session: session,
@@ -640,6 +730,16 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       _roundEpoch += 1;
       state = AsyncData(
         BrowseSessionView(session: next, roundEpoch: _roundEpoch),
+      );
+      unawaited(
+        Cap27L1StallProbe.log('ADVANCE_TO_NEXT_ROUND_END', {
+          'roundEpoch': _roundEpoch,
+          'orderPolicy': config.orderPolicy.name,
+          'headId': next.queue.orderedAssetIds.isEmpty
+              ? null
+              : next.queue.orderedAssetIds.first,
+          'path': 'shuffle',
+        }),
       );
       return;
     }
@@ -656,6 +756,14 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         ),
         roundEpoch: _roundEpoch,
       ),
+    );
+    unawaited(
+      Cap27L1StallProbe.log('ADVANCE_TO_NEXT_ROUND_END', {
+        'roundEpoch': _roundEpoch,
+        'orderPolicy': config.orderPolicy.name,
+        'headId': headBefore,
+        'path': 'same_list_to_0',
+      }),
     );
   }
 

@@ -17,6 +17,7 @@ import 'package:waketok/domain/playback/playback_models.dart';
 import 'package:waketok/domain/presentation/file_size_semantics.dart';
 import 'package:waketok/domain/presentation/presentation_media_kind.dart';
 import 'package:waketok/domain/presentation/presentation_metadata.dart';
+import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/source/asset_source_kind.dart';
 import 'package:waketok/domain/source/resolved_source.dart';
 import 'package:waketok/domain/source/source_reference.dart';
@@ -5165,6 +5166,170 @@ void main() {
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
       await pumpAsyncWork(tester);
       expect(display.displayCalls.where((id) => id == head).length, 1);
+    },
+  );
+
+  testWidgets(
+    'W-27.4a born-current remount re-requests Host L2 despite Session token',
+    (tester) async {
+      // Cap 27.4 A: roundEpoch remount mounts the head already-current, so
+      // Session L2-ready is skipped and Host display runs again (unlike
+      // W-15.10a swipe revisit). Covers Confirm + Endless same_list_to_0.
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      const ids = ['a1', 'a2', 'a3'];
+      for (final id in ids) {
+        final path = File('${Directory.systemTemp.path}/wt_27_4a_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        display.displaysById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          disableBrowseAllPrefetch: true,
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: ids,
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(ids),
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+
+      final applied = await container
+          .read(browseSessionProvider.notifier)
+          .applyConfirmedOrderPreference(OrderPolicy.newestFirst);
+      expect(applied, isTrue);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+
+      final ordered = await _feedOrderedIds(tester);
+      final head = ordered[0];
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+      final before = display.displayCalls.where((id) => id == head).length;
+      expect(before, greaterThanOrEqualTo(1));
+
+      container.read(browseSessionProvider.notifier).advanceToNextRound();
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+
+      expect(
+        display.displayCalls.where((id) => id == head).length,
+        greaterThan(before),
+        reason: 'born-current remount must Host-load, not Session L2-ready only',
+      );
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+    },
+  );
+
+  testWidgets(
+    'W-27.4b remount Host loads never-visited shuffle head without Session token',
+    (tester) async {
+      // Order→shuffle often lands on an id with no L2-ready token. Remount
+      // must still Host-load (and Cap 27.4 skips All-tab L1 soft paint).
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      const ids = ['a1', 'a2', 'a3', 'a4', 'a5'];
+      for (final id in ids) {
+        final path = File('${Directory.systemTemp.path}/wt_27_4b_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        display.displaysById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          disableBrowseAllPrefetch: true,
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: ids,
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(ids),
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+
+      expect(
+        await container
+            .read(browseSessionProvider.notifier)
+            .applyConfirmedOrderPreference(OrderPolicy.newestFirst),
+        isTrue,
+      );
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+
+      // Evict every Session token so the next remount head has none (shuffle
+      // cold head). Prefer-Host must not require hadSessionToken to Host-load.
+      for (final id in ids) {
+        container.read(browseL2ReadySessionProvider.notifier).evict(id);
+      }
+      expect(container.read(browseL2ReadySessionProvider), isEmpty);
+
+      final previewBefore = Map<String, int>.from(
+        {
+          for (final id in ids)
+            id: display.previewCalls.where((e) => e == id).length,
+        },
+      );
+      final displayBefore = Map<String, int>.from(
+        {
+          for (final id in ids)
+            id: display.displayCalls.where((e) => e == id).length,
+        },
+      );
+
+      expect(
+        await container
+            .read(browseSessionProvider.notifier)
+            .applyConfirmedOrderPreference(OrderPolicy.shuffle),
+        isTrue,
+      );
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+
+      final ordered = await _feedOrderedIds(tester);
+      final head = ordered[0];
+      expect(
+        display.displayCalls.where((id) => id == head).length,
+        greaterThan(displayBefore[head] ?? 0),
+        reason: 'no-token remount head must Host display',
+      );
+      // Remount skip-L1-paint: head must not gain a new preview call after
+      // the order Confirm remount (device-local Host L2 only).
+      expect(
+        display.previewCalls.where((id) => id == head).length,
+        previewBefore[head] ?? 0,
+        reason: 'remount Host must skip All-tab L1 preview paint',
+      );
     },
   );
 
