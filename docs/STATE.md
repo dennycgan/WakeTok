@@ -136,20 +136,18 @@
       (Cap 26 / ADR-052 Accepted `cab0747`; ADR-053 / ADR-054;
       debt **439** Closed; `docs/acceptance/cap26-26.6-notes.md`;
       PHASE_HISTORY)
-- [ ] Auto bottom-nav slot redefinition — pull-up order-control sheet
-      (Layer 1 only: newest / oldest / random, confirm-to-apply,
-      default random; Auto is no longer a bottom-nav destination;
-      v1 removes Clips from bottom nav; narrowly amend ADR-027
-      leave-Browse trigger to Settings only; Temp peek "Save this
-      pool" promote keeps the current Session (no requeue); Layer 2/3
-      stay in "Auto-play Presets and Mode Eligibility Rule", v2)
-      <-- YOU ARE HERE
+- [x] Auto bottom-nav slot redefinition — pull-up order-control sheet
+      (Cap 27 / ADR-055–057 Accepted; Layer 1 confirm-to-apply;
+      Temp peek promote keep-Session; Clips/Auto off bar; ADR-027
+      leave → Settings only; `docs/acceptance/cap27-27.6-notes.md`;
+      PHASE_HISTORY; debt **478** remains Open)
 - [ ] Debt 421 — Limited Access manage entry restored
       (presentLimitedLibraryPicker + Open Settings entry point;
       extracted from "Settings and localisation completion" below;
       pre-work: audit MainBrowseShellPage overlay stack alongside the
       Cap 27 order-control sheet entry to avoid repeating the original
       notch / SafeArea layering bug that caused this debt)
+      <-- YOU ARE HERE
 - [ ] First-launch vertical-swipe guidance
       (minimal TikTok-style up/down hint; must not time-overlap with
       existing Cap 19.7 left-swipe guide — flexible scheduling, may
@@ -241,61 +239,25 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Auto bottom-nav slot redefinition — pull-up
-order-control sheet
-Contract: Cap 27 Layer 1 confirm-to-apply order sheet + Temp peek
-promote keep-Session; ADR-057 Accepted `9a61b0e`; ADR-056 Accepted
-`ec7fbb1`; ADR-055 Accepted `893c296`; narrow amends ADR-022 D4/D5,
-ADR-027 Decision 3, ADR-044 D6.1, ADR-046 D4
+Active capability: Debt 421 — Limited Access manage entry restored
+Contract: restore Limited manage entry (`presentLimitedLibraryPicker`
++ Open Settings) without repeating the Cap 7 / debt **421** notch /
+SafeArea overlay bug; overlay-stack audit vs Cap 27 order sheet
+already on bar.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 27.1 Contract freeze — STATE Cap line + Phase Roadmap;
-      ADR-055/056/057 Proposed; amend texts locked; debt 421 overlay
-      audit note; v2 leave-Browse-keep dependency row; no `lib/`
-- [x] 27.2 Temp peek promote (ADR-057) — explicit
-      promoteCurrentSessionToSavedPool; shared composition-root
-      Origin-delta signal (ADR-048-style; no per-listener patches);
-      exhaustive activeOrigin side-effect audit; sticky
-      `feedDataSourceId` (`ephemeral:$id` across promote); Session
-      Origin `listen` (not `watch`); unit+widget; Kafka+i17 smoke
-      PASS (`0b9246b` / `9a61b0e`)
-- [x] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
-      newestFirst/oldestFirst/shuffle; oldestFirst =
-      reverse(newestFirst); unknown = defensive only; All prefetch C
-      (post-auth settle); rank map memoize+injectable; CFG/SQ/SHUF
-      test rename; All-rank probe PASS (`ec7fbb1`)
-- [x] 27.4 Bottom bar + order sheet UI (ADR-055) — delete Clips/Auto
-      enum+ARB; action slot shows `preference ?? shuffle`;
-      confirm/cancel sheet; gesture absorb; overlay hygiene vs debt
-      421 class; device-local remount L1-stall fix (`893c296`)
-- [x] 27.5 Confirm apply + ADR-027 Settings-only — short verification
-      against work `893c296` (no new product scope)
-      - [x] Confirm apply wiring (change → rebuild index 0; same-value
-            no-op) — `cap27_4_order_control_test.dart` CONFIRM-1 /
-            CONFIRM-2; SHEET-2
-      - [x] ADR-027 Settings-only leave-Browse — enum
-            `MainBrowseDestination { browse, settings }` + `select` →
-            `restartSession`; APP-8 / APP-8b; shell W-3 (no Clips/Auto)
-      - [x] Confirm does not use Continuity remap
-            (`applySessionConfiguration`) — method contract + body
-            uses `buildSessionQueue` only; CONFIRM-3 (not
-            `restartSession`); no dedicated spy (optional later)
-      - [x] shuffle→shuffle no-op — CONFIRM-1
-      - [x] architecture + l10n green —
-            `flutter test test/architecture/` PASS
-- [ ] 27.6 Device acceptance — Kafka + i17 matrix; notes; Cap close
-      docs
-      <-- YOU ARE HERE
+- [ ] Capability Roadmap closed Cap 27 (2026-09-21). Debt 421 phase
+      breakdown awaiting owner scope / kickoff review — do not invent
+      numbered phases here.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 27.6 device acceptance matrix (Kafka + i17)
-- Sub-steps done: Cap 27.5 short verification all five limbs PASS
-      against `893c296` (Confirm apply / Settings-only / no Continuity /
-      shuffle no-op / architecture+l10n)
-- Next step: lock 27.6 acceptance matrix scope + run device notes;
-      Cap close docs
-- Related decisions: ADR-055 Accepted; ADR-056 Accepted; ADR-057
-      Accepted
+- Goal (one line): Debt 421 Limited Access manage entry — awaiting
+      owner phase kickoff
+- Sub-steps done: Cap 27 closed — notes
+      `docs/acceptance/cap27-27.6-notes.md`; work gate HEAD `ce05965`
+- Next step: owner scopes Debt 421 phases; replace this placeholder
+- Related decisions: Cap 27 ADR-055 / 056 / 057 Accepted; debt **421**
+      Open; debt **478** Open (iCloud remount)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
@@ -549,6 +511,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       size (26.4)
 - Cap 26.6 device acceptance notes (Kafka + i17 C/D/I/J **PASS**):
       `docs/acceptance/cap26-26.6-notes.md`
+- Cap 27.6 device acceptance notes (Kafka + i17 + SE sim **PASS**):
+      `docs/acceptance/cap27-27.6-notes.md` (gate HEAD `ce05965`;
+      debt **478** remains Open)
 - Cap 25.2 presentShareSheet: Pigeon `PhotoLibraryApi.presentShareSheet`;
       domain `AssetShareRepository` + `PhotoLibraryGateway` +
       `assetShareRepositoryProvider`; Host in `PhotoLibraryService`

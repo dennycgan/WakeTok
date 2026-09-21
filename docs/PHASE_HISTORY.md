@@ -1320,3 +1320,40 @@ Known debt at close: **439** Closed by Cap 26. Out of Cap 26:
 **470** Accepted (phase); **474** Accepted (phase); **475**
 Monitoring; **476** Open. Do not flip **475** / **476** in this
 close-out.
+
+
+## Auto bottom-nav slot redefinition — order-control sheet (Cap 27) — 2026-09-21
+
+- [x] 27.1 Contract freeze — STATE Cap line + Phase Roadmap;
+      ADR-055/056/057 Proposed; amend texts locked; debt 421 overlay
+      audit note; v2 leave-Browse-keep dependency row; no `lib/`
+- [x] 27.2 Temp peek promote (ADR-057) — explicit
+      promoteCurrentSessionToSavedPool; shared composition-root
+      Origin-delta signal; sticky `feedDataSourceId`; Session Origin
+      `listen`; unit+widget; Kafka+i17 smoke PASS
+      — work `0b9246b` / `9a61b0e`
+- [x] 27.3 OrderPolicy rename + preference + builders (ADR-056) —
+      newestFirst/oldestFirst/shuffle; All prefetch; rank map;
+      CFG/SQ/SHUF rename; All-rank probe PASS
+      — work `ec7fbb1`
+- [x] 27.4 Bottom bar + order sheet UI (ADR-055) — delete Clips/Auto;
+      confirm/cancel sheet; device-local remount L1-stall (debt **477**)
+      — work `893c296`
+- [x] 27.5 Confirm apply + ADR-027 Settings-only — short verification
+      against `893c296` (no new product scope)
+- [x] 27.6 Device acceptance (Kafka + i17) + Cap close
+      — notes `docs/acceptance/cap27-27.6-notes.md`; gate HEAD
+        `ce05965` (zh sheet `f08166a`; zero-safe-area pad);
+        mid-Cap inserts: debt **479** `8d6d7cc` (i17 soak only);
+        cold prefer-Host `3bc2bad`; visual lock `1cbf3a5` /
+        `dc77086`; Built-in width `164528a`; Listen ADR amend
+        `e1b2f94`; debt **478** remains Open
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + 27.6 notes): (this commit)
+
+Related ADR: ADR-055 (`893c296`); ADR-056 (`ec7fbb1`); ADR-057
+(`9a61b0e`); narrow amends ADR-022 D4/D5, ADR-027 Decision 3,
+ADR-044 D6.1, ADR-046 D4.
+Known debt at close: Cap 27 close does **not** close **478** (Open —
+non-deviceLocal remount). **477** / **479** Closed earlier in Cap 27.
