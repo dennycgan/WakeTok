@@ -517,10 +517,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseOrderSlotSemantics =>
-      'Play order. Opens play order options.';
+      'Browse order. Opens browse order options.';
 
   @override
-  String get mainBrowseOrderSheetTitle => 'Play Order';
+  String get mainBrowseOrderSheetTitle => 'Browse Order';
 
   @override
   String get mainBrowseOrderSheetNewest => 'Newest → Oldest';

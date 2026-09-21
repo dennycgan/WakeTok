@@ -8,8 +8,8 @@
 > top chrome Scheme **A** + Limited Saved mute / Create helper **8pt**: §**11.3**;
 > media-area **text-bottom** lock (Meta row-3 ≡ scrubber timestamp): §**2**;
 > Cap **26.4b** LIVE **top-leading** under Browse band (not bottom-trailing): §**2** / §**6**;
-> Cap **27.6** bottom-tab Destination / Action roles + Browse card-stack glyph:
-> §**11.4**.  
+> Cap **27.6** bottom-tab Destination / Action roles + Browse two-card
+> glyph (color-only selected; no Action shell): §**11.4**.  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -504,23 +504,30 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 
 ### 11.4 Bottom tab cell roles (Cap 27.6 — ADR-055)
 
-> **Status:** Spec locked for Cap 27.6 UI polish (owner review 2026-09-20).  
-> **Code today (pre-polish):** `main_browse_shell_page.dart` —
-> `_BottomNavCell` / `_OrderActionCell` (icon **22**; selected destination
-> pill wraps icon only; action cell has no shell).  
+> **Status:** Spec **re-locked** 2026-09-20 after device review of the
+> first polish build (owner: Browse **A** / Action **no-shell** /
+> selected = **color only**; candidates in
+> `docs/reference/cap27-bottom-tab-candidates/`).  
+> **Supersedes** the earlier §11.4 draft that specified Destination
+> selected fill + Action hairline capsule (those produced a circular
+> “sticker” on 32×radius-16 and failed aesthetic review).  
+> **Code target:** `main_browse_shell_page.dart` +
+> `browse_card_stack_icon.dart` + `bottom_tab_layout.dart`.  
 > **Rule:** every bottom-bar cell declares **Destination** or **Action**
 > before styling. New cells (e.g. future Clips) **must** reuse this
 > section — no one-off metrics.
 
 #### 11.4.1 Roles
 
-| Role | Examples | Selected solid pill? | Shell |
-|------|----------|----------------------|--------|
-| **Destination** | Browse, Settings; future Clips | Yes, when that destination is current | Equal outer geometry; fill only when selected |
-| **Action** | Order (order sheet); future Layer-3 listen entry if it keeps this slot | **Never** (ADR-055 D2) | Hairline **stroke** capsule; transparent fill |
+| Role | Examples | Selected fill / shell? | How it differs |
+|------|----------|------------------------|----------------|
+| **Destination** | Browse, Settings; future Clips | **Neither** — selected = **color only** (`accent` vs `onMediaMuted`); glyph may switch outlined→filled | Equal **32** slot geometry; no capsule behind the icon |
+| **Action** | Order (order sheet); future Layer-3 listen if it keeps this slot | **Never** selected fill (ADR-055 D2); **no** stroke capsule | Same **32** slot; glyph = thinner `swap_vert` (see §11.4.4) |
 
-Order must **not** share the same “bare icon” look as an unselected
-destination.
+Action must remain readable as “not a third destination” via **glyph
+language** (thinner swap + order label + expand), not via a wrapping
+container. Do **not** reintroduce a 32×radius-16 stroke capsule (that
+math draws a circle and read as ornament on device).
 
 #### 11.4.2 Shared metrics
 
@@ -529,59 +536,77 @@ destination.
 | `kBottomTabIconSlot` | **32×32** | Visual icon slot (all cells). **Not** the tap target — the full `Expanded` cell / bar row remains the hit area (≥ system min). |
 | `kBottomTabIconSize` | **24** | Glyph size inside the slot |
 | `kBottomTabIconLabelGap` | **4** | Slot bottom → label top (all cells) |
+| `kBottomTabLabelBandHeight` | **12** | Label baseline band (= `labelOnMedia` size @ height 1.0) |
 | `kBottomTabLabelStyle` | `labelOnMedia` + `height: 1.0` | Same as §11.2 |
-| `kBottomTabCapsuleRadius` | **16** | Destination + Action outer capsules |
-| `kBottomTabExpandIconSize` | **14** | Order expand chevron |
+| `kBottomTabExpandIconSize` | **12** | Order expand chevron (same as label band) |
 | `kBottomTabExpandGap` | **2** | Label ↔ chevron |
+| `kBottomTabActionIconStroke` | **thinner than Destination** | Order `swap_vert` optical weight — see §11.4.4 |
 
-Unselected destinations use the **same outer capsule padding** as
-selected (transparent fill) so icon slots share one cross-cell alignment.
+**Removed from this lock:** `kBottomTabCapsuleRadius` / Destination
+selected fill / Action hairline shell (owner 2026-09-20).
+
+**Open layout note (do not “fix” in the UI polish pass):**  
+`32 + 4 + 12 = 48` exactly equals `immersiveBottomBarHeight` (**48**), so
+with a centered column the icon-slot **top is flush** with the content
+band top (zero top/bottom inset). Recorded for a later retune
+(shrink slot / raise bar / add inset) — **not** in scope of the glyph /
+Action visual re-lock above.
 
 #### 11.4.3 Destination appearance
 
-| State | Capsule | Icon / label color |
-|-------|---------|-------------------|
-| Selected | `accent @ 0.20` fill, radius 16, wraps the **32** slot | `accent` |
-| Unselected | Same bounds, **no** fill | `onMediaMuted` |
+| State | Behind icon | Icon / label |
+|-------|-------------|--------------|
+| Selected | **None** (no fill, no circle, no pill) | Color `accent`; Browse uses **filled** glyph; Settings uses filled Material settings |
+| Unselected | **None** | Color `onMediaMuted`; Browse **outlined** glyph; Settings outlined |
 
 Colors come only from `Theme.of` → `WakeTokTokens` (`accent` /
 `onMediaMuted`). No hard-coded brand hex in the nav glyph.
 
-#### 11.4.4 Action appearance (hairline shell)
+#### 11.4.4 Action appearance (no shell)
 
 | Property | Value |
 |----------|-------|
-| Geometry | Same outer capsule + **32** slot as destinations |
-| Fill | Transparent (never selected fill) |
-| Stroke | `onMediaMuted @ ~0.45`, **1.0** logical pt (tune on device if too faint / loud) |
-| Icon / label | `onMediaMuted` |
+| Slot | Same **32×32** as destinations (alignment only — empty chrome) |
+| Container | **None** — no fill, no stroke capsule |
+| Icon | Custom `swap_vert` at **24**, stroke **visibly thinner** than Browse outlined but raised toward Settings gear weight (implementation: `kBottomTabActionSwapStroke` ≈ **1.9** vs Browse outlined ≈ **2.25**; shaft gap `kBottomTabActionSwapShaftGap` ≈ **9**; tune on device) |
+| Icon / label color | `onMediaMuted` always (never `accent` selected fill) |
+| Label row | Order copy + expand **12** (§11.4.6) |
 
-#### 11.4.5 Browse glyph (brand card stack — monochrome)
+#### 11.4.5 Browse glyph (Browse **B** — vertical front + peek UL)
 
-Replaces Material `home` / `home_outlined`.
+Replaces Material `home` / `home_outlined`. Motif from
+`cap27-bottom-tab-candidates` **Browse B** (single + peek), corrected on
+device: peek **upper-left** (brand-aligned; original B had peek UR), front
+**larger + vertical**, outlined overlap **occluded** (front covers peek —
+no crossed strokes in the overlap).
 
 | | Spec |
 |--|------|
-| Motif | Stacked rounded cards from the app icon **center** (≈3 layers) |
-| **Omit** | Inner vertical line + up/down arrow strokes (those collide with Order `swap_vert`) |
-| Outlined | Stroke-only stack; color from icon theme (`onMediaMuted` when unselected) |
-| Filled | Solid / near-solid silhouette of the same stack; color `accent` when selected |
+| Motif | Large **vertical** front card + smaller peek card upper-left |
+| **Omit** | Peek upper-right; third card; waveform; moon; doom-scroll arrows; Destination circular wash |
+| Outlined (unselected) | Stroke-only; peek drawn **outside** front only (clip / occlusion); `kBottomTabBrowseOutlinedStroke` ≈ **2.25**; color `onMediaMuted` |
+| Filled (selected) | Same geometry; front solid `accent`, peek same hue ~0.45 alpha under front; **no** circular wash |
 | Forbidden | Multi-stop brand SVG (`#FC2555` / `#E0C590` baked in) as the nav glyph |
 
-Order keeps `Icons.swap_vert` (ordering). Browse = feed / card stack.
+Order keeps thinner `swap_vert`. Browse = vertical front + UL peek only.
 
 #### 11.4.6 Label row + expand
 
-- One label baseline band under the slot for all cells.
-- Order chevron sits **in the label row**, not the icon slot.
-- Long order copy: keep `FittedBox.scaleDown` (SE).
+- One label baseline band under the slot for all cells (**12** high =
+  `kBottomTabLabelBandHeight`).
+- Order chevron sits **in the label row**, not the icon slot; size **12**
+  (`kBottomTabExpandIconSize` — same as the band).
+- Long order copy: `FittedBox.scaleDown` on the **label text only** (SE
+  width). Do **not** wrap the whole label+chevron row in a vertical
+  `FittedBox` — that squashes Order copy below Browse/Settings.
 
 #### 11.4.7 Reuse (Clips / v2 listen)
 
 1. Label the cell Destination or Action.  
 2. Apply §11.4.3 or §11.4.4.  
-3. Clips returns as **Destination**.  
-4. If Order’s **content** becomes Layer-3 listen, keep the **Action** shell; swap glyph/copy only.  
+3. Clips returns as **Destination** (color-only selected; no capsule).  
+4. If Order’s **content** becomes Layer-3 listen, keep **Action** rules
+   (no shell; distinct glyph weight); swap glyph/copy only.  
 5. Change numbers here first, then code — no widget-local forks.
 
 #### 11.4.8 Regression before Cap 27.6 matrix
@@ -590,7 +615,8 @@ Order keeps `Icons.swap_vert` (ordering). Browse = feed / card stack.
 |----|--------|
 | R-SE | `COPY-1` SE width + chevron |
 | R-DT | Large textScale sheet / bar |
-| R-ALIGN | Device: slot centers + label baseline; Action stroke ≠ bare unselected Destination |
+| R-ALIGN | Device: slot centers + label baseline; Action has **no** circle/capsule; selected Destination = color only |
+| R-GLYPH | Browse outlined readable as two cards (not scribble); Action swap thinner than Settings gear |
 
 ### 11.5 Related product limits (naming → chip)
 
@@ -602,7 +628,7 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 2. Selected Built-in / active chip: label + dropdown (if any) centered in the gray pill; All / Photos / Videos pills **same width** as Temp.  
 3. Saved short name (e.g. `"W"`): pill width equals Temp; does not cover Built-in.  
 4. Chip appear/disappear: center pair `dx` unchanged (`cap22_4` / `cap21_3` chrome tests).  
-5. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`); after Cap 27.6 polish also check §**11.4** slot alignment + Action hairline vs Destination fill.  
+5. Bottom tab labels match top weight/size at a glance (both `labelOnMedia`); after Cap 27.6 polish also check §**11.4** (two-card Browse, Action **no** shell, selected = color only; flush-top note still open).  
 6. `flutter test test/features/main_browse/cap21_3_browse_chrome_test.dart test/features/main_browse/cap22_4_saved_chrome_test.dart test/features/main_browse/main_browse_shell_test.dart test/architecture/` (includes **W-26.4b-1**, **W-26.4b-2**).
 
 ---

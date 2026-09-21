@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="120" viewBox="0 0 280 120">
+  <rect width="280" height="120" fill="#1E1E1E"/>
+  <text x="20" y="22" fill="#888" font-family="system-ui,sans-serif" font-size="12">Browse C — feed bars</text>
+  <g transform="translate(40,40)">
+    <rect width="32" height="32" fill="none" stroke="#333"/>
+    
+    <g fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="2" stroke-linecap="round">
+      <line x1="7" y1="9" x2="25" y2="9"/>
+      <line x1="9" y1="16" x2="23" y2="16"/>
+      <line x1="8" y1="23" x2="24" y2="23"/>
+    </g>
+    <text x="16" y="52" text-anchor="middle" fill="rgba(255,255,255,0.70)" font-size="10" font-family="system-ui,sans-serif">outlined</text>
+  </g>
+  <g transform="translate(160,40)">
+    <rect width="32" height="32" fill="none" stroke="#333"/>
+    
+    <circle cx="16" cy="16" r="16" fill="#FF6B8A" fill-opacity="0.20"/>
+    <g stroke="#FF6B8A" stroke-width="2.5" stroke-linecap="round">
+      <line x1="7" y1="9" x2="25" y2="9"/>
+      <line x1="9" y1="16" x2="23" y2="16"/>
+      <line x1="8" y1="23" x2="24" y2="23"/>
+    </g>
+    <text x="16" y="52" text-anchor="middle" fill="#FF6B8A" font-size="10" font-family="system-ui,sans-serif">filled</text>
+  </g>
+</svg>

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="120" viewBox="0 0 280 120">
+  <rect width="280" height="120" fill="#1E1E1E"/>
+  <text x="20" y="22" fill="#888" font-family="system-ui,sans-serif" font-size="12">Browse B — vertical front + peek UL (corrected)</text>
+  <!-- 32 slot; peek UL; front larger vertical; outlined: front occludes peek -->
+  <g transform="translate(40,40)">
+    <rect width="32" height="32" fill="none" stroke="#333"/>
+    <g fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="2.25" stroke-linejoin="round">
+      <!-- peek width 14 unchanged; height = 14 × (23.3/19.4) so same aspect as front -->
+      <rect x="3.3" y="2.7" width="14" height="16.81" rx="2.5"/>
+    </g>
+    <!-- erase peek strokes under front (same as bar surface) -->
+    <rect x="7.3" y="6" width="19.4" height="23.3" rx="3.5" fill="#1E1E1E"/>
+    <g fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="2.25" stroke-linejoin="round">
+      <rect x="7.3" y="6" width="19.4" height="23.3" rx="3.5"/>
+    </g>
+    <text x="16" y="52" text-anchor="middle" fill="rgba(255,255,255,0.70)" font-size="10" font-family="system-ui,sans-serif">outlined</text>
+  </g>
+  <g transform="translate(160,40)">
+    <rect width="32" height="32" fill="none" stroke="#333"/>
+    <rect x="3.3" y="2.7" width="14" height="16.81" rx="2.5" fill="#FF6B8A" fill-opacity="0.45"/>
+    <rect x="7.3" y="6" width="19.4" height="23.3" rx="3.5" fill="#FF6B8A"/>
+    <text x="16" y="52" text-anchor="middle" fill="#FF6B8A" font-size="10" font-family="system-ui,sans-serif">filled</text>
+  </g>
+</svg>

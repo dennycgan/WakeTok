@@ -993,13 +993,13 @@ abstract class AppLocalizations {
   /// Semantics for the bottom-bar order action slot (not a destination tab)
   ///
   /// In en, this message translates to:
-  /// **'Play order. Opens play order options.'**
+  /// **'Browse order. Opens browse order options.'**
   String get mainBrowseOrderSlotSemantics;
 
   /// Cap 27 Layer-1 order-control half-sheet title
   ///
   /// In en, this message translates to:
-  /// **'Play Order'**
+  /// **'Browse Order'**
   String get mainBrowseOrderSheetTitle;
 
   /// Cap 27 order-control sheet option — newest first

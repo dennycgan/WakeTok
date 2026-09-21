@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/authorization/limited_access_banner.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/bottom_tab_layout.dart';
+import 'package:waketok/features/main_browse/browse_card_stack_icon.dart';
 import 'package:waketok/features/main_browse/main_browse_shell_page.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -122,7 +125,7 @@ void main() {
     expect(find.text(l10n.libraryRowPhotos), findsWidgets);
   });
 
-  testWidgets('W-7 selected bottom destination uses accent indicator tint',
+  testWidgets('W-7 selected bottom destination uses accent color only (no fill)',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(
@@ -130,12 +133,159 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final indicator = tester.widgetList<DecoratedBox>(find.byType(DecoratedBox)).where((box) {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    final browseGlyph = tester.widget<BrowseCardStackIcon>(
+      find.byKey(const Key('mainBrowseNavBrowseGlyph')),
+    );
+    expect(browseGlyph.filled, isTrue);
+    expect(browseGlyph.color, darkTokens.accent);
+
+    final browseLabel = tester.widget<Text>(find.text(l10n.mainBrowseNavBrowse));
+    expect(browseLabel.style?.color, darkTokens.accent);
+
+    // No destination selected fill capsule (re-lock 2026-09-20).
+    final fillCapsules = tester.widgetList<DecoratedBox>(find.byType(DecoratedBox)).where((box) {
       final decoration = box.decoration;
       return decoration is BoxDecoration &&
-          decoration.color == darkTokens.accent.withValues(alpha: 0.20);
+          decoration.color ==
+              darkTokens.accent.withValues(alpha: 0.20);
     });
-    expect(indicator, isNotEmpty);
+    expect(fillCapsules, isEmpty);
+  });
+
+  testWidgets(
+      'W-27.6-nav: §11.4 — Browse B peek+front, Action no shell, color-only selected',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    await tester.pumpWidget(permissionUiHarness(repo: repo));
+    await tester.pumpAndSettle();
+
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+
+    expect(find.byKey(const Key('mainBrowseNavBrowseGlyph')), findsOneWidget);
+    expect(find.byType(BrowseCardStackIcon), findsOneWidget);
+    expect(find.byType(OrderSwapIcon), findsOneWidget);
+    final nav = find.byKey(const Key('mainBrowseNavigationBar'));
+    expect(
+      find.descendant(of: nav, matching: find.byIcon(Icons.home)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: nav, matching: find.byIcon(Icons.home_outlined)),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: nav, matching: find.byIcon(Icons.swap_vert)),
+      findsNothing,
+    );
+
+    // Slots share 32 geometry; Action has no DecoratedBox shell.
+    expect(find.byKey(const Key('mainBrowseOrderActionShell')), findsNothing);
+    Size slotSize(Key key) => tester.getSize(find.byKey(key));
+    expect(
+      slotSize(const Key('mainBrowseNavBrowseSlot')),
+      const Size(kBottomTabIconSlot, kBottomTabIconSlot),
+    );
+    expect(
+      slotSize(const Key('mainBrowseOrderActionIconSlot')),
+      const Size(kBottomTabIconSlot, kBottomTabIconSlot),
+    );
+    expect(
+      slotSize(const Key('mainBrowseNavSettingsSlot')),
+      const Size(kBottomTabIconSlot, kBottomTabIconSlot),
+    );
+
+    // Selected Browse: filled + accent (color only).
+    final browseSelected = tester.widget<BrowseCardStackIcon>(
+      find.byKey(const Key('mainBrowseNavBrowseGlyph')),
+    );
+    expect(browseSelected.filled, isTrue);
+    expect(browseSelected.color, darkTokens.accent);
+
+    // Switch to Settings — Browse outlined muted; Settings accent; Order unchanged.
+    await tester.tap(find.text(l10n.mainBrowseNavSettings));
+    await tester.pumpAndSettle();
+
+    final browseAfter = tester.widget<BrowseCardStackIcon>(
+      find.byKey(const Key('mainBrowseNavBrowseGlyph')),
+    );
+    expect(browseAfter.filled, isFalse);
+    expect(browseAfter.color, darkTokens.onMediaMuted);
+
+    final settingsIcon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byKey(const Key('mainBrowseNavSettingsSlot')),
+        matching: find.byIcon(Icons.settings),
+      ),
+    );
+    expect(settingsIcon.color, darkTokens.accent);
+    expect(settingsIcon.size, kBottomTabIconSize);
+
+    expect(find.byType(OrderSwapIcon), findsOneWidget);
+    expect(
+      tester.widget<OrderSwapIcon>(find.byType(OrderSwapIcon)).color,
+      darkTokens.onMediaMuted,
+    );
+
+    // Stroke constants: Action thinner than Browse outlined (§11.4.4 / R-GLYPH).
+    expect(kBottomTabActionSwapStroke, lessThan(kBottomTabBrowseOutlinedStroke));
+  });
+
+  testWidgets(
+      'W-27.6-nav-label: Order/Browse label band — no vertical FittedBox scale',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    // SE width — long order copy + chevron (COPY-1 class).
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(permissionUiHarness(repo: repo));
+    await tester.pumpAndSettle();
+
+    final orderSlot = find.byKey(const Key('mainBrowseOrderActionSlot'));
+    final orderFitted = find.descendant(
+      of: orderSlot,
+      matching: find.byType(FittedBox),
+    );
+    expect(orderFitted, findsOneWidget);
+
+    final fitted = tester.renderObject(orderFitted) as RenderFittedBox;
+    final childSize = fitted.child!.size;
+    final parentSize = fitted.size;
+    // Width-only scaleDown: height must stay 1.0 (no 12/14 vertical squash).
+    final sy = parentSize.height / childSize.height;
+    final sx = parentSize.width / childSize.width;
+    final fitScale = () {
+      final s = sx < sy ? sx : sy;
+      return s > 1 ? 1.0 : s;
+    }();
+    expect(
+      fitScale,
+      closeTo(1.0, 0.001),
+      reason:
+          'Order FittedBox must not vertically squash the label row '
+          '(was ~0.857 when Row+chevron shared one FittedBox). '
+          'parent=$parentSize child=$childSize',
+    );
+    expect(childSize.height, closeTo(kBottomTabLabelBandHeight, 0.5));
+    expect(parentSize.height, closeTo(kBottomTabLabelBandHeight, 0.5));
+
+    final expand = find.descendant(
+      of: orderSlot,
+      matching: find.byIcon(Icons.expand_less),
+    );
+    expect(tester.getSize(expand).height, kBottomTabExpandIconSize);
+
+    final browseLabel = tester.getSize(find.text('Browse'));
+    final settingsLabel = tester.getSize(find.text('Settings'));
+    final orderLabel = tester.getSize(
+      find
+          .descendant(of: orderSlot, matching: find.byType(Text))
+          .first,
+    );
+    expect(browseLabel.height, closeTo(kBottomTabLabelBandHeight, 0.5));
+    expect(settingsLabel.height, closeTo(kBottomTabLabelBandHeight, 0.5));
+    expect(orderLabel.height, closeTo(browseLabel.height, 0.5));
+    expect(orderLabel.height, closeTo(settingsLabel.height, 0.5));
   });
 
   testWidgets(

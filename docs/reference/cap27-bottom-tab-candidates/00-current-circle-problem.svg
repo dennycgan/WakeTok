@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="100" viewBox="0 0 390 100">
+  <rect width="390" height="100" fill="#1E1E1E"/>
+  <text x="12" y="18" fill="#888" font-family="system-ui,sans-serif" font-size="11">REF — current: 32slot+r16 = circle shell; stack 32+4+12=48 → icon top flush (red dash)</text>
+  <g transform="translate(0,28)">
+    <rect width="390" height="48" fill="#1E1E1E"/>
+    <!-- content band outline for diagnosis -->
+    <rect x="0.5" y="0.5" width="389" height="47" fill="none" stroke="#333" stroke-width="1"/>
+    
+    <line x1="45" y1="0" x2="85" y2="0" stroke="#FC2555" stroke-width="1" stroke-dasharray="2 2"/>
+    <g transform="translate(65,0)">
+      <g transform="translate(-16,0)">
+    <circle cx="16" cy="16" r="16" fill="#FF6B8A" fill-opacity="0.20"/>
+    <g fill="#FF6B8A">
+      <rect x="6" y="5" width="16" height="12" rx="2.5" fill-opacity="0.55"/>
+      <rect x="10" y="12" width="16" height="14" rx="2.5"/>
+    </g></g>
+      <text x="0" y="44" text-anchor="middle" fill="#FF6B8A" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Browse</text>
+    </g>
+    <line x1="175" y1="0" x2="215" y2="0" stroke="#FC2555" stroke-width="1" stroke-dasharray="2 2"/>
+    <g transform="translate(195,0)">
+      <g transform="translate(-16,0)"><circle cx="16" cy="16" r="15.5" fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="1"/>
+    <g fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 8 L12 22"/>
+      <path d="M12 8 L9 11 M12 8 L15 11"/>
+      <path d="M20 24 L20 10"/>
+      <path d="M20 24 L17 21 M20 24 L23 21"/>
+    </g></g>
+      <text x="0" y="44" text-anchor="middle" fill="rgba(255,255,255,0.70)" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Shuffle</text>
+    </g>
+    <line x1="305" y1="0" x2="345" y2="0" stroke="#FC2555" stroke-width="1" stroke-dasharray="2 2"/>
+    <g transform="translate(325,0)">
+      <g transform="translate(-16,0)"><circle cx="16" cy="16" r="6" fill="none" stroke="rgba(255,255,255,0.70)" stroke-width="1.75"/>
+    <circle cx="16" cy="16" r="2.2" fill="rgba(255,255,255,0.70)"/></g>
+      <text x="0" y="44" text-anchor="middle" fill="rgba(255,255,255,0.70)" font-family="system-ui,sans-serif" font-size="12" font-weight="600">Settings</text>
+    </g>
+  </g>
+  <text x="12" y="92" fill="#555" font-family="system-ui,sans-serif" font-size="9">content band = 48pt (red dashed = icon slot top flush)</text>
+</svg>

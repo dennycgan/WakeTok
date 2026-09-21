@@ -5,6 +5,8 @@ import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/bottom_tab_layout.dart';
+import 'package:waketok/features/main_browse/browse_card_stack_icon.dart';
 import 'package:waketok/features/main_browse/browse_top_chrome.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
 import 'package:waketok/features/main_browse/cap24_more_entry_icon.dart';
@@ -163,14 +165,18 @@ class _MainBrowseBottomBar extends ConsumerWidget {
               children: [
                 Expanded(
                   child: _BottomNavCell(
+                    slotKey: const Key('mainBrowseNavBrowseSlot'),
                     selected: selected == MainBrowseDestination.browse,
-                    outlinedIcon: Icons.home_outlined,
-                    filledIcon: Icons.home,
                     label: l10n.mainBrowseNavBrowse,
                     labelStyle: labelStyle,
                     accent: tokens.accent,
                     onMediaMuted: tokens.onMediaMuted,
                     onTap: () => onSelect(MainBrowseDestination.browse),
+                    iconBuilder: (color, filled) => BrowseCardStackIcon(
+                      key: const Key('mainBrowseNavBrowseGlyph'),
+                      color: color,
+                      filled: filled,
+                    ),
                   ),
                 ),
                 Expanded(
@@ -184,14 +190,18 @@ class _MainBrowseBottomBar extends ConsumerWidget {
                 ),
                 Expanded(
                   child: _BottomNavCell(
+                    slotKey: const Key('mainBrowseNavSettingsSlot'),
                     selected: selected == MainBrowseDestination.settings,
-                    outlinedIcon: Icons.settings_outlined,
-                    filledIcon: Icons.settings,
                     label: l10n.mainBrowseNavSettings,
                     labelStyle: labelStyle,
                     accent: tokens.accent,
                     onMediaMuted: tokens.onMediaMuted,
                     onTap: () => onSelect(MainBrowseDestination.settings),
+                    iconBuilder: (color, filled) => Icon(
+                      filled ? Icons.settings : Icons.settings_outlined,
+                      size: kBottomTabIconSize,
+                      color: color,
+                    ),
                   ),
                 ),
               ],
@@ -206,24 +216,24 @@ class _MainBrowseBottomBar extends ConsumerWidget {
 
 class _BottomNavCell extends StatelessWidget {
   const _BottomNavCell({
+    required this.slotKey,
     required this.selected,
-    required this.outlinedIcon,
-    required this.filledIcon,
     required this.label,
     required this.labelStyle,
     required this.accent,
     required this.onMediaMuted,
     required this.onTap,
+    required this.iconBuilder,
   });
 
+  final Key slotKey;
   final bool selected;
-  final IconData outlinedIcon;
-  final IconData filledIcon;
   final String label;
   final TextStyle labelStyle;
   final Color accent;
   final Color onMediaMuted;
   final VoidCallback onTap;
+  final Widget Function(Color color, bool filled) iconBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -235,26 +245,25 @@ class _BottomNavCell extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: selected ? accent.withValues(alpha: 0.20) : null,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-              child: Icon(
-                selected ? filledIcon : outlinedIcon,
-                size: 22,
-                color: iconColor,
-              ),
+          // §11.4.3: color-only selected — no fill / circle / pill behind icon.
+          SizedBox(
+            key: slotKey,
+            width: kBottomTabIconSlot,
+            height: kBottomTabIconSlot,
+            child: Center(
+              child: iconBuilder(iconColor, selected),
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: labelStyle.copyWith(color: textColor),
+          const SizedBox(height: kBottomTabIconLabelGap),
+          SizedBox(
+            height: kBottomTabLabelBandHeight,
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: labelStyle.copyWith(color: textColor),
+            ),
           ),
         ],
       ),
@@ -262,7 +271,7 @@ class _BottomNavCell extends StatelessWidget {
   }
 }
 
-/// Cap 27.4 action slot — no selected tint; does not call destination select.
+/// Cap 27.4 / §11.4.4 Action slot — no shell; thinner swap; never selected.
 class _OrderActionCell extends StatelessWidget {
   const _OrderActionCell({
     required this.label,
@@ -289,28 +298,40 @@ class _OrderActionCell extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.swap_vert,
-              size: 22,
-              color: onMediaMuted,
+            SizedBox(
+              key: const Key('mainBrowseOrderActionIconSlot'),
+              width: kBottomTabIconSlot,
+              height: kBottomTabIconSlot,
+              child: Center(
+                child: OrderSwapIcon(color: onMediaMuted),
+              ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: kBottomTabIconLabelGap),
+            // Height fixed at 12. FittedBox scales the *label text width only*
+            // (SE long copy); chevron stays true [kBottomTabExpandIconSize].
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 2),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
+              child: SizedBox(
+                height: kBottomTabLabelBandHeight,
+                width: double.infinity,
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      label,
-                      maxLines: 1,
-                      softWrap: false,
-                      style: labelStyle.copyWith(color: onMediaMuted),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          softWrap: false,
+                          style: labelStyle.copyWith(color: onMediaMuted),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: kBottomTabExpandGap),
                     Icon(
                       Icons.expand_less,
-                      size: 16,
+                      size: kBottomTabExpandIconSize,
                       color: onMediaMuted,
                     ),
                   ],

@@ -514,10 +514,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseOrderSlotSemantics =>
-      'Play order. Opens play order options.';
+      'Browse order. Opens browse order options.';
 
   @override
-  String get mainBrowseOrderSheetTitle => 'Play Order';
+  String get mainBrowseOrderSheetTitle => 'Browse Order';
 
   @override
   String get mainBrowseOrderSheetNewest => 'Newest → Oldest';
@@ -1400,10 +1400,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseOrderShuffle => '随机';
 
   @override
-  String get mainBrowseOrderSlotSemantics => '播放顺序。点击打开播放顺序选项。';
+  String get mainBrowseOrderSlotSemantics => '浏览顺序。点击打开浏览顺序选项。';
 
   @override
-  String get mainBrowseOrderSheetTitle => '播放顺序';
+  String get mainBrowseOrderSheetTitle => '浏览顺序';
 
   @override
   String get mainBrowseOrderSheetNewest => '新到旧';

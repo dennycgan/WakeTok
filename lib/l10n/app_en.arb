@@ -664,11 +664,11 @@
   "@mainBrowseOrderShuffle": {
     "description": "Cap 27 bottom-bar order slot label — shuffle"
   },
-  "mainBrowseOrderSlotSemantics": "Play order. Opens play order options.",
+  "mainBrowseOrderSlotSemantics": "Browse order. Opens browse order options.",
   "@mainBrowseOrderSlotSemantics": {
     "description": "Semantics for the bottom-bar order action slot (not a destination tab)"
   },
-  "mainBrowseOrderSheetTitle": "Play Order",
+  "mainBrowseOrderSheetTitle": "Browse Order",
   "@mainBrowseOrderSheetTitle": {
     "description": "Cap 27 Layer-1 order-control half-sheet title"
   },
