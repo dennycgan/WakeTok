@@ -57,3 +57,8 @@ docs/private/
 
 # Local scratch / export working directory (not published)
 tmp/
+
+# Local-only visual reference / golden PNG dumps (keep on disk; do not publish)
+docs/reference/cap27-bottom-tab-candidates/
+test/features/main_browse/goldens/
+test/features/main_browse/failures/
