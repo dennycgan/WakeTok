@@ -254,12 +254,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get playbackProbeFailed => 'Playback / display probe failed.';
 
   @override
-  String get mainBrowsePoolsTab => 'Pools';
-
-  @override
-  String get mainBrowsePoolsComingSoon => 'Coming soon';
-
-  @override
   String get mainBrowseTempPoolChip => 'Temp Pool';
 
   @override
@@ -283,13 +277,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get mainBrowseCreatePool => 'Create Pool';
-
-  @override
-  String get mainBrowseSavedPlaceholderSave =>
-      'Save current pool — Coming soon';
-
-  @override
-  String get mainBrowseSavedPlaceholderManage => 'Manage pools — Coming soon';
 
   @override
   String get mainBrowseSavedPlaceholderEmpty => 'No saved pools yet';
@@ -1149,12 +1136,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get playbackProbeFailed => '播放 / 显示探针失败。';
 
   @override
-  String get mainBrowsePoolsTab => '片库';
-
-  @override
-  String get mainBrowsePoolsComingSoon => '即将推出';
-
-  @override
   String get mainBrowseTempPoolChip => '临时片库';
 
   @override
@@ -1178,12 +1159,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseCreatePool => '创建片库';
-
-  @override
-  String get mainBrowseSavedPlaceholderSave => '保存当前片库 — 即将推出';
-
-  @override
-  String get mainBrowseSavedPlaceholderManage => '管理片库 — 即将推出';
 
   @override
   String get mainBrowseSavedPlaceholderEmpty => '还没有已保存的片库';

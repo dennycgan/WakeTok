@@ -519,18 +519,6 @@ abstract class AppLocalizations {
   /// **'Playback / display probe failed.'**
   String get playbackProbeFailed;
 
-  /// Top chrome fourth tab label (visible, disabled in Cap 7)
-  ///
-  /// In en, this message translates to:
-  /// **'Pools'**
-  String get mainBrowsePoolsTab;
-
-  /// Visible subtitle on disabled Pools tab (not a SnackBar). Cap 21.3 removes the tab from UI; key kept for stability.
-  ///
-  /// In en, this message translates to:
-  /// **'Coming soon'**
-  String get mainBrowsePoolsComingSoon;
-
   /// Cap 21.3 fixed short label for parked ephemeral Pool chip (ADR-044 D7)
   ///
   /// In en, this message translates to:
@@ -569,18 +557,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Create Pool'**
   String get mainBrowseCreatePool;
-
-  /// Cap 21.3 gray Saved-menu row; Cap 22 wires persist (ADR-044 D1)
-  ///
-  /// In en, this message translates to:
-  /// **'Save current pool — Coming soon'**
-  String get mainBrowseSavedPlaceholderSave;
-
-  /// Cap 21.3 gray Saved-menu row; Cap 22 wires manage (ADR-044 D1)
-  ///
-  /// In en, this message translates to:
-  /// **'Manage pools — Coming soon'**
-  String get mainBrowseSavedPlaceholderManage;
 
   /// Cap 21.3 gray empty Saved list placeholder
   ///

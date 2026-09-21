@@ -27,19 +27,16 @@ void main() {
     expect(find.byType(LibraryTotalsShellPage), findsNothing);
   });
 
-  testWidgets('W-2 top chrome shows Built-in/Saved/Create; no Pools Coming soon',
-      (tester) async {
+  testWidgets('W-2 top chrome shows Built-in/Saved/Create', (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
     await tester.pumpWidget(permissionUiHarness(repo: repo));
     await tester.pumpAndSettle();
 
-    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.byKey(const Key('mainBrowseBuiltInMenu')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseSavedPoolsMenu')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseCreatePool')), findsOneWidget);
     expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsNothing);
     expect(find.byKey(const Key('mainBrowseSourcePools')), findsNothing);
-    expect(find.text(l10n.mainBrowsePoolsComingSoon), findsNothing);
     expect(find.byKey(const Key('mainBrowseChromeCenterPair')), findsOneWidget);
   });
 

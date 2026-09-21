@@ -257,12 +257,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get playbackProbeFailed => 'Playback / display probe failed.';
 
   @override
-  String get mainBrowsePoolsTab => 'Pools';
-
-  @override
-  String get mainBrowsePoolsComingSoon => 'Coming soon';
-
-  @override
   String get mainBrowseTempPoolChip => 'Temp Pool';
 
   @override
@@ -286,13 +280,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get mainBrowseCreatePool => 'Create Pool';
-
-  @override
-  String get mainBrowseSavedPlaceholderSave =>
-      'Save current pool — Coming soon';
-
-  @override
-  String get mainBrowseSavedPlaceholderManage => 'Manage pools — Coming soon';
 
   @override
   String get mainBrowseSavedPlaceholderEmpty => 'No saved pools yet';

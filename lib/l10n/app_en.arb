@@ -313,14 +313,6 @@
   "@playbackProbeFailed": {
     "description": "Generic ARB fallback for probe errors"
   },
-  "mainBrowsePoolsTab": "Pools",
-  "@mainBrowsePoolsTab": {
-    "description": "Top chrome fourth tab label (visible, disabled in Cap 7)"
-  },
-  "mainBrowsePoolsComingSoon": "Coming soon",
-  "@mainBrowsePoolsComingSoon": {
-    "description": "Visible subtitle on disabled Pools tab (not a SnackBar). Cap 21.3 removes the tab from UI; key kept for stability."
-  },
   "mainBrowseTempPoolChip": "Temp Pool",
   "@mainBrowseTempPoolChip": {
     "description": "Cap 21.3 fixed short label for parked ephemeral Pool chip (ADR-044 D7)"
@@ -357,14 +349,6 @@
   "mainBrowseCreatePool": "Create Pool",
   "@mainBrowseCreatePool": {
     "description": "Cap 21.3 Create control — opens the Build a Pool screen"
-  },
-  "mainBrowseSavedPlaceholderSave": "Save current pool — Coming soon",
-  "@mainBrowseSavedPlaceholderSave": {
-    "description": "Cap 21.3 gray Saved-menu row; Cap 22 wires persist (ADR-044 D1)"
-  },
-  "mainBrowseSavedPlaceholderManage": "Manage pools — Coming soon",
-  "@mainBrowseSavedPlaceholderManage": {
-    "description": "Cap 21.3 gray Saved-menu row; Cap 22 wires manage (ADR-044 D1)"
   },
   "mainBrowseSavedPlaceholderEmpty": "No saved pools yet",
   "@mainBrowseSavedPlaceholderEmpty": {
