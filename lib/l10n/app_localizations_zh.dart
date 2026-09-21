@@ -1375,19 +1375,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseOrderShuffle => '随机';
 
   @override
-  String get mainBrowseOrderSlotSemantics => '浏览顺序。点击打开浏览顺序选项。';
+  String get mainBrowseOrderSlotSemantics => '浏览顺序设置。点击打开浏览顺序选项。';
 
   @override
-  String get mainBrowseOrderSheetTitle => '浏览顺序';
+  String get mainBrowseOrderSheetTitle => '浏览顺序设置';
 
   @override
-  String get mainBrowseOrderSheetNewest => '新到旧';
+  String get mainBrowseOrderSheetNewest => '时间最近在前';
 
   @override
-  String get mainBrowseOrderSheetOldest => '旧到新';
+  String get mainBrowseOrderSheetOldest => '时间最早在前';
 
   @override
-  String get mainBrowseOrderSheetShuffle => '随机';
+  String get mainBrowseOrderSheetShuffle => '随机顺序';
 
   @override
   String get mainBrowseOrderSheetConfirm => '确认';
