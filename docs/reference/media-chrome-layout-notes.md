@@ -443,7 +443,7 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 
 **Follow-up (out of scope this polish):** Temp / ephemeral pools that still contain album refs under Limited hit the same ADR-021 D3 failure mode — not disabled in this change; revisit with a dedicated Limited/pool honesty pass (not Misc polish).
 
-**Do not:** push the center pair sideways when the leading chip appears (owner lock — chip show/hide must not shift Built-in/Saved).
+**Do not:** push the center pair sideways when the leading chip appears (owner lock — chip show/hide must not shift Built-in/Saved). **Also do not:** let Built-in drop to intrinsic width when unselected — that is a different failure mode with the same product symptom (Built-in/Saved jump).
 
 #### 11.3.1 Selected capsule standard (Cap 26.4b — copy for Clips / new chrome)
 
@@ -487,9 +487,9 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 
 | Control | When filled | Width |
 |---------|-------------|-------|
-| Temp Pool chip | Ephemeral active | Fixed Temp width |
+| Temp Pool chip | Ephemeral active | Fixed Temp width (**always** — parked unselected is transparent fill, same shell) |
 | Saved Pool chip | Saved origin current | **Same** fixed width; string = `displayName` only |
-| Built-in (All / Photos / Videos) | `highlightAsSelected` | **Same** fixed width |
+| Built-in (All / Photos / Videos) | `highlightAsSelected` → fill; else transparent + muted | **Same** fixed Temp width **always** (selected **and** unselected). Do **not** use intrinsic / content-sized width when unselected — that shrinks the center-pair `Row` and shifts Built-in + Saved on screen while `Align` keeps the Row center fixed (owner-confirmed jump when opening Saved / leaving Built-in). Label+▾ stay **centered** in the shell (`expandLabel: true` + ellipsis). |
 
 **Reuse checklist (Clips / future)**
 

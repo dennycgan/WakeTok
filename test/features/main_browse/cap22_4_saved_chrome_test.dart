@@ -692,28 +692,78 @@ void main() {
       expect(semantics.hasFlag(SemanticsFlag.isSelected), isFalse);
     });
 
-    testWidgets('chip show/hide keeps center pair dx', (tester) async {
-      final pools = FakeSavedPoolRepository(createId: () => 'p1');
-      await pools.save(
-        displayName: 'Trip',
-        orderedSourceReferences: const [SourceReference.photos],
-      );
-      await _pump(tester: tester, savedPools: pools);
-      final centerEmpty = tester.getCenter(
-        find.byKey(const Key('mainBrowseChromeCenterPair')),
-      );
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(MaterialApp)),
-      );
-      container
-          .read(browseChromeStateProvider.notifier)
-          .openSavedPool((await pools.loadAll()).single);
-      await tester.pumpAndSettle();
-      final centerSaved = tester.getCenter(
-        find.byKey(const Key('mainBrowseChromeCenterPair')),
-      );
-      expect(centerSaved.dx, closeTo(centerEmpty.dx, 1));
-    });
+    testWidgets(
+      'Built-in/Saved dx stable: All↔Saved and parked-Temp round-trips',
+      (tester) async {
+        final pools = FakeSavedPoolRepository(createId: () => 'p1');
+        await pools.save(
+          displayName: 'Trip',
+          orderedSourceReferences: const [SourceReference.photos],
+        );
+        await _pump(tester: tester, savedPools: pools);
+
+        Offset builtInCenter() =>
+            tester.getCenter(find.byKey(const Key('mainBrowseBuiltInMenu')));
+        Offset savedCenter() => tester
+            .getCenter(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+        double builtInWidth() =>
+            tester.getSize(find.byKey(const Key('mainBrowseBuiltInMenu'))).width;
+
+        final baseline = (
+          bi: builtInCenter(),
+          sv: savedCenter(),
+          w: builtInWidth(),
+        );
+
+        void expectAnchored() {
+          expect(builtInCenter().dx, closeTo(baseline.bi.dx, 0.5));
+          expect(savedCenter().dx, closeTo(baseline.sv.dx, 0.5));
+          expect(builtInWidth(), closeTo(baseline.w, 0.5));
+        }
+
+        final container = ProviderScope.containerOf(
+          tester.element(find.byType(MaterialApp)),
+        );
+        final record = (await pools.loadAll()).single;
+
+        // Path 1: All → Saved (chip appears + Built-in deselects).
+        container.read(browseChromeStateProvider.notifier).openSavedPool(record);
+        await tester.pumpAndSettle();
+        expectAnchored();
+        expect(find.byKey(const Key('mainBrowseSavedPoolChip')), findsOneWidget);
+
+        // Path 2: Saved → All (reverse).
+        container
+            .read(mainBrowseSelectedSourceProvider.notifier)
+            .select(SourceReference.all);
+        await tester.pumpAndSettle();
+        expectAnchored();
+
+        // Path 3: park Temp while on Built-in, then Built-in ↔ Saved.
+        container
+            .read(browseChromeStateProvider.notifier)
+            .debugSetParkedEphemeralPool(_eph());
+        await tester.pumpAndSettle();
+        expectAnchored();
+        expect(find.byKey(const Key('mainBrowseTempPoolChip')), findsOneWidget);
+
+        container.read(browseChromeStateProvider.notifier).openSavedPool(record);
+        await tester.pumpAndSettle();
+        expectAnchored();
+
+        container
+            .read(mainBrowseSelectedSourceProvider.notifier)
+            .select(SourceReference.videos);
+        await tester.pumpAndSettle();
+        expectAnchored();
+
+        container
+            .read(mainBrowseSelectedSourceProvider.notifier)
+            .select(SourceReference.photos);
+        await tester.pumpAndSettle();
+        expectAnchored();
+      },
+    );
 
     testWidgets(
       'ThemeMode.light: Saved overlay + naming dialog use immersive dark surface',

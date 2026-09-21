@@ -352,26 +352,53 @@ void main() {
       expect(container.read(browseChromeStateProvider), before);
     });
 
-    testWidgets('U-21.3-9 chip show/hide keeps center pair dx', (tester) async {
+    testWidgets('U-21.3-9 Built-in/Saved dx stable across Built-in selection toggles',
+        (tester) async {
       final repo =
           ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(permissionUiHarness(repo: repo));
       await tester.pumpAndSettle();
 
-      final centerEmpty = tester.getCenter(
-        find.byKey(const Key('mainBrowseChromeCenterPair')),
+      Offset builtInCenter() =>
+          tester.getCenter(find.byKey(const Key('mainBrowseBuiltInMenu')));
+      Offset savedCenter() =>
+          tester.getCenter(find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+      double builtInWidth() =>
+          tester.getSize(find.byKey(const Key('mainBrowseBuiltInMenu'))).width;
+
+      final before = (
+        bi: builtInCenter(),
+        sv: savedCenter(),
+        w: builtInWidth(),
       );
+
       final container = ProviderScope.containerOf(
         tester.element(find.byType(MaterialApp)),
       );
+      // Park Temp chip while still on Built-in (selected → stays selected).
       container
           .read(browseChromeStateProvider.notifier)
           .debugSetParkedEphemeralPool(_parkedDef());
       await tester.pumpAndSettle();
-      final centerParked = tester.getCenter(
-        find.byKey(const Key('mainBrowseChromeCenterPair')),
-      );
-      expect(centerParked.dx, closeTo(centerEmpty.dx, 1));
+      expect(builtInCenter().dx, closeTo(before.bi.dx, 0.5));
+      expect(savedCenter().dx, closeTo(before.sv.dx, 0.5));
+      expect(builtInWidth(), closeTo(before.w, 0.5));
+
+      // Built-in → ephemeral (deselected Built-in; chip already present).
+      container.read(browseChromeStateProvider.notifier).resumeParkedEphemeral();
+      await tester.pumpAndSettle();
+      expect(builtInCenter().dx, closeTo(before.bi.dx, 0.5));
+      expect(savedCenter().dx, closeTo(before.sv.dx, 0.5));
+      expect(builtInWidth(), closeTo(before.w, 0.5));
+
+      // Back to Built-in Photos (re-selected).
+      container
+          .read(mainBrowseSelectedSourceProvider.notifier)
+          .select(SourceReference.photos);
+      await tester.pumpAndSettle();
+      expect(builtInCenter().dx, closeTo(before.bi.dx, 0.5));
+      expect(savedCenter().dx, closeTo(before.sv.dx, 0.5));
+      expect(builtInWidth(), closeTo(before.w, 0.5));
     });
 
     test('U-21.3-resumeParkedEphemeral is no-op when already active', () {

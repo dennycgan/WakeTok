@@ -529,16 +529,16 @@ class _BuiltInControl extends StatelessWidget {
             onTap: () => _openBuiltInOverlay(context),
             borderRadius: BorderRadius.circular(kBrowseTopChromeControlCornerRadius),
             child: _chromeControlShell(
-              // Cap 26.4b: selected Built-in uses Temp Pool pill width so
-              // All / Photos / Videos do not grow different capsules.
-              width: highlightAsSelected
-                  ? _chromeTempPoolPillWidth(context)
-                  : null,
+              // Cap 26.4b / Scheme A: Built-in is always the Temp-Pool pill
+              // width — selected and unselected. Intrinsic width on unselected
+              // made All↔Saved jump Built-in + Saved on screen (center-pair
+              // Align kept the Row center fixed while the Row width changed).
+              width: _chromeTempPoolPillWidth(context),
               child: _chromeDropdownRow(
                 label: label,
                 style: _chromeOnMediaLabelStyle(tokens, color),
                 iconColor: color,
-                expandLabel: highlightAsSelected,
+                expandLabel: true,
               ),
             ),
           ),
