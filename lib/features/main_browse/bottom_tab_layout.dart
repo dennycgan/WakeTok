@@ -24,13 +24,13 @@ const double kBottomTabExpandIconSize = 12;
 /// Label ↔ chevron gap in the Order label row.
 const double kBottomTabExpandGap = 2;
 
-/// Browse outlined card stroke (24-design space). Heavier so optical weight
-/// tracks Material [Icons.settings] at [kBottomTabIconSize].
-const double kBottomTabBrowseOutlinedStroke = 2.25;
+/// Browse outlined card stroke (24-design space). Must stay **>**
+/// [kBottomTabActionSwapStroke].
+const double kBottomTabBrowseOutlinedStroke = 1.65;
 
-/// Order swap custom-paint stroke — still thinner than Browse outlined
-/// (Action vs Destination), but raised toward Settings gear weight.
-const double kBottomTabActionSwapStroke = 1.9;
+/// Order swap custom-paint stroke — thinner than Browse outlined
+/// (Action vs Destination).
+const double kBottomTabActionSwapStroke = 1.45;
 
 /// Order swap shafts: distance between left/right centers in 24-design space.
 /// Wider than a tight Material `swap_vert` so the glyph fills the slot more

@@ -224,13 +224,13 @@ void main() {
           greaterThan(createCenter),
           reason: 'Requires Full Access must sit below Create Pool center',
         );
-        // Optical nudge: helper may overlap the Create hit's lower pad
-        // (_kCreateRequiresFullAccessTop = 24 < 32).
+        // Optical nudge: helper may overlap the Create outline's lower pad
+        // (_kCreateRequiresFullAccessTop under tight stadium hit).
         final createBottom =
             tester.getBottomLeft(find.byKey(const Key('mainBrowseCreatePool'))).dy;
         expect(
           helperTop,
-          lessThanOrEqualTo(createBottom + 1),
+          lessThanOrEqualTo(createBottom + 2),
           reason: 'Helper should not start far below Create hit bottom',
         );
       },

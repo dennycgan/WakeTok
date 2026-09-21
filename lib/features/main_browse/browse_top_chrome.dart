@@ -25,9 +25,10 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// in `media_chrome_layout.dart` (single source with feed LIVE skeleton).
 const double _kChromeDropdownIconSize = 16;
 /// Cap 26.4b: Limited helper top inset inside the Create Stack.
-/// Below Create glyphs optically; less than [kBrowseTopChromeControlHeight] so
-/// the caption sits closer than flush-under-hit (owner nudge).
-const double _kCreateRequiresFullAccessTop = 24;
+/// Tuned under the tight Create outline (label + [_kCreateCapsuleVPad]);
+/// may slightly overlap the capsule's lower pad (same class as the old
+/// 24-on-32 hit).
+const double _kCreateRequiresFullAccessTop = 18;
 
 /// Cap 26.4b L2: Create Limited helper font size (was 9).
 const double _kCreateRequiresFullAccessFontSize = 8;
@@ -35,6 +36,11 @@ const double _kCreateRequiresFullAccessFontSize = 8;
 /// Cap 26.4b L2: Create / Saved Limited mute (label + dropdown icon).
 Color _chromeLimitedMuteColor(WakeTokTokens tokens) =>
     tokens.onMediaMuted.withValues(alpha: 0.35);
+
+/// Create outline button stroke (no fill). Tight pad — not the 32×Temp pill.
+const double _kCreateCapsuleOutlineStroke = 1.0;
+const double _kCreateCapsuleHPad = 8;
+const double _kCreateCapsuleVPad = 4;
 
 /// Cap 26.4b: selected / leading pill width matches Temp Pool label + pads.
 ///
@@ -437,13 +443,26 @@ class _CreateControl extends StatelessWidget {
         ? tokens.onMediaMuted
         : _chromeLimitedMuteColor(tokens);
     final labelStyle = _chromeOnMediaLabelStyle(tokens, color);
-    final createHit = InkWell(
-      key: const Key('mainBrowseCreatePool'),
-      onTap: enabled ? onTap : null,
-      child: _chromeControlShell(
-        child: _chromeLabelText(
-          l10n.mainBrowseCreatePool,
-          labelStyle,
+    // Tight outline capsule hugging Create label (not the 32×Temp Built-in
+    // shell). Stadium shape; stroke color == label color; no fill.
+    final createHit = Material(
+      color: Colors.transparent,
+      shape: StadiumBorder(
+        side: BorderSide(color: color, width: _kCreateCapsuleOutlineStroke),
+      ),
+      child: InkWell(
+        key: const Key('mainBrowseCreatePool'),
+        onTap: enabled ? onTap : null,
+        customBorder: const StadiumBorder(),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: _kCreateCapsuleHPad,
+            vertical: _kCreateCapsuleVPad,
+          ),
+          child: _chromeLabelText(
+            l10n.mainBrowseCreatePool,
+            labelStyle,
+          ),
         ),
       ),
     );

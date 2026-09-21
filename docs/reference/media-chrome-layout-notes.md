@@ -421,6 +421,7 @@ controls — it only **reads** these metrics for top-leading alignment.
 | `browseTopChromeBandHeight` | **52** (Full) / **70** (Limited + Create helper only) | `SizedBox` under `SafeArea`. **No** third tier — L1 dual-row + Open Settings deferred (debt **421**). Feed LIVE top uses the same helper. |
 | Leading chip inset / `kLiveBadgeLeadingInset` | **8** | `Positioned(left: 8)` for Temp / Saved chip **and** LIVE |
 | Create inset | **8** | `Positioned(right: 8)` |
+| Create capsule outline | **1.0** stroke, no fill; **Stadium** hugging Create label (`H pad 8` / `V pad 4` — **not** the 32×Temp Built-in shell); stroke color = Create label color (`onMediaMuted` / Limited mute) | Outline button affordance — do **not** fill with `surface@0.92`; do **not** force Temp pill width/height |
 | Center-pair gap | **12** | Between Built-in and Saved menu |
 | Create Limited helper font | **8** | `_kCreateRequiresFullAccessFontSize` (Cap **26.4b** L2; was 9) |
 | Limited mute (Create / Saved menu) | `onMediaMuted` @ **0.35** alpha | Text/dropdown recipe — **not** §7.1 icon `Opacity` **0.22**. Saved has **no** caption |
@@ -437,7 +438,7 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 
 **Not a goal:** equal horizontal gaps among all four visible elements (wings pin to edges; center pair stays fixed).
 
-**Limited Create helper (Cap 26.4b L2):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create hit** (32). `Requires Full Access` is `Positioned(top: _kCreateRequiresFullAccessTop = **24**, right: 10)` under Create — **fontSize 8**, `TextAlign.end` so the helper’s **right edge matches the Create label** right edge. Longer EN copy may still extend left toward Saved; 8pt reduces intrusion but does **not** promise zero overlap. Band height stays **70**. Create label baseline matches Full Access / the center pair.
+**Limited Create helper (Cap 26.4b L2):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create outline hit** (tight stadium around the label — not the 32 Temp shell). `Requires Full Access` is `Positioned(top: _kCreateRequiresFullAccessTop = **18**, right: 10)` under Create — **fontSize 8**, `TextAlign.end` so the helper’s **right edge matches the Create label** right edge. Longer EN copy may still extend left toward Saved; 8pt reduces intrusion but does **not** promise zero overlap. Band height stays **70**. Create stays vertically centered with the center pair via the wing `Align`.
 
 **Limited Saved pools menu (Cap 26.4b L2):** same mute as Create (`onMediaMuted` @ 0.35); **untappable**; **no** helper/caption under Saved (avoids a second long string fighting Create’s helper). Root cause for not browsing album-backed Saved under Limited: **ADR-021 Decision 3** (album/smartAlbum resolve → unauthorized). When access becomes Limited while origin is Saved, chrome calls `leaveSavedOriginForLimitedAccess()` → `lastRememberedBuiltIn`.
 
@@ -562,13 +563,26 @@ Action visual re-lock above.
 Colors come only from `Theme.of` → `WakeTokTokens` (`accent` /
 `onMediaMuted`). No hard-coded brand hex in the nav glyph.
 
+#### 11.4.3a Tap ink (`InkWell` — keep accidental shapes)
+
+Bottom cells use default `InkWell` (no `customBorder` / `splashFactory`).
+Owner-accepted after Cap 27.6 device review — **do not “normalize”**:
+
+| Cell | How it reads | Why (not intentional factories) |
+|------|--------------|----------------------------------|
+| Destination (Browse / Settings) | Rectangular wash over the full `Expanded` column | Ink fills the wide hit column |
+| Action (Order) | More circular / point-centered splash | Same `InkWell`; denser vertical glyph reads as a point splash |
+
+**Lock:** keep default Material ink. Do **not** add `CircleBorder` on
+Destinations or force a shared shape unless a new owner pass reopens this.
+
 #### 11.4.4 Action appearance (no shell)
 
 | Property | Value |
 |----------|-------|
 | Slot | Same **32×32** as destinations (alignment only — empty chrome) |
 | Container | **None** — no fill, no stroke capsule |
-| Icon | Custom `swap_vert` at **24**, stroke **visibly thinner** than Browse outlined but raised toward Settings gear weight (implementation: `kBottomTabActionSwapStroke` ≈ **1.9** vs Browse outlined ≈ **2.25**; shaft gap `kBottomTabActionSwapShaftGap` ≈ **9**; tune on device) |
+| Icon | Custom `swap_vert` at **24**, stroke **visibly thinner** than Browse outlined (implementation: `kBottomTabActionSwapStroke` ≈ **1.45** vs Browse outlined ≈ **1.65**; shaft gap `kBottomTabActionSwapShaftGap` ≈ **9**; tune on device) |
 | Icon / label color | `onMediaMuted` always (never `accent` selected fill) |
 | Label row | Order copy + expand **12** (§11.4.6) |
 
@@ -584,7 +598,7 @@ no crossed strokes in the overlap).
 |--|------|
 | Motif | Large **vertical** front card + smaller peek card upper-left |
 | **Omit** | Peek upper-right; third card; waveform; moon; doom-scroll arrows; Destination circular wash |
-| Outlined (unselected) | Stroke-only; peek drawn **outside** front only (clip / occlusion); `kBottomTabBrowseOutlinedStroke` ≈ **2.25**; color `onMediaMuted` |
+| Outlined (unselected) | Stroke-only; peek drawn **outside** front only (clip / occlusion); `kBottomTabBrowseOutlinedStroke` ≈ **1.65**; color `onMediaMuted` |
 | Filled (selected) | Same geometry; front solid `accent`, peek same hue ~0.45 alpha under front; **no** circular wash |
 | Forbidden | Multi-stop brand SVG (`#FC2555` / `#E0C590` baked in) as the nav glyph |
 
