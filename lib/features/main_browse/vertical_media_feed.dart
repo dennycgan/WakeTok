@@ -385,12 +385,15 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     final previous = _pageController;
     _pageControllerEpoch = roundEpoch;
     _pageController = PageController(initialPage: initialPage);
-    // Cap 27.4 / 27.6: arm sticky prefer-Host for the remount landing page.
-    // Do not clear on a post-frame timer — remount may finish while
-    // browseActive is false (Settings leave); become-current must still see
-    // pending (debt 479).
-    _epochRemountPreferHostPending = true;
+    // Prefer-Host skips a Session L2-ready cache that may be stale. That
+    // cache only exists after a prior controller on this State, so arm only
+    // when replacing one (epoch remount). Cold start (previous == null) has
+    // nothing stale to skip; arming it also skips Layer 1 preview.
+    // Once armed, stay sticky until consumed — do not clear on a post-frame
+    // timer. Remount may finish while browseActive is false (Settings leave);
+    // become-current must still see pending (debt 479).
     if (previous != null) {
+      _epochRemountPreferHostPending = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         previous.dispose();
       });

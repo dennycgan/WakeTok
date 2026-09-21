@@ -252,7 +252,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.home_outlined));
+    await tester.tap(find.byKey(const Key('mainBrowseNavBrowseSlot')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('cap19LeftSwipeGuide')), findsNothing);

@@ -5333,6 +5333,38 @@ void main() {
     },
   );
 
+  testWidgets(
+    'W-27.6-cold first PageController does not arm prefer-Host',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      await tester.pumpWidget(
+        permissionUiHarness(
+          disableBrowseAllPrefetch: true,
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['still1'],
+            availabilityById: const {
+              'still1': AssetAvailability.deviceLocal,
+            },
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final ids = await _feedOrderedIds(tester);
+      final head = ids[0];
+
+      expect(
+        display.previewCalls.where((id) => id == head).length,
+        1,
+        reason:
+            'cold start (previous PageController == null) must requestPreview; '
+            'prefer-Host is remount-only',
+      );
+    },
+  );
+
   // Cap 27.6 / debt 479: Settings leave remounts while browseActive=false;
   // sticky prefer-Host must survive Settings dwell (not post-frame window).
   Future<void> settingsLeavePreferHostCase(
