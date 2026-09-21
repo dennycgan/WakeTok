@@ -550,12 +550,18 @@ math draws a circle and read as ornament on device).
 **Removed from this lock:** `kBottomTabCapsuleRadius` / Destination
 selected fill / Action hairline shell (owner 2026-09-20).
 
-**Open layout note (do not “fix” in the UI polish pass):**  
-`32 + 4 + 12 = 48` exactly equals `immersiveBottomBarHeight` (**48**), so
-with a centered column the icon-slot **top is flush** with the content
-band top (zero top/bottom inset). Recorded for a later retune
-(shrink slot / raise bar / add inset) — **not** in scope of the glyph /
-Action visual re-lock above.
+**Bottom clearance (Cap 27.6):**  
+`immersiveBottomBarHeight` stays **48** (content band only). When
+`MediaQuery.padding.bottom == 0` (SE / home-button class), the shell
+adds `kBottomTabContentBottomPadWhenNoSafeArea` (**6**) under that
+band, then the (zero) safe-area spacer. Notched devices keep pad **0**
+so total bar height is unchanged vs the Cap 27.6 visual lock. Do **not**
+raise the global 48 to fix flush-bottom — that would lift every device.
+
+**Open layout note (top only):**  
+`32 + 4 + 12 = 48` still leaves zero **top** inset inside the content
+band (flush icon top). Recorded for a later retune (shrink slot / raise
+bar / add top inset) — **not** solved by the bottom pad above.
 
 #### 11.4.3 Destination appearance
 

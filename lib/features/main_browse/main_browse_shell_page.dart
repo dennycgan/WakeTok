@@ -140,6 +140,8 @@ class _MainBrowseBottomBar extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final contentBottomPad =
+        bottomInset == 0 ? kBottomTabContentBottomPadWhenNoSafeArea : 0.0;
     final labelStyle = tokens.labelOnMedia.copyWith(height: 1.0);
     final preference = ref.watch(browseOrderPreferenceProvider);
     final effective = effectiveBrowseOrderPolicy(preference);
@@ -207,6 +209,13 @@ class _MainBrowseBottomBar extends ConsumerWidget {
               ],
             ),
           ),
+          // Zero-safe-area only (SE / home button). Notched phones keep 0 —
+          // do not raise [immersiveBottomBarHeight] for flush-bottom.
+          if (contentBottomPad > 0)
+            SizedBox(
+              key: const Key('mainBrowseNavigationBarContentBottomPad'),
+              height: contentBottomPad,
+            ),
           SizedBox(height: bottomInset),
         ],
       ),

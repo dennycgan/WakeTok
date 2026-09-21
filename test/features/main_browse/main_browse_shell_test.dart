@@ -357,6 +357,62 @@ void main() {
     expect(content.height, 48);
   });
 
+  testWidgets(
+      'W-27.6-pad: zero safe-area adds 6pt under content; notched keeps 0',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+
+    Future<void> pumpWithBottomInset(double bottom) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(
+            size: const Size(390, 844),
+            padding: EdgeInsets.only(bottom: bottom),
+            viewPadding: EdgeInsets.only(bottom: bottom),
+          ),
+          child: permissionUiHarness(repo: repo),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await pumpWithBottomInset(0);
+    expect(
+      find.byKey(const Key('mainBrowseNavigationBarContentBottomPad')),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<SizedBox>(
+            find.byKey(const Key('mainBrowseNavigationBarContentBottomPad')),
+          )
+          .height,
+      kBottomTabContentBottomPadWhenNoSafeArea,
+    );
+    expect(
+      tester
+          .widget<SizedBox>(
+            find.byKey(const Key('mainBrowseNavigationBarContent')),
+          )
+          .height,
+      48,
+    );
+
+    await pumpWithBottomInset(34);
+    expect(
+      find.byKey(const Key('mainBrowseNavigationBarContentBottomPad')),
+      findsNothing,
+    );
+    expect(
+      tester
+          .widget<SizedBox>(
+            find.byKey(const Key('mainBrowseNavigationBarContent')),
+          )
+          .height,
+      48,
+    );
+  });
+
   testWidgets('W-10 Browse pane is Stack with feed and top chrome',
       (tester) async {
     final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);

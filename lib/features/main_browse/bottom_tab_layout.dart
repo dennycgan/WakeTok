@@ -15,8 +15,17 @@ const double kBottomTabIconLabelGap = 4;
 
 /// Label baseline band height (matches `labelOnMedia` size @ height 1.0).
 /// Keeps 32 + 4 + 12 ≤ [WakeTokTokens.immersiveBottomBarHeight] (48).
-/// Open note: that equality leaves zero top/bottom inset (flush icon top).
+/// Open note: that equality leaves zero **top** inset (flush icon top).
+/// Bottom flush on zero-safe-area devices is handled separately by
+/// [kBottomTabContentBottomPadWhenNoSafeArea] — do **not** raise the
+/// global 48 content band for that.
 const double kBottomTabLabelBandHeight = 12;
+
+/// Extra pad under the 48pt content band when [MediaQuery.padding.bottom]
+/// is 0 (home-button / SE class). Notched devices keep pad 0 — Home
+/// Indicator already supplies visual clearance. Do **not** fold into
+/// [WakeTokTokens.immersiveBottomBarHeight].
+const double kBottomTabContentBottomPadWhenNoSafeArea = 6;
 
 /// Order expand chevron size (matches [kBottomTabLabelBandHeight]).
 const double kBottomTabExpandIconSize = 12;
