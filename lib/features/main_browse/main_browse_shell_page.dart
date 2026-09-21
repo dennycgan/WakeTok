@@ -150,8 +150,8 @@ class _MainBrowseBottomBar extends ConsumerWidget {
     // MediaQuery.removePadding is applied (and Profile rebuilds can still
     // look unchanged). Custom row = one icon+label strip; same surface
     // extends under the Home Indicator only.
-    // Cap 27.4: reserve two-line height for the order action cell; v1 draws
-    // one line of order label (+ expand affordance in the icon slot).
+    // Order label is permanently one line (Layer 1). Do not reserve a
+    // second line for Layer 2/3 — see ADR-055 D2 / layout notes §11.4.7.
     return Material(
       key: const Key('mainBrowseNavigationBar'),
       color: tokens.surface,

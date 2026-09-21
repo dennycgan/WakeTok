@@ -6934,6 +6934,14 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 - Status: Accepted (2026-09-20)
 - Commit/PR anchor: 893c296
+- **Owner amend (2026-09-21):** Removed the unimplemented "Reserved
+  two-line height" clause in Decision 2 and the sheet "reserves vertical
+  space for future Layer 2/3 blocks" clause in Decision 3. Order slot is
+  permanently one line (Layer 1 only). Layer 2/3 status is a later
+  media-area indicator, not reserved in this slot or this sheet. See
+  `docs/reference/media-chrome-layout-notes.md` §11.4.7 item 4. Not a
+  silent rewrite of the Accepted product fact — the two-line / sheet
+  reservation never shipped.
 - Plain summary (owner reads this):
   The bottom bar becomes Browse, an Order action slot, and Settings.
   Clips and Auto are removed from the bar. Tapping Order opens a
@@ -6958,14 +6966,19 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   2. **Order slot is an action cell, not a destination.** No selected
      state; shows the **effective** policy label
      (`processOrderPreference ?? OrderPolicy.shuffle`) plus an expand
-     affordance; visually distinct from destination cells. Reserved
-     two-line height; v1 paints one line. EN short labels: Newest /
+     affordance; visually distinct from destination cells. The label
+     row is **permanently one line** (Layer 1 order only) — do **not**
+     reserve a second line for Layer 2/3. Listen-mode state (Layer 2
+     on/off + Layer 3 playback logic) is a later media-area indicator,
+     not this slot (see layout notes §11.4.7). EN short labels: Newest /
      Oldest / Shuffle; zh per Cap 7 product-copy / ARB.
   3. **Sheet = Layer 1 only + Confirm / Cancel.** Draft edits apply
      only on Confirm. `isDismissible: false` and `enableDrag: false`
-     (stricter than Cap 24 "…" `isDismissible: true`). Layout reserves
-     vertical space for future Layer 2/3 blocks but does **not** show
-     disabled placeholders (App Store Guideline 2.1). Playback while
+     (stricter than Cap 24 "…" `isDismissible: true`). This sheet does
+     **not** reserve vertical space for future Layer 2/3 blocks (that
+     reservation is no longer part of this sheet; see the media-area
+     Listen Mode note in layout notes §11.4.7). It also does **not**
+     show disabled placeholders (App Store Guideline 2.1). Playback while
      open follows existing covering-route / "…" half-sheet behaviour
      (`browseCoveringRouteOpenProvider` family) — no separate rule.
   4. **Confirm feedback:** no Cap 19 toast; dismiss sheet; if the

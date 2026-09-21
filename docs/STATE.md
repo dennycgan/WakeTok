@@ -185,8 +185,12 @@
       (Layer 2/3 only: autoplay on/off + autoplay-internal ordering
       e.g. single-asset replay; bottom-nav Auto destination nature is
       already decided in "Auto bottom-nav slot redefinition" above —
-      this Cap owns eligibility rules and Layer 2/3 settings only;
-      paired with Clips v2; depends on leave-Browse keep above)
+      this Cap owns eligibility rules and Layer 2/3 settings only.
+      Those settings are **not** a second line on the bottom Order
+      slot — Order stays Layer 1 only. UI is a later media-area
+      indicator; see layout notes §11.4.7 item 4 and re-evaluate when
+      this Cap is scoped.
+      Paired with Clips v2; depends on leave-Browse keep above)
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
       (renamed so "iCloud Fallback" is Auto-play / ADR-O, not Cap 14)

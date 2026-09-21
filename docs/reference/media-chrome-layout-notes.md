@@ -10,6 +10,10 @@
 > Cap **26.4b** LIVE **top-leading** under Browse band (not bottom-trailing): §**2** / §**6**;
 > Cap **27.6** bottom-tab Destination / Action roles + Browse two-card
 > glyph (color-only selected; no Action shell): §**11.4**.  
+> **Order slot (permanent):** one label line, Layer 1 order only — do **not**
+> reserve a second line for Layer 2/3. Listen mode (Layer 2 switch + Layer 3
+> logic) is a later media-area indicator (§**11.4.7** item 4), not bottom-tab
+> chrome. Design record only; re-evaluate when Auto-play Presets is scoped.  
 > **Scope:**  
 > - §§1–10 — Main Browse **media-area** chrome (not top source / bottom tab).  
 > - §11 — Browse **shell** chrome (top four-control row + bottom tab bar).  
@@ -523,7 +527,7 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 | Role | Examples | Selected fill / shell? | How it differs |
 |------|----------|------------------------|----------------|
 | **Destination** | Browse, Settings; future Clips | **Neither** — selected = **color only** (`accent` vs `onMediaMuted`); glyph may switch outlined→filled | Equal **32** slot geometry; no capsule behind the icon |
-| **Action** | Order (order sheet); future Layer-3 listen if it keeps this slot | **Never** selected fill (ADR-055 D2); **no** stroke capsule | Same **32** slot; glyph = thinner `swap_vert` (see §11.4.4) |
+| **Action** | Order (Layer 1 order sheet only — never Layer 2/3) | **Never** selected fill (ADR-055 D2); **no** stroke capsule | Same **32** slot; glyph = thinner `swap_vert` (see §11.4.4). **Permanently one** label line |
 
 Action must remain readable as “not a third destination” via **glyph
 language** (thinner swap + order label + expand), not via a wrapping
@@ -614,13 +618,21 @@ Order keeps thinner `swap_vert`. Browse = vertical front + UL peek only.
   width). Do **not** wrap the whole label+chevron row in a vertical
   `FittedBox` — that squashes Order copy below Browse/Settings.
 
-#### 11.4.7 Reuse (Clips / v2 listen)
+#### 11.4.7 Reuse (Clips / future cells)
 
 1. Label the cell Destination or Action.  
 2. Apply §11.4.3 or §11.4.4.  
 3. Clips returns as **Destination** (color-only selected; no capsule).  
-4. If Order’s **content** becomes Layer-3 listen, keep **Action** rules
-   (no shell; distinct glyph weight); swap glyph/copy only.  
+4. The Order cell **always** shows Layer 1 (browse order) only. Do **not**
+   replace or reuse it for Layer 2/3. Listen mode (Layer 2 on/off + Layer 3
+   playback logic) is a later **media-area** indicator, visible only while
+   listen mode is on, following §§1–10 — **not** §11 shell / bottom-tab
+   chrome. Tap opens an action sheet (reuse the order sheet vs a new sheet:
+   decide when that Cap is scoped). Candidate placement: media top-trailing,
+   opposite the LIVE badge (top-leading); bottom of the media area is already
+   Meta / Reset / Action column. **Design record only** — not implemented
+   here. When “Auto-play Presets and Mode Eligibility Rule” is scoped, start
+   from this note and re-evaluate.  
 5. Change numbers here first, then code — no widget-local forks.
 
 #### 11.4.8 Regression before Cap 27.6 matrix
