@@ -269,17 +269,18 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       leave chrome; A′ soft resume for **completed video** (skip chrome
       teardown / Action Column staircase); phase tests + Cap 28.1/chrome
       probes (`Documents/wtlive.log`). Work `2c6e3b3`. Kafka + i17 PASS.
-- [ ] 28.5 Access-scope single authority
+- [x] 28.5 Access-scope single authority
       (`notifyAccessScopePossiblyChanged`): Limited picker every
       dismiss dirty; Browse immediate / Settings deferred; rewrite
       `requestAccess` grant-complete off bare `restartSession`; phase
-      tests with this work (dirty / defer / single-restart).
-      <-- YOU ARE HERE
+      tests with this work (dirty / defer / single-restart). Work
+      `c5d2c09`.
 - [ ] 28.6 Meta three-row hide toggle (Settings group **Browse display**;
       process-only; paint-only; §2 geometry unchanged; cover-gate OR;
       metadata request / `presentationSizeCache` unchanged; “…”
       half-sheet unaffected); phase tests with this work (hide paint /
       VoiceOver / restore-on-relaunch copy).
+      <-- YOU ARE HERE
 - [ ] 28.7 Architecture + localization **full-suite guard** +
       cross-phase test closeout (retarget W-27.6-479 to remaining
       remount paths; do not delete prefer-Host). Not “implement then
@@ -293,12 +294,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       do not defer spike cleanup to Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 28.5 access-scope single authority
-- Sub-steps done: 28.1–28.4 PASS (Kafka + i17); ADR-058 Accepted
-      (`2c6e3b3`); debt **481** Open (Q-PV poster/cover frame);
-      local spike `spike/cap28-28.2-keep-temp` deleted after 28.4
-- Next step: 28.5 design → `notifyAccessScopePossiblyChanged`
-- Related decisions: ADR-058 Accepted; debt **480** / **481** Open
+- Goal (one line): Cap 28.6 meta three-row hide toggle
+- Sub-steps done: 28.1–28.5 PASS; ADR-058 Accepted (`2c6e3b3`);
+      access-scope authority work `c5d2c09`; debt **481** Open;
+      local spike deleted after 28.4
+- Next step: 28.6 design → Settings **Browse display** process-only hide
+- Related decisions: ADR-058 Accepted (D6 meta hide); debt **480** /
+      **481** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
