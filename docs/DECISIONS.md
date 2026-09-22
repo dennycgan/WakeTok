@@ -7456,3 +7456,95 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   clause. Complements ADR-023 D6/D7/D8, ADR-026 D3 (playhead preserve
   for non-nav re-entry), ADR-043 D4, ADR-052, ADR-057. Does not amend
   ADR-019 play-once for vertical swipe become-current.
+
+## ADR-059: Cap 29 Debt 421 Settings Photos Access entry
+
+- Status: **Proposed** (2026-09-22). Accepted date/anchor filled when
+  Cap 29.2 implementing work lands on `main`.
+- Commit/PR anchor: Proposed at 29.1; Accepted with Cap 29.2 final work sha
+- Plain summary (owner reads this):
+  Under Settings, a top Photos Access section lets Limited users manage
+  their selected photos (system Limited picker) or open iOS Settings to
+  upgrade to Full. Full users see status and can still open Settings.
+  There is no Browse launch banner. Changing selection in-app rebuilds
+  the session through the existing Cap 28.5 access-scope authority;
+  Open Settings never marks that dirty path.
+- Context / what problem forced this:
+  Cap 7 mounted a Limited Access banner above IndexedStack without
+  SafeArea (notch clip; Settings polluted). Product mount was removed
+  (`01a7611`, debt **421**) while Host picker / Open Settings remained.
+  Kickoff ADR-K §3 (explicit prompt + system path to Full) stayed unmet
+  for Release. Cap 28.5 already shipped
+  `notifyAccessScopePossiblyChanged`; Cap 29 is UI entry only.
+- Decision (what was chosen):
+  1. **Settings-only persistent entry.** Photos Access is the first
+     group in the Settings ListView (`_SettingsStubPane` SafeArea).
+     Do **not** remount Limited chrome above IndexedStack; do **not**
+     add Browse top-chrome third tier / Open Settings row.
+  2. **Two separate actions under Limited:** Manage selection →
+     `PhotosAuthorizationNotifier.presentLimitedLibraryPicker()` only
+     (notifier already notifies authority on every dismiss); Open
+     Settings → `openAppSettingsProvider()` only.
+  3. **Section always visible.** Limited: message + both actions.
+     Full: status copy ± Open Settings (same Open Settings path as
+     Limited). Denied/Restricted never reach Main Browse shell
+     (`PhotosAccessGate` → `PermissionBlockedPage`).
+  4. **Open Settings never notifies** (Limited and Full identical).
+     User changes Photos access in **iOS Settings** then resumes →
+     existing `PhotosAccessGate` refresh only — not
+     `AccessScopeAuthorityNotifier` (ADR-058 D4 Out).
+  5. **No Browse launch / each-open remind in v1** (explicit reject).
+     Browse-side Limited language stays Create helper / Saved mute
+     (layout notes §11.3).
+  6. **Copy:** reuse `limitedAccessBannerMessage`,
+     `limitedAccessManageSelection`, `permissionOpenSettings`; add
+     section title (+ Full status string). Settings uses normal
+     onSurface list styling — do not invent a third Limited mute recipe.
+  7. **This ADR narrowly does not amend ADR-058 Decision 4.**
+     Dirty/coalesce/Browse-immediate vs Settings-defer/grant-complete
+     via authority remain unchanged. Cap 29 UI must not call
+     `restartSession` or a second `notifyAccessScopePossiblyChanged`.
+  8. **Overlay hygiene:** mount only inside Settings ListView; do not
+     reuse Debug `library_smoke` → `LibraryTotalsShellPage` →
+     `LimitedAccessBanner` as the Release product path (`kDebugMode`
+     smoke entry stays Debug-only).
+  9. **Out of Cap 29:** debts **480** / **481**; Layer 2/3 Auto-play;
+     SessionCheckpoint; Settings localisation / privacy / about sweep.
+- Rejected alternatives (why not):
+  - **Surface B/C** (Browse banner and/or top-chrome Open Settings) —
+    rejected; repeats Cap 7 IndexedStack-over-all / third-tier risk;
+    §11.3 already deferred third tier; Create helper covers Browse mute.
+  - **Actions B** (Open Settings only) — rejected; drops Limited
+    reselection via `presentLimitedLibraryPicker` (ADR-K manage path).
+  - **Actions C** (picker only) — rejected; fails ADR-K §3 system path
+    to Full.
+  - **Visibility B** (section only when Limited) — rejected; kickoff
+    Settings always lists Photos Access; Full users still need a path
+    to system Settings to change grant.
+  - **Launch remind B/C** (Browse each-open / defer undecided) —
+    rejected for v1; Settings entry + Create helper suffice; avoid
+    debt **421** overlay class.
+  - **Settings order B** (Photos Access below Gestures/Display) —
+    rejected; kickoff §2.8 table puts Photos Access first.
+  - **Wire Open Settings or Full manage through authority notify** —
+    rejected; dual restart / false dirty vs ADR-058 D4 Out.
+  - **Product entry via library_smoke route** — rejected; Release must
+    not depend on `kDebugMode` smoke mount.
+- Consequences / constraints accepted:
+  - Architecture allowlist (29.3): zero `.restartSession(` under
+    `lib/features/**`; outside `access_scope_authority.dart` and
+    `browse_session_providers.dart` zero `.restartSession(` in `lib/`;
+    Cap 29 Settings sources must not contain `restartSession` or direct
+    authority notify (Manage → `presentLimitedLibraryPicker` only).
+  - Overlay audit `docs/acceptance/cap29-29.1-overlay-audit.md` is a
+    hard gate before 29.2 mount.
+  - Access-scope Session restart after Limited picker may show remount
+    handoff family (**480** / **481**) — known; not Cap 29 fail.
+- Relationship:
+  Complements **ADR-058** (access-scope authority path unchanged;
+  Decision 4 not amended). Complements **ADR-055** Decision 7 overlay
+  hygiene (does not close debt **421** by itself). Cross-ref
+  **ADR-021** Decision 3 and **ADR-041** Decision 3 (Limited album /
+  Add-to-Album red lines unchanged). Implements kickoff **ADR-K** §3
+  in-app entry. Does **not** narrowly amend ADR-027 / ADR-015 / ADR-040
+  (those remain as Cap 28 left them).
