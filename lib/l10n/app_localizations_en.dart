@@ -45,6 +45,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get limitedAccessManageSelection => 'Manage selection';
 
   @override
+  String get photosAccessSettingsSectionTitle => 'Photos Access';
+
+  @override
+  String get photosAccessFullStatusMessage =>
+      'Full access to your photo library.';
+
+  @override
   String get libraryShellTitle => 'Library';
 
   @override

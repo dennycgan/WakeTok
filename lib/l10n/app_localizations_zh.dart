@@ -42,6 +42,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get limitedAccessManageSelection => '管理所选内容';
 
   @override
+  String get photosAccessSettingsSectionTitle => '照片访问权限';
+
+  @override
+  String get photosAccessFullStatusMessage => '已获得照片图库的完全访问权限。';
+
+  @override
   String get libraryShellTitle => '图库';
 
   @override
@@ -956,6 +962,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get limitedAccessManageSelection => '管理所选内容';
+
+  @override
+  String get photosAccessSettingsSectionTitle => '照片访问权限';
+
+  @override
+  String get photosAccessFullStatusMessage => '已获得照片图库的完全访问权限。';
 
   @override
   String get libraryShellTitle => '图库';

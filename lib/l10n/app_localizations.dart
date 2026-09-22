@@ -165,6 +165,18 @@ abstract class AppLocalizations {
   /// **'Manage selection'**
   String get limitedAccessManageSelection;
 
+  /// Cap 29 Settings section title for Photos library access (ADR-059 / kickoff §2.8)
+  ///
+  /// In en, this message translates to:
+  /// **'Photos Access'**
+  String get photosAccessSettingsSectionTitle;
+
+  /// Cap 29 Settings status when Photos access is Full (ADR-059)
+  ///
+  /// In en, this message translates to:
+  /// **'Full access to your photo library.'**
+  String get photosAccessFullStatusMessage;
+
   /// Library totals shell app bar title
   ///
   /// In en, this message translates to:

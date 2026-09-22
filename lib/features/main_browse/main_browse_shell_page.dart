@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/features/authorization/photos_access_settings_section.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
 import 'package:waketok/features/main_browse/bottom_tab_layout.dart';
 import 'package:waketok/features/main_browse/browse_card_stack_icon.dart';
@@ -373,11 +374,17 @@ class _SettingsStubPane extends StatelessWidget {
         children: [
           Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
           const SizedBox(height: 20),
+          // Cap 29.2 / ADR-059: Photos Access first (kickoff §2.8). Add only
+          // ListView children — do not unwrap SafeArea (29.1 / 29.2 exit).
+          const PhotosAccessSettingsSection(),
+          const SizedBox(height: 28),
           const Cap19GesturesSettingsSection(),
           const SizedBox(height: 28),
           const BrowseDisplaySettingsSection(),
           const SizedBox(height: 28),
           const BrowseNotificationsSettingsSection(),
+          // After Photos Access (Cap 29): debug smoke may sit below the
+          // fold — tests use dragUntilVisible. Release omits the control.
           if (kDebugMode) ...[
             const SizedBox(height: 28),
             FilledButton(

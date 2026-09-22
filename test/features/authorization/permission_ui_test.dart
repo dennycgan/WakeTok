@@ -156,7 +156,14 @@ void main() {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       await tester.tap(find.text(l10n.mainBrowseNavSettings));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
+      final smokeDebug = find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug'));
+      await tester.dragUntilVisible(
+        smokeDebug,
+        find.byType(ListView),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(smokeDebug);
       await tester.pumpAndSettle();
 
       expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
@@ -227,7 +234,14 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.tap(find.text(l10n.mainBrowseNavSettings));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
+    final smokeDebug = find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug'));
+    await tester.dragUntilVisible(
+      smokeDebug,
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(smokeDebug);
     await tester.pumpAndSettle();
 
     expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
@@ -248,7 +262,14 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.tap(find.text(l10n.mainBrowseNavSettings));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
+    final smokeDebug = find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug'));
+    await tester.dragUntilVisible(
+      smokeDebug,
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(smokeDebug);
     await tester.pumpAndSettle();
 
     expect(find.text('0'), findsNWidgets(3));

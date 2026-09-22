@@ -439,11 +439,15 @@ void main() {
     await tester.pumpAndSettle();
 
     if (kDebugMode) {
-      expect(
-        find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')),
-        findsOneWidget,
+      final smokeDebug = find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug'));
+      await tester.dragUntilVisible(
+        smokeDebug,
+        find.byType(ListView),
+        const Offset(0, -300),
       );
-      await tester.tap(find.byKey(const Key('mainBrowseOpenLibrarySmokeDebug')));
+      await tester.pumpAndSettle();
+      expect(smokeDebug, findsOneWidget);
+      await tester.tap(smokeDebug);
       await tester.pumpAndSettle();
       expect(find.byType(LibraryTotalsShellPage), findsOneWidget);
     } else {

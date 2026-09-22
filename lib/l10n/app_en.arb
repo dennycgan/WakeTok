@@ -44,6 +44,14 @@
   "@limitedAccessManageSelection": {
     "description": "Opens the system limited-library picker"
   },
+  "photosAccessSettingsSectionTitle": "Photos Access",
+  "@photosAccessSettingsSectionTitle": {
+    "description": "Cap 29 Settings section title for Photos library access (ADR-059 / kickoff §2.8)"
+  },
+  "photosAccessFullStatusMessage": "Full access to your photo library.",
+  "@photosAccessFullStatusMessage": {
+    "description": "Cap 29 Settings status when Photos access is Full (ADR-059)"
+  },
   "libraryShellTitle": "Library",
   "@libraryShellTitle": {
     "description": "Library totals shell app bar title"
