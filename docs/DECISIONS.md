@@ -1093,7 +1093,10 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   clause that Live Photo file size is dual-nil / undetermined is superseded by
   ADR-018 (2026-08-10; still-only Tier 4 / `currentImageRepresentation`) —
   other Decision 5 multi-resource rules (edited / RAW+JPEG / no misleading
-  sum) remain binding
+  sum) remain binding; Decision 1 fixed three Overlay rows may be
+  **process-scoped paint-hidden** per ADR-058 (Accepted 2026-09-22,
+  anchor `2c6e3b3`) without changing reserved geometry — other Decision 1
+  clauses unchanged
 - Commit/PR anchor: e058e32
 - Plain summary (owner reads this):
   Browse (and the Clips/Auto stubs) stay forced-dark in the immersive shell;
@@ -2473,9 +2476,12 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
 
 - Status: Accepted (2026-08-17); Decision 3 trigger set is **narrowly
   amended by ADR-055** (Accepted 2026-09-20, anchor `893c296`) — Cap 27
-  removes Clips/Auto from the bottom bar, so leave-Browse triggers are
-  `{Settings}` only. Reset strength (new Session + requeue + index 0;
-  Snapshot cache retained) unchanged.
+  removes Clips/Auto from the bottom bar, so leave-Browse destination
+  triggers are `{Settings}` only. **Reset strength (new Session +
+  requeue + index 0) is narrowly superseded by ADR-058** (Accepted
+  2026-09-22, anchor `2c6e3b3`) — Settings leave keeps Consumption
+  Session / Queue / feed index; Snapshot cache retain clause of ADR-027
+  remains. Trigger set stays `{Settings}` for destination leave only.
   <!-- Accepted date from `git log -1 --format=%cs 5658cf2` → 2026-08-17 -->
 - Commit/PR anchor: 5658cf2
 - Plain summary (owner reads this):
@@ -3854,7 +3860,10 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   (2026-09-01; docs `372175c`); Decision 17 **no Photos-style
   long-press** limb + Rejected "Photos-style Live long-press replay
   in MVP" superseded by ADR-052 (Proposed 2026-09-15; Accepted +
-  implementing anchor when Cap 26.2+ lands)
+  implementing anchor when Cap 26.2+ lands); Settings resume is **not**
+  a trusted new navigation activation per ADR-058 (Accepted 2026-09-22,
+  anchor `2c6e3b3`) — explicit `settingsResume` source; vertical swipe
+  become-current navigation activation unchanged
 - Commit/PR anchor: `0df9ceb` (Cap 18.4 work — tap, center affordance,
   lifecycle auto-resume pivot; follows Cap 18.3 dual-signal work
   `84ef30c`); Cap 18.5 supplement anchor `04ef327`; Cap 18.5 preview
@@ -6932,7 +6941,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-055: Cap 27 bottom-nav order slot + Layer 1 order-control sheet
 
-- Status: Accepted (2026-09-20)
+- Status: Accepted (2026-09-20); Decision 8 clause that Cap 27 leaves
+  ADR-027 **reset strength** unchanged is **narrowly superseded by
+  ADR-058** (Accepted 2026-09-22, anchor `2c6e3b3`). Trigger-set narrow
+  amend (`{Settings}` only) remains.
 - Commit/PR anchor: 893c296
 - **Owner amend (2026-09-21):** Removed the unimplemented "Reserved
   two-line height" clause in Decision 2 and the sheet "reserves vertical
@@ -7294,15 +7306,14 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-058: Cap 28 leave-Browse keep Session + settingsResume + meta hide
 
-- Status: **Proposed** (2026-09-22). When Accepted (Cap 28.4+ implementing
-  work anchor): narrowly supersedes **ADR-027** reset strength only;
-  narrowly amends **ADR-015** Decision 1 (fixed three rows may be
-  paint-hidden); narrowly amends **ADR-040** so Settings resume is
-  **not** a trusted new navigation activation; narrowly supersedes
-  **ADR-055** Decision 8 clause that Cap 27 leaves ADR-027 reset
-  strength unchanged. Do **not** flip those older Status lines until
-  this ADR is Accepted with a real work sha.
-- Commit/PR anchor: pending (Cap 28.4 first implementing work)
+- Status: **Accepted** (2026-09-22). Narrowly supersedes **ADR-027**
+  reset strength only; narrowly amends **ADR-015** Decision 1 (fixed
+  three rows may be paint-hidden); narrowly amends **ADR-040** so
+  Settings resume is **not** a trusted new navigation activation;
+  narrowly supersedes **ADR-055** Decision 8 clause that Cap 27 leaves
+  ADR-027 reset strength unchanged.
+- Commit/PR anchor: `2c6e3b3` (Cap 28.4 keep + `settingsResume` + A′
+  soft completed-video resume; Profile `wtlive.log` probes)
 - Plain summary (owner reads this):
   Leaving Browse for Settings no longer reshuffles or jumps to the
   first item. Coming back keeps the same queue position. Playing video
@@ -7310,7 +7321,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Live Photos come back as a still — they do not auto-play again
   (long-press to replay). A Settings switch can hide the three meta
   lines for this process only. Changing Photos access from inside
-  Settings rebuilds the session when you return to Browse.
+  Settings rebuilds the session when you return to Browse. One brief
+  poster/cover frame while the video surface remounts is an accepted
+  cost of keeping the player detached under Settings — not a Cap 28
+  keep failure.
 - Context / what problem forced this:
   ADR-027 Strength C ended the Consumption Session on leave-Browse so
   Cap 14.4c mid-queue resume (and debt **429** poster flash) went away
@@ -7336,18 +7350,27 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      `browseActive=false` ⇒ pages are not current: Cap 16 leave-cancel /
      stop neighbour preheat / magnification `forceFit` (ADR-043 D4).
      Do **not** continue iCloud download work while Settings is shown.
+     **Q-PV = B:** soft leave still **detaches** the native video
+     Platform View under Settings (do not keep an off-screen PV mounted).
   3. **Explicit activation source `settingsResume` (same Decision as
      video + Live).**
      Resume latch / become-current after Settings must **explicitly mark**
-     the activation source (name frozen at implementation — e.g.
-     `settingsResume`). `PlaybackCoordinator` reads **only** that marked
-     source to decide whether to seek0 and whether to force
-     `wantsPlay=true`. **Forbidden:** infer Settings resume from
-     generation deltas, latch side effects, or other heuristics.
+     the activation source (name frozen at implementation —
+     `PlaybackActivationSource.settingsResume`). `PlaybackCoordinator`
+     reads **only** that marked source to decide whether to seek0 and
+     whether to force `wantsPlay=true`. **Forbidden:** infer Settings
+     resume from generation deltas, latch side effects, or other
+     heuristics.
      - **Settings resume (`settingsResume`):**
        - **Video:** preserve Host playhead; honour `userIntentWantsPlay`
          (playing → continue; user-paused → stay paused). Must **not**
          seek0 or force wantsPlay=true / `startsNewNavigationActivation`.
+         **Completed-video soft path (A′):** when soft leave kept a
+         finished video page (not mid-flight L2), resume must **not**
+         tear down chrome gates (`layer2DisplayReady` / cover-visible)
+         via a full L2-reload `_startLoad` cascade; remount PV and sync
+         playback only. Incomplete / inflight leave still uses the full
+         become-current path.
        - **Live Photo:** always present the **static** key frame; do
          **not** auto-replay motion, whether or not motion was mid-play
          when leaving. Do **not** attempt mid-motion resume (leave
@@ -7396,7 +7419,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   8. **Out of Cap 28:** Debt 421 UI; Layer 2/3 Auto-play; SessionCheckpoint;
      meta hide persistence; hiding non-meta chrome; layout §2 numeric
      edits; Confirm/Endless remount black/Loading fix (debt **480**);
-     merging `spike/cap28-28.2-keep-temp`.
+     merging `spike/cap28-28.2-keep-temp`; eliminating the Q-PV = B
+     poster/cover buffer frame (debt **481**).
 - Rejected alternatives (why not):
   - Infer Settings resume from generation bump alone — rejected; same
     anti-pattern ADR-057 rejected for Origin; would mis-classify swipe
@@ -7408,14 +7432,24 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     rejected; ADR-057 shared-signal discipline.
   - Fix Confirm/Endless remount black inside Cap 28 — rejected; Settings
     limb dissolves with keep; remount limb = debt **480**.
+  - Q-PV = A (keep Platform View mounted under Settings) — rejected for
+    this Cap; off-screen PV bleed/touch/pool/power risk outweighs
+    removing one poster/cover frame (debt **481**).
 - Consequences / constraints accepted:
   - Cap 28.2 soak (Kafka + i17, keep-temp): Settings black / Loading
     item gone; playback seek0/force-play gap confirmed for 28.4.
-  - Cap 28.1 probe (`wtlive.log`) may land with 28.4 work under
-    `!kReleaseMode`; spike branch deleted after 28.4 lands on main.
+  - Cap 28.4 work `2c6e3b3`: formal keep + `settingsResume` + A′ soft
+    completed-video resume; Kafka + i17 device PASS (chrome-only
+    staircase closed; six-item acceptance PASS).
+  - **Q-PV = B poster/cover buffer:** Settings resume may show **one**
+    poster/cover frame while the Platform View remounts (play or pause).
+    Zero poster frames is **not** in the Cap 28 keep promise. Tracked as
+    Known debt **481** (cousin of closed **429**, different mechanism).
+  - Cap 28.1 / chrome-axis probes (`Documents/wtlive.log`) ship under
+    `!kReleaseMode` with 28.4 work.
   - Architecture / localization guards on every `lib/` phase.
-  - Docs: Proposed at 28.3; Accepted date/anchor from first Cap 28.4
-    implementing work (`git log -1 --format=%cs <sha>`).
+  - Docs: Proposed at 28.3; Accepted date/anchor from Cap 28.4
+    implementing work (`git log -1 --format=%cs 2c6e3b3` → 2026-09-22).
 - Relationship:
   Narrowly supersedes ADR-027 reset strength; narrowly amends ADR-015
   D1, ADR-040 navigation-activation boundary, ADR-055 D8 reset-strength
