@@ -275,17 +275,18 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       `requestAccess` grant-complete off bare `restartSession`; phase
       tests with this work (dirty / defer / single-restart). Work
       `c5d2c09`.
-- [ ] 28.6 Meta three-row hide toggle (Settings group **Browse display**;
+- [x] 28.6 Meta three-row hide toggle (Settings group **Browse display**;
       process-only; paint-only; §2 geometry unchanged; cover-gate OR;
       metadata request / `presentationSizeCache` unchanged; “…”
       half-sheet unaffected); phase tests with this work (hide paint /
-      VoiceOver / restore-on-relaunch copy).
-      <-- YOU ARE HERE
+      VoiceOver / restore-on-relaunch copy). Work `1aa171c` (Show item
+      details; ON=show polarity B). i17 device PASS.
 - [ ] 28.7 Architecture + localization **full-suite guard** +
       cross-phase test closeout (retarget W-27.6-479 to remaining
       remount paths; do not delete prefer-Host). Not “implement then
       backfill tests” — phases 28.4–28.6 already ship their tests;
       this phase is the full-suite + remount-retarget gate.
+      <-- YOU ARE HERE
 - [ ] 28.8 Device acceptance Kafka + i17 (incl. Live mid-motion →
       Settings → static still, no mid-frame / black flash).
 - [ ] 28.9 Docs Commit 2 after owner acceptance: Cap `[x]` /
@@ -294,11 +295,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       do not defer spike cleanup to Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 28.6 meta three-row hide toggle
-- Sub-steps done: 28.1–28.5 PASS; ADR-058 Accepted (`2c6e3b3`);
-      access-scope authority work `c5d2c09`; debt **481** Open;
+- Goal (one line): Cap 28.7 architecture + localization full-suite closeout
+- Sub-steps done: 28.1–28.6 PASS; ADR-058 Accepted (`2c6e3b3`);
+      access-scope `c5d2c09`; meta hide `1aa171c`; debt **481** Open;
       local spike deleted after 28.4
-- Next step: 28.6 design → Settings **Browse display** process-only hide
+- Next step: 28.7 retarget W-27.6-479 remount paths + full-suite guards
 - Related decisions: ADR-058 Accepted (D6 meta hide); debt **480** /
       **481** Open
 
