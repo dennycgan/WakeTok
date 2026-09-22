@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:waketok/features/main_browse/cap28_live_probe.dart';
 
 /// Cap 27 — L1-stall + L2-ready observability probe (debts 468/477 closed;
 /// kept for Open debt **478** non-`deviceLocal` / iCloud remount soak).
@@ -39,7 +40,11 @@ class Cap27L1StallProbe {
       return Future<void>.value();
     }
     final previous = _chain ?? Future<void>.value();
-    final next = previous.then((_) => _append(event, fields));
+    final next = previous.then((_) async {
+      await _append(event, fields);
+      // Cap 28.1: one-file pull (Documents/wtlive.log) mirrors remount events.
+      await Cap28LiveProbe.teeCap27(event, fields);
+    });
     _chain = next.catchError((Object _, StackTrace __) {});
     return next;
   }

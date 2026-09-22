@@ -4348,7 +4348,7 @@ void main() {
   );
 
   testWidgets(
-    'W-14.4c Settings round-trip keeps VerticalMediaFeed State; leave resets index',
+    'W-14.4c Settings round-trip keeps VerticalMediaFeed State; leave keeps index',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
       await tester.pumpWidget(
@@ -4382,13 +4382,13 @@ void main() {
 
       final stateAfter = tester.state(find.byType(VerticalMediaFeed));
       expect(identical(stateBefore, stateAfter), isTrue);
-      // Cap 14.4e: leave Browse resets queue/index; IndexedStack still keeps
-      // VerticalMediaFeed State (14.4c keep-alive).
-      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      // Cap 28.4 / ADR-058: leave Browse keeps queue/index; IndexedStack still
+      // keeps VerticalMediaFeed State (14.4c keep-alive).
+      expect(container.read(mainBrowseFeedIndexProvider), 1);
       final epochAfter = (await container.read(
         browseSessionProvider.future,
       )).roundEpoch;
-      expect(epochAfter, greaterThan(epochBefore));
+      expect(epochAfter, epochBefore);
     },
   );
 
@@ -4419,7 +4419,7 @@ void main() {
           .select(MainBrowseDestination.browse);
       await pumpAsyncWork(tester);
 
-      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      expect(container.read(mainBrowseFeedIndexProvider), 1);
       expect(find.byKey(const Key('mainBrowseFeedPageFailed')), findsNothing);
       expect(
         find.byKey(const Key('mainBrowseFeedPageFailed'), skipOffstage: false),
@@ -5365,9 +5365,10 @@ void main() {
     },
   );
 
-  // Cap 27.6 / debt 479: Settings leave remounts while browseActive=false;
-  // sticky prefer-Host must survive Settings dwell (not post-frame window).
-  Future<void> settingsLeavePreferHostCase(
+  // Cap 28.4 / ADR-058: Settings leave no longer remounts — debt 479 Settings
+  // limb dissolves with keep. Assert keep contract (index/epoch/State); Confirm
+  // / Endless prefer-Host remains covered elsewhere (W-27.4 / debt 477).
+  Future<void> settingsLeaveKeepCase(
     WidgetTester tester, {
     required OrderPolicy order,
     required bool dwellOnSettings,
@@ -5377,7 +5378,7 @@ void main() {
     const ids = ['a1', 'a2', 'a3', 'a4', 'a5'];
     for (final id in ids) {
       final path = File(
-        '${Directory.systemTemp.path}/wt_479_${order.name}_$id.png',
+        '${Directory.systemTemp.path}/wt_28_keep_${order.name}_$id.png',
       );
       path.writeAsBytesSync(
         base64Decode(
@@ -5410,8 +5411,6 @@ void main() {
     final element = tester.element(find.byType(VerticalMediaFeed));
     final container = ProviderScope.containerOf(element);
 
-    // Default Session may already be shuffle — Confirm no-ops then. Force a
-    // real remount under [order] (newest→target when target is shuffle).
     if (order == OrderPolicy.shuffle) {
       expect(
         await container
@@ -5432,23 +5431,28 @@ void main() {
     container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
     await pumpAsyncWork(tester);
 
-    final orderedBefore = await _feedOrderedIds(tester);
-    final headBefore = orderedBefore[0];
-    // Seed Cap 22.5 L1 via a completed Host display (sticky soft-L1 path).
-    expect(
-      display.displayCalls.where((id) => id == headBefore).length,
-      greaterThanOrEqualTo(1),
-    );
-    final displayCallsBeforeLeave = display.displayCalls.length;
+    final epochBefore = (await container.read(
+      browseSessionProvider.future,
+    )).roundEpoch;
+    final stateBefore = tester.state(find.byType(VerticalMediaFeed));
+    final layer2ReadyBefore =
+        container.read(mainBrowseCurrentAssetLayer2DisplayReadyProvider);
 
     container
         .read(mainBrowseDestinationProvider.notifier)
         .select(MainBrowseDestination.settings);
     await tester.pump();
-    // Allow restartSession AsyncLoading → AsyncData while off Browse.
     await pumpAsyncWork(tester);
+    // Soft leave must not leave a stale true when L2 was mid-flight; when
+    // already ready, keep the truthful true across Settings.
+    if (layer2ReadyBefore) {
+      expect(
+        container.read(mainBrowseCurrentAssetLayer2DisplayReadyProvider),
+        isTrue,
+        reason: 'ready L2 must stay ready across Settings leave',
+      );
+    }
     if (dwellOnSettings) {
-      // Simulate 3–5s Settings dwell (many frames); sticky pending must hold.
       for (var i = 0; i < 40; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -5460,20 +5464,21 @@ void main() {
     await pumpAsyncWork(tester);
 
     expect(container.read(mainBrowseFeedIndexProvider), 0);
+    final epochAfter = (await container.read(
+      browseSessionProvider.future,
+    )).roundEpoch;
+    expect(epochAfter, epochBefore);
     expect(
-      display.displayCalls.length,
-      greaterThan(displayCallsBeforeLeave),
-      reason:
-          'Settings leave→Browse ($order, dwell=$dwellOnSettings) must '
-          'Host-load via sticky prefer-Host (debt 479)',
+      identical(stateBefore, tester.state(find.byType(VerticalMediaFeed))),
+      isTrue,
     );
     expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsNothing);
   }
 
   testWidgets(
-    'W-27.6-479 Settings×newestFirst prefer-Host after leave (immediate return)',
+    'W-28.4-keep Settings×newestFirst keeps session (immediate return)',
     (tester) async {
-      await settingsLeavePreferHostCase(
+      await settingsLeaveKeepCase(
         tester,
         order: OrderPolicy.newestFirst,
         dwellOnSettings: false,
@@ -5482,9 +5487,9 @@ void main() {
   );
 
   testWidgets(
-    'W-27.6-479 Settings×oldestFirst prefer-Host after leave (immediate return)',
+    'W-28.4-keep Settings×oldestFirst keeps session (immediate return)',
     (tester) async {
-      await settingsLeavePreferHostCase(
+      await settingsLeaveKeepCase(
         tester,
         order: OrderPolicy.oldestFirst,
         dwellOnSettings: false,
@@ -5493,9 +5498,9 @@ void main() {
   );
 
   testWidgets(
-    'W-27.6-479 Settings×shuffle prefer-Host after leave (immediate return)',
+    'W-28.4-keep Settings×shuffle keeps session (immediate return)',
     (tester) async {
-      await settingsLeavePreferHostCase(
+      await settingsLeaveKeepCase(
         tester,
         order: OrderPolicy.shuffle,
         dwellOnSettings: false,
@@ -5504,13 +5509,79 @@ void main() {
   );
 
   testWidgets(
-    'W-27.6-479 Settings×newestFirst prefer-Host survives Settings dwell',
+    'W-28.4-keep Settings×newestFirst keeps session across Settings dwell',
     (tester) async {
-      await settingsLeavePreferHostCase(
+      await settingsLeaveKeepCase(
         tester,
         order: OrderPolicy.newestFirst,
         dwellOnSettings: true,
       );
+    },
+  );
+
+  testWidgets(
+    'W-28.4-layer2-inflight Settings leave clears layer2DisplayReady',
+    (tester) async {
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      final gate = Completer<void>();
+      display.displayGates['a1'] = gate;
+      final path = File(
+        '${Directory.systemTemp.path}/wt_28_inflight_a1.png',
+      );
+      path.writeAsBytesSync(
+        base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        ),
+      );
+      display.displaysById['a1'] = DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: path.path,
+      );
+      display.previewsById['a1'] = DisplayAsset(
+        assetIdentifier: 'a1',
+        mediaKind: PlaybackMediaKind.image,
+        localFilePath: path.path,
+      );
+      await tester.pumpWidget(
+        permissionUiHarness(
+          disableBrowseAllPrefetch: true,
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById:
+                FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+
+      // L2 still gated — leave Settings while incomplete.
+      expect(
+        container.read(mainBrowseCurrentAssetLayer2DisplayReadyProvider),
+        isFalse,
+      );
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+      await pumpAsyncWork(tester);
+      expect(
+        container.read(mainBrowseCurrentAssetLayer2DisplayReadyProvider),
+        isFalse,
+        reason: 'mid-flight cancel must not leave a stale true',
+      );
+
+      gate.complete();
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+      await pumpAsyncWork(tester);
+      expect(find.byKey(const Key('mainBrowseFeedPageLoading')), findsNothing);
     },
   );
 

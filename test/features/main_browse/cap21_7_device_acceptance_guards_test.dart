@@ -64,7 +64,8 @@ void main() {
         final l10n = await AppLocalizations.delegate.load(const Locale('en'));
 
         // Production leave path: bottom-nav destination change (not a
-        // hand-written chrome clear). Triggers restartSession per ADR-027.
+        // hand-written chrome clear). Cap 28.4 keeps Session; chrome state
+        // must still survive Settings round-trip (ADR-044 D6.3).
         await tester.tap(find.text(l10n.mainBrowseNavSettings));
         await tester.pumpAndSettle();
         expect(

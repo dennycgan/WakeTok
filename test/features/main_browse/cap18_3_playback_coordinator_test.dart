@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/domain/playback/playback_intent.dart';
 import 'package:waketok/features/main_browse/feed_media_request_gate.dart';
+import 'package:waketok/features/main_browse/playback_activation_source.dart';
 import 'package:waketok/features/main_browse/playback_coordinator.dart';
 
 import '../../library_smoke/fake_playback_repository.dart';
@@ -311,6 +312,140 @@ void main() {
         isFalse,
       );
       expect(playback.calls.where((c) => c == 'play'), isNotEmpty);
+    },
+  );
+
+  test(
+    'C-28.4-1 settingsResume preserves pause intent; no nav activation',
+    () async {
+      final playback = FakePlaybackRepository();
+      final coordinator = PlaybackCoordinator(playback: playback);
+      final gate = FeedMediaRequestGate();
+      final generation = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'v1',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+      await coordinator.onUserTapTogglePlay(
+        assetIdentifier: 'v1',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+      expect(coordinator.userIntentWantsPlay, isFalse);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+      final resumeGen = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'v1',
+        displayGeneration: resumeGen,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+        activationSource: PlaybackActivationSource.settingsResume,
+      );
+
+      expect(coordinator.userIntentWantsPlay, isFalse);
+      expect(playback.intentCalls.single.startsNewNavigationActivation, isFalse);
+      expect(playback.intentCalls.single.wantsPlay, isFalse);
+      expect(playback.calls.where((c) => c == 'pause'), isNotEmpty);
+      expect(playback.calls.where((c) => c == 'play'), isEmpty);
+    },
+  );
+
+  test(
+    'C-28.4-2 settingsResume after player release seeks leave playhead not zero',
+    () async {
+      final playback = FakePlaybackRepository();
+      final coordinator = PlaybackCoordinator(playback: playback);
+      final gate = FeedMediaRequestGate();
+      final generation = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'v1',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+      expect(coordinator.userIntentWantsPlay, isTrue);
+
+      // Simulate Settings leave with a known playhead after Host player eviction.
+      coordinator.debugArmSettingsLeavePlayhead(
+        assetId: 'v1',
+        positionSeconds: 12.5,
+      );
+      playback.calls.clear();
+      playback.intentCalls.clear();
+      final resumeGen = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'v1',
+        displayGeneration: resumeGen,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+        activationSource: PlaybackActivationSource.settingsResume,
+      );
+
+      expect(playback.intentCalls.single.startsNewNavigationActivation, isFalse);
+      expect(playback.calls, contains('seek:12.5'));
+      expect(playback.calls, contains('playFromCurrentPosition'));
+      expect(playback.calls.where((c) => c == 'play'), isEmpty);
+      final seekIdx = playback.calls.indexOf('seek:12.5');
+      final playIdx = playback.calls.indexOf('playFromCurrentPosition');
+      expect(seekIdx, lessThan(playIdx));
+    },
+  );
+
+  test(
+    'C-28.4-3 navigation activation still seek0/force-play after settingsResume path',
+    () async {
+      final playback = FakePlaybackRepository();
+      final coordinator = PlaybackCoordinator(playback: playback);
+      final gate = FeedMediaRequestGate();
+      var generation = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'v1',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+        activationSource: PlaybackActivationSource.settingsResume,
+      );
+      await coordinator.onUserTapTogglePlay(
+        assetIdentifier: 'v1',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+      );
+      expect(coordinator.userIntentWantsPlay, isFalse);
+
+      playback.calls.clear();
+      playback.intentCalls.clear();
+      generation = gate.begin();
+
+      await coordinator.onVideoBecomeCurrent(
+        assetIdentifier: 'v2',
+        displayGeneration: generation,
+        displayGate: gate,
+        permission: _allAllowed(),
+        muted: false,
+        activationSource: PlaybackActivationSource.navigation,
+      );
+
+      expect(coordinator.userIntentWantsPlay, isTrue);
+      expect(playback.intentCalls.single.startsNewNavigationActivation, isTrue);
+      expect(playback.calls, contains('play'));
     },
   );
 }

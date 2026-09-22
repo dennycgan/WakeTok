@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
@@ -62,12 +60,16 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
 
   /// Bottom-nav destination change.
   ///
-  /// Cap 14.4e / ADR-027 (Cap 27.4 narrow): leaving Browse → Settings ends the
-  /// current Consumption Session. Order is intentional — destination first so
-  /// `browseActive` is already false before session/index reset (avoids a
-  /// half-new Session while still current). App background / lock never calls
-  /// this method, so those paths do not reset. Opening the order-control
-  /// sheet must not call this method.
+  /// Cap 28.4 / ADR-058: leaving Browse → Settings keeps Consumption Session,
+  /// Session Queue, and feed index (narrow-supersedes ADR-027 reset strength).
+  /// Destination is set first so `browseActive` is already false before leave
+  /// chrome runs. App background / lock never calls this method. Opening the
+  /// order-control sheet must not call this method.
+  ///
+  /// Shell gates on leave: clear Live mounted (return must be static still);
+  /// clear host-unavailable sticky false. **Keep** [layer2DisplayReady] —
+  /// page leave-current is responsible for clearing it only when L2 was
+  /// cancelled mid-flight (truthful gate). Do not clear list availability.
   void select(MainBrowseDestination next) {
     final leavingBrowse =
         state == MainBrowseDestination.browse &&
@@ -76,21 +78,13 @@ class MainBrowseDestinationNotifier extends Notifier<MainBrowseDestination> {
     if (!leavingBrowse) {
       return;
     }
-    unawaited(ref.read(browseSessionProvider.notifier).restartSession());
-    ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
     ref.read(mainBrowseVerticalFeedSettledProvider.notifier).setSettled(true);
     ref
         .read(mainBrowseCurrentAssetHostUnavailableProvider.notifier)
         .setUnavailable(false);
     ref
-        .read(mainBrowseCurrentAssetLayer2DisplayReadyProvider.notifier)
-        .setReady(false);
-    ref
         .read(mainBrowseCurrentLiveMotionMountedProvider.notifier)
         .setMounted(false);
-    ref
-        .read(mainBrowseCurrentAssetListAvailabilityProvider.notifier)
-        .setAvailability(null);
   }
 }
 

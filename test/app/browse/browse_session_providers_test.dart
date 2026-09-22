@@ -182,7 +182,7 @@ void main() {
   });
 
   test(
-    'APP-8 leave Browse→Settings resets session+index without returning to Browse',
+    'APP-8 leave Browse→Settings keeps session+index without returning to Browse',
     () async {
       final fake = FakeAssetSourceRepository(
         allIds: const ['a', 'b', 'c', 'd', 'e'],
@@ -199,7 +199,7 @@ void main() {
       container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
       expect(container.read(mainBrowseFeedIndexProvider), 2);
 
-      // Cap 14.4e: reset runs on leave, not on resume. Do not select(browse).
+      // Cap 28.4 / ADR-058: keep Session + index on leave. Do not select(browse).
       seed = 2;
       container
           .read(mainBrowseDestinationProvider.notifier)
@@ -209,16 +209,16 @@ void main() {
         container.read(mainBrowseDestinationProvider),
         MainBrowseDestination.settings,
       );
-      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      expect(container.read(mainBrowseFeedIndexProvider), 2);
       final after = await container.read(browseSessionProvider.future);
-      expect(after.roundEpoch, greaterThan(before.roundEpoch));
-      expect(after.orderedAssetIds, ['c', 'a', 'e', 'b', 'd']);
+      expect(after.roundEpoch, before.roundEpoch);
+      expect(after.orderedAssetIds, before.orderedAssetIds);
       expect(fake.resolveCalls, 1);
     },
   );
 
   test(
-    'APP-8b leave Browse→Settings resets; re-select Settings does not reshuffle',
+    'APP-8b leave Browse→Settings keeps; re-select Settings does not reshuffle',
     () async {
       final fake = FakeAssetSourceRepository(
         allIds: const ['a', 'b', 'c', 'd', 'e'],
@@ -231,13 +231,15 @@ void main() {
       addTearDown(container.dispose);
 
       final first = await container.read(browseSessionProvider.future);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(3);
       seed = 2;
       container
           .read(mainBrowseDestinationProvider.notifier)
           .select(MainBrowseDestination.settings);
       final afterLeave = await container.read(browseSessionProvider.future);
-      expect(afterLeave.roundEpoch, greaterThan(first.roundEpoch));
-      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      expect(afterLeave.roundEpoch, first.roundEpoch);
+      expect(afterLeave.orderedAssetIds, first.orderedAssetIds);
+      expect(container.read(mainBrowseFeedIndexProvider), 3);
 
       final epochAfterLeave = afterLeave.roundEpoch;
       final orderAfterLeave = afterLeave.orderedAssetIds;
@@ -253,7 +255,7 @@ void main() {
   );
 
   test(
-    'APP-8c leave Browse restart maps unmapped throw to AsyncError not stuck Loading',
+    'APP-8c restartSession maps unmapped throw to AsyncError not stuck Loading',
     () async {
       final fake = FakeAssetSourceRepository(allIds: const ['a', 'b']);
       final container = _sessionContainer(fake: fake);
@@ -262,14 +264,12 @@ void main() {
       await container.read(browseSessionProvider.future);
       expect(fake.resolveCalls, 1);
 
-      // Force cache miss so restart re-resolves; plain Exception is not
-      // mapped by resolveOneFromRepository (only selected PlatformException).
+      // Cap 28.4: Settings leave no longer restarts. Force an explicit
+      // restartSession (access-scope / Confirm-class path) for error mapping.
       container.read(browseSnapshotCacheProvider.notifier).clear();
       fake.resolveException = Exception('unmapped resolve boom');
 
-      container
-          .read(mainBrowseDestinationProvider.notifier)
-          .select(MainBrowseDestination.settings);
+      unawaited(container.read(browseSessionProvider.notifier).restartSession());
 
       await expectLater(
         container.read(browseSessionProvider.future),

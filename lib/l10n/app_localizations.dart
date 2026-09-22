@@ -1140,6 +1140,36 @@ abstract class AppLocalizations {
   /// **'Mark healed (after swipe back)'**
   String get cap27L1StallProbeMarkHealed;
 
+  /// Settings section title for Cap 28.1 wtlive.log soak controls
+  ///
+  /// In en, this message translates to:
+  /// **'Cap 28 live probe'**
+  String get cap28LiveProbeSectionTitle;
+
+  /// Explains Cap 28.1 probe file and owner mark buttons
+  ///
+  /// In en, this message translates to:
+  /// **'Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.'**
+  String get cap28LiveProbeBlurb;
+
+  /// Truncates Documents/wtlive.log for a fresh soak
+  ///
+  /// In en, this message translates to:
+  /// **'Clear wtlive.log'**
+  String get cap28LiveProbeClear;
+
+  /// Owner marks a black-frame / bad handoff on Settings return
+  ///
+  /// In en, this message translates to:
+  /// **'Mark black frame (this return)'**
+  String get cap28LiveProbeMarkBlack;
+
+  /// Owner marks a clean Settings return (still sharp / video OK)
+  ///
+  /// In en, this message translates to:
+  /// **'Mark return OK'**
+  String get cap28LiveProbeMarkOk;
+
   /// Semantics / accessibility label when paused video can resume via tap
   ///
   /// In en, this message translates to:

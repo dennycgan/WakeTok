@@ -764,6 +764,26 @@
   "@cap27L1StallProbeMarkHealed": {
     "description": "Owner marks heal snapshot into cap27_l1_stall_probe.log"
   },
+  "cap28LiveProbeSectionTitle": "Cap 28 live probe",
+  "@cap28LiveProbeSectionTitle": {
+    "description": "Settings section title for Cap 28.1 wtlive.log soak controls"
+  },
+  "cap28LiveProbeBlurb": "Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.",
+  "@cap28LiveProbeBlurb": {
+    "description": "Explains Cap 28.1 probe file and owner mark buttons"
+  },
+  "cap28LiveProbeClear": "Clear wtlive.log",
+  "@cap28LiveProbeClear": {
+    "description": "Truncates Documents/wtlive.log for a fresh soak"
+  },
+  "cap28LiveProbeMarkBlack": "Mark black frame (this return)",
+  "@cap28LiveProbeMarkBlack": {
+    "description": "Owner marks a black-frame / bad handoff on Settings return"
+  },
+  "cap28LiveProbeMarkOk": "Mark return OK",
+  "@cap28LiveProbeMarkOk": {
+    "description": "Owner marks a clean Settings return (still sharp / video OK)"
+  },
   "mainBrowseVideoTapToPlay": "Play video",
   "@mainBrowseVideoTapToPlay": {
     "description": "Semantics / accessibility label when paused video can resume via tap"

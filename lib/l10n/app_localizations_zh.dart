@@ -591,6 +591,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cap27L1StallProbeMarkHealed => 'Mark healed (after swipe back)';
 
   @override
+  String get cap28LiveProbeSectionTitle => 'Cap 28 live probe';
+
+  @override
+  String get cap28LiveProbeBlurb =>
+      'Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.';
+
+  @override
+  String get cap28LiveProbeClear => 'Clear wtlive.log';
+
+  @override
+  String get cap28LiveProbeMarkBlack => 'Mark black frame (this return)';
+
+  @override
+  String get cap28LiveProbeMarkOk => 'Mark return OK';
+
+  @override
   String get mainBrowseVideoTapToPlay => 'Play video';
 
   @override
@@ -1461,6 +1477,22 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap27L1StallProbeMarkHealed => '标记已恢复（滑回后）';
+
+  @override
+  String get cap28LiveProbeSectionTitle => 'Cap 28 实时探针';
+
+  @override
+  String get cap28LiveProbeBlurb =>
+      '仅 Debug/Profile。写入 Documents/wtlive.log，用于 Settings 往返 keep 诊断。浸泡前点清除；每次返回后点「标记黑帧」或「标记返回正常」。';
+
+  @override
+  String get cap28LiveProbeClear => '清除 wtlive.log';
+
+  @override
+  String get cap28LiveProbeMarkBlack => '标记黑帧（本次返回）';
+
+  @override
+  String get cap28LiveProbeMarkOk => '标记返回正常';
 
   @override
   String get mainBrowseVideoTapToPlay => '播放视频';
