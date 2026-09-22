@@ -141,17 +141,22 @@
       Temp peek promote keep-Session; Clips/Auto off bar; ADR-027
       leave → Settings only; `docs/acceptance/cap27-27.6-notes.md`;
       PHASE_HISTORY; debt **478** remains Open)
+- [ ] Leave Browse keep queue progress + Browse meta hide toggle
+      (supersede ADR-027 reset strength: Browse→Settings→Browse keeps
+      Session / Queue / index / playback; in-app access-scope change =
+      real boundary; process-only meta three-row hide switch in
+      Settings; moved from v2 track, lands before Debt 421)
+      <-- YOU ARE HERE
 - [ ] Debt 421 — Limited Access manage entry restored
       (presentLimitedLibraryPicker + Open Settings entry point;
       extracted from "Settings and localisation completion" below;
       pre-work: audit MainBrowseShellPage overlay stack alongside the
       Cap 27 order-control sheet entry to avoid repeating the original
       notch / SafeArea layering bug that caused this debt)
-      <-- YOU ARE HERE
 - [ ] First-launch vertical-swipe guidance
       (minimal TikTok-style up/down hint; must not time-overlap with
       existing Cap 19.7 left-swipe guide — flexible scheduling, may
-      slot alongside any of the three Caps above)
+      slot alongside Cap 28 / Debt 421 / hardening above)
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the three functional Caps
       above land; permission string finalize; portrait-only already
@@ -173,12 +178,6 @@
 > TestFlight / App Store Caps below are a second release event (Clip /
 > background privacy disclosures etc.), not a merge of the v1 track.
 
-- [ ] Leave Browse keep queue progress
-      (supersede ADR-027 reset strength: Browse→Settings→Browse keeps
-      Queue / index / playback; also required for meta three-row hide;
-      must land **before or with** "Auto-play Presets and Mode
-      Eligibility Rule" below — Cap 27 v1 only narrows leave trigger
-      to Settings, does **not** change reset strength)
 - [ ] Auto-play Presets and Mode Eligibility Rule
       (Layer 2/3 only: autoplay on/off + autoplay-internal ordering
       e.g. single-asset replay; bottom-nav Auto destination nature is
@@ -188,7 +187,8 @@
       slot — Order stays Layer 1 only. UI is a later media-area
       indicator; see layout notes §11.4.7 item 4 and re-evaluate when
       this Cap is scoped.
-      Paired with Clips v2; depends on leave-Browse keep above)
+      Paired with Clips v2; leave-Browse keep already satisfied by Cap 28
+      (v1))
 - [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
       iCloud Fallback
       (renamed so "iCloud Fallback" is Auto-play / ADR-O, not Cap 14)
@@ -239,25 +239,64 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Debt 421 — Limited Access manage entry restored
-Contract: restore Limited manage entry (`presentLimitedLibraryPicker`
-+ Open Settings) without repeating the Cap 7 / debt **421** notch /
-SafeArea overlay bug; overlay-stack audit vs Cap 27 order sheet
-already on bar.
+Active capability: Leave Browse keep queue progress + Browse meta hide
+toggle (Cap 28 / ADR-058 Proposed)
+Contract: Browse→Settings→Browse keeps Session / Queue / index /
+playback (narrow-supersede ADR-027 reset strength); in-app access-scope
+change = real Session boundary hook for Debt 421; process-only meta
+three-row hide in Settings; explicit `settingsResume` activation source
+(video playhead + pause intent; Live → static still, no auto-replay).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] Capability Roadmap closed Cap 27 (2026-09-21). Debt 421 phase
-      breakdown awaiting owner scope / kickoff review — do not invent
-      numbered phases here.
+- [x] 28.1 Black-frame root-cause under **current reset** logic (Kafka
+      Profile `wtlive.log`): soft L1 preview + Cap 27.4 prefer-Host
+      hardReload empty window; no-scroll path = Loading item instead.
+      Scroll-then-Settings opens soft-L1 remount path. Probe gated
+      Debug/Profile (`Documents/wtlive.log`); product code unchanged.
+- [x] 28.2 Keep feasibility (local spike `spike/cap28-28.2-keep-temp`
+      **not merged**): omit Settings `restartSession` / `setIndex(0)`
+      only. Kafka + i17 Profile: Settings black flash / Loading item
+      **gone**; L2 still stays sharp via Session L2-ready; no 429-class
+      poster flash (stop gate idle). Raw playback gap confirmed
+      (seek0 + force-play / drop pause; Live restarts) — fix in 28.4
+      via explicit `settingsResume`. i17 “no L1” = `deviceLocal` Cap
+      15.12 fast path (27/27 Settings-return `listAvail=deviceLocal`).
+- [x] 28.3 Docs: Capability Roadmap / Phase / YOU ARE HERE; ADR-058
+      Proposed; Known debt **480** (Confirm/Endless remount dual
+      symptom). Docs-only — no `lib/` in this phase.
+- [ ] 28.4 Formal keep + explicit `settingsResume` activation source
+      (video playhead + pause intent; Live → static still) + Settings
+      leave chrome; phase tests with this work (APP-8 / W-14.4c
+      retarget + settingsResume unit/widget coverage). Cap 28.1 probe
+      files may land with this work commit (Debug/Profile gate).
+      <-- YOU ARE HERE
+- [ ] 28.5 Access-scope single authority
+      (`notifyAccessScopePossiblyChanged`): Limited picker every
+      dismiss dirty; Browse immediate / Settings deferred; rewrite
+      `requestAccess` grant-complete off bare `restartSession`; phase
+      tests with this work (dirty / defer / single-restart).
+- [ ] 28.6 Meta three-row hide toggle (Settings group **Browse display**;
+      process-only; paint-only; §2 geometry unchanged; cover-gate OR;
+      metadata request / `presentationSizeCache` unchanged; “…”
+      half-sheet unaffected); phase tests with this work (hide paint /
+      VoiceOver / restore-on-relaunch copy).
+- [ ] 28.7 Architecture + localization **full-suite guard** +
+      cross-phase test closeout (retarget W-27.6-479 to remaining
+      remount paths; do not delete prefer-Host). Not “implement then
+      backfill tests” — phases 28.4–28.6 already ship their tests;
+      this phase is the full-suite + remount-retarget gate.
+- [ ] 28.8 Device acceptance Kafka + i17 (incl. Live mid-motion →
+      Settings → static still, no mid-frame / black flash).
+- [ ] 28.9 Docs Commit 2 after owner acceptance: ADR-058 Accepted +
+      anchors; flip Cap `[x]` / PHASE_HISTORY; delete local spike branch.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Debt 421 Limited Access manage entry — awaiting
-      owner phase kickoff
-- Sub-steps done: Cap 27 closed — notes
-      `docs/acceptance/cap27-27.6-notes.md`; work gate HEAD `ce05965`
-- Next step: owner scopes Debt 421 phases; replace this placeholder
-- Related decisions: Cap 27 ADR-055 / 056 / 057 Accepted; debt **421**
-      Open; debt **478** Open (iCloud remount)
+- Goal (one line): Cap 28.4 formal keep + explicit `settingsResume`
+- Sub-steps done: 28.1 / 28.2 PASS (Kafka + i17); 28.3 docs Proposed
+- Next step: 28.4 design → work from `main` (spike / stash = reference
+      only; spike lacked `settingsResume`)
+- Related decisions: ADR-058 Proposed; debt **480** Open; debt **478**
+      Open; spike `spike/cap28-28.2-keep-temp` not merged
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
@@ -714,6 +753,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 477 | Closed | Main Browse Screen / Cap 27.4 | Cap 27.4 | `roundEpoch` remount head stuck on Layer 1 (Confirm / Endless `same_list_to_0` / order→shuffle, incl. never-visited shuffle head) | **Scope: device-local remount only; Browse-current remount paths only** (Confirm / Endless / in-Browse order change). Root: remount skipped Session L2-ready then All-tab still painted soft L1; Cap 26.4a keep-ready + gapless stuck the soft frame after Host `LAYER2_APPLY` (probe: SKIP+APPLY while owner still saw L1; heal via swipe Session L2-ready). Fix in `893c296`: one-shot prefer-Host (no `hadSessionToken` gate), omit Cap 22.5 L1 seed + All-tab soft preview on remount Host L2, hard-reload cover on APPLY. Kafka+i17 soak PASS; `OWNER_MARK_STUCK`=0. **Does not** cover non-`deviceLocal` / iCloud remount — see debt **478**. **Did not** cover Settings / auth / other non-Browse-current remount limbs at Cap 27.4 close — that separate arming-window gap was later found and closed as debt **479** (`8d6d7cc`); do not read this Closed row as full off-Browse coverage. | Closed by Cap 27.4 | ADR-055; Cap 15.10/15.12/22.5/26.4a; debt **468** / **478** / **479** |
 | 478 | Open | Main Browse Screen / Cap 27.4 | Cap 27.4 | Non-`deviceLocal` (incl. iCloud) `roundEpoch` remount head may still stick soft Layer 1 | **Mechanism risk (not a confirmed iCloud product repro).** Cap 27.4 skip-L1-paint applies only on the device-local fast path; full L1→L2 still paints soft preview first. `_forceStillCoverHardReload` may be consumed on L1 `_trackStillCoverPath`, so `LAYER2_APPLY` can re-enter Cap 26.4a keep-ready + gapless soft stick. Parked until iCloud-only / non-local remount assets can soak a fix. Does not reopen debt **477**. **Probe (keep while Open):** Debug/Profile Settings → **L1-stall probe** (`Cap27L1StallProbeSettingsSection` / `cap27_l1_stall_probe.dart`); log `Documents/cap27_l1_stall_probe.log`; gate `!kReleaseMode` (Release UI hidden + log no-op). | Unassigned | Cap 15.12/26.4a; debt **477**; ADR-055; `cap27_l1_stall_probe*.dart` |
 | 479 | Closed | Main Browse Screen / Cap 27.6 | Cap 27.6 | Settings leave/return (and similar non-Browse-current) `roundEpoch` remount head stuck on Layer 1; newestFirst easiest | **Related 477 (stays Closed).** Cap 27.4 prefer-Host closed Browse-current remount stick; Settings / auth limbs were **not** in that soak. Root: prefer-Host armed only under `isCurrent`, and a post-frame clear dropped pending while Browse was off — remount finished off-current never armed Cap 27.4 Host path. Fix in `8d6d7cc`: sticky `_epochRemountPreferHostPending` until consume + become-current re-arm. i17 soak PASS (three orders × immediate/dwell return; Confirm/Endless unaffected). Widget: W-27.6-479. Does not reopen **477**; does not close **478**. | Closed by Cap 27.6 (`8d6d7cc`) | ADR-055; Cap 27.4; debt **477** / **478**; `vertical_media_feed.dart` |
+| 480 | Open | Main Browse Screen / Cap 28.3 | Cap 28.3 | Confirm / Endless (and other `roundEpoch` remount) dual visible handoff: soft-L1 present → one-frame black between L1 and L2; soft-L1 absent → one-frame Loading item | **Settings limb closed by Cap 28 keep** (28.1/28.2: remount + prefer-Host + hardReload). Remount paths remain: Cap 27.4 prefer-Host skips Session L2-ready, forces Host L2, and on APPLY hard-reloads cover (clear keep-ready / bump Image key) — empty decode window when a soft preview was painted; miss chrome when no soft L1. **Candidate fix (not scheduled):** precache L2 Image before swapping key so keep-ready/gapless soft stick is broken without a blank frame. Out of Cap 28 product keep / meta hide. Related **477** / **479** (prefer-Host mechanism stays). | Unassigned | Cap 27.4/27.6; debt **477** / **479**; Cap 28.1/28.2 notes; ADR-058 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

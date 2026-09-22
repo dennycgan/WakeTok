@@ -7291,3 +7291,134 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Narrowly amends ADR-044 D6.1 and ADR-046 D4 on Accept. Does not
   amend ADR-047 D3. Complements ADR-055 / ADR-056. Parallel discipline
   to ADR-048 Decision 2 (shared composition-root hook).
+
+## ADR-058: Cap 28 leave-Browse keep Session + settingsResume + meta hide
+
+- Status: **Proposed** (2026-09-22). When Accepted (Cap 28.4+ implementing
+  work anchor): narrowly supersedes **ADR-027** reset strength only;
+  narrowly amends **ADR-015** Decision 1 (fixed three rows may be
+  paint-hidden); narrowly amends **ADR-040** so Settings resume is
+  **not** a trusted new navigation activation; narrowly supersedes
+  **ADR-055** Decision 8 clause that Cap 27 leaves ADR-027 reset
+  strength unchanged. Do **not** flip those older Status lines until
+  this ADR is Accepted with a real work sha.
+- Commit/PR anchor: pending (Cap 28.4 first implementing work)
+- Plain summary (owner reads this):
+  Leaving Browse for Settings no longer reshuffles or jumps to the
+  first item. Coming back keeps the same queue position. Playing video
+  continues from where it left off; if you had paused, it stays paused.
+  Live Photos come back as a still — they do not auto-play again
+  (long-press to replay). A Settings switch can hide the three meta
+  lines for this process only. Changing Photos access from inside
+  Settings rebuilds the session when you return to Browse.
+- Context / what problem forced this:
+  ADR-027 Strength C ended the Consumption Session on leave-Browse so
+  Cap 14.4c mid-queue resume (and debt **429** poster flash) went away
+  with the path, not a fix. Cap 27 narrowed the leave trigger to
+  Settings only but kept reset strength. Cap 28 moves keep-progress
+  from the v2 track into v1 (before Debt 421) and needs an honest
+  Settings resume contract: IndexedStack `browseActive` flips are not
+  AppLifecycle, and today's resume latch bumps display generation so
+  `PlaybackCoordinator` treats the return as a new navigation
+  activation (seek0 + force `wantsPlay=true`) — confirmed on Cap 28.2
+  keep-temp soak. Meta three-row hide is process-scoped UI preference
+  without reopening layout §2. In-app access-scope changes must share
+  one Session-boundary authority with grant-complete restart (ADR-057
+  D3 discipline).
+- Decision (what was chosen):
+  1. **Settings leave is not a Session boundary.**
+     `MainBrowseDestinationNotifier.select` browse→settings does **not**
+     call `restartSession()` or force feed index 0. Keep Consumption
+     Session, Session Queue, feed index, process Order preference,
+     `activeOrigin`, Session L2-ready map, and playback position /
+     `userIntentWantsPlay`. Snapshot cache policy unchanged.
+  2. **UI leave still deactivates the current page.**
+     `browseActive=false` ⇒ pages are not current: Cap 16 leave-cancel /
+     stop neighbour preheat / magnification `forceFit` (ADR-043 D4).
+     Do **not** continue iCloud download work while Settings is shown.
+  3. **Explicit activation source `settingsResume` (same Decision as
+     video + Live).**
+     Resume latch / become-current after Settings must **explicitly mark**
+     the activation source (name frozen at implementation — e.g.
+     `settingsResume`). `PlaybackCoordinator` reads **only** that marked
+     source to decide whether to seek0 and whether to force
+     `wantsPlay=true`. **Forbidden:** infer Settings resume from
+     generation deltas, latch side effects, or other heuristics.
+     - **Settings resume (`settingsResume`):**
+       - **Video:** preserve Host playhead; honour `userIntentWantsPlay`
+         (playing → continue; user-paused → stay paused). Must **not**
+         seek0 or force wantsPlay=true / `startsNewNavigationActivation`.
+       - **Live Photo:** always present the **static** key frame; do
+         **not** auto-replay motion, whether or not motion was mid-play
+         when leaving. Do **not** attempt mid-motion resume (leave
+         already tears down motion via non-current). Cap 26 long-press
+         replay (ADR-052) remains the only intentional replay.
+         **Acceptance:** leave mid-Live-motion → Settings → return must
+         show the static still immediately — no flash of a motion frame
+         and no black frame between leave and still.
+     - **True swipe leave-current → become-current** remains a trusted
+       **new navigation activation**: video seek0 (ADR-040 / debt
+       **395** intentional design); Live auto-plays once (ADR-019) —
+       must not be broken by this Decision.
+  4. **Access-scope single authority.**
+     One composition-root API (e.g. `notifyAccessScopePossiblyChanged`)
+     is the only writer that marks dirty and the only consumer that
+     `restartSession`s for in-app scope changes. Limited library picker:
+     **every dismiss** marks dirty (no selection-diff). If destination is
+     already Browse → restart immediately and clear dirty; if Settings →
+     defer until settings→browse. Same dirty generation restarts at most
+     once. `PhotosAuthorizationNotifier.requestAccess` grant-complete
+     must call this API only — remove the bare `restartSession` call.
+     Out: user changes Photos access in iOS Settings (existing resume
+     path unchanged).
+  5. **L2-ready lifetime.**
+     Session L2-ready tokens clear on real Session boundaries, **not**
+     on ordinary Settings leave. Host temp eviction → existing
+     cover-on-disk miss → Host path (a4); must not invent a new sticky
+     soft-L1 failure mode.
+  6. **Meta three-row hide (process-only).**
+     Settings group **Browse display** (after Gestures, before Browse
+     notices). Default shown; in-memory only; subtitle must state that
+     reopening the app restores display. Hide affects **paint and
+     VoiceOver only** (do not paint Overlay rows; VoiceOver must not
+     read them). Reset / Action column / LIVE / scrubber timestamp
+     geometry **unchanged** (layout notes §2). The meta “…” overflow
+     half-sheet behaviour is **unaffected**. Cover-gate (§13) **OR**
+     hide (either suppresses chrome). Metadata fetch and
+     `presentationSizeCacheProvider` writes continue regardless of hide
+     (`MediaInfoOverlay` is paint-only). Narrowly amends ADR-015
+     Decision 1: default fixed three rows; process-scoped paint hide
+     allowed without changing reserved geometry.
+  7. **Prefer-Host / debt 479 mechanism retained** for Confirm /
+     Endless / auth remount. Settings keep removes the primary Settings
+     remount trigger; do not delete sticky prefer-Host. Remount dual
+     handoff symptom → Known debt **480** (out of Cap 28 product keep).
+  8. **Out of Cap 28:** Debt 421 UI; Layer 2/3 Auto-play; SessionCheckpoint;
+     meta hide persistence; hiding non-meta chrome; layout §2 numeric
+     edits; Confirm/Endless remount black/Loading fix (debt **480**);
+     merging `spike/cap28-28.2-keep-temp`.
+- Rejected alternatives (why not):
+  - Infer Settings resume from generation bump alone — rejected; same
+    anti-pattern ADR-057 rejected for Origin; would mis-classify swipe
+    navigation.
+  - Mid-motion Live resume across Settings — rejected; high flash risk,
+    low value vs Cap 26 long-press.
+  - Persist meta hide — rejected; process-only + explicit restore copy.
+  - Dual restart paths (dirty hook + bare grant `restartSession`) —
+    rejected; ADR-057 shared-signal discipline.
+  - Fix Confirm/Endless remount black inside Cap 28 — rejected; Settings
+    limb dissolves with keep; remount limb = debt **480**.
+- Consequences / constraints accepted:
+  - Cap 28.2 soak (Kafka + i17, keep-temp): Settings black / Loading
+    item gone; playback seek0/force-play gap confirmed for 28.4.
+  - Cap 28.1 probe (`wtlive.log`) may land with 28.4 work under
+    `!kReleaseMode`; spike branch deleted after 28.4 lands on main.
+  - Architecture / localization guards on every `lib/` phase.
+  - Docs: Proposed at 28.3; Accepted date/anchor from first Cap 28.4
+    implementing work (`git log -1 --format=%cs <sha>`).
+- Relationship:
+  Narrowly supersedes ADR-027 reset strength; narrowly amends ADR-015
+  D1, ADR-040 navigation-activation boundary, ADR-055 D8 reset-strength
+  clause. Complements ADR-023 D6/D7/D8, ADR-026 D3 (playhead preserve
+  for non-nav re-entry), ADR-043 D4, ADR-052, ADR-057. Does not amend
+  ADR-019 play-once for vertical swipe become-current.
