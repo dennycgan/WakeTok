@@ -1566,6 +1566,24 @@ abstract class AppLocalizations {
   /// **'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.'**
   String get browseSettingsNewRoundToastSubtitle;
 
+  /// Cap 28.6 Settings section for Browse chrome display prefs
+  ///
+  /// In en, this message translates to:
+  /// **'Browse display'**
+  String get browseDisplaySettingsSectionTitle;
+
+  /// Cap 28.6 toggle title; switch ON shows bottom-left meta rows
+  ///
+  /// In en, this message translates to:
+  /// **'Show item details'**
+  String get browseDisplayMetaOverlayTitle;
+
+  /// Cap 28.6: how to hide (turn off) + location + process-only restore
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off to hide the details shown at the bottom-left of each item. Reopening the app restores display.'**
+  String get browseDisplayMetaOverlaySubtitle;
+
   /// Cap 24.3 Action Column ellipsis entry accessibility label
   ///
   /// In en, this message translates to:

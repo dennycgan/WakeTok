@@ -1097,6 +1097,18 @@
   "@browseSettingsNewRoundToastSubtitle": {
     "description": "Cap 22.5 toggle subtitle: where, when, duration, early dismiss"
   },
+  "browseDisplaySettingsSectionTitle": "Browse display",
+  "@browseDisplaySettingsSectionTitle": {
+    "description": "Cap 28.6 Settings section for Browse chrome display prefs"
+  },
+  "browseDisplayMetaOverlayTitle": "Show item details",
+  "@browseDisplayMetaOverlayTitle": {
+    "description": "Cap 28.6 toggle title; switch ON shows bottom-left meta rows"
+  },
+  "browseDisplayMetaOverlaySubtitle": "Turn off to hide the details shown at the bottom-left of each item. Reopening the app restores display.",
+  "@browseDisplayMetaOverlaySubtitle": {
+    "description": "Cap 28.6: how to hide (turn off) + location + process-only restore"
+  },
   "cap24MoreEntryIconSemantics": "More actions",
   "@cap24MoreEntryIconSemantics": {
     "description": "Cap 24.3 Action Column ellipsis entry accessibility label"

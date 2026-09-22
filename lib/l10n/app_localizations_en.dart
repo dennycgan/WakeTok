@@ -847,6 +847,16 @@ class AppLocalizationsEn extends AppLocalizations {
       'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
 
   @override
+  String get browseDisplaySettingsSectionTitle => 'Browse display';
+
+  @override
+  String get browseDisplayMetaOverlayTitle => 'Show item details';
+
+  @override
+  String get browseDisplayMetaOverlaySubtitle =>
+      'Turn off to hide the details shown at the bottom-left of each item. Reopening the app restores display.';
+
+  @override
   String get cap24MoreEntryIconSemantics => 'More actions';
 
   @override

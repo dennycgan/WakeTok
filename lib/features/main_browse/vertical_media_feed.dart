@@ -27,6 +27,7 @@ import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/features/library_smoke/shared_mute_provider.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 import 'package:waketok/features/main_browse/browse_magnification.dart';
+import 'package:waketok/features/main_browse/browse_meta_overlay_shown.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
 import 'package:waketok/features/main_browse/feed_activation_coordinator.dart';
 import 'package:waketok/features/main_browse/magnification_reset_button.dart';
@@ -1678,11 +1679,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// not tied to [_layer2InFlight] (normal L2 wait with a painted cover keeps
   /// Overlay + spinner). Download / generic fails (with media on screen) may
   /// still show Overlay.
+  ///
+  /// Cap 28.6 / ADR-058 D6: [browseMetaOverlayShownProvider] false suppresses
+  /// paint + VoiceOver only (OR with cover-gate). Call only from [build] /
+  /// build-driven helpers so [Ref.watch] is legal.
   bool get _showMediaInfoOverlayEffective =>
       widget.showMediaInfoOverlay &&
       !_loading &&
       !_isAssetUnavailableFailure &&
-      !_suppressStillCoverMeta;
+      !_suppressStillCoverMeta &&
+      ref.watch(browseMetaOverlayShownProvider);
 
   /// When [path] changes, mark cover unresolved until frameBuilder / broken.
   ///

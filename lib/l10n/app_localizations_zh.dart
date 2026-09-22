@@ -844,6 +844,16 @@ class AppLocalizationsZh extends AppLocalizations {
       'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
 
   @override
+  String get browseDisplaySettingsSectionTitle => 'Browse display';
+
+  @override
+  String get browseDisplayMetaOverlayTitle => 'Show item details';
+
+  @override
+  String get browseDisplayMetaOverlaySubtitle =>
+      'Turn off to hide the details shown at the bottom-left of each item. Reopening the app restores display.';
+
+  @override
   String get cap24MoreEntryIconSemantics => 'More actions';
 
   @override
@@ -1720,6 +1730,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String get browseSettingsNewRoundToastSubtitle =>
       '当你把当前列表刷完、从头再看时，浏览页顶部会短暂出现一条提示，大约 1.5 秒。一划走就会立刻消失。';
+
+  @override
+  String get browseDisplaySettingsSectionTitle => '浏览显示';
+
+  @override
+  String get browseDisplayMetaOverlayTitle => '显示文件详情';
+
+  @override
+  String get browseDisplayMetaOverlaySubtitle =>
+      '关闭后隐藏每个内容左下角显示的详细信息。重新打开 App 后恢复显示。';
 
   @override
   String get cap24MoreEntryIconSemantics => '更多操作';

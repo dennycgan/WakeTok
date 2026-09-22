@@ -11,6 +11,7 @@ import 'package:waketok/features/main_browse/browse_top_chrome.dart';
 import 'package:waketok/features/main_browse/cap19_entry_icon.dart';
 import 'package:waketok/features/main_browse/cap24_more_entry_icon.dart';
 import 'package:waketok/features/main_browse/cap25_share_entry_icon.dart';
+import 'package:waketok/features/main_browse/browse_display_settings_section.dart';
 import 'package:waketok/features/main_browse/browse_notifications_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
@@ -373,6 +374,8 @@ class _SettingsStubPane extends StatelessWidget {
           Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
           const SizedBox(height: 20),
           const Cap19GesturesSettingsSection(),
+          const SizedBox(height: 28),
+          const BrowseDisplaySettingsSection(),
           const SizedBox(height: 28),
           const BrowseNotificationsSettingsSection(),
           if (kDebugMode) ...[
