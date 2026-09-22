@@ -288,16 +288,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 28.8 Device acceptance Kafka + i17 (incl. Live mid-motion →
       Settings → static still, no mid-frame / black flash).
 - [ ] 28.9 Docs Commit 2 after owner acceptance: Cap `[x]` /
-      PHASE_HISTORY; delete local spike branch (ADR-058 Accepted at
-      28.4 docs).
+      PHASE_HISTORY (ADR-058 Accepted at 28.4 docs). Local spike
+      `spike/cap28-28.2-keep-temp` was deleted after 28.4 close —
+      do not defer spike cleanup to Cap close-out.
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 28.5 access-scope single authority
 - Sub-steps done: 28.1–28.4 PASS (Kafka + i17); ADR-058 Accepted
-      (`2c6e3b3`); debt **481** Open (Q-PV poster/cover frame)
+      (`2c6e3b3`); debt **481** Open (Q-PV poster/cover frame);
+      local spike `spike/cap28-28.2-keep-temp` deleted after 28.4
 - Next step: 28.5 design → `notifyAccessScopePossiblyChanged`
-- Related decisions: ADR-058 Accepted; debt **480** / **481** Open;
-      spike `spike/cap28-28.2-keep-temp` not merged
+- Related decisions: ADR-058 Accepted; debt **480** / **481** Open
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
