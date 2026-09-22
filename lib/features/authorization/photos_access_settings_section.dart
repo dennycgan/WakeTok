@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
+import 'package:waketok/features/authorization/cap29_access_scope_probe.dart';
 import 'package:waketok/features/authorization/open_app_settings.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
+import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 29.2 / ADR-059 — Settings Photos Access entry (Debt 421).
@@ -56,18 +58,32 @@ class PhotosAccessSettingsSection extends ConsumerWidget {
                 key: const Key('photosAccessManageSelection'),
                 onPressed: busy
                     ? null
-                    : () => unawaited(
+                    : () {
+                        _probeTap(
+                          ref,
+                          event: 'MANAGE_TAP',
+                          access: PhotosAccess.limited,
+                        );
+                        unawaited(
                           ref
                               .read(photosAuthorizationProvider.notifier)
                               .presentLimitedLibraryPicker(),
-                        ),
+                        );
+                      },
                 child: Text(l10n.limitedAccessManageSelection),
               ),
               OutlinedButton(
                 key: const Key('photosAccessOpenSettings'),
                 onPressed: busy
                     ? null
-                    : () => unawaited(ref.read(openAppSettingsProvider)()),
+                    : () {
+                        _probeTap(
+                          ref,
+                          event: 'OPEN_SETTINGS_TAP',
+                          access: PhotosAccess.limited,
+                        );
+                        unawaited(ref.read(openAppSettingsProvider)());
+                      },
                 child: Text(l10n.permissionOpenSettings),
               ),
             ],
@@ -81,12 +97,33 @@ class PhotosAccessSettingsSection extends ConsumerWidget {
               key: const Key('photosAccessOpenSettings'),
               onPressed: busy
                   ? null
-                  : () => unawaited(ref.read(openAppSettingsProvider)()),
+                  : () {
+                      _probeTap(
+                        ref,
+                        event: 'OPEN_SETTINGS_TAP',
+                        access: PhotosAccess.full,
+                      );
+                      unawaited(ref.read(openAppSettingsProvider)());
+                    },
               child: Text(l10n.permissionOpenSettings),
             ),
           ),
         ],
       ],
+    );
+  }
+
+  static void _probeTap(
+    WidgetRef ref, {
+    required String event,
+    required PhotosAccess access,
+  }) {
+    final dest = ref.read(mainBrowseDestinationProvider);
+    unawaited(
+      Cap29AccessScopeProbe.log(event, {
+        'access': access.name,
+        'dest': dest.name,
+      }),
     );
   }
 }

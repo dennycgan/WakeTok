@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/features/authorization/cap29_access_scope_probe.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 
 /// Cap 28.5 / ADR-058 Decision 4: single authority for **in-app** Photos
@@ -53,9 +54,18 @@ class AccessScopeAuthorityNotifier extends Notifier<int?> {
   /// if Settings, defers until Browse.
   void notifyAccessScopePossiblyChanged() {
     // D1 coalesce: one pending generation until clear.
+    final coalesce = state != null;
     state ??= ++_nextGeneration;
-    if (ref.read(mainBrowseDestinationProvider) ==
-        MainBrowseDestination.browse) {
+    final gen = state!;
+    final dest = ref.read(mainBrowseDestinationProvider);
+    unawaited(
+      Cap29AccessScopeProbe.log('ACCESS_SCOPE_NOTIFY', {
+        'gen': gen,
+        'dest': dest.name,
+        'coalesce': coalesce,
+      }),
+    );
+    if (dest == MainBrowseDestination.browse) {
       unawaited(_consumeIfNeeded());
     }
   }
@@ -69,8 +79,23 @@ class AccessScopeAuthorityNotifier extends Notifier<int?> {
     _consumeInFlight = true;
     try {
       while (ref.mounted && state != null) {
+        // Capture before clear — state is nulled before await restartSession.
+        final consumingGen = state!;
+        final dest = ref.read(mainBrowseDestinationProvider);
+        unawaited(
+          Cap29AccessScopeProbe.log('CONSUME_START', {
+            'gen': consumingGen,
+            'dest': dest.name,
+          }),
+        );
         state = null;
         await ref.read(browseSessionProvider.notifier).restartSession();
+        unawaited(
+          Cap29AccessScopeProbe.log('RESTART_SESSION_END', {
+            'gen': consumingGen,
+            'dest': dest.name,
+          }),
+        );
       }
     } finally {
       _consumeInFlight = false;
