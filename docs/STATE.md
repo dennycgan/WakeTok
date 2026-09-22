@@ -263,14 +263,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Settings → `openAppSettingsProvider` only — Limited and Full
       alike, never notify; exit: SafeArea + Gate switch untouched;
       work `8ac86db`; notes `docs/acceptance/cap29-29.2-notes.md`)
-- [~] 29.3 Tests
-      (Limited/Full visibility; Manage path; architecture allowlist:
-      zero `.restartSession(` under `lib/features/**`; outside
-      `access_scope_authority.dart` + `browse_session_providers.dart`
-      zero `.restartSession(` in `lib/`; Cap 29 Settings section must
-      not contain `restartSession` or direct
-      `accessScopeAuthorityProvider` notify — Manage only via
-      `presentLimitedLibraryPicker`; architecture + l10n green)
+- [x] 29.3 Tests
+      (architecture allowlist
+      `test/architecture/access_scope_restart_allowlist_test.dart`;
+      notes `docs/acceptance/cap29-29.3-notes.md`)
 - [ ] 29.4 Device acceptance
       (Kafka + i17; Documents log probe à la Cap 28 `wtlive.log`;
       Manage→dismiss→Browse rebuild; Open Settings; Full; notch
@@ -281,10 +277,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       YOU ARE HERE → next Cap)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 29.3 architecture allowlist for restartSession
-- Sub-steps done: 29.1 PASS; 29.2 work `8ac86db`; ADR-059 Proposed
-- Next step: architecture grep tests (features ban + allowlist;
-      Settings section no direct authority notify)
+- Goal (one line): Cap 29.4 device acceptance + Documents log probe
+- Sub-steps done: 29.1–29.3; work `8ac86db`; docs `9a0612a`;
+      ADR-059 Proposed
+- Next step: design/implement Cap-28-style Documents probe; owner
+      Kafka/i17 matrix
 - Related decisions: ADR-058 Accepted (D4 unchanged); ADR-059
       **Proposed**; debt **421** Open; **480** / **481** Open
       (out of this Cap)
