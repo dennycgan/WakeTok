@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:waketok/app/browse/access_scope_authority.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
@@ -5367,7 +5368,8 @@ void main() {
 
   // Cap 28.4 / ADR-058: Settings leave no longer remounts — debt 479 Settings
   // limb dissolves with keep. Assert keep contract (index/epoch/State); Confirm
-  // / Endless prefer-Host remains covered elsewhere (W-27.4 / debt 477).
+  // / Endless prefer-Host remains covered by W-27.4a/b. Off-Browse→Browse
+  // remount via Cap 28.5 access-scope: W-28.7-479-sticky.
   Future<void> settingsLeaveKeepCase(
     WidgetTester tester, {
     required OrderPolicy order,
@@ -5515,6 +5517,112 @@ void main() {
         tester,
         order: OrderPolicy.newestFirst,
         dwellOnSettings: true,
+      );
+    },
+  );
+
+  testWidgets(
+    'W-28.7-479-sticky access-scope dirty on Settings → Browse Host prefer-Host',
+    (tester) async {
+      // Cap 28.7 retarget of debt 479 Settings limb: do **not** bare
+      // restartSession. Dirty via notifyAccessScopePossiblyChanged while
+      // Settings, then real settings→browse consume (Cap 28.5 authority).
+      // Remount must Host-load head despite Session L2-ready (prefer-Host).
+      // Endless Confirm remount Host stays covered by W-27.4a (advanceToNextRound).
+      final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      final display = FakeMediaDisplayRepository();
+      const ids = ['a1', 'a2', 'a3'];
+      for (final id in ids) {
+        final path = File('${Directory.systemTemp.path}/wt_28_7_479_$id.png');
+        path.writeAsBytesSync(
+          base64Decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+          ),
+        );
+        display.displaysById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+        display.previewsById[id] = DisplayAsset(
+          assetIdentifier: id,
+          mediaKind: PlaybackMediaKind.image,
+          localFilePath: path.path,
+        );
+      }
+      await tester.pumpWidget(
+        permissionUiHarness(
+          disableBrowseAllPrefetch: true,
+          repo: repo,
+          assetSources: FakeAssetSourceRepository(
+            allIds: ids,
+            availabilityById: FakeAssetSourceRepository.deviceLocalForIds(ids),
+          ),
+          mediaDisplay: display,
+        ),
+      );
+      await pumpAsyncWork(tester);
+      final element = tester.element(find.byType(VerticalMediaFeed));
+      final container = ProviderScope.containerOf(element);
+
+      expect(
+        await container
+            .read(browseSessionProvider.notifier)
+            .applyConfirmedOrderPreference(OrderPolicy.newestFirst),
+        isTrue,
+      );
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
+      await pumpAsyncWork(tester);
+
+      final ordered = await _feedOrderedIds(tester);
+      final head = ordered[0];
+      expect(container.read(browseL2ReadySessionProvider)[head], isNotNull);
+      final displayBefore =
+          display.displayCalls.where((id) => id == head).length;
+      expect(displayBefore, greaterThanOrEqualTo(1));
+      final epochBefore = (await container.read(
+        browseSessionProvider.future,
+      )).roundEpoch;
+
+      // Ensure authority listen is registered.
+      expect(container.read(accessScopeAuthorityProvider), isNull);
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      await tester.pump();
+      await pumpAsyncWork(tester);
+
+      container
+          .read(accessScopeAuthorityProvider.notifier)
+          .notifyAccessScopePossiblyChanged();
+      await tester.pump();
+      expect(
+        container.read(accessScopeAuthorityProvider),
+        isNotNull,
+        reason: 'Settings must defer dirty (no immediate restart)',
+      );
+      expect(
+        (await container.read(browseSessionProvider.future)).roundEpoch,
+        epochBefore,
+        reason: 'authority must not restart while still on Settings',
+      );
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+      await pumpAsyncWork(tester);
+
+      expect(container.read(accessScopeAuthorityProvider), isNull);
+      final epochAfter = (await container.read(
+        browseSessionProvider.future,
+      )).roundEpoch;
+      expect(epochAfter, greaterThan(epochBefore));
+      expect(
+        display.displayCalls.where((id) => id == head).length,
+        greaterThan(displayBefore),
+        reason:
+            'settings→browse access-scope remount must Host-load via prefer-Host',
       );
     },
   );
