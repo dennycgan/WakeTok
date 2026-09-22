@@ -63,7 +63,8 @@ void main() {
   });
 
   test(
-    'R3 requestAccess Limited restarts browse session after grant',
+    'R3 requestAccess Limited restarts browse session after grant '
+    '(via access-scope authority, Cap 28.5)',
     () async {
       final fake = _FakePhotosAuthorizationRepository(
         PhotosAccess.notDetermined,
@@ -98,10 +99,13 @@ void main() {
     final catalog = FakeLibraryCatalogRepository(
       totalsValue: const LibraryTotals(all: 1, photos: 1, videos: 0),
     );
+    final sources = FakeAssetSourceRepository(allIds: const ['a']);
     final container = ProviderContainer(
       overrides: [
         photosAuthorizationRepositoryProvider.overrideWithValue(fake),
         libraryCatalogRepositoryProvider.overrideWithValue(catalog),
+        assetSourceRepositoryProvider.overrideWithValue(sources),
+        browseEmptyRetryDelaysProvider.overrideWithValue(const <Duration>[]),
       ],
     );
     addTearDown(container.dispose);

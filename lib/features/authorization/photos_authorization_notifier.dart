@@ -1,7 +1,5 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/app/browse/access_scope_authority.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
 import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
@@ -46,9 +44,12 @@ class PhotosAuthorizationNotifier extends AsyncNotifier<PhotosAccess> {
       state = await AsyncValue.guard(_repo.requestAccess);
       final access = state.value;
       if (access == PhotosAccess.limited || access == PhotosAccess.full) {
-        // Picker may already have painted an empty All (resume path). Reload
-        // after the grant completes so PhotoKit's Limited selection is used.
-        unawaited(ref.read(browseSessionProvider.notifier).restartSession());
+        // Cap 28.5 / ADR-058 D4: grant-complete is an in-app scope change —
+        // sole Session-boundary path is [notifyAccessScopePossiblyChanged]
+        // (no bare [BrowseSessionNotifier.restartSession] here).
+        ref
+            .read(accessScopeAuthorityProvider.notifier)
+            .notifyAccessScopePossiblyChanged();
       }
     } finally {
       _requestAccessInFlight = false;
@@ -57,9 +58,16 @@ class PhotosAuthorizationNotifier extends AsyncNotifier<PhotosAccess> {
 
   /// Presents the limited-library picker and refreshes auth + catalog totals
   /// after the host reports dismissal (not at present-time).
+  ///
+  /// Cap 28.5: every dismiss marks access-scope dirty via
+  /// [AccessScopeAuthorityNotifier.notifyAccessScopePossiblyChanged]
+  /// (Debt 421 manage UI reuses this method — no parallel restart path).
   Future<void> presentLimitedLibraryPicker() async {
     await _repo.presentLimitedLibraryPicker();
     state = await AsyncValue.guard(_repo.currentStatus);
     ref.invalidate(libraryTotalsProvider);
+    ref
+        .read(accessScopeAuthorityProvider.notifier)
+        .notifyAccessScopePossiblyChanged();
   }
 }
