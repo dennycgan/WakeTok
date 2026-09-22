@@ -1357,3 +1357,57 @@ Related ADR: ADR-055 (`893c296`); ADR-056 (`ec7fbb1`); ADR-057
 ADR-044 D6.1, ADR-046 D4.
 Known debt at close: Cap 27 close does **not** close **478** (Open —
 non-deviceLocal remount). **477** / **479** Closed earlier in Cap 27.
+
+
+## Leave Browse keep queue progress + Browse meta hide toggle (Cap 28) — 2026-09-22
+
+- [x] 28.1 Black-frame root-cause under **then-current reset** logic
+      (Kafka Profile `wtlive.log`): soft L1 + Cap 27.4 prefer-Host
+      hardReload empty window; no-scroll = Loading item. Product code
+      unchanged in this phase; probes later landed with keep work.
+- [x] 28.2 Keep feasibility (local spike `spike/cap28-28.2-keep-temp`
+      **not merged**): omit Settings `restartSession` / `setIndex(0)`
+      only. Kafka + i17: Settings black / Loading item gone; raw
+      playback gap confirmed → fix in 28.4 via `settingsResume`.
+      Spike deleted after 28.4 (`e34fe9e`).
+- [x] 28.3 Docs: Capability Roadmap / Phase / YOU ARE HERE; ADR-058
+      Proposed; Known debt **480** (Confirm/Endless remount dual
+      symptom). Docs-only.
+      — docs `dcce35f`
+- [x] 28.4 Formal keep + explicit `settingsResume` (video playhead +
+      pause intent; Live → static still) + Settings leave chrome; A′
+      soft resume for completed video; phase + chrome probes. Debt
+      **481** logged (one poster/cover frame). ADR-058 Accepted.
+      — work `2c6e3b3`; docs `36ce2e4`; spike delete `e34fe9e`
+- [x] 28.5 Access-scope single authority
+      (`notifyAccessScopePossiblyChanged`): Limited picker every
+      dismiss dirty; Browse immediate / Settings deferred; rewrite
+      `requestAccess` grant-complete off bare `restartSession`.
+      — work `c5d2c09`; docs `6c0374a`
+- [x] 28.6 Meta three-row hide toggle (Settings **Browse display**;
+      process-only; paint-only; Show item details ON=show polarity B).
+      — work `1aa171c`; docs `dbdfc9f`
+- [x] 28.7 Architecture + localization full-suite + remount-retarget
+      (`W-28.7-479-sticky` via access-scope Settings path; keep
+      prefer-Host).
+      — work `5f4977c`; docs `de3c4e8`
+- [x] 28.8 Device acceptance Kafka + i17 (A/B/C PASS; D access-scope
+      N/A — no Limited manage UI yet; automation covers contract)
+      — notes `docs/acceptance/cap28-28.8-notes.md`; gate HEAD
+        `de3c4e8`
+- [x] 28.9 Cap close-out: Cap `[x]`; PHASE_HISTORY this snapshot;
+      YOU ARE HERE → Debt 421 (phases placeholder; Cap 28.5 authority
+      already on `main` — 421 is UI entry only)
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + 28.8 notes): (this commit)
+
+Related ADR: ADR-058 (`2c6e3b3`; Proposed `dcce35f`; Accepted docs
+`36ce2e4`).
+Known debt at close: **480** Open (Confirm/Endless remount black /
+Loading-item flash — Settings limb closed by keep). **481** Open
+(one poster/cover frame on Settings resume — intentional Q-PV=B
+trade-off). **479** Closed earlier (Settings remount limb dissolved
+by keep; sticky remaining path covered by Cap 28.7). Do not flip
+**480** / **481** in this close-out. Debt **421** is next Cap (UI
+only).

@@ -141,22 +141,22 @@
       Temp peek promote keep-Session; Clips/Auto off bar; ADR-027
       leave → Settings only; `docs/acceptance/cap27-27.6-notes.md`;
       PHASE_HISTORY; debt **478** remains Open)
-- [ ] Leave Browse keep queue progress + Browse meta hide toggle
-      (supersede ADR-027 reset strength: Browse→Settings→Browse keeps
-      Session / Queue / index / playback; in-app access-scope change =
-      real boundary; process-only meta three-row hide switch in
-      Settings; moved from v2 track, lands before Debt 421)
-      <-- YOU ARE HERE
+- [x] Leave Browse keep queue progress + Browse meta hide toggle
+      (Cap 28 / ADR-058 Accepted `2c6e3b3`; Settings keep +
+      `settingsResume` + A′; access-scope authority; process-only meta
+      hide; `docs/acceptance/cap28-28.8-notes.md`; PHASE_HISTORY;
+      debts **480** / **481** remain Open)
 - [ ] Debt 421 — Limited Access manage entry restored
       (presentLimitedLibraryPicker + Open Settings entry point;
       extracted from "Settings and localisation completion" below;
       pre-work: audit MainBrowseShellPage overlay stack alongside the
       Cap 27 order-control sheet entry to avoid repeating the original
       notch / SafeArea layering bug that caused this debt)
+      <-- YOU ARE HERE
 - [ ] First-launch vertical-swipe guidance
       (minimal TikTok-style up/down hint; must not time-overlap with
       existing Cap 19.7 left-swipe guide — flexible scheduling, may
-      slot alongside Cap 28 / Debt 421 / hardening above)
+      slot alongside Debt 421 / hardening above)
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the three functional Caps
       above land; permission string finalize; portrait-only already
@@ -239,70 +239,29 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Leave Browse keep queue progress + Browse meta hide
-toggle (Cap 28 / ADR-058 Accepted)
-Contract: Browse→Settings→Browse keeps Session / Queue / index /
-playback (narrow-supersede ADR-027 reset strength); in-app access-scope
-change = real Session boundary hook for Debt 421; process-only meta
-three-row hide in Settings; explicit `settingsResume` activation source
-(video playhead + pause intent; Live → static still, no auto-replay).
+Active capability: Debt 421 — Limited Access manage entry restored
+Contract: restore Limited manage entry (`presentLimitedLibraryPicker`
++ Open Settings) without repeating the Cap 7 / debt **421** notch /
+SafeArea overlay bug; overlay-stack audit vs Cap 27 order sheet
+already on bar. Cap 28.5 already shipped access-scope Session
+authority (`notifyAccessScopePossiblyChanged`) — this Cap is **UI
+entry only**, not a re-design of Session restart rules.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 28.1 Black-frame root-cause under **current reset** logic (Kafka
-      Profile `wtlive.log`): soft L1 preview + Cap 27.4 prefer-Host
-      hardReload empty window; no-scroll path = Loading item instead.
-      Scroll-then-Settings opens soft-L1 remount path. Probe gated
-      Debug/Profile (`Documents/wtlive.log`); product code unchanged.
-- [x] 28.2 Keep feasibility (local spike `spike/cap28-28.2-keep-temp`
-      **not merged**): omit Settings `restartSession` / `setIndex(0)`
-      only. Kafka + i17 Profile: Settings black flash / Loading item
-      **gone**; L2 still stays sharp via Session L2-ready; no 429-class
-      poster flash (stop gate idle). Raw playback gap confirmed
-      (seek0 + force-play / drop pause; Live restarts) — fix in 28.4
-      via explicit `settingsResume`. i17 “no L1” = `deviceLocal` Cap
-      15.12 fast path (27/27 Settings-return `listAvail=deviceLocal`).
-- [x] 28.3 Docs: Capability Roadmap / Phase / YOU ARE HERE; ADR-058
-      Proposed; Known debt **480** (Confirm/Endless remount dual
-      symptom). Docs-only — no `lib/` in this phase.
-- [x] 28.4 Formal keep + explicit `settingsResume` activation source
-      (video playhead + pause intent; Live → static still) + Settings
-      leave chrome; A′ soft resume for **completed video** (skip chrome
-      teardown / Action Column staircase); phase tests + Cap 28.1/chrome
-      probes (`Documents/wtlive.log`). Work `2c6e3b3`. Kafka + i17 PASS.
-- [x] 28.5 Access-scope single authority
-      (`notifyAccessScopePossiblyChanged`): Limited picker every
-      dismiss dirty; Browse immediate / Settings deferred; rewrite
-      `requestAccess` grant-complete off bare `restartSession`; phase
-      tests with this work (dirty / defer / single-restart). Work
-      `c5d2c09`.
-- [x] 28.6 Meta three-row hide toggle (Settings group **Browse display**;
-      process-only; paint-only; §2 geometry unchanged; cover-gate OR;
-      metadata request / `presentationSizeCache` unchanged; “…”
-      half-sheet unaffected); phase tests with this work (hide paint /
-      VoiceOver / restore-on-relaunch copy). Work `1aa171c` (Show item
-      details; ON=show polarity B). i17 device PASS.
-- [x] 28.7 Architecture + localization **full-suite guard** +
-      cross-phase test closeout (retarget W-27.6-479 to remaining
-      remount paths; do not delete prefer-Host). Not “implement then
-      backfill tests” — phases 28.4–28.6 already ship their tests;
-      this phase is the full-suite + remount-retarget gate. Work
-      `5f4977c` (W-28.7-479-sticky via access-scope). Full suite
-      +architecture PASS.
-- [ ] 28.8 Device acceptance Kafka + i17 (incl. Live mid-motion →
-      Settings → static still, no mid-frame / black flash).
-      <-- YOU ARE HERE
-- [ ] 28.9 Docs Commit 2 after owner acceptance: Cap `[x]` /
-      PHASE_HISTORY (ADR-058 Accepted at 28.4 docs). Local spike
-      `spike/cap28-28.2-keep-temp` was deleted after 28.4 close —
-      do not defer spike cleanup to Cap close-out.
+- [ ] Capability Roadmap closed Cap 28 (2026-09-22). Debt 421 phase
+      breakdown awaiting owner scope / kickoff review — do not invent
+      numbered phases here. Pre-work (overlay stack audit) stays as
+      stated on the Capability Roadmap line.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 28.8 device acceptance Kafka + i17
-- Sub-steps done: 28.1–28.7 PASS; ADR-058 Accepted (`2c6e3b3`);
-      access-scope `c5d2c09`; meta hide `1aa171c`; sticky retarget
-      `5f4977c`; debt **481** Open; local spike deleted after 28.4
-- Next step: 28.8 combined Cap 28 device matrix (keep / meta / 481)
-- Related decisions: ADR-058 Accepted; debt **480** / **481** Open
+- Goal (one line): Debt 421 Limited Access manage entry — awaiting
+      owner phase kickoff
+- Sub-steps done: Cap 28 closed — notes
+      `docs/acceptance/cap28-28.8-notes.md`; gate HEAD `de3c4e8`;
+      access-scope authority already on `main` (`c5d2c09`)
+- Next step: owner scopes Debt 421 phases; replace this placeholder
+- Related decisions: ADR-058 Accepted; debt **421** Open; debts
+      **480** / **481** Open (out of Cap 28 product keep / meta)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
