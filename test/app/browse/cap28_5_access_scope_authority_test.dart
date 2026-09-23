@@ -270,6 +270,8 @@ void main() {
       expect(sources.resolveCalls, 1);
 
       // Force the next restartSession off cache so beforeEachResolve can gate.
+      // (ADR-059 D10 also clears inside consume; explicit clear keeps the
+      // callIndex==1 gate stable if initial cache were somehow empty.)
       container.read(browseSnapshotCacheProvider.notifier).clear();
 
       container
@@ -297,6 +299,91 @@ void main() {
             container.read(browseSessionProvider).asData?.value.roundEpoch ==
             epochBefore + 2,
       );
+      expect(container.read(accessScopeAuthorityProvider), isNull);
+    },
+  );
+
+  test(
+    'W-29.4-1 access-scope consume clears snapshot cache + feed index 0 '
+    '(ADR-059 D10 final state)',
+    () async {
+      final sources = FakeAssetSourceRepository(allIds: const ['a', 'b', 'c']);
+      final container = _container(sources: sources);
+      addTearDown(container.dispose);
+
+      final initial = await container.read(browseSessionProvider.future);
+      final epochBefore = initial.roundEpoch;
+      expect(container.read(browseSnapshotCacheProvider), isNotEmpty);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
+      expect(container.read(mainBrowseFeedIndexProvider), 2);
+      final resolvesBefore = sources.resolveCalls;
+
+      container.read(accessScopeAuthorityProvider);
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.settings);
+      container
+          .read(accessScopeAuthorityProvider.notifier)
+          .notifyAccessScopePossiblyChanged();
+
+      container
+          .read(mainBrowseDestinationProvider.notifier)
+          .select(MainBrowseDestination.browse);
+
+      await _yieldUntil(
+        () =>
+            container.read(browseSessionProvider).asData?.value.roundEpoch ==
+            epochBefore + 1,
+      );
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      // Cleared cache forced a fresh resolve (not a silent cache hit).
+      expect(sources.resolveCalls, greaterThan(resolvesBefore));
+      expect(container.read(accessScopeAuthorityProvider), isNull);
+    },
+  );
+
+  test(
+    'W-29.4-2 setIndex(0) before restartSession resolve completes '
+    '(ADR-059 D10 order lock)',
+    () async {
+      final gate = Completer<void>();
+      var resolveIndex = 0;
+      final sources = FakeAssetSourceRepository(
+        allIds: const ['a', 'b', 'c'],
+        beforeEachResolve: (callIndex) async {
+          resolveIndex = callIndex;
+          // Hold the post-consume restart resolve (after D10 cache clear).
+          if (callIndex == 1 && !gate.isCompleted) {
+            await gate.future;
+          }
+        },
+      );
+      final container = _container(sources: sources);
+      addTearDown(container.dispose);
+
+      await container.read(browseSessionProvider.future);
+      expect(container.read(browseSnapshotCacheProvider), isNotEmpty);
+      container.read(mainBrowseFeedIndexProvider.notifier).setIndex(2);
+      expect(container.read(mainBrowseFeedIndexProvider), 2);
+      container.read(accessScopeAuthorityProvider);
+
+      container
+          .read(accessScopeAuthorityProvider.notifier)
+          .notifyAccessScopePossiblyChanged();
+
+      await _yieldUntil(() => resolveIndex >= 1);
+      // Still inside restartSession (resolve held) — index must already be 0.
+      expect(container.read(browseSessionProvider).isLoading, isTrue);
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
+      expect(container.read(browseSnapshotCacheProvider), isEmpty);
+
+      gate.complete();
+      await _yieldUntil(
+        () => container.read(browseSessionProvider).hasValue &&
+            !container.read(browseSessionProvider).isLoading,
+      );
+      expect(container.read(mainBrowseFeedIndexProvider), 0);
       expect(container.read(accessScopeAuthorityProvider), isNull);
     },
   );

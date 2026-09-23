@@ -7510,6 +7510,21 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
      smoke entry stays Debug-only).
   9. **Out of Cap 29:** debts **480** / **481**; Layer 2/3 Auto-play;
      SessionCheckpoint; Settings localisation / privacy / about sweep.
+  10. **Access-scope consume side effects (Cap 29.4 device find).**
+     On each `_consumeIfNeeded` iteration, **before**
+     `BrowseSessionNotifier.restartSession()`: (a) clear
+     `browseSnapshotCacheProvider` (no Limited selection-diff; full
+     clear is the trust-reset granularity); (b) set
+     `mainBrowseFeedIndexProvider` to `0` (same-Origin access-scope
+     change does not fire the ADR-055 Origin→index-0 listen). Order
+     is clear → setIndex(0) → await restartSession so remount sees
+     index 0 when `roundEpoch` bumps. Do **not** fold these into
+     shared `restartSession()` (Origin real-boundary uses that method
+     and must not inherit full-cache clear / forced zero). Confirm
+     remains on `applyConfirmedOrderPreference` + call-site
+     `setIndex(0)` — unchanged. Does **not** amend ADR-058 Decision 4
+     trigger / coalesce / who-may-restart rules (Decision 7 still
+     holds).
 - Rejected alternatives (why not):
   - **Surface B/C** (Browse banner and/or top-chrome Open Settings) —
     rejected; repeats Cap 7 IndexedStack-over-all / third-tier risk;
@@ -7530,6 +7545,15 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     rejected; dual restart / false dirty vs ADR-058 D4 Out.
   - **Product entry via library_smoke route** — rejected; Release must
     not depend on `kDebugMode` smoke mount.
+  - Fold Decision 10 clear / setIndex(0) into shared
+    `BrowseSessionNotifier.restartSession` — rejected; Origin
+    real-boundary shares that method and must not inherit access-scope
+    full-cache clear / forced index 0.
+  - Precise Snapshot invalidate by Limited selection-diff — rejected;
+    ADR-058 D4 marks dirty on every dismiss with no selection-diff;
+    full `clear()` is the honest trust-reset.
+  - setIndex(0) only after `await restartSession()` returns — rejected;
+    remount can paint with the kept Cap 28 feed index before zeroing.
 - Consequences / constraints accepted:
   - Architecture allowlist (29.3): zero `.restartSession(` under
     `lib/features/**`; outside `access_scope_authority.dart` and
@@ -7540,11 +7564,17 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     hard gate before 29.2 mount.
   - Access-scope Session restart after Limited picker may show remount
     handoff family (**480** / **481**) — known; not Cap 29 fail.
+  - Decision 10 machine-locked by Cap 28.5 / Cap 29.4 authority tests
+    (final index 0 + re-resolve; Completer hold proves setIndex before
+    restart resolve completes).
 - Relationship:
   Complements **ADR-058** (access-scope authority path unchanged;
-  Decision 4 not amended). Complements **ADR-055** Decision 7 overlay
-  hygiene (does not close debt **421** by itself). Cross-ref
-  **ADR-021** Decision 3 and **ADR-041** Decision 3 (Limited album /
-  Add-to-Album red lines unchanged). Implements kickoff **ADR-K** §3
-  in-app entry. Does **not** narrowly amend ADR-027 / ADR-015 / ADR-040
-  (those remain as Cap 28 left them).
+  Decision 4 trigger / coalesce / who-may-restart **not** amended;
+  Decision 10 only adds consume-path side effects next to that
+  restart). Decision 10 does **not** change Origin real-boundary or
+  Confirm index/cache handling — those stay as today. Complements
+  **ADR-055** Decision 7 overlay hygiene (does not close debt **421**
+  by itself). Cross-ref **ADR-021** Decision 3 and **ADR-041**
+  Decision 3 (Limited album / Add-to-Album red lines unchanged).
+  Implements kickoff **ADR-K** §3 in-app entry. Does **not** narrowly
+  amend ADR-027 / ADR-015 / ADR-040 (those remain as Cap 28 left them).

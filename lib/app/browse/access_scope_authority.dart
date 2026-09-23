@@ -72,6 +72,15 @@ class AccessScopeAuthorityNotifier extends Notifier<int?> {
 
   /// D2: while a restart runs, further notifies only re-set pending; when the
   /// in-flight restart finishes, consume again if still dirty.
+  ///
+  /// Cap 29 / ADR-059 D10 — each iteration, **before** [restartSession]:
+  /// clear [browseSnapshotCacheProvider] (Limited membership has no
+  /// selection-diff; full clear is the trust-reset) and
+  /// [mainBrowseFeedIndexProvider] → 0 (Origin unchanged so ADR-055 Origin
+  /// listen does not reset). Do **not** fold these into
+  /// [BrowseSessionNotifier.restartSession] (Origin real-boundary shares
+  /// that method). Confirm uses [applyConfirmedOrderPreference], not
+  /// [restartSession].
   Future<void> _consumeIfNeeded() async {
     if (_consumeInFlight) {
       return;
@@ -79,7 +88,7 @@ class AccessScopeAuthorityNotifier extends Notifier<int?> {
     _consumeInFlight = true;
     try {
       while (ref.mounted && state != null) {
-        // Capture before clear — state is nulled before await restartSession.
+        // Capture before clear — pending gen is nulled before await restart.
         final consumingGen = state!;
         final dest = ref.read(mainBrowseDestinationProvider);
         unawaited(
@@ -89,6 +98,9 @@ class AccessScopeAuthorityNotifier extends Notifier<int?> {
           }),
         );
         state = null;
+        // ADR-059 D10: clear → setIndex(0) → restart (order locked by test).
+        ref.read(browseSnapshotCacheProvider.notifier).clear();
+        ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
         await ref.read(browseSessionProvider.notifier).restartSession();
         unawaited(
           Cap29AccessScopeProbe.log('RESTART_SESSION_END', {
