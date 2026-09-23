@@ -244,13 +244,14 @@ Contract: restore Limited manage entry (`presentLimitedLibraryPicker`
 + Open Settings) without repeating the Cap 7 / debt **421** notch /
 SafeArea overlay bug; overlay-stack audit vs Cap 27 order sheet
 already on bar. Cap 28.5 already shipped access-scope Session
-authority (`notifyAccessScopePossiblyChanged`) — this Cap is **UI
-entry only**, not a re-design of Session restart rules.
-Owner lock (2026-09-22) §5 all A: Settings-only; Manage + Open
+authority (`notifyAccessScopePossiblyChanged`) — Decisions 1–9 are
+**UI entry**; Decision 10 (Cap 29.4) adds access-scope consume side
+effects (cache clear + feed index 0) without amending ADR-058 D4
+triggers. Owner lock (2026-09-22) §5 all A: Settings-only; Manage + Open
 Settings separate; Photos Access always shown (Full = status ± Open
 Settings); no Browse launch remind; reuse ARB + section title;
-Photos Access top of Settings; ADR-059 (Proposed→Accepted) must
-state it narrowly does not amend ADR-058 Decision 4.
+Photos Access top of Settings; ADR-059 **Accepted** states it narrowly
+does not amend ADR-058 Decision 4 (plus D10 consume side effects).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 29.1 Overlay stack audit vs Cap 7 / Cap 27
@@ -267,24 +268,26 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (architecture allowlist
       `test/architecture/access_scope_restart_allowlist_test.dart`;
       notes `docs/acceptance/cap29-29.3-notes.md`)
-- [ ] 29.4 Device acceptance
-      (Kafka + i17; Documents log probe à la Cap 28 `wtlive.log`;
-      Manage→dismiss→Browse rebuild; Open Settings; Full; notch
-      with new section; debts **480** / **481** known — do not fix)
+- [x] 29.4 Device acceptance
+      (Kafka + i17 PASS; Documents `cap29_access_scope.log`; ADR-059
+      D10 cache clear + feed index 0 — work `804eb42` / probe
+      `82eaef3`; notes `docs/acceptance/cap29-29.4-notes.md`; every-
+      dismiss rebuild cost recorded; debts **480** / **481** known —
+      do not fix)
 - [ ] 29.5 Docs close-out
-      (Cap `[x]`; PHASE_HISTORY; debt **421** Closed; ADR-059
-      Accepted + “narrowly does not amend ADR-058 Decision 4”;
-      YOU ARE HERE → next Cap)
+      (Cap `[x]`; PHASE_HISTORY; debt **421** Closed; YOU ARE HERE →
+      next Cap; ADR-059 already Accepted at 29.4 docs —
+      “narrowly does not amend ADR-058 Decision 4” + D10)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 29.4 device acceptance + Documents log probe
-- Sub-steps done: 29.1–29.3; work `8ac86db`; docs `9a0612a`;
-      ADR-059 Proposed
-- Next step: design/implement Cap-28-style Documents probe; owner
-      Kafka/i17 matrix
+- Goal (one line): Cap 29.5 docs close-out (Cap `[x]`, debt **421**)
+- Sub-steps done: 29.1–29.4; UI `8ac86db`; probe `82eaef3`; D10
+      `804eb42`; ADR-059 Accepted (anchors `8ac86db` + `804eb42`)
+- Next step: PHASE_HISTORY append; Cap roadmap `[x]`; Close debt
+      **421**; YOU ARE HERE → next Cap
 - Related decisions: ADR-058 Accepted (D4 unchanged); ADR-059
-      **Proposed**; debt **421** Open; **480** / **481** Open
-      (out of this Cap)
+      **Accepted**; debt **421** Open until 29.5; **480** / **481**
+      Open (out of this Cap)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must

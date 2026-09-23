@@ -7459,9 +7459,9 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-059: Cap 29 Debt 421 Settings Photos Access entry
 
-- Status: **Proposed** (2026-09-22). Accepted date/anchor filled when
-  Cap 29.2 implementing work lands on `main`.
-- Commit/PR anchor: Proposed at 29.1; Accepted with Cap 29.2 final work sha
+- Status: **Accepted** (2026-09-23)
+- Commit/PR anchor: Accepted with Cap 29.2 UI work `8ac86db` + Cap 29.4
+  D10 work `804eb42`
 - Plain summary (owner reads this):
   Under Settings, a top Photos Access section lets Limited users manage
   their selected photos (system Limited picker) or open iOS Settings to
@@ -7475,7 +7475,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   (`01a7611`, debt **421**) while Host picker / Open Settings remained.
   Kickoff ADR-K §3 (explicit prompt + system path to Full) stayed unmet
   for Release. Cap 28.5 already shipped
-  `notifyAccessScopePossiblyChanged`; Cap 29 is UI entry only.
+  `notifyAccessScopePossiblyChanged`. Cap 29 is UI entry only for
+  Decisions 1–9; Cap 29.4 device soak surfaced that the existing
+  `restartSession` contract left the manage-selection round trip
+  visually inert, which Decision 10 addresses.
 - Decision (what was chosen):
   1. **Settings-only persistent entry.** Photos Access is the first
      group in the Settings ListView (`_SettingsStubPane` SafeArea).
