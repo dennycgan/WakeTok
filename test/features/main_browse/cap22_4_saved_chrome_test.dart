@@ -45,12 +45,14 @@ Future<void> _pump({
   FakeAssetSourceRepository? assetSources,
   PhotosAccess access = PhotosAccess.full,
   ThemeMode themeMode = ThemeMode.system,
+  Locale? locale,
 }) async {
   await tester.pumpWidget(
     permissionUiHarness(
       repo: ControllablePhotosAuthorizationRepository(access),
       savedPools: savedPools,
       themeMode: themeMode,
+      locale: locale,
       assetSources:
           assetSources ??
           FakeAssetSourceRepository(
@@ -63,6 +65,53 @@ Future<void> _pump({
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> _expectLimitedCreateHelperGeometry(WidgetTester tester) async {
+  final builtInDy =
+      tester.getCenter(find.byKey(const Key('mainBrowseBuiltInMenu'))).dy;
+  final savedDy = tester
+      .getCenter(find.byKey(const Key('mainBrowseSavedPoolsMenu')))
+      .dy;
+  final createDy =
+      tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+  expect(createDy, closeTo(builtInDy, 2));
+  expect(savedDy, closeTo(builtInDy, 2));
+
+  final helper = find.byKey(
+    const Key('mainBrowseCreatePoolRequiresFullAccess'),
+  );
+  expect(helper, findsOneWidget);
+  final createCenter =
+      tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+  final helperTop = tester.getTopLeft(helper).dy;
+  expect(
+    helperTop,
+    greaterThan(createCenter),
+    reason: 'Requires Full Access must sit below Create Pool center',
+  );
+  // Cap 29: helper under Create stadium with clear gap; H-center on capsule.
+  // Top is locale-measured from Create label (ZH "创建片库" taller than EN).
+  final createBottom =
+      tester.getBottomLeft(find.byKey(const Key('mainBrowseCreatePool'))).dy;
+  expect(
+    helperTop,
+    greaterThanOrEqualTo(createBottom + 2),
+    reason: 'Requires Full Access needs a clear gap under Create capsule',
+  );
+  expect(
+    helperTop,
+    lessThanOrEqualTo(createBottom + 5),
+    reason: 'Helper should sit just below Create hit bottom',
+  );
+  final createCenterX =
+      tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dx;
+  final helperCenterX = tester.getCenter(helper).dx;
+  expect(
+    helperCenterX,
+    closeTo(createCenterX, 1.0),
+    reason: 'Helper must center on Create capsule horizontally',
+  );
 }
 
 void main() {
@@ -201,38 +250,20 @@ void main() {
       (tester) async {
         await _pump(tester: tester, access: PhotosAccess.limited);
         await tester.pumpAndSettle();
+        await _expectLimitedCreateHelperGeometry(tester);
+      },
+    );
 
-        final builtInDy =
-            tester.getCenter(find.byKey(const Key('mainBrowseBuiltInMenu'))).dy;
-        final savedDy = tester
-            .getCenter(find.byKey(const Key('mainBrowseSavedPoolsMenu')))
-            .dy;
-        final createDy =
-            tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
-        expect(createDy, closeTo(builtInDy, 2));
-        expect(savedDy, closeTo(builtInDy, 2));
-
-        final helper = find.byKey(
-          const Key('mainBrowseCreatePoolRequiresFullAccess'),
+    testWidgets(
+      'W-26.4b-2b Limited Create helper gap + center under zh_Hans',
+      (tester) async {
+        await _pump(
+          tester: tester,
+          access: PhotosAccess.limited,
+          locale: const Locale('zh', 'Hans'),
         );
-        expect(helper, findsOneWidget);
-        final createCenter =
-            tester.getCenter(find.byKey(const Key('mainBrowseCreatePool'))).dy;
-        final helperTop = tester.getTopLeft(helper).dy;
-        expect(
-          helperTop,
-          greaterThan(createCenter),
-          reason: 'Requires Full Access must sit below Create Pool center',
-        );
-        // Optical nudge: helper may overlap the Create outline's lower pad
-        // (_kCreateRequiresFullAccessTop under tight stadium hit).
-        final createBottom =
-            tester.getBottomLeft(find.byKey(const Key('mainBrowseCreatePool'))).dy;
-        expect(
-          helperTop,
-          lessThanOrEqualTo(createBottom + 2),
-          reason: 'Helper should not start far below Create hit bottom',
-        );
+        await tester.pumpAndSettle();
+        await _expectLimitedCreateHelperGeometry(tester);
       },
     );
 

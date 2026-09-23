@@ -426,6 +426,8 @@ controls — it only **reads** these metrics for top-leading alignment.
 | Leading chip inset / `kLiveBadgeLeadingInset` | **8** | `Positioned(left: 8)` for Temp / Saved chip **and** LIVE |
 | Create inset | **8** | `Positioned(right: 8)` |
 | Create capsule outline | **1.0** stroke, no fill; **Stadium** hugging Create label (`H pad 8` / `V pad 4` — **not** the 32×Temp Built-in shell); stroke color = Create label color (`onMediaMuted` / Limited mute) | Outline button affordance — do **not** fill with `surface@0.92`; do **not** force Temp pill width/height |
+| Create Limited helper top | **measured** (`_createRequiresFullAccessTop`) | **Locale-linked:** `TextPainter(Create label).height` + `2×` V pad **4** + stroke **1** + gap **3**. Do **not** hard-code EN **12** — CJK Create ("创建片库") is taller; fixed **24** left ZH flush. Cap **29**: measure current locale |
+| Create Limited helper H align | **center on Create stadium** | `Positioned(left: 0, right: 0)` + `TextAlign.center` — helper **centers on the capsule as a whole**. Do **not** right-align to capsule edge; do **not** use Temp shell H pad **10** |
 | Center-pair gap | **12** | Between Built-in and Saved menu |
 | Create Limited helper font | **8** | `_kCreateRequiresFullAccessFontSize` (Cap **26.4b** L2; was 9) |
 | Limited mute (Create / Saved menu) | `onMediaMuted` @ **0.35** alpha | Text/dropdown recipe — **not** §7.1 icon `Opacity` **0.22**. Saved has **no** caption |
@@ -442,7 +444,44 @@ Chip show/hide must **not** translate the center pair. Equal H pad + `Center` in
 
 **Not a goal:** equal horizontal gaps among all four visible elements (wings pin to edges; center pair stays fixed).
 
-**Limited Create helper (Cap 26.4b L2):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create outline hit** (tight stadium around the label — not the 32 Temp shell). `Requires Full Access` is `Positioned(top: _kCreateRequiresFullAccessTop = **18**, right: 10)` under Create — **fontSize 8**, `TextAlign.end` so the helper’s **right edge matches the Create label** right edge. Longer EN copy may still extend left toward Saved; 8pt reduces intrusion but does **not** promise zero overlap. Band height stays **70**. Create stays vertically centered with the center pair via the wing `Align`.
+**Limited Create helper (Cap 26.4b L2 + Cap 29 overlap clear):** `_CreateControl` is a `Stack(clipBehavior: Clip.none)` whose **layout size is only the Create outline hit** (tight stadium around the label — not the 32 Temp shell). `Requires Full Access` is `Positioned(top: _createRequiresFullAccessTop(…), left: **0**, right: **0**)` under Create — **fontSize 8**, `TextAlign.center` so the helper **centers on the Create capsule as a whole**.
+
+**Three linked elements (do not retune in isolation):**
+
+| # | Element | ARB / symbol | Role in the link |
+|---|---------|--------------|------------------|
+| **A** | Create stadium | `mainBrowseCreatePool` — EN **Create Pool** / zh_Hans **创建片库** | Defines Stack size and the **vertical reference** for helper top |
+| **B** | Limited helper | `mainBrowseCreatePoolRequiresFullAccess` — EN **Requires Full Access** / zh_Hans **需要完全访问权限** | Sits under A; H-centers on A’s stadium; **does not** drive helper top height |
+| **C** | Clear gap (+ outline chrome) | `_kCreateRequiresFullAccessGap` **3**; `_kCreateCapsuleVPad` **4**×2; `_kCreateCapsuleOutlineStroke` **1** | C is the **spacer** between A’s bottom and B’s top; V pad + stroke are part of A’s body |
+
+**Equation (code: `_createRequiresFullAccessTop`):**
+
+```text
+helperTop = TextPainter(A.createLabel, same style + TextHeightBehavior as capsule).height
+          + 2 × VPad(4) + stroke(1) + gap(3)
+```
+
+**Why EN looked fine but zh_Hans was flush (Cap 29 device):**
+
+1. A and B are **different strings**. Vertical gap tracks **A’s measured label height**, not B’s copy length/height.
+2. Both locales use Create `labelOnMedia` **fontSize 12**, but **CJK glyphs ink taller** than Latin at the same size → A’s stadium is **taller** for **创建片库** than for **Create Pool**.
+3. Cap 29’s first pass used a **fixed** helper top (**21** / **24**) tuned as if Create label height ≈ Latin **12**. That matched EN; under zh_Hans, A grew while helper top stayed put → B sat **flush / overlapping** A’s lower edge even though gap **3** was “in the formula.”
+4. Fix: **measure A per locale** every build. Changing A’s ARB, Create label style, V pad, stroke, or gap **requires** re-checking **W-26.4b-2** (EN) and **W-26.4b-2b** (zh_Hans).
+
+**Horizontal principle:** B **centers on A’s stadium** (`left: 0`, `right: 0`, `TextAlign.center`). Do **not** right-align to A’s edge; do **not** inset by Temp shell H pad **10**. B is often **wider** than A (EN or ZH) — it may extend equally left/right; that vs Saved is a **separate** length risk, not this vertical link.
+
+| Piece | Value | Symbol |
+|-------|-------|--------|
+| Create label height (A) | **measured** (locale) | `TextPainter` on `mainBrowseCreatePool` |
+| Create outline V pad | **4** × 2 | `_kCreateCapsuleVPad` |
+| Create outline stroke | **1.0** | `_kCreateCapsuleOutlineStroke` |
+| Clear gap (C) | **3** | `_kCreateRequiresFullAccessGap` |
+| Helper [Positioned.top] (B) | measured(A) + 8 + 1 + 3 | `_createRequiresFullAccessTop` |
+| Helper H | center on stadium A | `left: 0`, `right: 0`, `TextAlign.center` |
+
+Band height stays **70**. Create stays vertically centered with the center pair via the wing `Align`.
+
+**History:** Cap 26.4b helper top **18** (overlap) + `right: 10`. Cap 29: fixed **21**/**24** (EN-only height assumption) → **measured A** + gap C (fixes ZH B flush under taller A); H align → stadium **center**.
 
 **Limited Saved pools menu (Cap 26.4b L2):** same mute as Create (`onMediaMuted` @ 0.35); **untappable**; **no** helper/caption under Saved (avoids a second long string fighting Create’s helper). Root cause for not browsing album-backed Saved under Limited: **ADR-021 Decision 3** (album/smartAlbum resolve → unauthorized). When access becomes Limited while origin is Saved, chrome calls `leaveSavedOriginForLimitedAccess()` → `lastRememberedBuiltIn`.
 

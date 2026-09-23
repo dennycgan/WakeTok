@@ -24,11 +24,14 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// Shared chrome control metrics — see [kBrowseTopChromeControlHeight] etc.
 /// in `media_chrome_layout.dart` (single source with feed LIVE skeleton).
 const double _kChromeDropdownIconSize = 16;
-/// Cap 26.4b: Limited helper top inset inside the Create Stack.
-/// Tuned under the tight Create outline (label + [_kCreateCapsuleVPad]);
-/// may slightly overlap the capsule's lower pad (same class as the old
-/// 24-on-32 hit).
-const double _kCreateRequiresFullAccessTop = 18;
+
+/// Create outline button stroke (no fill). Tight pad — not the 32×Temp pill.
+const double _kCreateCapsuleOutlineStroke = 1.0;
+const double _kCreateCapsuleHPad = 8;
+const double _kCreateCapsuleVPad = 4;
+
+/// Optical gap between Create stadium bottom and Limited helper top.
+const double _kCreateRequiresFullAccessGap = 3;
 
 /// Cap 26.4b L2: Create Limited helper font size (was 9).
 const double _kCreateRequiresFullAccessFontSize = 8;
@@ -36,11 +39,6 @@ const double _kCreateRequiresFullAccessFontSize = 8;
 /// Cap 26.4b L2: Create / Saved Limited mute (label + dropdown icon).
 Color _chromeLimitedMuteColor(WakeTokTokens tokens) =>
     tokens.onMediaMuted.withValues(alpha: 0.35);
-
-/// Create outline button stroke (no fill). Tight pad — not the 32×Temp pill.
-const double _kCreateCapsuleOutlineStroke = 1.0;
-const double _kCreateCapsuleHPad = 8;
-const double _kCreateCapsuleVPad = 4;
 
 /// Cap 26.4b: selected / leading pill width matches Temp Pool label + pads.
 ///
@@ -54,6 +52,28 @@ double _chromeTempPoolPillWidth(BuildContext context) =>
 /// Drop font leading so glyphs sit in the geometric middle of the fixed hit.
 const TextHeightBehavior _kChromeTextHeightBehavior =
     kBrowseTopChromeTextHeightBehavior;
+
+/// Create stadium body height for [Positioned.top] of the Limited helper.
+///
+/// **Locale-linked:** measures the Create label under the same style /
+/// [TextHeightBehavior] as the capsule (CJK glyphs are taller than Latin
+/// at the same `fontSize`). Do **not** hard-code EN `12` — that made ZH
+/// "创建片库" stadium taller than the helper offset (flush / overlap).
+double _createRequiresFullAccessTop({
+  required String createLabel,
+  required TextStyle createLabelStyle,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: createLabel, style: createLabelStyle),
+    textDirection: TextDirection.ltr,
+    textHeightBehavior: _kChromeTextHeightBehavior,
+    maxLines: 1,
+  )..layout();
+  return painter.height +
+      2 * _kCreateCapsuleVPad +
+      _kCreateCapsuleOutlineStroke +
+      _kCreateRequiresFullAccessGap;
+}
 
 TextStyle _chromeOnMediaLabelStyle(WakeTokTokens tokens, Color color) {
   return tokens.labelOnMedia.copyWith(
@@ -469,6 +489,12 @@ class _CreateControl extends StatelessWidget {
     // Cap 26.4b: under Limited, keep Create on the same vertical center as
     // the other three controls. The helper sits under Create but must not
     // participate in the Align-centered size (Column used to lift Create).
+    final helperTop = enabled
+        ? 0.0
+        : _createRequiresFullAccessTop(
+            createLabel: l10n.mainBrowseCreatePool,
+            createLabelStyle: labelStyle,
+          );
     return Semantics(
       button: true,
       enabled: enabled,
@@ -483,12 +509,15 @@ class _CreateControl extends StatelessWidget {
           createHit,
           if (!enabled)
             Positioned(
-              top: _kCreateRequiresFullAccessTop,
-              right: kBrowseTopChromeControlHPad,
+              top: helperTop,
+              // Stack width == Create stadium; pin both sides so the helper
+              // centers on the capsule as a whole (not right-edge / label).
+              left: 0,
+              right: 0,
               child: Text(
                 key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
                 l10n.mainBrowseCreatePoolRequiresFullAccess,
-                textAlign: TextAlign.end,
+                textAlign: TextAlign.center,
                 textHeightBehavior: _kChromeTextHeightBehavior,
                 style: tokens.labelOnMedia.copyWith(
                   fontSize: _kCreateRequiresFullAccessFontSize,
