@@ -1411,3 +1411,53 @@ trade-off). **479** Closed earlier (Settings remount limb dissolved
 by keep; sticky remaining path covered by Cap 28.7). Do not flip
 **480** / **481** in this close-out. Debt **421** is next Cap (UI
 only).
+
+## Debt 421 — Limited Access manage entry restored (Cap 29) — 2026-09-23
+
+- [x] 29.1 Overlay stack audit vs Cap 7 / Cap 27
+      (acceptance `docs/acceptance/cap29-29.1-overlay-audit.md`;
+      A4/C1/C2 = CODE (+ optional SIM); B1 = CODE (`kDebugMode`);
+      DEVICE Manage/notch → 29.4; ADR-059 Proposed; owner PASS
+      2026-09-22)
+      — docs `9a0612a` (phases + ADR-059 Proposed with Cap lock)
+- [x] 29.2 Settings Photos Access section
+      (UI + Manage → `presentLimitedLibraryPicker` only; Open
+      Settings → `openAppSettingsProvider` only — Limited and Full
+      alike, never notify; exit: SafeArea + Gate switch untouched)
+      — work `8ac86db`; notes `docs/acceptance/cap29-29.2-notes.md`
+- [x] 29.3 Tests
+      (architecture allowlist: zero `.restartSession(` under
+      `lib/features/**`; exact allowlist
+      `access_scope_authority` + `browse_session_providers`; Settings
+      section token bans; negatives under systemTemp)
+      — work `e213856`; notes `docs/acceptance/cap29-29.3-notes.md`;
+        docs `7a5fbc9`
+- [x] 29.4 Device acceptance
+      (Kafka + i17 PASS; Documents `cap29_access_scope.log` probe;
+      Manage / Open Settings / Full matrix; every-dismiss rebuild
+      cost recorded; debts **480** / **481** known — do not fix)
+      — probe work `82eaef3`; notes
+        `docs/acceptance/cap29-29.4-notes.md`
+- [x] ADR-059 D10 — access-scope consume side effects
+      (before `restartSession`: clear `browseSnapshotCacheProvider` +
+      `mainBrowseFeedIndexProvider` → 0; not folded into shared
+      `restartSession`; Origin / Confirm unchanged; does not amend
+      ADR-058 D4 trigger rules; W-29.4-1 / W-29.4-2)
+      — work `804eb42`; Accepted docs `89017ac` (anchors `8ac86db` +
+        `804eb42`)
+- [x] 29.5 Cap close-out: Cap `[x]`; PHASE_HISTORY this snapshot;
+      debt **421** Closed; YOU ARE HERE → First-launch vertical-swipe
+      guidance (phases placeholder)
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-059 (UI `8ac86db`; D10 `804eb42`; Accepted docs
+`89017ac` — narrowly does not amend ADR-058 Decision 4; D10 consume
+side effects only). Complements ADR-058 D4 authority path.
+Known debt at close: **480** / **481** remain Open (out of Cap 29).
+Debt **421** Closed by Cap 29.
+Related polish (not a Cap 29 phase): Limited Create helper EN/zh_Hans
+gap + stadium center — `9d42fab` (layout notes §11.3; ADR-059 D1 left
+Browse Create helper as existing chrome — maintenance bugfix, not
+421 decision narrative).

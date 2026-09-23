@@ -146,17 +146,16 @@
       `settingsResume` + A′; access-scope authority; process-only meta
       hide; `docs/acceptance/cap28-28.8-notes.md`; PHASE_HISTORY;
       debts **480** / **481** remain Open)
-- [ ] Debt 421 — Limited Access manage entry restored
-      (presentLimitedLibraryPicker + Open Settings entry point;
-      extracted from "Settings and localisation completion" below;
-      pre-work: audit MainBrowseShellPage overlay stack alongside the
-      Cap 27 order-control sheet entry to avoid repeating the original
-      notch / SafeArea layering bug that caused this debt)
-      <-- YOU ARE HERE
+- [x] Debt 421 — Limited Access manage entry restored
+      (Cap 29 / ADR-059 Accepted `8ac86db`+`804eb42`; Settings Photos
+      Access Manage + Open Settings; D10 consume cache clear + index 0;
+      `docs/acceptance/cap29-29.4-notes.md`; PHASE_HISTORY; debt **421**
+      Closed; **480** / **481** remain Open)
 - [ ] First-launch vertical-swipe guidance
       (minimal TikTok-style up/down hint; must not time-overlap with
       existing Cap 19.7 left-swipe guide — flexible scheduling, may
-      slot alongside Debt 421 / hardening above)
+      slot alongside MVP pre-submission hardening above)
+      <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the three functional Caps
       above land; permission string finalize; portrait-only already
@@ -239,55 +238,27 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Debt 421 — Limited Access manage entry restored
-Contract: restore Limited manage entry (`presentLimitedLibraryPicker`
-+ Open Settings) without repeating the Cap 7 / debt **421** notch /
-SafeArea overlay bug; overlay-stack audit vs Cap 27 order sheet
-already on bar. Cap 28.5 already shipped access-scope Session
-authority (`notifyAccessScopePossiblyChanged`) — Decisions 1–9 are
-**UI entry**; Decision 10 (Cap 29.4) adds access-scope consume side
-effects (cache clear + feed index 0) without amending ADR-058 D4
-triggers. Owner lock (2026-09-22) §5 all A: Settings-only; Manage + Open
-Settings separate; Photos Access always shown (Full = status ± Open
-Settings); no Browse launch remind; reuse ARB + section title;
-Photos Access top of Settings; ADR-059 **Accepted** states it narrowly
-does not amend ADR-058 Decision 4 (plus D10 consume side effects).
+Active capability: First-launch vertical-swipe guidance
+Contract: minimal TikTok-style up/down hint; must not time-overlap
+with existing Cap 19.7 left-swipe guide (flexible scheduling).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 29.1 Overlay stack audit vs Cap 7 / Cap 27
-      (acceptance `docs/acceptance/cap29-29.1-overlay-audit.md`;
-      A4/C1/C2 = CODE (+ optional SIM); B1 = CODE (`kDebugMode`);
-      DEVICE Manage/notch → 29.4; ADR-059 Proposed; owner PASS
-      2026-09-22)
-- [x] 29.2 Settings Photos Access section
-      (UI + Manage → `presentLimitedLibraryPicker` only; Open
-      Settings → `openAppSettingsProvider` only — Limited and Full
-      alike, never notify; exit: SafeArea + Gate switch untouched;
-      work `8ac86db`; notes `docs/acceptance/cap29-29.2-notes.md`)
-- [x] 29.3 Tests
-      (architecture allowlist
-      `test/architecture/access_scope_restart_allowlist_test.dart`;
-      notes `docs/acceptance/cap29-29.3-notes.md`)
-- [x] 29.4 Device acceptance
-      (Kafka + i17 PASS; Documents `cap29_access_scope.log`; ADR-059
-      D10 cache clear + feed index 0 — work `804eb42` / probe
-      `82eaef3`; notes `docs/acceptance/cap29-29.4-notes.md`; every-
-      dismiss rebuild cost recorded; debts **480** / **481** known —
-      do not fix)
-- [ ] 29.5 Docs close-out
-      (Cap `[x]`; PHASE_HISTORY; debt **421** Closed; YOU ARE HERE →
-      next Cap; ADR-059 already Accepted at 29.4 docs —
-      “narrowly does not amend ADR-058 Decision 4” + D10)
+- [ ] Capability Roadmap closed Cap 29 / Debt 421 (2026-09-23).
+      First-launch vertical-swipe guidance phase breakdown awaiting
+      owner scope / kickoff review — do not invent numbered phases
+      here.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 29.5 docs close-out (Cap `[x]`, debt **421**)
-- Sub-steps done: 29.1–29.4; UI `8ac86db`; probe `82eaef3`; D10
-      `804eb42`; ADR-059 Accepted (anchors `8ac86db` + `804eb42`)
-- Next step: PHASE_HISTORY append; Cap roadmap `[x]`; Close debt
-      **421**; YOU ARE HERE → next Cap
-- Related decisions: ADR-058 Accepted (D4 unchanged); ADR-059
-      **Accepted**; debt **421** Open until 29.5; **480** / **481**
-      Open (out of this Cap)
+- Goal (one line): First-launch vertical-swipe guidance — awaiting
+      owner phase kickoff
+- Sub-steps done: Cap 29 closed — notes
+      `docs/acceptance/cap29-29.4-notes.md`; ADR-059 Accepted
+      (`8ac86db` + `804eb42`); debt **421** Closed
+- Next step: owner scopes First-launch vertical-swipe phases; replace
+      this placeholder
+- Related decisions: ADR-059 Accepted (D4 not amended; D10 consume
+      side effects); ADR-058 Accepted; debts **480** / **481** Open
+      (out of Cap 29)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
@@ -674,7 +645,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 418 | Open | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
 | 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); Cursor reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7) | — |
 | 420 | Open | iOS Photos permission |  | NSPhotoLibraryUsageDescription is PLACEHOLDER copy | Final permission wording is owner-only (release-handoff) | TestFlight internal testing | — |
-| 421 | Open | iOS Photos permission |  | Limited Access product chrome unmounted from Main Browse (`01a7611`) | Banner sat above IndexedStack (all four tabs) and the shell Column had no SafeArea (notch clipped it). **Removed the product mount, not the feature.** Cap 29 locks final form: persistent Settings Photos Access (Manage + Open Settings); **no** Browse launch remind (v1). Until Cap 29 ships, **Release/Profile users have no in-app button or entry** to present the Limited picker (`presentLimitedLibraryPicker`) or Open Settings after a Limited grant — changing access is only via iOS Settings, unrelated to WakeTok UI. Kickoff ADR-K §3 (explicit prompt + system path to Full) is unmet in this window; no compensatory prompt. Future designs must not block or interfere with system gestures (app switcher / Home). Debug `library_smoke` may still show the widget (`kDebugMode` only). | Debt 421 Cap (active Cap 29) | kickoff ADR-K; ADR-058 D4; ADR-059 |
+| 421 | Closed | iOS Photos permission |  | Limited Access product chrome unmounted from Main Browse (`01a7611`) | Banner sat above IndexedStack (all four tabs) and the shell Column had no SafeArea (notch clipped it). **Removed the product mount, not the feature.** **Closed by Cap 29** (ADR-059): Settings Photos Access — Manage → `presentLimitedLibraryPicker` (every dismiss dirty via Cap 28.5 authority); Open Settings never notifies; Full status ± Open Settings; no Browse launch remind (v1). ADR-059 D10: access-scope consume clears Snapshot cache + feed index 0 before `restartSession` so Manage round-trips are product-visible. Kickoff ADR-K §3 in-app entry met for Limited manage + system path to Full. Debug `library_smoke` Limited banner remains `kDebugMode` only. | Closed by Cap 29 | kickoff ADR-K; ADR-058 D4; ADR-059 |
 | 422 | Open | iOS Photos permission |  | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK. Host uses KVC in `mapAvailability`. **Cap 15.12 / 15.15 (ADR-033):** become-current may call `getAssetAvailabilities` (on-demand; resolve returns empty availabilities). Same KVC helper for probed ids only. **Further expansion** of KVC beyond this gate still needs explicit owner re-board. | Future Cap if expanding | ADR-033 |
 | 423 | Open | Cap 6 / library_smoke |  | Library Totals Shell error row uses raw exception string (`'${asyncTotals.error}'`), not ARB | Predates ADR-012 smoke hardening; Cap 6.4 left untouched on purpose | Settings and localisation completion | ADR-012 |
 | 424 | Open | Main Browse Screen |  | No architecture scan for hardcoded `TextStyle(` in `lib/features/**` (typography tokens exist; `Color(0x` still scanned) | Cap 7.2 locked type roles without a TextStyle literal guard; easy to bypass tokens while 7.4–7.7 chrome lands | Settings and localisation completion | ADR-009 / ADR-014 |
