@@ -806,7 +806,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19LeftSwipeGuideSubtitle =>
-      'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
+      'You can turn this feature and tip off in Settings';
 
   @override
   String get cap30VerticalHintGuideTitle => 'Swipe to browse your library';
@@ -841,7 +841,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19SettingsLeftSwipeAddSubtitle =>
-      'Adds the current item to your WakeTok album';
+      'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
 
   @override
   String get cap19SettingsLeftSwipeGuideTitle => 'Show left-swipe tip';

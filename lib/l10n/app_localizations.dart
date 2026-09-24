@@ -1494,19 +1494,19 @@ abstract class AppLocalizations {
   /// **'Swipe left to add to WakeTok'**
   String get cap19LeftSwipeGuideTitle;
 
-  /// Cap 19.6 one-shot coach mark subtitle (why + safety)
+  /// Cap 30.6 / ADR-060 D7 — Browse left-swipe coach subtitle (Settings redirect; safety copy lives on Settings master)
   ///
   /// In en, this message translates to:
-  /// **'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted'**
+  /// **'You can turn this feature and tip off in Settings'**
   String get cap19LeftSwipeGuideSubtitle;
 
-  /// Cap 30.3 first-launch vertical up/down coach title (no subtitle)
+  /// Cap 30.3 / 30.6 final — first-launch vertical up/down coach title (no subtitle)
   ///
   /// In en, this message translates to:
   /// **'Swipe to browse your library'**
   String get cap30VerticalHintGuideTitle;
 
-  /// Cap 30.4 first-launch Create Pool anchored tip (working declarative copy; polish in 30.6). Pick covers one or more albums → one pool.
+  /// Cap 30.4 / 30.6 final — Create Pool anchored tip; declarative (ADR-060 D3)
   ///
   /// In en, this message translates to:
   /// **'Create Pool lets you pick albums and browse them as one set.'**
@@ -1554,10 +1554,10 @@ abstract class AppLocalizations {
   /// **'Swipe left to add to WakeTok'**
   String get cap19SettingsLeftSwipeAddTitle;
 
-  /// Cap 19.7 master left-swipe toggle subtitle
+  /// Cap 30.6 / ADR-060 D7 — Settings master left-swipe-add subtitle (safety copy relocated from Browse coach)
   ///
   /// In en, this message translates to:
-  /// **'Adds the current item to your WakeTok album'**
+  /// **'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted'**
   String get cap19SettingsLeftSwipeAddSubtitle;
 
   /// Cap 19.7 guide tip toggle title

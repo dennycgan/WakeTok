@@ -161,6 +161,25 @@ Hosts arm timers with their step constant directly.
 `<3>` Cap 19 left-swipe stays on `kCap19LeftSwipeGuideDuration` (**2.5s**)
 — out of Cap 30 per-step family.
 
+### P4 — Coach text size tokens only (not card outer size)
+
+Browse coaches `<1>` / `<2>` / `<3>` share **two** text roles. Values match
+`waketok_tokens.dart` (`titleChrome` / `bodyOnMedia`).
+
+| Role | TextTheme → token | Size | Used for |
+|------|-------------------|------|----------|
+| Coach **title** | `titleMedium` → `titleChrome` | **20** | `<1>` title, `<3>` title |
+| Coach **body** | `bodySmall` → `bodyOnMedia` | **13** | `<3>` subtitle, `<2>` tip message |
+
+**Do not** use `labelSmall` / `labelOnMedia` (**12**) for any Browse
+first-launch guidance copy.
+
+**Scope boundary:** P4 locks **text tokens (font size) only**. It does
+**not** resize coach **card outer frames**. Card outer size for `<1>` vs
+`<3>` remains **Open — deferred** (see **Card size** below). Do not treat
+“unify size” as permission to change padding, maxWidth, or intrinsic
+card dimensions in the same pass.
+
 ## Chain logic (Cap 30) — short ops view
 
 See **Architecture** above for binding / extension. Ops summary:
@@ -194,6 +213,21 @@ See **Architecture** above for binding / extension. Ops summary:
 `<1>` / `<2>` label + caret use `tokens.accent` + `onMediaLabelShadows`.  
 `<3>` keeps `onMedia` / `onMediaMuted` (Cap 19 copy); icon also gets
 `onMediaLabelShadows` for media behind the opaque sheet edge cases.
+Text sizes: **P4** (title 20 / body 13).
+
+## Copy (Cap 30.6 / ADR-060 D7) — Browse vs Settings
+
+| Surface | Key | Role |
+|---------|-----|------|
+| Browse `<3>` subtitle | `cap19LeftSwipeGuideSubtitle` | Short Settings redirect (not safety) |
+| Settings **master** left-swipe add subtitle | `cap19SettingsLeftSwipeAddSubtitle` | Safety / bookmark explanation |
+| Settings tip toggle subtitle | `cap19SettingsLeftSwipeGuideSubtitle` | Unchanged (“once per launch…”) |
+
+EN Browse redirect (locked): *You can turn this feature and tip off in
+Settings*.  
+zh Browse redirect (owner draft, no further polish this Cap): *可在设置中关闭此功能和提示*.
+
+`<1>` / `<2>` ARB strings are **final** as of Cap 30.6 (declarative; D3).
 
 ## Card size (`<1>` vs `<3>`)
 

@@ -802,7 +802,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19LeftSwipeGuideSubtitle =>
-      'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
+      'You can turn this feature and tip off in Settings';
 
   @override
   String get cap30VerticalHintGuideTitle => 'Swipe to browse your library';
@@ -837,7 +837,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19SettingsLeftSwipeAddSubtitle =>
-      'Adds the current item to your WakeTok album';
+      'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
 
   @override
   String get cap19SettingsLeftSwipeGuideTitle => 'Show left-swipe tip';
@@ -1707,14 +1707,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19LeftSwipeGuideTitle => '左滑添加到 WakeTok';
 
   @override
-  String get cap19LeftSwipeGuideSubtitle =>
-      '保存到 WakeTok 相册，当作稍后在「照片」里查找的标记 — 不会移动或删除原文件';
+  String get cap19LeftSwipeGuideSubtitle => '可在设置中关闭此功能和提示';
 
   @override
   String get cap30VerticalHintGuideTitle => '上下滑，浏览你的照片和视频';
 
   @override
-  String get cap30CreatePoolTipMessage => '创建片库可以挑选相册，组成一套来浏览。';
+  String get cap30CreatePoolTipMessage => '创建片库可以挑选相册，组成一套片库来浏览。';
 
   @override
   String get cap19LeftSwipeAppendSuccess => '已添加到 WakeTok';
@@ -1738,7 +1737,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19SettingsLeftSwipeAddTitle => '左滑添加到 WakeTok';
 
   @override
-  String get cap19SettingsLeftSwipeAddSubtitle => '将当前项目添加到你的 WakeTok 相册';
+  String get cap19SettingsLeftSwipeAddSubtitle =>
+      '保存到 WakeTok 相册，当作稍后在「照片」里查找或操作的标记 — 不会移动或删除原文件';
 
   @override
   String get cap19SettingsLeftSwipeGuideTitle => '显示左滑提示';

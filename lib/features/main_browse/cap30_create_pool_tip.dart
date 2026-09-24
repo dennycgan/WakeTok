@@ -233,7 +233,7 @@ class _Cap30CreatePoolTipHostState
 
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final textStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+    final textStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
           color: tokens.accent,
           height: 1.35,
           shadows: tokens.onMediaLabelShadows,

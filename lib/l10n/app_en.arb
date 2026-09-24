@@ -1049,17 +1049,17 @@
   "@cap19LeftSwipeGuideTitle": {
     "description": "Cap 19.6 one-shot coach mark title"
   },
-  "cap19LeftSwipeGuideSubtitle": "Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted",
+  "cap19LeftSwipeGuideSubtitle": "You can turn this feature and tip off in Settings",
   "@cap19LeftSwipeGuideSubtitle": {
-    "description": "Cap 19.6 one-shot coach mark subtitle (why + safety)"
+    "description": "Cap 30.6 / ADR-060 D7 — Browse left-swipe coach subtitle (Settings redirect; safety copy lives on Settings master)"
   },
   "cap30VerticalHintGuideTitle": "Swipe to browse your library",
   "@cap30VerticalHintGuideTitle": {
-    "description": "Cap 30.3 first-launch vertical up/down coach title (no subtitle)"
+    "description": "Cap 30.3 / 30.6 final — first-launch vertical up/down coach title (no subtitle)"
   },
   "cap30CreatePoolTipMessage": "Create Pool lets you pick albums and browse them as one set.",
   "@cap30CreatePoolTipMessage": {
-    "description": "Cap 30.4 first-launch Create Pool anchored tip (working declarative copy; polish in 30.6). Pick covers one or more albums → one pool."
+    "description": "Cap 30.4 / 30.6 final — Create Pool anchored tip; declarative (ADR-060 D3)"
   },
   "cap19LeftSwipeAppendSuccess": "Added to WakeTok",
   "@cap19LeftSwipeAppendSuccess": {
@@ -1089,9 +1089,9 @@
   "@cap19SettingsLeftSwipeAddTitle": {
     "description": "Cap 19.7 master left-swipe toggle title"
   },
-  "cap19SettingsLeftSwipeAddSubtitle": "Adds the current item to your WakeTok album",
+  "cap19SettingsLeftSwipeAddSubtitle": "Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted",
   "@cap19SettingsLeftSwipeAddSubtitle": {
-    "description": "Cap 19.7 master left-swipe toggle subtitle"
+    "description": "Cap 30.6 / ADR-060 D7 — Settings master left-swipe-add subtitle (safety copy relocated from Browse coach)"
   },
   "cap19SettingsLeftSwipeGuideTitle": "Show left-swipe tip",
   "@cap19SettingsLeftSwipeGuideTitle": {
