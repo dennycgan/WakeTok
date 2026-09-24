@@ -12,7 +12,12 @@
 > Private product spec -> docs/WakeTok(App)_project_kickoff.md (local only, gitignored, READ-ONLY for AI tools).
 
 ## Project facts
-- Product: WakeTok — local-first personal media Rediscovery Player (iOS; Flutter UI + Swift native media layer)
+- Product: WakeTok — local-first vertical rediscovery of the user's own
+  photo/video library (iOS; Flutter UI + Swift native media layer).
+  Internal keyword: local-first vertical rediscovery
+  (= on your device · swipe · your library). Engineering term
+  `vertical feed` OK in code/ADR/STATE; external copy prefers
+  `vertical scroll` / plain “what it does” (see MVP track).
 - Flutter project name: `waketok`; device display name: WakeTok
 - Bundle ID: `com.dennycgan.waketok`
   - Explicit App ID registration in Certificates, Identifiers & Profiles: owner-only
@@ -21,7 +26,8 @@
   - See `release-handoff.mdc`
 - iOS deployment target: iOS 18.0 (see ADR-007; ADR-005 superseded)
 - Test devices: iPhone 13 (performance floor), iPhone 17 (current-device compat)
-- No backend, no custom auth, no remote database, no developer-owned media server (kickoff Tech Stack)
+- Floor: local-first, no account, no upload — no backend, no custom auth,
+  no remote database, no developer-owned media server (kickoff Tech Stack)
 - Repository visibility: Private (see Known debt for public eligibility + pre-flight scan)
 - Repository history: rewritten **2026-09-04** to purge `docs/GLOSSARY.en-zh.md`
   from all git history (privacy). Commit SHAs before that rewrite are obsolete;
@@ -127,9 +133,23 @@
       Cap 23 gate; system share sheet; D14 enable + D15
       saveToCameraRoll exclude; PHASE_HISTORY)
 > **MVP v1 submission track** — minimal closed loop for first App Review.
-> Positioning: "Wake what you saved — A local-first vertical feed for
-> rediscovering your own photo and video library." + album random-browse /
-> light organize. Clip Export / Clip-dedicated Auto-play = v2 track below.
+> Slogan (detail page / web first line only — not App Store Subtitle):
+> "Wake what you saved — A local-first vertical scroll for rediscovering
+> your own photo and video library." App Store Subtitle: deferred to
+> pre-submission metadata (plain “what it does” in a few seconds; not
+> slogan rhetoric).
+> V1 stack: L1 form (own-library full-screen vertical swipe / rediscover)
+> > L2a (choose what: Create/Saved pools; how ordered: bottom Order —
+> shuffle / newest / oldest, default shuffle) > L3 in-swipe light actions
+> (WakeTok-album bookmark, Favorites, add-to-album, soft-delete, share).
+> Floor: local-first, no account, no upload (privacy/description must
+> state; slogan alone does not carry it). External: avoid bare
+> `vertical feed`, `manage`, control-name piles. L2b (clips / background
+> lock-screen / context restore) = post-v1 only — not v1 messaging.
+> V1 sells L1 + L2a + floor; L3 = tidy-as-you-swipe. After First-launch
+> vertical-swipe guidance Cap: no new product behaviour for v1 — debug /
+> fix / non-behaviour polish + metadata only. Clips / dedicated Auto-play
+> = post-v1 track below.
 
 - [x] Live Photo long-press replay + "…" half-sheet size field
       and Add-to-Album second entry
@@ -157,14 +177,15 @@
       slot alongside MVP pre-submission hardening above)
       <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
-      (privacy policy final copy — after the three functional Caps
-      above land; permission string finalize; portrait-only already
+      (privacy policy final copy — after the guidance Cap above
+      lands; permission string finalize; portrait-only already
       locked — ADR-028 + Info.plist + SystemChrome +
       test/architecture/presentation_defaults_test.dart — no product
       work, verify only; small-screen device pass; App Store
-      description / screenshots / keywords; empty-state Action Column
-      dim widget-test coverage — near-zero cost, attach to whichever
-      Cap above is convenient)
+      Subtitle (deferred from MVP positioning lock) / description /
+      screenshots / keywords; empty-state Action Column dim widget-test
+      coverage — near-zero cost, attach to whichever Cap above is
+      convenient)
 - [ ] TestFlight internal testing and release-candidate validation
       (MVP v1 track; owner executes distribution; Cursor prepares
       build and metadata)
@@ -173,7 +194,10 @@
       (MVP v1 track first Review; owner executes submission; Cursor
       prepares assets only)
 
-> **Post–v1 / Clips v2 track** — not in first Review scope. Distinct
+> **Post–v1 / Clips v2 track** — not in first Review scope.
+> Big picture: same L1; V1 = L1+L2a+floor (L3 = tidy-as-you-swipe);
+> this track deepens L2b (clips / background·lock-screen / context, …)
+> — not a new product shape (not clip-editor / podcast). Distinct
 > TestFlight / App Store Caps below are a second release event (Clip /
 > background privacy disclosures etc.), not a merge of the v1 track.
 
