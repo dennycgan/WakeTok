@@ -10,6 +10,9 @@
 > Cap **26.4b** LIVE **top-leading** under Browse band (not bottom-trailing): §**2** / §**6**;
 > Cap **27.6** bottom-tab Destination / Action roles + Browse two-card
 > glyph (color-only selected; no Action shell): §**11.4**.  
+> Cap **24.5.1** / §**12.0** — action-column half-sheet surface
+> (`mediaSheetSurface` @ 0.96, no blur); First-launch coaches extend it
+> (`docs/reference/first-launch-browse-guidance.md` P2).  
 > **Order slot (permanent):** one label line, Layer 1 order only — do **not**
 > reserve a second line for Layer 2/3. Listen mode (Layer 2 switch + Layer 3
 > logic) is a later media-area indicator (§**11.4.7** item 4), not bottom-tab
@@ -709,6 +712,27 @@ Saved preset **display names** use a visual weight budget (domain `saved_pool_di
 > Not Overlay chrome. Lives in `cap24_more_half_sheet.dart` under the
 > Cap 19-style sheet surface. Cap **26.5** Add-to-Album sits between
 > Saved time and Delete (same outlined geometry as Delete; muted colors).
+
+### 12.0 Sheet surface principle (action-column half-sheets)
+
+**Principle:** Cap 19 Add-to-Album, Cap 24 `"…"`, and Order control
+half-sheets share **one** fill recipe — do not invent a second sheet
+background per entry.
+
+| Knob | Value | Code |
+|------|-------|------|
+| Color | `tokens.mediaSheetSurface` | `waketok_tokens.dart` (`#1E1E1E`) |
+| Alpha | **0.96** | `kCap19ActionsHalfSheetTintOpacity` |
+| Blur | **None** | Cap **24.5.1** — no `BackdropFilter` (Platform View crush) |
+
+**Also aligned (same alpha family):** top-chrome expanded menu panel
+(`browse_top_chrome` 0.96).  
+**Not this recipe:** Cap 19 browse **toast** frost
+(`feedBackground` @ `kCap19FrostChromeTintOpacity` + blur).
+
+**Extension:** First-launch Browse coaches `<1>` / `<2>` / `<3>` use the
+**same** fill via `browseCoachSheetFill` — see
+`docs/reference/first-launch-browse-guidance.md` **P2**.
 
 ### 12.1 Row order (product)
 

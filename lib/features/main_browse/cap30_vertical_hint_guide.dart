@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/onboarding/cap30_first_launch_guide_logic.dart';
+import 'package:waketok/features/main_browse/browse_first_launch_coach_icons.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap30_first_launch_guide_wiring.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -87,7 +87,7 @@ class _Cap30VerticalHintGuideHostState
       _indexWhenHintStarted = ref.read(mainBrowseFeedIndexProvider);
       setState(() => _visible = true);
       _hideTimer?.cancel();
-      _hideTimer = Timer(kCap30GuideStepDuration, () {
+      _hideTimer = Timer(kCap30VerticalHintGuideDuration, () {
         unawaited(_onDisplayEnded());
       });
     } else if (!shouldShow && _visible) {
@@ -148,57 +148,47 @@ class _Cap30VerticalHintGuideHostState
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     final titleStyle = Theme.of(context).textTheme.titleMedium?.copyWith(
-          color: tokens.onMedia,
+          color: tokens.accent,
           fontWeight: FontWeight.w600,
+          shadows: tokens.onMediaLabelShadows,
         );
 
     return IgnorePointer(
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: kCap19ActionsHalfSheetBlurSigma,
-                sigmaY: kCap19ActionsHalfSheetBlurSigma,
+          child: DecoratedBox(
+            key: const Key('cap30VerticalHintGuide'),
+            decoration: BoxDecoration(
+              color: browseCoachSheetFill(tokens),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 20,
               ),
-              child: DecoratedBox(
-                key: const Key('cap30VerticalHintGuide'),
-                decoration: BoxDecoration(
-                  color: tokens.feedBackground.withValues(
-                    alpha: kCap19FrostChromeTintOpacity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BrowseFirstLaunchCoachArrowIcon(
+                    icon: CupertinoIcons.arrow_up,
+                    color: tokens.accent,
+                    shadows: tokens.onMediaLabelShadows,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
+                  BrowseFirstLaunchCoachArrowIcon(
+                    icon: CupertinoIcons.arrow_down,
+                    color: tokens.accent,
+                    shadows: tokens.onMediaLabelShadows,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        CupertinoIcons.arrow_up,
-                        color: tokens.onMedia,
-                        size: 22,
-                      ),
-                      Icon(
-                        CupertinoIcons.arrow_down,
-                        color: tokens.onMedia,
-                        size: 22,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.cap30VerticalHintGuideTitle,
-                        key: const Key('cap30VerticalHintGuideTitle'),
-                        textAlign: TextAlign.center,
-                        style: titleStyle,
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.cap30VerticalHintGuideTitle,
+                    key: const Key('cap30VerticalHintGuideTitle'),
+                    textAlign: TextAlign.center,
+                    style: titleStyle,
                   ),
-                ),
+                ],
               ),
             ),
           ),

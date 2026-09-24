@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/features/main_browse/browse_first_launch_coach_icons.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
@@ -140,51 +140,40 @@ class _Cap19LeftSwipeGuideHostState extends ConsumerState<Cap19LeftSwipeGuideHos
       child: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: kCap19ActionsHalfSheetBlurSigma,
-                sigmaY: kCap19ActionsHalfSheetBlurSigma,
+          child: DecoratedBox(
+            key: const Key('cap19LeftSwipeGuide'),
+            decoration: BoxDecoration(
+              color: browseCoachSheetFill(tokens),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 20,
               ),
-              child: DecoratedBox(
-                key: const Key('cap19LeftSwipeGuide'),
-                decoration: BoxDecoration(
-                  color: tokens.feedBackground.withValues(
-                    alpha: kCap19FrostChromeTintOpacity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BrowseFirstLaunchCoachArrowIcon(
+                    icon: CupertinoIcons.arrow_left,
+                    color: tokens.onMedia,
+                    shadows: tokens.onMediaLabelShadows,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 20,
+                  const SizedBox(height: 12),
+                  Text(
+                    l10n.cap19LeftSwipeGuideTitle,
+                    key: const Key('cap19LeftSwipeGuideTitle'),
+                    textAlign: TextAlign.center,
+                    style: titleStyle,
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        CupertinoIcons.arrow_left,
-                        color: tokens.onMedia,
-                        size: 28,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        l10n.cap19LeftSwipeGuideTitle,
-                        key: const Key('cap19LeftSwipeGuideTitle'),
-                        textAlign: TextAlign.center,
-                        style: titleStyle,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.cap19LeftSwipeGuideSubtitle,
-                        key: const Key('cap19LeftSwipeGuideSubtitle'),
-                        textAlign: TextAlign.center,
-                        style: subtitleStyle,
-                      ),
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    l10n.cap19LeftSwipeGuideSubtitle,
+                    key: const Key('cap19LeftSwipeGuideSubtitle'),
+                    textAlign: TextAlign.center,
+                    style: subtitleStyle,
                   ),
-                ),
+                ],
               ),
             ),
           ),

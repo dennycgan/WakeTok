@@ -15,6 +15,25 @@ void main() {
     });
   });
 
+  group('cap30GuideChromeDuration', () {
+    test('each chrome maps to its own step constant', () {
+      expect(
+        cap30GuideChromeDuration(Cap30GuideChromeKind.verticalHint),
+        kCap30VerticalHintGuideDuration,
+      );
+      expect(
+        cap30GuideChromeDuration(Cap30GuideChromeKind.createPoolTip),
+        kCap30CreatePoolTipDuration,
+      );
+      expect(
+        cap30GuideChromeDuration(Cap30GuideChromeKind.none),
+        Duration.zero,
+      );
+      expect(kCap30VerticalHintGuideDuration, const Duration(milliseconds: 2000));
+      expect(kCap30CreatePoolTipDuration, const Duration(milliseconds: 3500));
+    });
+  });
+
   group('shouldBlockLeftSwipeGuideForCap30 G1–G8', () {
     test('T-30.2-G1 disk0 armed false → no block', () {
       expect(

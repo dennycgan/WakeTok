@@ -7,8 +7,11 @@
 /// Disk value when `<1>`+`<2>` have finished (no further first-launch chain).
 const int kCap30GuideStepComplete = 3;
 
-/// Coach step duration — same as Cap 19 left-swipe tip (Q1).
-const Duration kCap30GuideStepDuration = Duration(milliseconds: 2500);
+/// `<1>` vertical up/down coach — display duration (independent per step).
+const Duration kCap30VerticalHintGuideDuration = Duration(milliseconds: 2000);
+
+/// `<2>` Create Pool tip — display duration (independent per step).
+const Duration kCap30CreatePoolTipDuration = Duration(milliseconds: 3500);
 
 /// Which chrome the orchestrator may show (D8 ordered list; no clips yet).
 enum Cap30GuideChromeKind {
@@ -23,6 +26,19 @@ const List<Cap30GuideChromeKind> kCap30FirstLaunchStepOrder =
   Cap30GuideChromeKind.verticalHint,
   Cap30GuideChromeKind.createPoolTip,
 ];
+
+/// Display duration for [chrome]. Each step owns its own constant — do not
+/// collapse to a single shared duration when adding clips / later tips.
+Duration cap30GuideChromeDuration(Cap30GuideChromeKind chrome) {
+  switch (chrome) {
+    case Cap30GuideChromeKind.verticalHint:
+      return kCap30VerticalHintGuideDuration;
+    case Cap30GuideChromeKind.createPoolTip:
+      return kCap30CreatePoolTipDuration;
+    case Cap30GuideChromeKind.none:
+      return Duration.zero;
+  }
+}
 
 /// Clamp raw prefs int into `0..kCap30GuideStepComplete`.
 ///

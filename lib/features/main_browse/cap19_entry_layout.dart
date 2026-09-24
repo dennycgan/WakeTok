@@ -1,3 +1,4 @@
+import 'package:flutter/painting.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
@@ -19,8 +20,35 @@ const double kCap19EntryIconAboveScrubberGap = 40;
 /// top-chrome expanded menu panel alpha (`browse_top_chrome` 0.96).
 const double kCap19ActionsHalfSheetTintOpacity = 0.96;
 
-/// Frosted chrome tint for Cap 19 toast / left-swipe guide (not half-sheets).
+/// Frosted chrome tint for Cap 19 toast only (not half-sheets / not Cap 30
+/// + Cap 19 left-swipe coaches — those use [browseCoachSheetFill]).
 const double kCap19FrostChromeTintOpacity = 0.78;
+
+/// Shared fill for Browse coaches `<1>` / `<2>` / `<3>`.
+///
+/// **Principle (P2):** same recipe as action-column half-sheets
+/// (`mediaSheetSurface` @ [kCap19ActionsHalfSheetTintOpacity]) — extension
+/// of media-chrome §12.0. See
+/// `docs/reference/first-launch-browse-guidance.md`.
+Color browseCoachSheetFill(WakeTokTokens tokens) =>
+    tokens.mediaSheetSurface.withValues(
+      alpha: kCap19ActionsHalfSheetTintOpacity,
+    );
+
+/// **Principle — one size for all First-launch Browse swipe-direction arrows.**
+///
+/// Every coach glyph that means “swipe this way” (`<1>` up/down, `<3>` left,
+/// and any future tip in this guidance family) **must** use this constant
+/// via [BrowseFirstLaunchCoachArrowIcon]. Do **not** hard-code a per-tip
+/// size. Retune here only. Not the `<2>` Create-aim caret (different role;
+/// see `kCap30CreatePoolTipArrowHeight`).
+///
+/// Documented in `docs/reference/first-launch-browse-guidance.md`.
+const double kBrowseFirstLaunchSwipeDirectionArrowSize = 32;
+
+/// Stroke width under the swipe-direction glyph (faux bold). Paired with
+/// [kBrowseFirstLaunchSwipeDirectionArrowSize] — not a second size knob.
+const double kBrowseFirstLaunchSwipeDirectionArrowStrokeWidth = 1.75;
 
 /// Barrier dim behind the sheet (feed still visible; lighter than full scrim).
 const double kCap19ActionsHalfSheetBarrierOpacity = 0.28;

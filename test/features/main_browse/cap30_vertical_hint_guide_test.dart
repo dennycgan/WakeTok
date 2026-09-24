@@ -49,7 +49,7 @@ void main() {
     expect(cap30.step, 1);
   });
 
-  testWidgets('T-30.3-W2 2.5s ends hint and advances to createPoolTip state',
+  testWidgets('T-30.3-W2 vertical duration ends hint and advances to createPoolTip',
       (tester) async {
     final cap30 = FakeCap30FirstLaunchGuidePreferences()..step = 0;
     await tester.pumpWidget(
@@ -66,7 +66,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('cap30VerticalHintGuide')), findsOneWidget);
 
-    await tester.pump(kCap30GuideStepDuration);
+    await tester.pump(kCap30VerticalHintGuideDuration);
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('cap30VerticalHintGuide')), findsNothing);

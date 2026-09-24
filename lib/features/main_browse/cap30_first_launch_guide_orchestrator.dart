@@ -86,7 +86,7 @@ class Cap30FirstLaunchGuideOrchestrator {
     return _enqueue(_completeActiveStepAndAdvance);
   }
 
-  /// Timer / display finished for the active chrome (Q1 — 2.5s).
+  /// Timer / display finished for the active chrome (per-step duration).
   Future<void> notifyStepDisplayEnded() {
     if (_activeChrome == Cap30GuideChromeKind.none) {
       return Future<void>.value();

@@ -76,7 +76,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('cap30VerticalHintGuide')), findsOneWidget);
 
-      await tester.pump(kCap30GuideStepDuration);
+      await tester.pump(kCap30VerticalHintGuideDuration);
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('cap30VerticalHintGuide')), findsNothing);
@@ -112,7 +112,7 @@ void main() {
       expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
       expect(find.byKey(const Key('cap19LeftSwipeGuide')), findsNothing);
 
-      await tester.pump(kCap30GuideStepDuration);
+      await tester.pump(kCap30CreatePoolTipDuration);
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('cap30CreatePoolTip')), findsNothing);
@@ -168,7 +168,7 @@ void main() {
   );
 
   testWidgets(
-    'T-30.4-W5 Full tip below-left of Create; no overlap Create BuiltIn Saved',
+    'T-30.4-W5 Full tip below Create right-aligned; no overlap chrome',
     (tester) async {
       final cap30 = FakeCap30FirstLaunchGuidePreferences()..step = 2;
       await tester.pumpWidget(
@@ -199,8 +199,68 @@ void main() {
           _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
       expect(_rectsOverlap(tip, create), isFalse);
       expect(tip.top >= create.bottom - 1.0, isTrue);
+      expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
       expect(_rectsOverlap(tip, builtIn), isFalse);
       expect(_rectsOverlap(tip, saved), isFalse);
+    },
+  );
+
+  testWidgets(
+    'T-30.4-W5n narrow 390 zh tip right-aligned under Create; no overlap',
+    (tester) async {
+      // iPhone 13 Pro logical ~390×844 @3x — catches fixed-width left-shift
+      // landing under Built-in (device bug that default 800-wide miss).
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final cap30 = FakeCap30FirstLaunchGuidePreferences()..step = 2;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          locale: const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hans',
+          ),
+          repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById:
+                FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
+          cap30FirstLaunchGuidePreferences: cap30,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
+
+      final tip = _rectOf(tester, find.byKey(const Key('cap30CreatePoolTip')));
+      final create =
+          _rectOf(tester, find.byKey(const Key('mainBrowseCreatePool')));
+      final builtIn =
+          _rectOf(tester, find.byKey(const Key('mainBrowseBuiltInMenu')));
+      final saved =
+          _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+
+      expect(_rectsOverlap(tip, create), isFalse);
+      expect(tip.top >= create.bottom - 1.0, isTrue);
+      expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
+      // Tip must sit with Create on the right half — not under Built-in.
+      expect(tip.center.dx, greaterThan(builtIn.center.dx));
+      expect(_rectsOverlap(tip, builtIn), isFalse);
+      expect(_rectsOverlap(tip, saved), isFalse);
+      expect(tip.width, lessThanOrEqualTo(kCap30CreatePoolTipMaxWidth + 0.5));
+
+      expect(find.byKey(const Key('cap30CreatePoolTipArrow')), findsOneWidget);
+      final arrow =
+          _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
+      // Caret tip aims at Create stadium: arrow center X within stadium.
+      expect(arrow.center.dx, greaterThanOrEqualTo(create.left - 1.0));
+      expect(arrow.center.dx, lessThanOrEqualTo(create.right + 1.0));
+      // Arrow stays inside tip bubble (no outward overhang).
+      expect(arrow.top, greaterThanOrEqualTo(tip.top - 0.5));
+      expect(arrow.bottom, lessThanOrEqualTo(tip.bottom + 0.5));
     },
   );
 
