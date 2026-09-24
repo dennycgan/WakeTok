@@ -1506,6 +1506,12 @@ abstract class AppLocalizations {
   /// **'Swipe to browse your library'**
   String get cap30VerticalHintGuideTitle;
 
+  /// Cap 30.4 first-launch Create Pool anchored tip (working declarative copy; polish in 30.6). Pick covers one or more albums → one pool.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Pool lets you pick albums and browse them as one set.'**
+  String get cap30CreatePoolTipMessage;
+
   /// Cap 19.6 left-swipe append success toast
   ///
   /// In en, this message translates to:

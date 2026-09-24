@@ -70,6 +70,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('cap30VerticalHintGuide')), findsNothing);
+    expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
     final container = tester.element(find.byType(Cap30VerticalHintGuideHost));
     final orch = ProviderScope.containerOf(container)
         .read(cap30FirstLaunchGuideOrchestratorProvider);

@@ -808,6 +808,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cap30VerticalHintGuideTitle => 'Swipe to browse your library';
 
   @override
+  String get cap30CreatePoolTipMessage =>
+      'Create Pool lets you pick albums and browse them as one set.';
+
+  @override
   String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
 
   @override
@@ -1708,6 +1712,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap30VerticalHintGuideTitle => '上下滑，浏览你的照片和视频';
+
+  @override
+  String get cap30CreatePoolTipMessage => '创建片库可以挑选相册，组成一套来浏览。';
 
   @override
   String get cap19LeftSwipeAppendSuccess => '已添加到 WakeTok';

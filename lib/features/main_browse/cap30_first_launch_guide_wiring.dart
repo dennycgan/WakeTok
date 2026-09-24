@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/features/main_browse/cap30_first_launch_guide_orchestrator.dart';
@@ -15,6 +16,14 @@ final cap30FirstLaunchGuideOrchestratorProvider =
   return Cap30FirstLaunchGuideOrchestrator(prefs);
 });
 
+/// Cap 30.4 — [GlobalKey] for Create Pool column → `<2>` tip anchor.
+///
+/// One key per [ProviderScope]. Tip Host must **not** call
+/// [syncCap30BrowseReady].
+final cap30CreatePoolAnchorKeyProvider = Provider<GlobalKey>((ref) {
+  return GlobalKey(debugLabel: 'cap30CreatePoolAnchor');
+});
+
 class Cap30FirstLaunchGuideEpochNotifier extends Notifier<int> {
   @override
   int build() => 0;
@@ -22,7 +31,8 @@ class Cap30FirstLaunchGuideEpochNotifier extends Notifier<int> {
   void bump() => state++;
 }
 
-/// Bumped after orchestrator mutations so `<1>` Host and Cap 19 guide rebuild.
+/// Bumped after orchestrator mutations so `<1>` / `<2>` Hosts and Cap 19
+/// guide rebuild.
 final cap30FirstLaunchGuideEpochProvider =
     NotifierProvider<Cap30FirstLaunchGuideEpochNotifier, int>(
   Cap30FirstLaunchGuideEpochNotifier.new,
@@ -35,14 +45,7 @@ Future<void> syncCap30BrowseReady({
   required void Function() bumpEpoch,
   required bool ready,
 }) async {
-  final beforeStep = orch.diskStep;
-  final beforeArmed = orch.chainArmedThisLaunch;
-  final beforeChrome = orch.activeChrome;
-  await orch.ensureHydrated();
-  await orch.onBrowseItemReadyChanged(ready);
-  if (orch.diskStep != beforeStep ||
-      orch.chainArmedThisLaunch != beforeArmed ||
-      orch.activeChrome != beforeChrome) {
+  if (await orch.applyBrowseReady(ready)) {
     bumpEpoch();
   }
 }

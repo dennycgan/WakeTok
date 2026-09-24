@@ -812,6 +812,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cap30VerticalHintGuideTitle => 'Swipe to browse your library';
 
   @override
+  String get cap30CreatePoolTipMessage =>
+      'Create Pool lets you pick albums and browse them as one set.';
+
+  @override
   String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
 
   @override

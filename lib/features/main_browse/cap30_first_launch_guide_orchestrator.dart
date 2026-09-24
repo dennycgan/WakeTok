@@ -55,6 +55,29 @@ class Cap30FirstLaunchGuideOrchestrator {
     return _enqueue(_maybeBeginStep);
   }
 
+  /// Cap 30.4 — single sync entry for [syncCap30BrowseReady].
+  ///
+  /// Hydrate + ready + begin run on the same serial queue; returns whether
+  /// visible state changed so concurrent callers cannot double-bump epoch.
+  Future<bool> applyBrowseReady(bool ready) {
+    final result = _queue.then((_) async {
+      final beforeStep = _diskStep;
+      final beforeArmed = _chainArmedThisLaunch;
+      final beforeChrome = _activeChrome;
+      if (!_hydrated) {
+        _diskStep = await _preferences.getStep();
+        _hydrated = true;
+      }
+      _browseItemReady = ready;
+      await _maybeBeginStep();
+      return _diskStep != beforeStep ||
+          _chainArmedThisLaunch != beforeArmed ||
+          _activeChrome != beforeChrome;
+    });
+    _queue = result.then((_) {}).catchError((Object _) {});
+    return result;
+  }
+
   /// `<1>` early end when feed PageView actually changes page (Q2).
   Future<void> notifyVerticalPageChanged() {
     if (_activeChrome != Cap30GuideChromeKind.verticalHint) {

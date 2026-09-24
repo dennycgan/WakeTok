@@ -1057,6 +1057,10 @@
   "@cap30VerticalHintGuideTitle": {
     "description": "Cap 30.3 first-launch vertical up/down coach title (no subtitle)"
   },
+  "cap30CreatePoolTipMessage": "Create Pool lets you pick albums and browse them as one set.",
+  "@cap30CreatePoolTipMessage": {
+    "description": "Cap 30.4 first-launch Create Pool anchored tip (working declarative copy; polish in 30.6). Pick covers one or more albums → one pool."
+  },
   "cap19LeftSwipeAppendSuccess": "Added to WakeTok",
   "@cap19LeftSwipeAppendSuccess": {
     "description": "Cap 19.6 left-swipe append success toast"

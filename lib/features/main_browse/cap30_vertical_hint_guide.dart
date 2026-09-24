@@ -12,6 +12,16 @@ import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 30.3 — centered vertical up/down first-launch coach (`<1>`).
+///
+/// **Sole Cap 30 browse-ready sync owner (hard requirement, Cap 30.4 /
+/// ADR-060).** This Host is the **only** Browse-pane call site for
+/// [syncCap30BrowseReady]. It **must** stay mounted for the Browse pane
+/// lifetime with **no** gate on [Cap30GuideChromeKind] / `activeChrome`
+/// (including when this Host paints [SizedBox.shrink]). Mounting only
+/// while `activeChrome == verticalHint` (or any chrome-state gate)
+/// silently breaks `<2>` ready sync — disk can stall at step 2 with no
+/// error. Same class of risk as the shared orchestrator singleton.
+/// Create Pool tip Host must observe epoch / chrome only — never sync.
 class Cap30VerticalHintGuideHost extends ConsumerStatefulWidget {
   const Cap30VerticalHintGuideHost({super.key});
 

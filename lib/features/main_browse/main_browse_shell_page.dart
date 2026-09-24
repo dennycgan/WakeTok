@@ -16,6 +16,7 @@ import 'package:waketok/features/main_browse/browse_display_settings_section.dar
 import 'package:waketok/features/main_browse/browse_notifications_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
+import 'package:waketok/features/main_browse/cap30_create_pool_tip.dart';
 import 'package:waketok/features/main_browse/cap30_vertical_hint_guide.dart';
 import 'package:waketok/features/main_browse/cap27_l1_stall_probe_settings.dart';
 import 'package:waketok/features/main_browse/cap28_live_probe_settings.dart';
@@ -124,7 +125,11 @@ class _BrowsePane extends ConsumerWidget {
           right: 0,
           child: BrowseTopChrome(),
         ),
+        // Cap 30.4: Vertical Host must stay unconditional (sole sync owner —
+        // see Cap30VerticalHintGuideHost class comment). Tip Host observes
+        // chrome only; do not gate either mount on activeChrome.
         const Cap30VerticalHintGuideHost(),
+        const Cap30CreatePoolTipHost(),
         const Cap19LeftSwipeGuideHost(),
       ],
     );

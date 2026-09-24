@@ -235,6 +235,7 @@
   "cap19LeftSwipeGuideTitle": "左滑添加到 WakeTok",
   "cap19LeftSwipeGuideSubtitle": "保存到 WakeTok 相册，当作稍后在「照片」里查找的标记 — 不会移动或删除原文件",
   "cap30VerticalHintGuideTitle": "上下滑，浏览你的照片和视频",
+  "cap30CreatePoolTipMessage": "创建片库可以挑选相册，组成一套来浏览。",
   "cap19LeftSwipeAppendSuccess": "已添加到 WakeTok",
   "cap19LeftSwipeAppendError": "无法添加到 WakeTok，请重试。",
   "cap19LeftSwipeDragHintContinue": "继续向左滑 · 添加到你的 WakeTok 相册作标记",

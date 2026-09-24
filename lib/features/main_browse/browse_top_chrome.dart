@@ -14,6 +14,7 @@ import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/main_browse/build_pool_scaffold_page.dart';
 import 'package:waketok/features/main_browse/build_pool_smart_catalog.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
+import 'package:waketok/features/main_browse/cap30_first_launch_guide_wiring.dart';
 import 'package:waketok/features/main_browse/composition_peek_dismiss.dart';
 import 'package:waketok/features/main_browse/composition_source_labels.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -267,6 +268,7 @@ class BrowseTopChrome extends ConsumerWidget {
                   alignment: Alignment.centerRight,
                   child: _CreateControl(
                     enabled: createEnabled,
+                    anchorKey: ref.watch(cap30CreatePoolAnchorKeyProvider),
                     onTap: () {
                       // Cap 21.5 P4: refresh catalog when opening Build so
                       // deleted albums do not linger from a stale
@@ -448,10 +450,15 @@ class _SavedPoolChip extends StatelessWidget {
 }
 
 class _CreateControl extends StatelessWidget {
-  const _CreateControl({required this.onTap, required this.enabled});
+  const _CreateControl({
+    required this.onTap,
+    required this.enabled,
+    required this.anchorKey,
+  });
 
   final VoidCallback onTap;
   final bool enabled;
+  final GlobalKey anchorKey;
 
   @override
   Widget build(BuildContext context) {
@@ -501,34 +508,37 @@ class _CreateControl extends StatelessWidget {
       label: enabled
           ? l10n.mainBrowseCreatePool
           : '${l10n.mainBrowseCreatePool}. ${l10n.mainBrowseCreatePoolRequiresFullAccess}',
-      child: Stack(
-        key: const Key('mainBrowseCreatePoolColumn'),
-        clipBehavior: Clip.none,
-        alignment: Alignment.centerRight,
-        children: [
-          createHit,
-          if (!enabled)
-            Positioned(
-              top: helperTop,
-              // Stack width == Create stadium; pin both sides so the helper
-              // centers on the capsule as a whole (not right-edge / label).
-              left: 0,
-              right: 0,
-              child: Text(
-                key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
-                l10n.mainBrowseCreatePoolRequiresFullAccess,
-                textAlign: TextAlign.center,
-                textHeightBehavior: _kChromeTextHeightBehavior,
-                style: tokens.labelOnMedia.copyWith(
-                  fontSize: _kCreateRequiresFullAccessFontSize,
-                  height: 1.0,
-                  inherit: false,
-                  color: color,
-                  shadows: tokens.onMediaLabelShadows,
+      child: KeyedSubtree(
+        key: anchorKey,
+        child: Stack(
+          key: const Key('mainBrowseCreatePoolColumn'),
+          clipBehavior: Clip.none,
+          alignment: Alignment.centerRight,
+          children: [
+            createHit,
+            if (!enabled)
+              Positioned(
+                top: helperTop,
+                // Stack width == Create stadium; pin both sides so the helper
+                // centers on the capsule as a whole (not right-edge / label).
+                left: 0,
+                right: 0,
+                child: Text(
+                  key: const Key('mainBrowseCreatePoolRequiresFullAccess'),
+                  l10n.mainBrowseCreatePoolRequiresFullAccess,
+                  textAlign: TextAlign.center,
+                  textHeightBehavior: _kChromeTextHeightBehavior,
+                  style: tokens.labelOnMedia.copyWith(
+                    fontSize: _kCreateRequiresFullAccessFontSize,
+                    height: 1.0,
+                    inherit: false,
+                    color: color,
+                    shadows: tokens.onMediaLabelShadows,
+                  ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
