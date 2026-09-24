@@ -177,17 +177,23 @@
       D7 Browse↔Settings copy; per-step durations; outward `<2>` caret
       `057deb9`; notes `docs/acceptance/cap30-30.7-notes.md`;
       PHASE_HISTORY; debts **480** / **481** remain Open)
+- [ ] Pre-v1 bug fix and UI polish sweep
+      (Cap 31; scope = Settings hierarchy/weight + Live Photo
+      album-case fix + video black-frame dig + competitor-codename
+      full-repo scan + owner-filed fix/polish in the free bucket;
+      acceptance-discovered kin bugs OK; **no new features**;
+      Cap 30 close boundary: debug / fix / non-behaviour polish only)
+      <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
-      (privacy policy final copy — after the guidance Cap above
-      lands; permission string finalize; portrait-only already
-      locked — ADR-028 + Info.plist + SystemChrome +
+      (privacy policy final copy — after Cap 31 above lands;
+      permission string finalize; portrait-only already locked —
+      ADR-028 + Info.plist + SystemChrome +
       test/architecture/presentation_defaults_test.dart — no product
       work, verify only; small-screen device pass; App Store
       Subtitle (deferred from MVP positioning lock) / description /
       screenshots / keywords; empty-state Action Column dim widget-test
       coverage — near-zero cost, attach to whichever Cap above is
       convenient)
-      <-- YOU ARE HERE
 - [ ] TestFlight internal testing and release-candidate validation
       (MVP v1 track; owner executes distribution; Cursor prepares
       build and metadata)
@@ -237,8 +243,9 @@
       slide-down lock; Cap 18 froze edge-hold slots only)
 - [ ] Settings and localisation completion
       (remaining English / zh-Hans copy sweep; privacy / storage /
-      about screens; Light/Dark layout verification; Limited Access
-      manage entry already completed in the Debt 421 Cap above)
+      about screens; Light/Dark layout verification — verify against
+      Cap 31 Settings hierarchy/weight layout, not the pre-31 layout;
+      Limited Access manage entry already completed in the Debt 421 Cap above)
 - [ ] Final real-device performance, memory,
       accessibility, privacy, and error-state hardening
       (full-product / post-Clips pass; distinct from MVP v1 hardening)
@@ -264,28 +271,50 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: MVP v1 pre-submission hardening
-Contract: privacy-policy final copy; permission-string finalize;
-portrait-only verify (already locked); small-screen device pass; App
-Store Subtitle / description / screenshots / keywords; optional
-empty-state Action Column dim widget-test attach.
+Active capability: Pre-v1 bug fix and UI polish sweep (Cap 31)
+Contract: Settings hierarchy/weight + Live Photo album-case fix +
+video black-frame dig + free fix/polish bucket + competitor-codename
+full-repo scan (after 31.1–31.4) + device acceptance / Cap close-out;
+acceptance kin bugs OK; **no new features**; Cap 30 close boundary
+(debug / fix / non-behaviour polish only). No separate contract-freeze
+phase — Capability Roadmap line is the boundary. Insert 31.Na / 31.Nb
+under a main phase when that item needs deeper split; do not renumber
+later mains. Sequential only (not parallel tracks).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] Capability Roadmap closed Cap 30 / First-launch Browse guidance
-      (2026-09-25 docs close-out). MVP v1 pre-submission hardening
-      phase breakdown awaiting owner scope — do not invent numbered
-      phases here.
+- [ ] 31.1 Settings hierarchy / weight / info organization
+      (title / subtitle / body layering; long copy into info bubbles;
+      no full EN/ZH copy sweep; no privacy / about screens — those
+      stay on post-v1 Settings Cap)
+- [ ] 31.2 Live Photo: album-case triage → diagnose / fix
+      (map each album case to debt **470** / **471** and ADR-051
+      Decision 12 — reuse vs new path; owner-confirmed bugs, do not
+      re-litigate “is it a bug”; deepen with 31.2a / 31.2b if needed)
+- [ ] 31.3 Video one-frame black dig
+      (start from debt **441** Monitoring + Cap 15.11 family; owner
+      paces accept-vs-continue; no agent time cap; split 31.3a / 31.3b
+      if diagnosis needs it)
+- [ ] 31.4 Free fix / polish bucket
+      (owner may add items anytime; each new item: one acceptance-notes
+      line “owner proposed XX; fix/polish because YY” before code;
+      no mandatory new debt/ADR; **no new features**)
+- [ ] 31.5 Competitor-codename full-repo scan
+      (**after** 31.1–31.4 complete — scan near-final tree, not mid-Cap;
+      ARB / comments / code strings / docs; Release-visible first)
+- [ ] 31.6 Device acceptance matrix + Cap close-out
+      (Cap 30.7 pattern: device matrix + needed regression; STATE `[x]`
+      + PHASE_HISTORY + debt status updates)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): MVP v1 pre-submission hardening — awaiting owner
-      phase kickoff
-- Sub-steps done: Cap 30 closed — ADR-060 Accepted (anchors
-      `da33d41`+`524b28b`+`53860fd`+`21ba370`+`0897ce5`); notes
-      `docs/acceptance/cap30-30.7-notes.md`
-- Next step: owner scopes MVP hardening phases; replace this
-      placeholder
-- Related decisions: ADR-060 Accepted; debts **480** / **481** Open
-      (out of Cap 30)
+- Goal (one line): Cap 31 scoped in STATE — code starts next session
+      at 31.1 (Settings hierarchy / weight)
+- Sub-steps done: Cap 30 closed; Cap 31 Capability + Phase Roadmap
+      written (no `lib/` in this docs turn)
+- Next step: 31.1 Settings hierarchy / weight / info organization
+- Related decisions: Cap 30 close boundary (debug / fix /
+      non-behaviour polish only); debts **480** / **481** Open (not
+      Cap 31-scheduled; free bucket only if owner files them); debt
+      **441** Monitoring (picked up by 31.3)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
