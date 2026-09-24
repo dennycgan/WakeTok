@@ -274,7 +274,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [x] 30.2 Step KV + ordered orchestrator + D6 arm gate (logic/tests)
       — work `da33d41`; notes `docs/acceptance/cap30-30.2-notes.md`
       (Host / browseItemReady not wired — decision A)
-- [ ] 30.3 `<1>` centered vertical up/down coach UI
+- [x] 30.3 `<1>` centered vertical up/down coach UI — work `524b28b`;
+      notes `docs/acceptance/cap30-30.3-notes.md` (shared orch + D6
+      Cap19 gate; disk=2 interim until 30.4)
 - [ ] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
 - [ ] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
 - [ ] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
@@ -282,14 +284,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       STATE / PHASE_HISTORY)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 30.3 `<1>` centered vertical up/down coach UI
-- Sub-steps done: 30.1 freeze `d65af35`; 30.2 work `da33d41` (step KV +
-      orchestrator + D6 pure gate; production Host unwired)
-- Next step: design / implement 30.3 `<1>` chrome on orchestrator
-      `verticalHint` active state
-- Related decisions: ADR-060 Proposed; 30.2 decision A (no Host wire);
-      Cap 19.6/19.7 / ADR-041 left-swipe tip unchanged outside D6;
-      debts **480** / **481** Open (out of Cap 30)
+- Goal (one line): Cap 30.4 `<2>` Create Pool anchored tooltip
+- Sub-steps done: 30.1 `d65af35`; 30.2 `da33d41`; 30.3 `524b28b`
+      (vertical hint Host + shared orch D6 gate)
+- Next step: design / implement 30.4 Create Pool tooltip (declarative
+      copy; Limited helper glance)
+- Related decisions: ADR-060 Proposed; shared orchestrator hard
+      requirement; disk=2 interim until 30.4; debts **480** / **481**
+      Open (out of Cap 30)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
