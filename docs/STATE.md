@@ -171,10 +171,10 @@
       Access Manage + Open Settings; D10 consume cache clear + index 0;
       `docs/acceptance/cap29-29.4-notes.md`; PHASE_HISTORY; debt **421**
       Closed; **480** / **481** remain Open)
-- [ ] First-launch vertical-swipe guidance
-      (minimal TikTok-style up/down hint; must not time-overlap with
-      existing Cap 19.7 left-swipe guide — flexible scheduling, may
-      slot alongside MVP pre-submission hardening above)
+- [ ] First-launch Browse guidance
+      (Cap 30 / ADR-060 Proposed: `<1>`→`<2>` once per install via
+      step index; D6 narrow gate vs Cap 19.7 left-swipe tip on that
+      path only; D7 left-swipe copy late; 2.5s; no skip)
       <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the guidance Cap above
@@ -262,27 +262,32 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: First-launch vertical-swipe guidance
-Contract: minimal TikTok-style up/down hint; must not time-overlap
-with existing Cap 19.7 left-swipe guide (flexible scheduling).
+Active capability: First-launch Browse guidance (Cap 30)
+Contract: `<1>`→`<2>` once per install (step index 0–3; resume A);
+D6 narrow gate vs Cap 19 left-swipe tip on first-install path only;
+D7 copy last; 2.5s; PageView page-change early-ends `<1>`; no skip.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] Capability Roadmap closed Cap 29 / Debt 421 (2026-09-23).
-      First-launch vertical-swipe guidance phase breakdown awaiting
-      owner scope / kickoff review — do not invent numbered phases
-      here.
+- [~] 30.1 Contract freeze — ADR-060 Proposed; notes
+      `docs/acceptance/cap30-30.1-notes.md` (docs-only; no `lib/`)
+- [ ] 30.2 Step KV + ordered orchestrator + D6 arm gate (logic/tests)
+- [ ] 30.3 `<1>` centered vertical up/down coach UI
+- [ ] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
+- [ ] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
+- [ ] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
+- [ ] 30.7 Device acceptance + docs Commit 2 (ADR-060 Accepted;
+      STATE / PHASE_HISTORY close-out)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): First-launch vertical-swipe guidance — awaiting
-      owner phase kickoff
-- Sub-steps done: Cap 29 closed — notes
-      `docs/acceptance/cap29-29.4-notes.md`; ADR-059 Accepted
-      (`8ac86db` + `804eb42`); debt **421** Closed
-- Next step: owner scopes First-launch vertical-swipe phases; replace
-      this placeholder
-- Related decisions: ADR-059 Accepted (D4 not amended; D10 consume
-      side effects); ADR-058 Accepted; debts **480** / **481** Open
-      (out of Cap 29)
+- Goal (one line): Cap 30.1 contract freeze — owner review of ADR-060
+      Proposed + Phase Roadmap (no `lib/` yet)
+- Sub-steps done: D1–D8 + Q1–Q7 + revised D5 step index + D6 arm-flag
+      rationale locked in chat; ADR-060 Proposed appended; 30.1 notes
+      skeleton written; STATE Cap 30 one-liner + phases replaced
+- Next step: owner accepts 30.1 docs → OK commit → then open 30.2
+- Related decisions: ADR-060 Proposed; Cap 19.6/19.7 / ADR-041
+      left-swipe tip unchanged outside D6; MVP positioning lock
+      `1cecd9c`; debts **480** / **481** Open (out of Cap 30)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must

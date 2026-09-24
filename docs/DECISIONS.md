@@ -7581,3 +7581,149 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Decision 3 (Limited album / Add-to-Album red lines unchanged).
   Implements kickoff **ADR-K** §3 in-app entry. Does **not** narrowly
   amend ADR-027 / ADR-015 / ADR-040 (those remain as Cap 28 left them).
+
+## ADR-060: Cap 30 first-launch Browse guidance chain
+
+- Status: **Proposed** (2026-09-24) — Cap 30.1 contract freeze; flip to
+  Accepted with implementing work commit anchor after Cap 30 work lands
+  (no fake anchors while Proposed)
+- Commit/PR anchor: pending implementing work commit
+- Plain summary (owner reads this):
+  On the first install’s guidance path, WakeTok shows two short tips in
+  order: swipe up/down to browse your library, then a small tip next to
+  Create Pool. A durable step index remembers progress across kills so
+  the chain can resume. The existing every-launch left-swipe tip waits
+  until that chain finishes (or is not scheduled). Later launches keep
+  today’s left-swipe tip behaviour. Final tip wording lands in a late
+  copy phase.
+- Context / what problem forced this:
+  MVP positioning locks L1 (vertical rediscovery) above L2a (source /
+  order) above L3 (in-swipe light actions). Cap 19.6/19.7 already ships
+  a centered left-swipe coach every cold start (in-memory
+  `guideShownThisLaunch` + Settings toggles in SharedPreferences).
+  Without Cap 30, first open never teaches the primary vertical gesture
+  or Create Pool, and a new up/down tip would time-collide with the
+  left-swipe coach. A boolean “consumed on show <1>” flag would drop
+  later steps if the process is killed mid-chain.
+- Decision (what was chosen):
+  1. **D1 — Three tips, scoped.** `<1>` TikTok-style vertical up/down
+     hint (centered). `<2>` Create Pool tip (anchored tooltip). `<3>`
+     left-swipe add-to-WakeTok tip (Cap 19.6/19.7 logic; Cap 30 does
+     not change its normal frequency or Settings toggles — only D6
+     collision handling on the first-install chain path).
+  2. **D2 — `<1>→<2>` chain once per install (incl. reinstall).** Show
+     `<1>` then `<2>` on different screens (never stacked). If `<1>`
+     ends early because the feed **PageView actually changes page**,
+     still show `<2>`. Persistence: SharedPreferences (cleared on
+     uninstall/reinstall). Cap 19 left-swipe tip has **no** install-once
+     flag today (process memory only); Cap 30 adds a **new** step key.
+  3. **D3 — `<2>` identical for Full and Limited; hard UI/copy rules.**
+     Declarative copy only — no imperative invite verbs (e.g. “tap”).
+     Visual form: small tooltip/bubble anchored to Create Pool — **not**
+     a centered card (`<1>` may be centered; do **not** reuse one UI
+     host for both). Anchor must keep Create Pool and the existing
+     Full-access helper grey line in the same glance (device gate in
+     30.4). No separate Limited copy variant.
+  4. **D4 — No replay of `<2>` after Limited→Full upgrade.** One chance
+     per install (may be while Create Pool is disabled). Explicit
+     product trade-off.
+  5. **D5 — Durable step index (not a boolean).** Key (name may be
+     `waketok.cap30.firstLaunchGuideStep`): integer `0|1|2|3`.
+     - `0` = not started
+     - `1` = entered `<1>` (written when `<1>` **starts** showing)
+     - `2` = entered `<2>` (written when `<2>` **starts** showing)
+     - `3` = chain complete (`<2>` **ended**; no further `<1>/<2>`)
+     Advance only when `browseItemReady` allows the step to start
+     (Q5=A): empty / unauthorized must **not** advance. Cold start with
+     index `1` → **replay `<1>`** then `<2>` (resume A). Index `2` →
+     show only `<2>`, then → `3`. Index `3` → never schedule `<1>/<2>`.
+  6. **D6 — Narrow gate on left-swipe tip (first-install chain path
+     only).** Cap 19 formula stays:
+     `effectiveGuide = leftSwipeAddEnabled && leftSwipeGuideEnabled &&
+     !sessionGuideShown && browseItemReady`. Cap 30 adds a block when
+     the first-launch chain is active or mid-resume:
+     - block iff `diskStep` is `1` or `2`, **or**
+       (`diskStep == 0` **and** process flag `chainArmedThisLaunch`)
+     - when `diskStep == 3`, Cap 30 never blocks
+     - second-and-later cold starts with `diskStep == 3`: **zero** change
+       to Cap 19 left-swipe tip behaviour
+     **`chainArmedThisLaunch` is process-memory only:** it must **not**
+     be written to SharedPreferences / Keychain / any durable store. It
+     is a separate variable from disk `firstLaunchGuideStep` (D5). Do
+     **not** persist the arm flag — persisting it would re-introduce
+     premature “already scheduled” disk marking and break resume.
+     **Rationale for the process arm flag (not “fixing a D6 bug”):**
+     `<3>` already requires `browseItemReady`, so an empty library does
+     not show `<3>` until ready — the same moment Q5 starts the chain
+     (`0→1`). A naive “block whenever `diskStep < 3`” is therefore not
+     required to “save” empty-library users. The arm flag closes a
+     **ready ↔ disk-write race**: the frame where ready becomes true and
+     the orchestrator has decided to play the chain but the step write
+     has not landed yet — disk alone would look like “do not block” and
+     could let `<3>` race `<1>`. Process `chainArmedThisLaunch` is
+     defensive sequencing hardening, not a correction of a prior
+     design defect.
+  7. **D7 — Left-swipe copy relocate late.** Replace Browse left-swipe
+     subtitle safety paragraph with “can turn this tip off in Settings”
+     (working EN/zh in copy phase). Move safety explanation under the
+     Settings **master** left-swipe-add subtitle. Pure copy; after
+     D1–D6 behaviour phases.
+  8. **D8 — Ordered step list (implementation note).** Implement
+     `<1>/<2>` as an ordered step list (anchor / copy / condition per
+     step) so a future clips step can append without a new state
+     machine. No clips UI in Cap 30.
+  9. **Timing / dismiss (Q1–Q3).** Both `<1>` and `<2>` use Cap 19’s
+     **2.5s** coach duration (`kCap19LeftSwipeGuideDuration`). No
+     manual skip control. `<1>` early end = PageView **page change**
+     only (not arbitrary vertical drag).
+  10. **Copy freeze timing (Q6) + `<2>` working copy.** Final polish of
+      `<1>`/`<2>` strings lands in the late copy phase with D7 (logic
+      before copy). Cap 30.1 **working** EN for `<2>` (not final):
+      “Create Pool lets you pick or customise your own photo and video
+      sources.” Zh working string lives only in
+      `docs/acceptance/cap30-30.1-notes.md` (not in this ADR). All `<2>`
+      copy must stay declarative (D3).
+  11. **Out of Cap 30.** No change to `<3>` outside the D6 first-install
+      path. No Limited→Full `<2>` replay (D4). No Limited-only `<2>`
+      copy. No clips UI. No positioning/STATE slogan reopen (already
+      locked on `main`).
+- Rejected alternatives (why not):
+  - **Boolean consumed-on-show-`<1>`** — rejected; kill mid-`<1>` drops
+    `<2>` forever vs “all three tips must appear on first-install path”.
+  - **Resume B (index 1 → skip `<1>`, only `<2>`)** — rejected; may
+    never fully see `<1>`; resume A accepted (possible double `<1>` in
+    kill edge cases is OK).
+  - **Imperative “tap here” framing for `<2>` copy** — rejected;
+    conflicts with D3 (declarative-only; Limited control is disabled).
+  - **Centered card UI for `<2>`** — rejected (D3); breaks glance with
+    Full-access helper under Create Pool.
+  - **Block left-swipe tip whenever `diskStep < 3` (no arm flag)** —
+    rejected; D6 uses narrow (`1|2` or `0`∧`chainArmedThisLaunch`) as
+    ready↔disk race hardening — same rationale as Decision 6 body.
+  - **Replay `<2>` after Limited→Full** — rejected (D4).
+  - **Manual skip for the chain** — rejected; Cap 19 has none.
+  - **Empty-library timeout that advances the index** — rejected
+    (Q5=A); wait for real `browseItemReady`.
+  - **Merge 30.3+30.4** — rejected (Q7); different accept criteria
+    (especially Limited helper occlusion).
+  - **Generalize a shared coach state machine for all future tips** —
+    rejected for Cap 30 scope; D8 list is enough; do not broaden D6
+    beyond the first-install chain path.
+  - **Persist `chainArmedThisLaunch` to disk** — rejected; process
+    memory only (Decision 6); durable progress is solely D5 step index.
+- Consequences / constraints accepted:
+  - Cap 30.1 is docs-only (ADR Proposed + acceptance skeleton + STATE
+    phases); no `lib/` until owner opens 30.2.
+  - Architecture: prefs + Browse overlay orchestration; no new Pigeon;
+    features must not import `lib/data/**` concretely beyond existing
+    composition-root patterns (wire store at `lib/app/**` / providers).
+  - Device gate 30.4: Limited Create Pool tooltip must not permanently
+    obscure `mainBrowseCreatePoolRequiresFullAccess`.
+  - ADR-041 / Cap 19.7 Settings master↔tip sync and every-launch
+    left-swipe tip semantics remain for `diskStep == 3` launches.
+- Relationship:
+  Complements **ADR-041** / Cap 19.6–19.7 left-swipe tip (D6 narrow
+  gate only on first-install chain path). Aligns with MVP positioning
+  in STATE (L1 > L2a > L3). Does **not** amend ADR-040 gesture
+  arbitration, ADR-044/045 pools, or ADR-058/059. Future clips tip =
+  append step under D8 (separate Cap).
