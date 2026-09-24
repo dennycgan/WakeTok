@@ -22,6 +22,36 @@ Rect _rectOf(WidgetTester tester, Finder finder) {
   return tester.getRect(finder);
 }
 
+/// Outward caret contract: above bubble, air gap to bubble top, clear of Create.
+Future<void> _pumpTipSettled(WidgetTester tester) async {
+  await tester.pumpAndSettle();
+  // Laid width → arrow X is post-frame; one extra settle covers EN/zh.
+  await tester.pump();
+  await tester.pumpAndSettle();
+}
+
+void _expectOutwardCaretAim({
+  required Rect arrow,
+  required Rect tip,
+  required Rect create,
+}) {
+  expect(arrow.top, lessThan(tip.top - 0.5), reason: 'caret outside bubble');
+  expect(
+    tip.top - arrow.bottom,
+    closeTo(kCap30CreatePoolTipCaretBubbleGap, 1.0),
+    reason: 'air gap between caret base and bubble top',
+  );
+  expect(
+    arrow.top,
+    greaterThanOrEqualTo(create.bottom - 0.5),
+    reason: 'caret must not intrude Create',
+  );
+  expect(arrow.center.dx, greaterThanOrEqualTo(create.left - 1.0));
+  expect(arrow.center.dx, lessThanOrEqualTo(create.right + 1.0));
+  // Absolute Create center (not tip center); allow 2px measure slack.
+  expect((arrow.center.dx - create.center.dx).abs(), lessThanOrEqualTo(2.0));
+}
+
 void main() {
   setUp(Cap19LeftSwipeGuideSession.resetForTest);
   tearDown(Cap19LeftSwipeGuideSession.resetForTest);
@@ -141,7 +171,7 @@ void main() {
           cap30FirstLaunchGuidePreferences: cap30,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpTipSettled(tester);
 
       expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
       expect(find.byKey(const Key('mainBrowseCreatePool')), findsOneWidget);
@@ -155,15 +185,26 @@ void main() {
         tester,
         find.byKey(const Key('mainBrowseCreatePoolRequiresFullAccess')),
       );
+      final create =
+          _rectOf(tester, find.byKey(const Key('mainBrowseCreatePool')));
       final builtIn =
           _rectOf(tester, find.byKey(const Key('mainBrowseBuiltInMenu')));
       final saved =
           _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+      final arrow =
+          _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
 
       expect(_rectsOverlap(tip, helper), isFalse);
       expect(_rectsOverlap(tip, builtIn), isFalse);
       expect(_rectsOverlap(tip, saved), isFalse);
+      expect(_rectsOverlap(arrow, helper), isFalse);
       expect(tip.top >= helper.bottom - 1.0, isTrue);
+      expect(
+        arrow.top,
+        greaterThanOrEqualTo(helper.bottom - 0.5),
+        reason: 'caret must not cover Limited helper',
+      );
+      _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
 
@@ -182,7 +223,7 @@ void main() {
           cap30FirstLaunchGuidePreferences: cap30,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpTipSettled(tester);
 
       expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
       expect(
@@ -197,16 +238,20 @@ void main() {
           _rectOf(tester, find.byKey(const Key('mainBrowseBuiltInMenu')));
       final saved =
           _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+      final arrow =
+          _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
       expect(_rectsOverlap(tip, create), isFalse);
+      expect(_rectsOverlap(arrow, create), isFalse);
       expect(tip.top >= create.bottom - 1.0, isTrue);
       expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
       expect(_rectsOverlap(tip, builtIn), isFalse);
       expect(_rectsOverlap(tip, saved), isFalse);
+      _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
 
   testWidgets(
-    'T-30.4-W5n narrow 390 zh tip right-aligned under Create; no overlap',
+    'T-30.4-W5n narrow 390 zh tip right-aligned under Create; outward caret',
     (tester) async {
       // iPhone 13 Pro logical ~390×844 @3x — catches fixed-width left-shift
       // landing under Built-in (device bug that default 800-wide miss).
@@ -231,7 +276,7 @@ void main() {
           cap30FirstLaunchGuidePreferences: cap30,
         ),
       );
-      await tester.pumpAndSettle();
+      await _pumpTipSettled(tester);
 
       expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
 
@@ -242,8 +287,11 @@ void main() {
           _rectOf(tester, find.byKey(const Key('mainBrowseBuiltInMenu')));
       final saved =
           _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
+      final arrow =
+          _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
 
       expect(_rectsOverlap(tip, create), isFalse);
+      expect(_rectsOverlap(arrow, create), isFalse);
       expect(tip.top >= create.bottom - 1.0, isTrue);
       expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
       // Tip must sit with Create on the right half — not under Built-in.
@@ -251,16 +299,42 @@ void main() {
       expect(_rectsOverlap(tip, builtIn), isFalse);
       expect(_rectsOverlap(tip, saved), isFalse);
       expect(tip.width, lessThanOrEqualTo(kCap30CreatePoolTipMaxWidth + 0.5));
+      _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
+    },
+  );
 
-      expect(find.byKey(const Key('cap30CreatePoolTipArrow')), findsOneWidget);
+  testWidgets(
+    'T-30.4-W5n-en narrow 390 EN tip; laid width then absolute Create aim',
+    (tester) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final cap30 = FakeCap30FirstLaunchGuidePreferences()..step = 2;
+      await tester.pumpWidget(
+        permissionUiHarness(
+          locale: const Locale('en'),
+          repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
+          assetSources: FakeAssetSourceRepository(
+            allIds: const ['a1'],
+            availabilityById:
+                FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+          ),
+          cap30FirstLaunchGuidePreferences: cap30,
+        ),
+      );
+      await _pumpTipSettled(tester);
+
+      expect(find.byKey(const Key('cap30CreatePoolTip')), findsOneWidget);
+      final tip = _rectOf(tester, find.byKey(const Key('cap30CreatePoolTip')));
+      final create =
+          _rectOf(tester, find.byKey(const Key('mainBrowseCreatePool')));
       final arrow =
           _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
-      // Caret tip aims at Create stadium: arrow center X within stadium.
-      expect(arrow.center.dx, greaterThanOrEqualTo(create.left - 1.0));
-      expect(arrow.center.dx, lessThanOrEqualTo(create.right + 1.0));
-      // Arrow stays inside tip bubble (no outward overhang).
-      expect(arrow.top, greaterThanOrEqualTo(tip.top - 0.5));
-      expect(arrow.bottom, lessThanOrEqualTo(tip.bottom + 0.5));
+      expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
+      expect(_rectsOverlap(tip, create), isFalse);
+      _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
 

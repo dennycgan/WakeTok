@@ -15,11 +15,18 @@ import 'package:waketok/l10n/app_localizations.dart';
 /// `create.right - edgePad` (not a fixed left-shift of this constant).
 const double kCap30CreatePoolTipMaxWidth = 180;
 
-const double _kCap30CreatePoolTipGap = 8;
+/// Air between Create / Limited-helper bottom and the **caret tip** (vertex).
+/// Bubble top = anchorBottom + [kCap30CreatePoolTipClearance] +
+/// [kCap30CreatePoolTipArrowHeight] + [kCap30CreatePoolTipCaretBubbleGap].
+const double kCap30CreatePoolTipClearance = 4;
+
+/// Air between caret **base** and bubble top (not flush).
+const double kCap30CreatePoolTipCaretBubbleGap = 4;
+
 const double _kCap30CreatePoolTipEdgePad = 8;
 
-/// Inward caret — larger than the early Cap 30.4 probe so the tip reads
-/// under Create on device. Vertex aims at Create stadium horizontal center.
+/// Outward caret (above bubble). Height / half-width are working values;
+/// size polish may retune without changing outward + aim rules.
 const double kCap30CreatePoolTipArrowHeight = 14;
 const double kCap30CreatePoolTipArrowHalfWidth = 11;
 
@@ -27,10 +34,11 @@ const double kCap30CreatePoolTipArrowHalfWidth = 11;
 ///
 /// Placement: **below** Create column (stadium + Limited helper), **right
 /// edge pinned to Create**, width intrinsic with adaptive max. Upward
-/// arrow sits **inside** the bubble top edge and aims at Create stadium
-/// center (same Full / Limited). Observes shared orchestrator chrome via
-/// epoch only. **Must not** call [syncCap30BrowseReady] — sole sync owner
-/// is Cap30VerticalHintGuideHost (see that class hard-requirement comment).
+/// caret sits **outside** above the bubble (clearance + height + gap to
+/// bubble top) and aims at Create stadium **absolute** horizontal center
+/// (same Full / Limited). Observes shared orchestrator chrome via epoch
+/// only. **Must not** call [syncCap30BrowseReady] — sole sync owner is
+/// Cap30VerticalHintGuideHost (see that class hard-requirement comment).
 class Cap30CreatePoolTipHost extends ConsumerStatefulWidget {
   const Cap30CreatePoolTipHost({super.key});
 
@@ -176,7 +184,8 @@ class _Cap30CreatePoolTipHostState
       kCap30CreatePoolTipMaxWidth,
       math.max(0.0, createRight - _kCap30CreatePoolTipEdgePad),
     );
-    final tipTop = bottom + _kCap30CreatePoolTipGap;
+    // Composite top = caret tip. Bubble starts clearance + arrowHeight lower.
+    final tipTop = bottom + kCap30CreatePoolTipClearance;
     final stackWidth = stackBox.size.width;
 
     if (_tipTop != tipTop ||
@@ -260,10 +269,15 @@ class _Cap30CreatePoolTipHostState
   }
 }
 
-/// Sheet bubble with inward upward caret aimed at Create stadium center.
+/// Sheet bubble with **outward** upward caret aimed at Create stadium center.
 ///
-/// Arrow X is derived from the **laid-out** tip width (not maxWidth alone),
-/// so a short intrinsic tip still aims at Create center on narrow screens.
+/// Layout (not a plain centered Column for the caret):
+/// 1. Outer [Column] = vertical only: caret row → Material bubble.
+/// 2. Caret row = [Stack] + [Positioned] so X can be any offset
+///    (`createCenter − tipLeft`), independent of tip right-align.
+/// 3. Width order: [IntrinsicWidth] lays the bubble from copy first;
+///    post-frame we read laid width → then compute arrow X. Never assume
+///    maxWidth when placing the caret (EN / zh lengths differ).
 class _CreatePoolTipBubble extends StatefulWidget {
   const _CreatePoolTipBubble({
     required this.message,
@@ -323,60 +337,61 @@ class _CreatePoolTipBubbleState extends State<_CreatePoolTipBubble> {
     if (laid != null && laid > 0) {
       final tipLeft = widget.stackWidth - widget.tipRight - laid;
       final pad = kCap30CreatePoolTipArrowHalfWidth + 2;
-      // Prefer exact stadium center; clamp only when the tip is too narrow
-      // to host the caret without clipping (should be rare under Create).
+      // Absolute Create center; clamp only when tip is too narrow to keep
+      // the caret above the bubble footprint (rare under Create).
       arrowX = (widget.createCenterStackX - tipLeft)
           .clamp(pad, math.max(pad, laid - pad))
           .toDouble();
     }
 
-    return Material(
-      key: const Key('cap30CreatePoolTip'),
-      color: widget.surfaceColor,
-      elevation: 0,
-      borderRadius: BorderRadius.circular(10),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicWidth(
-        child: Column(
-          key: _columnKey,
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: kCap30CreatePoolTipArrowHeight,
-              child: Stack(
-                clipBehavior: Clip.hardEdge,
-                children: [
-                  if (arrowX != null)
-                    Positioned(
-                      left: arrowX - kCap30CreatePoolTipArrowHalfWidth,
-                      top: 0,
-                      width: kCap30CreatePoolTipArrowHalfWidth * 2,
-                      height: kCap30CreatePoolTipArrowHeight,
-                      child: CustomPaint(
-                        key: const Key('cap30CreatePoolTipArrow'),
-                        painter: _UpCaretPainter(color: widget.accent),
-                      ),
+    return IntrinsicWidth(
+      child: Column(
+        key: _columnKey,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: kCap30CreatePoolTipArrowHeight,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                if (arrowX != null)
+                  Positioned(
+                    left: arrowX - kCap30CreatePoolTipArrowHalfWidth,
+                    top: 0,
+                    width: kCap30CreatePoolTipArrowHalfWidth * 2,
+                    height: kCap30CreatePoolTipArrowHeight,
+                    child: CustomPaint(
+                      key: const Key('cap30CreatePoolTipArrow'),
+                      painter: _UpCaretPainter(color: widget.accent),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 2, 10, 8),
+          ),
+          const SizedBox(height: kCap30CreatePoolTipCaretBubbleGap),
+          Material(
+            key: const Key('cap30CreatePoolTip'),
+            color: widget.surfaceColor,
+            elevation: 0,
+            borderRadius: BorderRadius.circular(10),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
               child: Text(
                 widget.message,
                 key: const Key('cap30CreatePoolTipMessage'),
                 style: widget.textStyle,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Upward caret drawn inside its bounds; tip at top-center.
+/// Upward caret; vertex at top-center of its paint bounds.
 class _UpCaretPainter extends CustomPainter {
   _UpCaretPainter({required this.color});
 

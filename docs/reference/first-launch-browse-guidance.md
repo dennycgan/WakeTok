@@ -208,7 +208,7 @@ See **Architecture** above for binding / extension. Ops summary:
 |--------|-------|-------------|--------|
 | `<1>` | Cupertino up + down | **P1** `kBrowseFirstLaunchSwipeDirectionArrowSize` | Stroke via `BrowseFirstLaunchCoachArrowIcon` |
 | `<3>` | Cupertino left | **P1** (same constant) | Same helper |
-| `<2>` | Inward upward triangle | `kCap30CreatePoolTipArrowHeight` **14** / half-width **11** | Filled `CustomPaint`; `tokens.accent` |
+| `<2>` | Outward upward triangle | `kCap30CreatePoolTipArrowHeight` **14** / half-width **11** (working; size polish open) | Filled `CustomPaint`; `tokens.accent`; **outside** bubble |
 
 `<1>` / `<2>` label + caret use `tokens.accent` + `onMediaLabelShadows`.  
 `<3>` keeps `onMedia` / `onMediaMuted` (Cap 19 copy); icon also gets
@@ -238,13 +238,59 @@ frames yet; do not invent a shared fixed box until a later pass.
 
 ## `<2>` placement
 
+Create Pool tip (`cap30_create_pool_tip.dart`). Horizontal: tip **right**
+edge = Create stadium **right** edge. Max width
+`min(180, create.right − 8)`.
+
+### Vertical stack (top → bottom)
+
+```
+Create stadium bottom  (or Limited helper bottom, if present)
+  │  kCap30CreatePoolTipClearance          = 4
+caret tip (vertex) — aims at Create horizontal center
+  │  kCap30CreatePoolTipArrowHeight        = 14  (working; size polish open)
+caret base
+  │  kCap30CreatePoolTipCaretBubbleGap     = 4
+bubble top
+  │  Material bubble (radius 10, copy + pad)
+```
+
+Bubble top offset from anchor bottom =
+**clearance + arrowHeight + caretBubbleGap** = **4 + 14 + 4 = 22**
+(with current arrow height).
+
+The two **4** gaps are **independent** constants that currently share the
+same value; retune either without assuming they stay equal.
+
+### Parameter table
+
+| Constant | Value | Role |
+|----------|------:|------|
+| `kCap30CreatePoolTipClearance` | **4** | Create/helper bottom → caret **tip** |
+| `kCap30CreatePoolTipArrowHeight` | **14** | Outward caret height (working) |
+| `kCap30CreatePoolTipArrowHalfWidth` | **11** | Outward caret half-base (working) |
+| `kCap30CreatePoolTipCaretBubbleGap` | **4** | Caret **base** → bubble top |
+| `kCap30CreatePoolTipMaxWidth` | **180** | Ceiling; also clamped by `create.right − 8` |
+| Edge pad (private) | **8** | Left clamp for max width vs screen |
+
+### Caret aim + layout
+
 | Rule | Detail |
 |------|--------|
-| Vertical | Below Create stadium (+ Limited helper when present) + **8** gap |
-| Horizontal | Tip **right** edge = Create stadium **right** edge |
-| Max width | `min(180, create.right − 8)` (`kCap30CreatePoolTipMaxWidth`) |
-| Caret aim | Triangle **vertex** on Create stadium **horizontal center** (`mainBrowseCreatePool` InkWell). Same Full / Limited. Caret stays **inside** tip (no outward overhang) |
-| Narrow ~390 | Arrow center X must stay within Create stadium; regression `T-30.4-W5n` |
+| Aim | Triangle **vertex** on Create stadium **absolute horizontal center** (`mainBrowseCreatePool`), **not** tip center. Same Full / Limited. |
+| Structure | Outer **Column** = vertical only (caret row → gap → Material bubble). Caret X via caret-row **Stack + Positioned** (`createCenter − tipLeft`). |
+| Width order | Measure **laid** tip width from intrinsic copy first (EN/zh differ), **then** compute arrow X. Never place caret from `maxWidth` alone. |
+| Clamp | Only if tip too narrow to keep caret above the bubble footprint. |
+| Outside | Caret is **above** the bubble (not painted inside Material). |
+
+### Why this replaced the inward-caret lock
+
+Earlier lock: “Caret stays inside tip (no outward overhang)” with host
+gap **8** (caret consumed space inside the dark card). That read as a
+notch/wedge, not a pointer. Reversed to **outward** caret + the vertical
+stack above. Tests: `T-30.4-W5` / `W5n` (zh@390) / `W5n-en` (EN@390) —
+caret outside bubble, caret–bubble gap, no Create/helper intrusion, aim
+within Create stadium.
 
 ## Duration / early end
 
