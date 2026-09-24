@@ -174,7 +174,7 @@
 - [ ] First-launch Browse guidance
       (Cap 30 / ADR-060 Proposed: `<1>`→`<2>` once per install via
       step index; D6 narrow gate vs Cap 19.7 left-swipe tip on that
-      path only; D7 left-swipe copy late; 2.5s; no skip)
+      path only; D7 left-swipe copy late; per-step durations; no skip)
       <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the guidance Cap above
@@ -265,7 +265,9 @@
 Active capability: First-launch Browse guidance (Cap 30)
 Contract: `<1>`→`<2>` once per install (step index 0–3; resume A);
 D6 narrow gate vs Cap 19 left-swipe tip on first-install path only;
-D7 copy last; 2.5s; PageView page-change early-ends `<1>`; no skip.
+D7 copy last; per-step durations (`kCap30VerticalHintGuideDuration` /
+`kCap30CreatePoolTipDuration`); PageView page-change early-ends `<1>`;
+no skip.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [x] 30.1 Contract freeze — ADR-060 Proposed; notes
@@ -280,17 +282,21 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [x] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
       — work `53860fd`; notes `docs/acceptance/cap30-30.4-notes.md`
       (below-left tip; sole sync on Vertical Host; disk=2 UI gap closed)
-- [ ] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
+- [x] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
+      — work `21ba370` (D6 matrix tests + coach polish: tip caret /
+      half-sheet fill / per-step durations); notes
+      `docs/acceptance/cap30-30.5-notes.md`; reference
+      `docs/reference/first-launch-browse-guidance.md`
 - [ ] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
 - [ ] 30.7 Device acceptance + Cap close-out docs (ADR-060 Accepted;
       STATE / PHASE_HISTORY)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 30.5 Verify D6 vs Cap 19 tip (first-install path)
+- Goal (one line): Cap 30.6 D7 left-swipe copy + final `<1>`/`<2>` ARB
 - Sub-steps done: 30.1 `d65af35`; 30.2 `da33d41`; 30.3 `524b28b`;
-      30.4 `53860fd` (Create Pool tip Host + below-left glance)
-- Next step: verify / harden D6 vs Cap 19 left-swipe tip on the
-      first-install chain path only
+      30.4 `53860fd`; 30.5 `21ba370` (D6 verify + coach polish)
+- Next step: relocate left-swipe safety copy (D7) and polish final
+      declarative ARB for `<1>` / `<2>`
 - Related decisions: ADR-060 Proposed; shared orchestrator hard
       requirement; sole sync owner = Vertical Host; debts **480** /
       **481** Open (out of Cap 30)
