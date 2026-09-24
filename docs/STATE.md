@@ -268,26 +268,28 @@ D6 narrow gate vs Cap 19 left-swipe tip on first-install path only;
 D7 copy last; 2.5s; PageView page-change early-ends `<1>`; no skip.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [~] 30.1 Contract freeze — ADR-060 Proposed; notes
-      `docs/acceptance/cap30-30.1-notes.md` (docs-only; no `lib/`)
-- [ ] 30.2 Step KV + ordered orchestrator + D6 arm gate (logic/tests)
+- [x] 30.1 Contract freeze — ADR-060 Proposed; notes
+      `docs/acceptance/cap30-30.1-notes.md` (docs-only; freeze
+      `d65af35`)
+- [x] 30.2 Step KV + ordered orchestrator + D6 arm gate (logic/tests)
+      — work `da33d41`; notes `docs/acceptance/cap30-30.2-notes.md`
+      (Host / browseItemReady not wired — decision A)
 - [ ] 30.3 `<1>` centered vertical up/down coach UI
 - [ ] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
 - [ ] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
 - [ ] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
-- [ ] 30.7 Device acceptance + docs Commit 2 (ADR-060 Accepted;
-      STATE / PHASE_HISTORY close-out)
+- [ ] 30.7 Device acceptance + Cap close-out docs (ADR-060 Accepted;
+      STATE / PHASE_HISTORY)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 30.1 contract freeze — owner review of ADR-060
-      Proposed + Phase Roadmap (no `lib/` yet)
-- Sub-steps done: D1–D8 + Q1–Q7 + revised D5 step index + D6 arm-flag
-      rationale locked in chat; ADR-060 Proposed appended; 30.1 notes
-      skeleton written; STATE Cap 30 one-liner + phases replaced
-- Next step: owner accepts 30.1 docs → OK commit → then open 30.2
-- Related decisions: ADR-060 Proposed; Cap 19.6/19.7 / ADR-041
-      left-swipe tip unchanged outside D6; MVP positioning lock
-      `1cecd9c`; debts **480** / **481** Open (out of Cap 30)
+- Goal (one line): Cap 30.3 `<1>` centered vertical up/down coach UI
+- Sub-steps done: 30.1 freeze `d65af35`; 30.2 work `da33d41` (step KV +
+      orchestrator + D6 pure gate; production Host unwired)
+- Next step: design / implement 30.3 `<1>` chrome on orchestrator
+      `verticalHint` active state
+- Related decisions: ADR-060 Proposed; 30.2 decision A (no Host wire);
+      Cap 19.6/19.7 / ADR-041 left-swipe tip unchanged outside D6;
+      debts **480** / **481** Open (out of Cap 30)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
