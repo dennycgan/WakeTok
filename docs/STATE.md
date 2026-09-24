@@ -277,21 +277,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [x] 30.3 `<1>` centered vertical up/down coach UI — work `524b28b`;
       notes `docs/acceptance/cap30-30.3-notes.md` (shared orch + D6
       Cap19 gate; disk=2 interim until 30.4)
-- [ ] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
+- [x] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
+      — work `53860fd`; notes `docs/acceptance/cap30-30.4-notes.md`
+      (below-left tip; sole sync on Vertical Host; disk=2 UI gap closed)
 - [ ] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
 - [ ] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
 - [ ] 30.7 Device acceptance + Cap close-out docs (ADR-060 Accepted;
       STATE / PHASE_HISTORY)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 30.4 `<2>` Create Pool anchored tooltip
-- Sub-steps done: 30.1 `d65af35`; 30.2 `da33d41`; 30.3 `524b28b`
-      (vertical hint Host + shared orch D6 gate)
-- Next step: design / implement 30.4 Create Pool tooltip (declarative
-      copy; Limited helper glance)
+- Goal (one line): Cap 30.5 Verify D6 vs Cap 19 tip (first-install path)
+- Sub-steps done: 30.1 `d65af35`; 30.2 `da33d41`; 30.3 `524b28b`;
+      30.4 `53860fd` (Create Pool tip Host + below-left glance)
+- Next step: verify / harden D6 vs Cap 19 left-swipe tip on the
+      first-install chain path only
 - Related decisions: ADR-060 Proposed; shared orchestrator hard
-      requirement; disk=2 interim until 30.4; debts **480** / **481**
-      Open (out of Cap 30)
+      requirement; sole sync owner = Vertical Host; debts **480** /
+      **481** Open (out of Cap 30)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
