@@ -16,6 +16,7 @@ import 'package:waketok/features/main_browse/browse_display_settings_section.dar
 import 'package:waketok/features/main_browse/browse_notifications_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
+import 'package:waketok/features/main_browse/cap30_vertical_hint_guide.dart';
 import 'package:waketok/features/main_browse/cap27_l1_stall_probe_settings.dart';
 import 'package:waketok/features/main_browse/cap28_live_probe_settings.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
@@ -123,6 +124,7 @@ class _BrowsePane extends ConsumerWidget {
           right: 0,
           child: BrowseTopChrome(),
         ),
+        const Cap30VerticalHintGuideHost(),
         const Cap19LeftSwipeGuideHost(),
       ],
     );

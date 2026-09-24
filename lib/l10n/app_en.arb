@@ -1053,6 +1053,10 @@
   "@cap19LeftSwipeGuideSubtitle": {
     "description": "Cap 19.6 one-shot coach mark subtitle (why + safety)"
   },
+  "cap30VerticalHintGuideTitle": "Swipe to browse your library",
+  "@cap30VerticalHintGuideTitle": {
+    "description": "Cap 30.3 first-launch vertical up/down coach title (no subtitle)"
+  },
   "cap19LeftSwipeAppendSuccess": "Added to WakeTok",
   "@cap19LeftSwipeAppendSuccess": {
     "description": "Cap 19.6 left-swipe append success toast"

@@ -9,6 +9,7 @@ import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_arbitration.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
+import 'package:waketok/features/main_browse/cap30_first_launch_guide_wiring.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -61,12 +62,36 @@ class _Cap19LeftSwipeGuideHostState extends ConsumerState<Cap19LeftSwipeGuideHos
     if (!_prefsLoaded || _visible) {
       return;
     }
+    Future.microtask(_maybeShowGuideAsync);
+  }
+
+  Future<void> _maybeShowGuideAsync() async {
+    if (!_prefsLoaded || _visible || !mounted) {
+      return;
+    }
     final destination = ref.read(mainBrowseDestinationProvider);
     final assetId = ref.read(mainBrowseCurrentAssetIdProvider);
     final browseReady =
         destination == MainBrowseDestination.browse &&
         assetId != null &&
         assetId.isNotEmpty;
+
+    // Shared Cap 30 orchestrator: sync ready before D6 so arm and block
+    // use the same instance as the `<1>` Host (ADR-060 / Cap 30.3).
+    final orch = ref.read(cap30FirstLaunchGuideOrchestratorProvider);
+    await syncCap30BrowseReady(
+      orch: orch,
+      bumpEpoch: () =>
+          ref.read(cap30FirstLaunchGuideEpochProvider.notifier).bump(),
+      ready: browseReady,
+    );
+    if (!mounted || _visible) {
+      return;
+    }
+    if (orch.shouldBlockLeftSwipeGuide) {
+      return;
+    }
+
     final shouldShow = effectiveLeftSwipeGuideVisible(
       leftSwipeAddEnabled: _leftSwipeAddEnabled,
       leftSwipeGuideEnabled: _leftSwipeGuideEnabled,
@@ -92,6 +117,9 @@ class _Cap19LeftSwipeGuideHostState extends ConsumerState<Cap19LeftSwipeGuideHos
     ref.listen(mainBrowseCurrentAssetIdProvider, (_, __) => _maybeShowGuide());
     ref.listen(cap19LeftSwipePrefsRevisionProvider, (_, __) {
       Future.microtask(_loadPrefs);
+    });
+    ref.listen(cap30FirstLaunchGuideEpochProvider, (_, __) {
+      _maybeShowGuide();
     });
 
     if (!_visible) {

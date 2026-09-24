@@ -29,6 +29,8 @@ class Cap30FirstLaunchGuideOrchestrator {
 
   bool get browseItemReady => _browseItemReady;
 
+  Future<void>? _ensureFuture;
+
   Future<void> hydrate() {
     return _enqueue(() async {
       _diskStep = await _preferences.getStep();
@@ -37,8 +39,17 @@ class Cap30FirstLaunchGuideOrchestrator {
     });
   }
 
-  /// Injected ready signal for tests / future Host. Production Cap 30.2 does
-  /// not attach real Browse ready.
+  /// Idempotent hydrate — Cap 19 D6 and Cap 30 `<1>` Host must share one call.
+  Future<void> ensureHydrated() {
+    if (_hydrated) {
+      return Future<void>.value();
+    }
+    return _ensureFuture ??= hydrate().whenComplete(() {
+      _ensureFuture = null;
+    });
+  }
+
+  /// Browse ready for Host / Cap 19 D6 sequencing (same shared instance).
   Future<void> onBrowseItemReadyChanged(bool ready) {
     _browseItemReady = ready;
     return _enqueue(_maybeBeginStep);

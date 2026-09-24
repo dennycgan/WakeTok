@@ -7,6 +7,7 @@ import 'package:waketok/features/library_smoke/library_catalog_providers.dart';
 import 'package:waketok/features/library_smoke/asset_source_providers.dart';
 import 'package:waketok/features/library_smoke/playback_providers.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/main.dart';
@@ -20,6 +21,7 @@ import 'library_smoke/fake_media_display_repository.dart';
 import 'library_smoke/fake_new_round_toast_preferences.dart';
 import 'library_smoke/fake_playback_repository.dart';
 import 'library_smoke/fake_presentation_metadata_repository.dart';
+import 'onboarding/fake_cap30_first_launch_guide_preferences.dart';
 import 'package:waketok/features/library_smoke/presentation_providers.dart';
 
 void main() {
@@ -45,6 +47,9 @@ void main() {
           ),
           cap19LeftSwipePreferencesProvider.overrideWithValue(
             FakeCap19LeftSwipePreferences(),
+          ),
+          cap30FirstLaunchGuidePreferencesProvider.overrideWithValue(
+            FakeCap30FirstLaunchGuidePreferences()..step = 3,
           ),
           newRoundToastPreferencesProvider.overrideWithValue(
             FakeNewRoundToastPreferences(),

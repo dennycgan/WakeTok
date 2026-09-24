@@ -1500,6 +1500,12 @@ abstract class AppLocalizations {
   /// **'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted'**
   String get cap19LeftSwipeGuideSubtitle;
 
+  /// Cap 30.3 first-launch vertical up/down coach title (no subtitle)
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe to browse your library'**
+  String get cap30VerticalHintGuideTitle;
+
   /// Cap 19.6 left-swipe append success toast
   ///
   /// In en, this message translates to:

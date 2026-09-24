@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
 import 'package:waketok/app/cap19_left_swipe_providers.dart';
+import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
@@ -38,6 +39,7 @@ import '../../library_smoke/fake_asset_favorite_repository.dart';
 import '../../library_smoke/fake_asset_soft_delete_repository.dart';
 import '../../library_smoke/fake_asset_share_repository.dart';
 import '../../library_smoke/fake_cap19_left_swipe_preferences.dart';
+import '../../onboarding/fake_cap30_first_launch_guide_preferences.dart';
 import '../../library_smoke/fake_new_round_toast_preferences.dart';
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_library_catalog_repository.dart';
@@ -93,6 +95,7 @@ Widget permissionUiHarness({
   FakeAssetSoftDeleteRepository? assetSoftDelete,
   FakeAssetShareRepository? assetShare,
   FakeCap19LeftSwipePreferences? cap19LeftSwipePreferences,
+  FakeCap30FirstLaunchGuidePreferences? cap30FirstLaunchGuidePreferences,
   FakeNewRoundToastPreferences? newRoundToastPreferences,
   FakeWakeTokAlbumStore? wakeTokAlbumStore,
   FakeMediaDisplayRepository? mediaDisplay,
@@ -140,6 +143,10 @@ Widget permissionUiHarness({
   final share = assetShare ?? FakeAssetShareRepository();
   final leftSwipePrefs =
       cap19LeftSwipePreferences ?? FakeCap19LeftSwipePreferences();
+  // Default step=3 so Cap 19 tip tests are not blocked by Cap 30 first-launch
+  // chain (disk=0 would arm `<1>` and D6-block left-swipe tip).
+  final cap30GuidePrefs = cap30FirstLaunchGuidePreferences ??
+      (FakeCap30FirstLaunchGuidePreferences()..step = 3);
   final newRoundPrefs =
       newRoundToastPreferences ?? FakeNewRoundToastPreferences();
   final albumStore = wakeTokAlbumStore ?? FakeWakeTokAlbumStore();
@@ -155,6 +162,9 @@ Widget permissionUiHarness({
       assetSoftDeleteRepositoryProvider.overrideWithValue(softDelete),
       assetShareRepositoryProvider.overrideWithValue(share),
       cap19LeftSwipePreferencesProvider.overrideWithValue(leftSwipePrefs),
+      cap30FirstLaunchGuidePreferencesProvider.overrideWithValue(
+        cap30GuidePrefs,
+      ),
       newRoundToastPreferencesProvider.overrideWithValue(newRoundPrefs),
       wakeTokAlbumStoreProvider.overrideWithValue(albumStore),
       savedPoolRepositoryProvider.overrideWithValue(pools),

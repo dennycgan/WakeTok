@@ -809,6 +809,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
 
   @override
+  String get cap30VerticalHintGuideTitle => 'Swipe to browse your library';
+
+  @override
   String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
 
   @override

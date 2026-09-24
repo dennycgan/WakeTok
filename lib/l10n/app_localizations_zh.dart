@@ -805,6 +805,9 @@ class AppLocalizationsZh extends AppLocalizations {
       'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted';
 
   @override
+  String get cap30VerticalHintGuideTitle => 'Swipe to browse your library';
+
+  @override
   String get cap19LeftSwipeAppendSuccess => 'Added to WakeTok';
 
   @override
@@ -1702,6 +1705,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String get cap19LeftSwipeGuideSubtitle =>
       '保存到 WakeTok 相册，当作稍后在「照片」里查找的标记 — 不会移动或删除原文件';
+
+  @override
+  String get cap30VerticalHintGuideTitle => '上下滑，浏览你的照片和视频';
 
   @override
   String get cap19LeftSwipeAppendSuccess => '已添加到 WakeTok';
