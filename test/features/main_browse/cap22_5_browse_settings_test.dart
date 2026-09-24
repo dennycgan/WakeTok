@@ -52,6 +52,10 @@ void main() {
       matching: find.byType(CupertinoSwitch),
     )).value, isTrue);
 
+    // Cap 30.6 D7 lengthened Gestures master subtitle; Browse tip toggle can
+    // sit below the default test viewport — scroll before tap.
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
     await tester.tap(find.descendant(
       of: toggle,
       matching: find.byType(CupertinoSwitch),

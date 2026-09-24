@@ -52,6 +52,43 @@ void _expectOutwardCaretAim({
   expect((arrow.center.dx - create.center.dx).abs(), lessThanOrEqualTo(2.0));
 }
 
+/// [cap30CreatePoolTip] is Material bubble only — caret is a sibling.
+/// Bubble must clear Create / helper / Built-in / Saved.
+/// Caret must clear Create (+ Limited helper); do **not** require caret vs
+/// Built-in/Saved AABB — those menu boxes are taller than the Create
+/// stadium and extend under it, so they can intersect the clearance band
+/// without the caret covering the menu labels.
+void _expectBubbleNoOverlapChrome({
+  required Rect tip,
+  required Rect create,
+  required Rect builtIn,
+  required Rect saved,
+  Rect? helper,
+}) {
+  expect(_rectsOverlap(tip, create), isFalse, reason: 'bubble vs Create');
+  expect(_rectsOverlap(tip, builtIn), isFalse, reason: 'bubble vs Built-in');
+  expect(_rectsOverlap(tip, saved), isFalse, reason: 'bubble vs Saved');
+  if (helper != null) {
+    expect(_rectsOverlap(tip, helper), isFalse, reason: 'bubble vs helper');
+  }
+}
+
+void _expectCaretClearsAnchor({
+  required Rect arrow,
+  required Rect create,
+  Rect? helper,
+}) {
+  expect(_rectsOverlap(arrow, create), isFalse, reason: 'caret vs Create');
+  if (helper != null) {
+    expect(_rectsOverlap(arrow, helper), isFalse, reason: 'caret vs helper');
+    expect(
+      arrow.top,
+      greaterThanOrEqualTo(helper.bottom - 0.5),
+      reason: 'caret must not cover Limited helper',
+    );
+  }
+}
+
 void main() {
   setUp(Cap19LeftSwipeGuideSession.resetForTest);
   tearDown(Cap19LeftSwipeGuideSession.resetForTest);
@@ -195,15 +232,16 @@ void main() {
           _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
 
       expect(_rectsOverlap(tip, helper), isFalse);
-      expect(_rectsOverlap(tip, builtIn), isFalse);
-      expect(_rectsOverlap(tip, saved), isFalse);
       expect(_rectsOverlap(arrow, helper), isFalse);
-      expect(tip.top >= helper.bottom - 1.0, isTrue);
-      expect(
-        arrow.top,
-        greaterThanOrEqualTo(helper.bottom - 0.5),
-        reason: 'caret must not cover Limited helper',
+      _expectBubbleNoOverlapChrome(
+        tip: tip,
+        create: create,
+        builtIn: builtIn,
+        saved: saved,
+        helper: helper,
       );
+      _expectCaretClearsAnchor(arrow: arrow, create: create, helper: helper);
+      expect(tip.top >= helper.bottom - 1.0, isTrue);
       _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
@@ -240,12 +278,15 @@ void main() {
           _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
       final arrow =
           _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
-      expect(_rectsOverlap(tip, create), isFalse);
-      expect(_rectsOverlap(arrow, create), isFalse);
-      expect(tip.top >= create.bottom - 1.0, isTrue);
       expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
-      expect(_rectsOverlap(tip, builtIn), isFalse);
-      expect(_rectsOverlap(tip, saved), isFalse);
+      expect(tip.top >= create.bottom - 1.0, isTrue);
+      _expectBubbleNoOverlapChrome(
+        tip: tip,
+        create: create,
+        builtIn: builtIn,
+        saved: saved,
+      );
+      _expectCaretClearsAnchor(arrow: arrow, create: create);
       _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
@@ -290,15 +331,18 @@ void main() {
       final arrow =
           _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
 
-      expect(_rectsOverlap(tip, create), isFalse);
-      expect(_rectsOverlap(arrow, create), isFalse);
       expect(tip.top >= create.bottom - 1.0, isTrue);
       expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
       // Tip must sit with Create on the right half — not under Built-in.
       expect(tip.center.dx, greaterThan(builtIn.center.dx));
-      expect(_rectsOverlap(tip, builtIn), isFalse);
-      expect(_rectsOverlap(tip, saved), isFalse);
       expect(tip.width, lessThanOrEqualTo(kCap30CreatePoolTipMaxWidth + 0.5));
+      _expectBubbleNoOverlapChrome(
+        tip: tip,
+        create: create,
+        builtIn: builtIn,
+        saved: saved,
+      );
+      _expectCaretClearsAnchor(arrow: arrow, create: create);
       _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
@@ -330,10 +374,20 @@ void main() {
       final tip = _rectOf(tester, find.byKey(const Key('cap30CreatePoolTip')));
       final create =
           _rectOf(tester, find.byKey(const Key('mainBrowseCreatePool')));
+      final builtIn =
+          _rectOf(tester, find.byKey(const Key('mainBrowseBuiltInMenu')));
+      final saved =
+          _rectOf(tester, find.byKey(const Key('mainBrowseSavedPoolsMenu')));
       final arrow =
           _rectOf(tester, find.byKey(const Key('cap30CreatePoolTipArrow')));
       expect((tip.right - create.right).abs(), lessThanOrEqualTo(1.0));
-      expect(_rectsOverlap(tip, create), isFalse);
+      _expectBubbleNoOverlapChrome(
+        tip: tip,
+        create: create,
+        builtIn: builtIn,
+        saved: saved,
+      );
+      _expectCaretClearsAnchor(arrow: arrow, create: create);
       _expectOutwardCaretAim(arrow: arrow, tip: tip, create: create);
     },
   );
