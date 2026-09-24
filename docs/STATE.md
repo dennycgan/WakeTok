@@ -174,7 +174,8 @@
 - [ ] First-launch Browse guidance
       (Cap 30 / ADR-060 Proposed: `<1>`→`<2>` once per install via
       step index; D6 narrow gate vs Cap 19.7 left-swipe tip on that
-      path only; D7 left-swipe copy late; per-step durations; no skip)
+      path only; D7 Browse↔Settings copy relocated; per-step
+      durations; no skip)
       <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the guidance Cap above
@@ -287,18 +288,22 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       half-sheet fill / per-step durations); notes
       `docs/acceptance/cap30-30.5-notes.md`; reference
       `docs/reference/first-launch-browse-guidance.md`
-- [ ] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
+- [x] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
+      — work `0897ce5` (D7 Settings redirect / master safety; P4 text
+      tokens; final ARB); follow-up `057deb9` (outward Create tip
+      caret); notes `docs/acceptance/cap30-30.6-notes.md`
 - [ ] 30.7 Device acceptance + Cap close-out docs (ADR-060 Accepted;
       STATE / PHASE_HISTORY)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 30.6 D7 left-swipe copy + final `<1>`/`<2>` ARB
+- Goal (one line): Cap 30.7 device acceptance + ADR-060 Accepted close-out
 - Sub-steps done: 30.1 `d65af35`; 30.2 `da33d41`; 30.3 `524b28b`;
-      30.4 `53860fd`; 30.5 `21ba370` (D6 verify + coach polish)
-- Next step: relocate left-swipe safety copy (D7) and polish final
-      declarative ARB for `<1>` / `<2>`
-- Related decisions: ADR-060 Proposed; shared orchestrator hard
-      requirement; sole sync owner = Vertical Host; debts **480** /
+      30.4 `53860fd`; 30.5 `21ba370`; 30.6 `0897ce5` (+ tip caret
+      `057deb9`)
+- Next step: device acceptance pass; accept ADR-060; Cap 30 STATE /
+      PHASE_HISTORY close-out
+- Related decisions: ADR-060 Proposed until 30.7; shared orchestrator
+      hard requirement; sole sync owner = Vertical Host; debts **480** /
       **481** Open (out of Cap 30)
 
 ## Contract pointers (don't memorize, go read the source)
