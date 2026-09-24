@@ -171,12 +171,12 @@
       Access Manage + Open Settings; D10 consume cache clear + index 0;
       `docs/acceptance/cap29-29.4-notes.md`; PHASE_HISTORY; debt **421**
       Closed; **480** / **481** remain Open)
-- [ ] First-launch Browse guidance
-      (Cap 30 / ADR-060 Proposed: `<1>`→`<2>` once per install via
-      step index; D6 narrow gate vs Cap 19.7 left-swipe tip on that
-      path only; D7 Browse↔Settings copy relocated; per-step
-      durations; no skip)
-      <-- YOU ARE HERE
+- [x] First-launch Browse guidance
+      (Cap 30 / ADR-060 Accepted `da33d41`+`524b28b`+`53860fd`+
+      `21ba370`+`0897ce5`; `<1>`→`<2>` once per install; D6 vs Cap 19;
+      D7 Browse↔Settings copy; per-step durations; outward `<2>` caret
+      `057deb9`; notes `docs/acceptance/cap30-30.7-notes.md`;
+      PHASE_HISTORY; debts **480** / **481** remain Open)
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after the guidance Cap above
       lands; permission string finalize; portrait-only already
@@ -187,6 +187,7 @@
       screenshots / keywords; empty-state Action Column dim widget-test
       coverage — near-zero cost, attach to whichever Cap above is
       convenient)
+      <-- YOU ARE HERE
 - [ ] TestFlight internal testing and release-candidate validation
       (MVP v1 track; owner executes distribution; Cursor prepares
       build and metadata)
@@ -263,48 +264,28 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: First-launch Browse guidance (Cap 30)
-Contract: `<1>`→`<2>` once per install (step index 0–3; resume A);
-D6 narrow gate vs Cap 19 left-swipe tip on first-install path only;
-D7 copy last; per-step durations (`kCap30VerticalHintGuideDuration` /
-`kCap30CreatePoolTipDuration`); PageView page-change early-ends `<1>`;
-no skip.
+Active capability: MVP v1 pre-submission hardening
+Contract: privacy-policy final copy; permission-string finalize;
+portrait-only verify (already locked); small-screen device pass; App
+Store Subtitle / description / screenshots / keywords; optional
+empty-state Action Column dim widget-test attach.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [x] 30.1 Contract freeze — ADR-060 Proposed; notes
-      `docs/acceptance/cap30-30.1-notes.md` (docs-only; freeze
-      `d65af35`)
-- [x] 30.2 Step KV + ordered orchestrator + D6 arm gate (logic/tests)
-      — work `da33d41`; notes `docs/acceptance/cap30-30.2-notes.md`
-      (Host / browseItemReady not wired — decision A)
-- [x] 30.3 `<1>` centered vertical up/down coach UI — work `524b28b`;
-      notes `docs/acceptance/cap30-30.3-notes.md` (shared orch + D6
-      Cap19 gate; disk=2 interim until 30.4)
-- [x] 30.4 `<2>` Create Pool anchored tooltip (Limited helper glance)
-      — work `53860fd`; notes `docs/acceptance/cap30-30.4-notes.md`
-      (below-left tip; sole sync on Vertical Host; disk=2 UI gap closed)
-- [x] 30.5 Verify D6 vs Cap 19 tip (first-install path only)
-      — work `21ba370` (D6 matrix tests + coach polish: tip caret /
-      half-sheet fill / per-step durations); notes
-      `docs/acceptance/cap30-30.5-notes.md`; reference
-      `docs/reference/first-launch-browse-guidance.md`
-- [x] 30.6 D7 left-swipe copy relocate + final `<1>`/`<2>` declarative ARB
-      — work `0897ce5` (D7 Settings redirect / master safety; P4 text
-      tokens; final ARB); follow-up `057deb9` (outward Create tip
-      caret); notes `docs/acceptance/cap30-30.6-notes.md`
-- [ ] 30.7 Device acceptance + Cap close-out docs (ADR-060 Accepted;
-      STATE / PHASE_HISTORY)
+- [ ] Capability Roadmap closed Cap 30 / First-launch Browse guidance
+      (2026-09-25 docs close-out). MVP v1 pre-submission hardening
+      phase breakdown awaiting owner scope — do not invent numbered
+      phases here.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 30.7 device acceptance + ADR-060 Accepted close-out
-- Sub-steps done: 30.1 `d65af35`; 30.2 `da33d41`; 30.3 `524b28b`;
-      30.4 `53860fd`; 30.5 `21ba370`; 30.6 `0897ce5` (+ tip caret
-      `057deb9`)
-- Next step: device acceptance pass; accept ADR-060; Cap 30 STATE /
-      PHASE_HISTORY close-out
-- Related decisions: ADR-060 Proposed until 30.7; shared orchestrator
-      hard requirement; sole sync owner = Vertical Host; debts **480** /
-      **481** Open (out of Cap 30)
+- Goal (one line): MVP v1 pre-submission hardening — awaiting owner
+      phase kickoff
+- Sub-steps done: Cap 30 closed — ADR-060 Accepted (anchors
+      `da33d41`+`524b28b`+`53860fd`+`21ba370`+`0897ce5`); notes
+      `docs/acceptance/cap30-30.7-notes.md`
+- Next step: owner scopes MVP hardening phases; replace this
+      placeholder
+- Related decisions: ADR-060 Accepted; debts **480** / **481** Open
+      (out of Cap 30)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must

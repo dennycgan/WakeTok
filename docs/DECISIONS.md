@@ -7584,10 +7584,10 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-060: Cap 30 first-launch Browse guidance chain
 
-- Status: **Proposed** (2026-09-24) — Cap 30.1 contract freeze; flip to
-  Accepted with implementing work commit anchor after Cap 30 work lands
-  (no fake anchors while Proposed)
-- Commit/PR anchor: pending implementing work commit
+- Status: **Accepted** (2026-09-24)
+- Commit/PR anchor: Cap 30.2 orch `da33d41` + Cap 30.3 UI `524b28b` +
+  Cap 30.4 tip `53860fd` + Cap 30.5 polish/P3 `21ba370` + Cap 30.6 D7
+  `0897ce5` (multi-anchor A; Cap 29 precedent)
 - Plain summary (owner reads this):
   On the first install’s guidance path, WakeTok shows two short tips in
   order: swipe up/down to browse your library, then a small tip next to
@@ -7721,6 +7721,24 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     obscure `mainBrowseCreatePoolRequiresFullAccess`.
   - ADR-041 / Cap 19.7 Settings master↔tip sync and every-launch
     left-swipe tip semantics remain for `diskStep == 3` launches.
+  - **Timing refine (Decision 9):** Cap 30.5 landed **per-step** coach
+    durations — `<1>` `kCap30VerticalHintGuideDuration` **2.0s**;
+    `<2>` `kCap30CreatePoolTipDuration` **3.5s**; Cap 19 `<3>` keeps
+    `kCap19LeftSwipeGuideDuration` **2.5s**. Decision 9’s shared-2.5s
+    wording is **not** rewritten; this Consequence is the shipping
+    contract (see `docs/reference/first-launch-browse-guidance.md` P3).
+  - **D7 final copy (Cap 30.6):** Browse `<3>` subtitle =
+    Settings redirect (*You can turn this feature and tip off in
+    Settings* / zh draft); safety long copy on Settings **master**
+    `cap19SettingsLeftSwipeAddSubtitle`; tip-toggle subtitle unchanged.
+  - **`<2>` outward caret (follow-up `057deb9`):** caret above bubble
+    with independent clearance + caret–bubble gap; aim = Create stadium
+    absolute horizontal center. Placement table in
+    `docs/reference/first-launch-browse-guidance.md`.
+  - **Gesture baseline at `<1>` (Cap 30.7 code audit):** with library
+    size > 1, vertical PageView swipe is functionally available when
+    `<1>` appears (independent of Layer 1 decode). Documented under
+    **Gesture availability at `<1>`** in the same reference file.
 - Relationship:
   Complements **ADR-041** / Cap 19.6–19.7 left-swipe tip (D6 narrow
   gate only on first-install chain path). Aligns with MVP positioning

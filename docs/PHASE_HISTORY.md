@@ -1461,3 +1461,34 @@ Related polish (not a Cap 29 phase): Limited Create helper EN/zh_Hans
 gap + stadium center — `9d42fab` (layout notes §11.3; ADR-059 D1 left
 Browse Create helper as existing chrome — maintenance bugfix, not
 421 decision narrative).
+
+## First-launch Browse guidance (Cap 30) — completed 2026-09-25
+
+- [x] 30.1 Contract freeze — ADR-060 Proposed; notes
+      `docs/acceptance/cap30-30.1-notes.md` (docs-only; freeze
+      `d65af35`)
+- [x] 30.2 Step KV + ordered orchestrator + D6 arm gate (logic/tests)
+      — work `da33d41`; notes `docs/acceptance/cap30-30.2-notes.md`
+- [x] 30.3 `<1>` centered vertical up/down coach UI — work `524b28b`;
+      notes `docs/acceptance/cap30-30.3-notes.md`
+- [x] 30.4 `<2>` Create Pool anchored tooltip — work `53860fd`;
+      notes `docs/acceptance/cap30-30.4-notes.md`
+- [x] 30.5 Verify D6 vs Cap 19 tip + coach polish — work `21ba370`;
+      notes `docs/acceptance/cap30-30.5-notes.md`; reference
+      `docs/reference/first-launch-browse-guidance.md`
+- [x] 30.6 D7 left-swipe copy relocate + final ARB + P4 — work
+      `0897ce5`; tip caret follow-up `057deb9`; notes
+      `docs/acceptance/cap30-30.6-notes.md`
+- [x] 30.7 Device acceptance + Cap close-out docs
+      (Kafka + i17 M1/M2/M4 PASS; full `flutter test` PASS; ADR-060
+      Accepted multi-anchor A; gesture baseline + Layer1 edges in
+      reference / notes `379b589`; test hardening `bacfb7d`)
+      — docs (this commit)
+
+Docs close-out (STATE + PHASE_HISTORY + ADR-060 Accepted): (this commit)
+
+Related ADR: ADR-060 Accepted (2026-09-24) on
+`da33d41`+`524b28b`+`53860fd`+`21ba370`+`0897ce5`; Consequences record
+P3 per-step durations, D7 final copy, outward caret, gesture baseline.
+Complements ADR-041 (D6 narrow gate only). Known debt at close:
+**480** / **481** remain Open (out of Cap 30).
