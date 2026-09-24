@@ -193,6 +193,33 @@ See **Architecture** above for binding / extension. Ops summary:
 - Full = Limited for `<2>` visibility (Create may be disabled under
   Limited; tip still shows). Arrow aim does **not** change by access.
 
+## Gesture availability at `<1>`
+
+**Baseline (code-verified, Cap 30.7):** When the library has **more than
+one** item, at the moment `<1>` appears, **vertical PageView swipe is
+functionally available**. This does **not** depend on Layer 1 (current
+item image / “Loading item”) having finished decoding.
+
+Evidence checked in code:
+
+1. Showing `<1>` requires `assetId != null` → `browseSession` is already
+   in `data` → the vertical `PageView` is mounted.
+2. `<1>` chrome is wrapped in `IgnorePointer` — it does not absorb
+   touches.
+3. Center **Loading item** chrome does **not** use `AbsorbPointer` — it
+   does not intercept vertical drags.
+4. The only path that truly disables vertical scroll is magnification
+   lock (`NeverScrollableScrollPhysics`). A cold first-install show of
+   `<1>` is practically never in that state.
+
+**Separate exception (content, not gesture failure):** If the library
+has **exactly one** item, the user can still drag, but there is no
+“next” page to land on. That is a content limit — do **not** describe
+it as “swipe broken at `<1>`.”
+
+Layer 1 paint and `<1>` are **not** bound: coach timing follows
+`browseItemReady` (has current asset id), not first-frame decode.
+
 ## UI surface (see **P2**)
 
 | Param | Value | Constant / helper |
