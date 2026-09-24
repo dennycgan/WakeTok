@@ -297,7 +297,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 31.4 Free fix / polish bucket
       (owner may add items anytime; each new item: one acceptance-notes
       line “owner proposed XX; fix/polish because YY” before code;
-      no mandatory new debt/ADR; **no new features**)
+      no mandatory new debt/ADR; **no new features**; filed items so far
+      live in `docs/acceptance/cap31-31.4-notes.md` — check that file
+      before assuming this bucket is empty)
 - [ ] 31.5 Competitor-codename full-repo scan
       (**after** 31.1–31.4 complete — scan near-final tree, not mid-Cap;
       ARB / comments / code strings / docs; Release-visible first)
