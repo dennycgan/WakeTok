@@ -179,8 +179,9 @@
       PHASE_HISTORY; debts **480** / **481** remain Open)
 - [ ] Pre-v1 bug fix and UI polish sweep
       (Cap 31; scope = Settings hierarchy/weight + Live Photo
-      album-case fix + video black-frame dig + competitor-codename
-      full-repo scan + owner-filed fix/polish in the free bucket;
+      album-case fix + video black-frame dig + owner-filed fix/polish
+      free bucket + probe/debug Settings cleanup + competitor-codename
+      full-repo scan + device acceptance / Cap close-out;
       acceptance-discovered kin bugs OK; **no new features**;
       Cap 30 close boundary: debug / fix / non-behaviour polish only)
       <-- YOU ARE HERE
@@ -273,13 +274,14 @@
 ## Phase Roadmap (active capability only)
 Active capability: Pre-v1 bug fix and UI polish sweep (Cap 31)
 Contract: Settings hierarchy/weight + Live Photo album-case fix +
-video black-frame dig + free fix/polish bucket + competitor-codename
-full-repo scan (after 31.1–31.4) + device acceptance / Cap close-out;
-acceptance kin bugs OK; **no new features**; Cap 30 close boundary
-(debug / fix / non-behaviour polish only). No separate contract-freeze
-phase — Capability Roadmap line is the boundary. Insert 31.Na / 31.Nb
-under a main phase when that item needs deeper split; do not renumber
-later mains. Sequential only (not parallel tracks).
+video black-frame dig + free fix/polish bucket + probe/debug cleanup
+(31.5) + competitor-codename full-repo scan (after 31.1–31.5) +
+device acceptance / Cap close-out; acceptance kin bugs OK; **no new
+features**; Cap 30 close boundary (debug / fix / non-behaviour polish
+only). No separate contract-freeze phase — Capability Roadmap line is
+the boundary. Insert 31.Na / 31.Nb under a main phase when that item
+needs deeper split; do not renumber later mains. Sequential only (not
+parallel tracks).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 - [ ] 31.1 Settings hierarchy / weight / info organization
@@ -300,23 +302,57 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       no mandatory new debt/ADR; **no new features**; filed items so far
       live in `docs/acceptance/cap31-31.4-notes.md` — check that file
       before assuming this bucket is empty)
-- [ ] 31.5 Competitor-codename full-repo scan
-      (**after** 31.1–31.4 complete — scan near-final tree, not mid-Cap;
+- [ ] 31.5 Probe / debug cleanup (pre-v1)
+      (**Inventory layers A–D**, owner 2026-09-27 chat — not
+      “Settings-only vs whole-repo”.)
+      **In scope this phase:**
+      (1) **A1+A2** — remove Settings-visible Cap 27 L1-stall + Cap 28
+      live probe sections (`!kReleaseMode` mounts in Settings
+      `ListView`); product Settings chrome only.
+      (2) **D1** — gate `ScrubPreviewProbe` (and its Host call sites)
+      so **Flutter/App Store Release is silent**; keep Debug+Profile
+      emission if still needed for soaks. **Do not** implement the
+      Release gate as bare `#if DEBUG` alone (Profile iOS usually has
+      `DEBUG` false — that would also kill Profile Console). Prefer a
+      Release-vs-(Debug|Profile) split (e.g. Dart `!kReleaseMode`
+      wired once, or an equivalent compile flag).
+      **Explicit start gate:** before any 31.5 code, confirm 31.2 /
+      31.3 no longer need A1/A2 buttons or B1/B2 Documents logging;
+      do not assume “later phase number ⇒ safe.”
+      **Out of scope / deferred:**
+      — **B1–B4** implementations + Browse/authority call sites +
+      Chrome-axis Host: **keep** (UI entry for Cap 27/28 **is** A1/A2
+      only — B3/B4 have no Settings UI). Revisit delete vs keep at
+      Cap close-out / hardening using debt **478** (and kin) status;
+      when A1 Settings UI is removed, update debt **478** probe
+      pointer (keep-while-Open text today names the Settings section).
+      — **A3+C** library_smoke Debug entry + smoke ARB: keep per debt
+      **417** (post-v1 Settings / localisation Cap).
+      — **D2** (`#if DEBUG` native test helpers) / **D3** (Dart
+      `debugPrint`): not required this phase.
+      **Do not** delete product `library_smoke/*_providers` composition
+      seams under the smoke folder name.
+- [ ] 31.6 Competitor-codename full-repo scan
+      (**after** 31.1–31.5 complete — scan near-final tree, not mid-Cap;
       ARB / comments / code strings / docs; Release-visible first)
-- [ ] 31.6 Device acceptance matrix + Cap close-out
+- [ ] 31.7 Device acceptance matrix + Cap close-out
       (Cap 30.7 pattern: device matrix + needed regression; STATE `[x]`
-      + PHASE_HISTORY + debt status updates)
+      + PHASE_HISTORY + debt status updates; includes any deferred
+      B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 31 scoped in STATE — code starts next session
-      at 31.1 (Settings hierarchy / weight)
-- Sub-steps done: Cap 30 closed; Cap 31 Capability + Phase Roadmap
-      written (no `lib/` in this docs turn)
-- Next step: 31.1 Settings hierarchy / weight / info organization
-- Related decisions: Cap 30 close boundary (debug / fix /
-      non-behaviour polish only); debts **480** / **481** Open (not
-      Cap 31-scheduled; free bucket only if owner files them); debt
-      **441** Monitoring (picked up by 31.3)
+- Goal (one line): Cap 31.1 Settings hierarchy / weight / info
+      organization — work on `main` (`bac2521` + `809d238`)
+- Sub-steps done: extract `anchored_info_bubble`; Settings chrome
+      helpers; info bubbles; Photos Access row-chrome special-case;
+      section title strings + locale colons; titleChrome 24/w800;
+      hierarchy tests; work commits pushed (push of `809d238` may
+      still be pending)
+- Next step: owner accept 31.1 close (or file follow-ups); then 31.2
+- Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
+      (chat); debts **480** / **481** Open; **441** Monitoring (31.3);
+      **478** Open (probe keep-while-Open — Settings UI later stripped
+      in 31.5, implementation retained until revisit)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
