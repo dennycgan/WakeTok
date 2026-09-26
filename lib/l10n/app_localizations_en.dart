@@ -45,7 +45,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get limitedAccessManageSelection => 'Manage selection';
 
   @override
-  String get photosAccessSettingsSectionTitle => 'Photos Access';
+  String get photosAccessSettingsSectionTitle => 'Photo Library Access';
 
   @override
   String get photosAccessFullStatusMessage =>
@@ -851,17 +851,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Once per launch when Browse is ready';
 
   @override
-  String get browseSettingsSectionTitle => 'Browse notices';
+  String get browseSettingsSectionTitle => 'On-screen messages';
 
   @override
   String get browseSettingsNewRoundToastTitle => 'Starting-over notice';
 
   @override
   String get browseSettingsNewRoundToastSubtitle =>
-      'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
+      'A short message near the top of Browse when the list starts over';
 
   @override
-  String get browseDisplaySettingsSectionTitle => 'Browse display';
+  String get browseSettingsNewRoundToastInfo =>
+      'A short message appears near the top of Browse when the list starts over. Shows for about 1.5 seconds. Swipe away and it disappears right away.';
+
+  @override
+  String get settingsInfoBubbleSemantics => 'More information';
+
+  @override
+  String get browseDisplaySettingsSectionTitle => 'On-screen details';
 
   @override
   String get browseDisplayMetaOverlayTitle => 'Show item details';

@@ -16,7 +16,7 @@ import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
 import 'package:waketok/features/main_browse/cap24_more_panel_open.dart';
 import 'package:waketok/features/main_browse/cap24_panel_host_context.dart';
 import 'package:waketok/features/main_browse/cap24_soft_delete_dialogs.dart';
-import 'package:waketok/features/main_browse/cap24_timezone_note_bubble.dart';
+import 'package:waketok/features/main_browse/anchored_info_bubble.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/playback_coordinator_provider.dart';
 import 'package:waketok/features/main_browse/presentation_size_cache.dart';
@@ -91,7 +91,7 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
   var _deleteLatch = false;
   /// Cap 26.5: blocks re-entrant Add → Cap23 → pop → Cap19 until settle.
   var _addToAlbumLatch = false;
-  Cap24TimezoneNoteBubbleHandle? _timezoneNoteBubble;
+  AnchoredInfoBubbleHandle? _timezoneNoteBubble;
   final GlobalKey _timezoneInfoAnchorKey = GlobalKey();
   /// Barrier dismiss + IconButton can both see the same tap (translucent
   /// barrier). Consume one reopen attempt so re-tap i only closes.
@@ -114,12 +114,12 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
 
   @override
   void dispose() {
-    _dismissTimezoneNoteBubble();
+    _dismissTimezoneNoteBubble(notify: false);
     super.dispose();
   }
 
-  void _dismissTimezoneNoteBubble() {
-    _timezoneNoteBubble?.dismiss();
+  void _dismissTimezoneNoteBubble({bool notify = true}) {
+    _timezoneNoteBubble?.dismiss(notify: notify);
     _timezoneNoteBubble = null;
   }
 
@@ -139,10 +139,20 @@ class _Cap24MoreHalfSheetState extends ConsumerState<Cap24MoreHalfSheet> {
       return;
     }
     final l10n = AppLocalizations.of(context)!;
-    _timezoneNoteBubble = showCap24TimezoneNoteBubble(
+    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
+    // Cap 24 half-sheet stays Brightness.dark — keep historical on-media
+    // label size for the honesty note (Settings uses chrome body instead).
+    final noteStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: tokens.onSurface,
+          height: 1.35,
+        );
+    _timezoneNoteBubble = showAnchoredInfoBubble(
       context: context,
       anchorKey: _timezoneInfoAnchorKey,
       message: l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
+      textStyle: noteStyle,
+      bubbleKey: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
+      barrierKey: const Key('cap24SoftDeleteSheetMinuteTimezoneNoteBarrier'),
       onDismissed: () {
         _timezoneNoteBubble = null;
         _suppressTimezoneInfoReopen = true;

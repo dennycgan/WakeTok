@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/cap27_l1_stall_probe.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/settings_layout.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 27 L1-stall probe controls (Profile/Debug; `!kReleaseMode`).
 ///
 /// Kept while debt **478** (non-`deviceLocal` / iCloud remount soft L1 stick)
 /// is Open. Same gate as [cap27L1StallProbeEnabled] — Release is a no-op.
+/// Cap 31.1: section header chrome only — no group cards.
 class Cap27L1StallProbeSettingsSection extends ConsumerWidget {
   const Cap27L1StallProbeSettingsSection({super.key});
 
@@ -47,16 +49,14 @@ class Cap27L1StallProbeSettingsSection extends ConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     return Column(
+      key: const Key('cap27L1StallProbeSettingsSection'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          l10n.cap27L1StallProbeSectionTitle,
-          style: tokens.titleChrome,
-        ),
-        const SizedBox(height: 8),
+        SettingsSectionHeader(title: l10n.cap27L1StallProbeSectionTitle),
+        const SizedBox(height: kSettingsSectionTitleToRowGap),
         Text(
           l10n.cap27L1StallProbeBlurb,
-          style: tokens.bodyChrome.copyWith(color: tokens.onSurface),
+          style: settingsStatusBodyStyle(tokens),
         ),
         const SizedBox(height: 12),
         FilledButton(

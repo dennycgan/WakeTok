@@ -165,10 +165,10 @@ abstract class AppLocalizations {
   /// **'Manage selection'**
   String get limitedAccessManageSelection;
 
-  /// Cap 29 Settings section title for Photos library access (ADR-059 / kickoff §2.8)
+  /// Cap 29/31 Settings section title — photo library access (ADR-059 / kickoff §2.8); EN aligns with zh 照片访问权限
   ///
   /// In en, this message translates to:
-  /// **'Photos Access'**
+  /// **'Photo Library Access'**
   String get photosAccessSettingsSectionTitle;
 
   /// Cap 29 Settings status when Photos access is Full (ADR-059)
@@ -1554,7 +1554,7 @@ abstract class AppLocalizations {
   /// **'Swipe left to add to WakeTok'**
   String get cap19SettingsLeftSwipeAddTitle;
 
-  /// Cap 30.6 / ADR-060 D7 — Settings master left-swipe-add subtitle (safety copy relocated from Browse coach)
+  /// Cap 31.1 — left-swipe add safety copy in Settings info bubble (was Cap 30.6 list subtitle; D2 A)
   ///
   /// In en, this message translates to:
   /// **'Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted'**
@@ -1566,16 +1566,16 @@ abstract class AppLocalizations {
   /// **'Show left-swipe tip'**
   String get cap19SettingsLeftSwipeGuideTitle;
 
-  /// Cap 19.7 guide tip toggle subtitle
+  /// Cap 31.1 — left-swipe tip timing explanation in Settings info bubble (was list subtitle)
   ///
   /// In en, this message translates to:
   /// **'Once per launch when Browse is ready'**
   String get cap19SettingsLeftSwipeGuideSubtitle;
 
-  /// Cap 22.5 Settings section for Browse notifications (not bottom-nav Browse)
+  /// Cap 22.5/31 Settings section for in-app Browse messages (not system notifications)
   ///
   /// In en, this message translates to:
-  /// **'Browse notices'**
+  /// **'On-screen messages'**
   String get browseSettingsSectionTitle;
 
   /// Cap 22.5 toggle title for end-of-list restart toast
@@ -1584,16 +1584,28 @@ abstract class AppLocalizations {
   /// **'Starting-over notice'**
   String get browseSettingsNewRoundToastTitle;
 
-  /// Cap 22.5 toggle subtitle: where, when, duration, early dismiss
+  /// Cap 31.1 — retained ARB; list UI no longer shows this (merged into browseSettingsNewRoundToastInfo bubble)
   ///
   /// In en, this message translates to:
-  /// **'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.'**
+  /// **'A short message near the top of Browse when the list starts over'**
   String get browseSettingsNewRoundToastSubtitle;
 
-  /// Cap 28.6 Settings section for Browse chrome display prefs
+  /// Cap 31.1 — starting-over notice full explanation in Settings info bubble (place + duration + dismiss)
   ///
   /// In en, this message translates to:
-  /// **'Browse display'**
+  /// **'A short message appears near the top of Browse when the list starts over. Shows for about 1.5 seconds. Swipe away and it disappears right away.'**
+  String get browseSettingsNewRoundToastInfo;
+
+  /// Cap 31.1 — accessibility label for Settings anchored info i controls
+  ///
+  /// In en, this message translates to:
+  /// **'More information'**
+  String get settingsInfoBubbleSemantics;
+
+  /// Cap 28.6/31 Settings section for on-screen item details chrome
+  ///
+  /// In en, this message translates to:
+  /// **'On-screen details'**
   String get browseDisplaySettingsSectionTitle;
 
   /// Cap 28.6 toggle title; switch ON shows bottom-left meta rows
@@ -1602,7 +1614,7 @@ abstract class AppLocalizations {
   /// **'Show item details'**
   String get browseDisplayMetaOverlayTitle;
 
-  /// Cap 28.6: how to hide (turn off) + location + process-only restore
+  /// Cap 31.1 — meta overlay explanation in Settings info bubble (was list subtitle)
   ///
   /// In en, this message translates to:
   /// **'Turn off to hide the details shown at the bottom-left of each item. Reopening the app restores display.'**

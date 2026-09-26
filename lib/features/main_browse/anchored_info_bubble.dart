@@ -2,20 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 
 /// Max bubble width; also clamped to overlay width − padding.
-const double kCap24TimezoneNoteBubbleMaxWidth = 300;
+const double kAnchoredInfoBubbleMaxWidth = 300;
 
 /// Max bubble height; overflow scrolls inside the bubble.
-const double kCap24TimezoneNoteBubbleMaxHeight = 280;
+const double kAnchoredInfoBubbleMaxHeight = 280;
 
-const double kCap24TimezoneNoteBubbleGap = 6;
+/// Gap between the anchor and the bubble edge.
+const double kAnchoredInfoBubbleGap = 6;
+
 const double _kBubbleEdgePad = 12;
 
-/// Handle for an open Cap 24 timezone honesty bubble.
+/// Default surface alpha (Cap 24 / Settings shared recipe).
+const double kAnchoredInfoBubbleSurfaceAlpha = 0.96;
+
+/// Handle for an open anchored info bubble.
 ///
 /// [dismiss] only removes the [OverlayEntry] — it must never call
-/// [Navigator.pop] (sheet dismiss stays on the modal route / PopScope).
-final class Cap24TimezoneNoteBubbleHandle {
-  Cap24TimezoneNoteBubbleHandle._(this._entry, {this.onDismissed});
+/// [Navigator.pop] (modal sheet dismiss stays on the route / PopScope).
+final class AnchoredInfoBubbleHandle {
+  AnchoredInfoBubbleHandle._(this._entry, {this.onDismissed});
 
   OverlayEntry? _entry;
   final VoidCallback? onDismissed;
@@ -23,13 +28,18 @@ final class Cap24TimezoneNoteBubbleHandle {
   bool get isShowing => _entry != null;
 
   /// Removes the overlay only — never pops a [Navigator] route.
-  void dismiss() {
+  ///
+  /// Pass [notify] false when disposing the host widget so [onDismissed]
+  /// cannot [State.setState] on a defunct element.
+  void dismiss({bool notify = true}) {
     if (_entry == null) {
       return;
     }
     _entry?.remove();
     _entry = null;
-    onDismissed?.call();
+    if (notify) {
+      onDismissed?.call();
+    }
   }
 }
 
@@ -38,23 +48,30 @@ final class Cap24TimezoneNoteBubbleHandle {
 /// Prefer [anchorKey]; for tests, [anchorOverlayRect] may supply a rect in
 /// overlay coordinates when the production GlobalKey is inaccessible.
 /// Prefer above the anchor; flip below if needed. Horizontal shift keeps the
-/// bubble on-screen (may extend into the modal barrier above the sheet).
-Cap24TimezoneNoteBubbleHandle showCap24TimezoneNoteBubble({
+/// bubble on-screen (may extend into a modal barrier above a sheet).
+///
+/// [bubbleKey] / [barrierKey] let callers keep Cap-specific finder keys
+/// (e.g. Cap 24 timezone note) without baking Cap names into this API.
+AnchoredInfoBubbleHandle showAnchoredInfoBubble({
   required BuildContext context,
   required String message,
   GlobalKey? anchorKey,
   Rect? anchorOverlayRect,
+  Key? bubbleKey,
+  Key? barrierKey,
+  TextStyle? textStyle,
+  Color? surfaceColor,
   VoidCallback? onDismissed,
 }) {
   assert(
     anchorKey != null || anchorOverlayRect != null,
-    'showCap24TimezoneNoteBubble requires anchorKey or anchorOverlayRect',
+    'showAnchoredInfoBubble requires anchorKey or anchorOverlayRect',
   );
 
   final overlay = Overlay.of(context);
   final overlayBox = overlay.context.findRenderObject() as RenderBox?;
   if (overlayBox == null || !overlayBox.hasSize) {
-    return Cap24TimezoneNoteBubbleHandle._(null, onDismissed: onDismissed);
+    return AnchoredInfoBubbleHandle._(null, onDismissed: onDismissed);
   }
   final overlaySize = overlayBox.size;
 
@@ -66,11 +83,11 @@ Cap24TimezoneNoteBubbleHandle showCap24TimezoneNoteBubble({
   } else {
     final anchorContext = anchorKey!.currentContext;
     if (anchorContext == null) {
-      return Cap24TimezoneNoteBubbleHandle._(null, onDismissed: onDismissed);
+      return AnchoredInfoBubbleHandle._(null, onDismissed: onDismissed);
     }
     final anchorBox = anchorContext.findRenderObject() as RenderBox?;
     if (anchorBox == null || !anchorBox.hasSize) {
-      return Cap24TimezoneNoteBubbleHandle._(null, onDismissed: onDismissed);
+      return AnchoredInfoBubbleHandle._(null, onDismissed: onDismissed);
     }
     anchorTopLeft = anchorBox.localToGlobal(
       Offset.zero,
@@ -80,12 +97,15 @@ Cap24TimezoneNoteBubbleHandle showCap24TimezoneNoteBubble({
   }
 
   final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-  final textStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+  final resolvedTextStyle = textStyle ??
+      tokens.bodyChrome.copyWith(
         color: tokens.onSurface,
         height: 1.35,
       );
+  final resolvedSurface = surfaceColor ??
+      tokens.surface.withValues(alpha: kAnchoredInfoBubbleSurfaceAlpha);
 
-  late Cap24TimezoneNoteBubbleHandle handle;
+  late AnchoredInfoBubbleHandle handle;
 
   void dismissOnly() => handle.dismiss();
 
@@ -95,60 +115,63 @@ Cap24TimezoneNoteBubbleHandle showCap24TimezoneNoteBubble({
         children: [
           Positioned.fill(
             child: GestureDetector(
-              key: const Key('cap24SoftDeleteSheetMinuteTimezoneNoteBarrier'),
+              key: barrierKey,
               behavior: HitTestBehavior.opaque,
-              // Opaque: do not pass taps through to the modal sheet barrier
-              // (would pop the half-sheet) or to Delete (first tap closes note).
+              // Opaque: do not pass taps through to a modal sheet barrier
+              // (would pop a half-sheet) or to controls under the bubble.
               onTap: dismissOnly,
             ),
           ),
-          _AnchoredTimezoneNoteBubble(
+          _AnchoredInfoBubble(
             overlaySize: overlaySize,
             anchorTopLeft: anchorTopLeft,
             anchorSize: anchorSize,
             message: message,
-            textStyle: textStyle,
-            surfaceColor: tokens.surface.withValues(alpha: 0.96),
+            textStyle: resolvedTextStyle,
+            surfaceColor: resolvedSurface,
+            bubbleKey: bubbleKey,
           ),
         ],
       );
     },
   );
 
-  handle = Cap24TimezoneNoteBubbleHandle._(entry, onDismissed: onDismissed);
+  handle = AnchoredInfoBubbleHandle._(entry, onDismissed: onDismissed);
   overlay.insert(entry);
   return handle;
 }
 
-class _AnchoredTimezoneNoteBubble extends StatelessWidget {
-  const _AnchoredTimezoneNoteBubble({
+class _AnchoredInfoBubble extends StatelessWidget {
+  const _AnchoredInfoBubble({
     required this.overlaySize,
     required this.anchorTopLeft,
     required this.anchorSize,
     required this.message,
     required this.textStyle,
     required this.surfaceColor,
+    this.bubbleKey,
   });
 
   final Size overlaySize;
   final Offset anchorTopLeft;
   final Size anchorSize;
   final String message;
-  final TextStyle? textStyle;
+  final TextStyle textStyle;
   final Color surfaceColor;
+  final Key? bubbleKey;
 
   @override
   Widget build(BuildContext context) {
     final maxWidth = (overlaySize.width - (_kBubbleEdgePad * 2))
-        .clamp(0.0, kCap24TimezoneNoteBubbleMaxWidth)
+        .clamp(0.0, kAnchoredInfoBubbleMaxWidth)
         .toDouble();
-    final maxHeight = kCap24TimezoneNoteBubbleMaxHeight;
+    final maxHeight = kAnchoredInfoBubbleMaxHeight;
 
     final spaceAbove = anchorTopLeft.dy - _kBubbleEdgePad;
     final spaceBelow = overlaySize.height -
         (anchorTopLeft.dy + anchorSize.height) -
         _kBubbleEdgePad;
-    // Prefer directly above the i; only flip below when above is too tight.
+    // Prefer directly above the anchor; only flip below when above is too tight.
     final placeAbove = spaceAbove >= 96 || spaceAbove >= spaceBelow;
 
     final anchorCenterX = anchorTopLeft.dx + anchorSize.width / 2;
@@ -164,7 +187,7 @@ class _AnchoredTimezoneNoteBubble extends StatelessWidget {
       // Absorb taps so the barrier underneath does not dismiss.
       onTap: () {},
       child: Material(
-        key: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
+        key: bubbleKey,
         color: surfaceColor,
         elevation: 6,
         borderRadius: BorderRadius.circular(10),
@@ -176,15 +199,14 @@ class _AnchoredTimezoneNoteBubble extends StatelessWidget {
     );
 
     if (placeAbove) {
-      // Pin the bubble's *bottom* just above the i — not top at -maxHeight
+      // Pin the bubble's *bottom* just above the anchor — not top at -maxHeight
       // (that left a large empty gap when the copy was shorter than maxHeight).
-      final heightBudget =
-          spaceAbove.clamp(48.0, maxHeight).toDouble();
+      final heightBudget = spaceAbove.clamp(48.0, maxHeight).toDouble();
       return Positioned(
         left: left,
         width: maxWidth,
         bottom: overlaySize.height -
-            (anchorTopLeft.dy - kCap24TimezoneNoteBubbleGap),
+            (anchorTopLeft.dy - kAnchoredInfoBubbleGap),
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: maxWidth,
@@ -198,7 +220,7 @@ class _AnchoredTimezoneNoteBubble extends StatelessWidget {
     final heightBudget = spaceBelow.clamp(48.0, maxHeight).toDouble();
     return Positioned(
       left: left,
-      top: anchorTopLeft.dy + anchorSize.height + kCap24TimezoneNoteBubbleGap,
+      top: anchorTopLeft.dy + anchorSize.height + kAnchoredInfoBubbleGap,
       width: maxWidth,
       child: ConstrainedBox(
         constraints: BoxConstraints(

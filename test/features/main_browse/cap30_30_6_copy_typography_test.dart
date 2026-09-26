@@ -66,7 +66,7 @@ void main() {
   );
 
   testWidgets(
-    'T-30.6-C2 Settings master add subtitle holds safety copy (EN)',
+    'T-30.6-C2 Settings master add safety copy lives in info bubble (EN)',
     (tester) async {
       final l10n = await AppLocalizations.delegate.load(const Locale('en'));
       await tester.pumpWidget(
@@ -88,25 +88,39 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const Key('cap19GesturesSettingsSection')), findsOneWidget);
+      // Cap 31.1 D2 A: safety copy is not a list subtitle.
       expect(
         find.descendant(
           of: find.byKey(const Key('cap19SettingsLeftSwipeAddToggle')),
           matching: find.text(l10n.cap19SettingsLeftSwipeAddSubtitle),
         ),
-        findsOneWidget,
+        findsNothing,
       );
       expect(
         l10n.cap19SettingsLeftSwipeAddSubtitle,
         'Saves it to your WakeTok album as a bookmark for later in Photos — '
         'nothing is moved or deleted',
       );
+      await tester.tap(find.byKey(const Key('cap19SettingsLeftSwipeAddInfo')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('cap19SettingsLeftSwipeAddInfoBubble')),
+        findsOneWidget,
+      );
+      expect(find.text(l10n.cap19SettingsLeftSwipeAddSubtitle), findsOneWidget);
       expect(
         find.descendant(
           of: find.byKey(const Key('cap19SettingsLeftSwipeGuideToggle')),
           matching: find.text(l10n.cap19SettingsLeftSwipeGuideSubtitle),
         ),
-        findsOneWidget,
+        findsNothing,
       );
+      // Dismiss add bubble before opening guide info (opaque barrier blocks taps).
+      await tester.tapAt(const Offset(4, 4));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('cap19SettingsLeftSwipeGuideInfo')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.cap19SettingsLeftSwipeGuideSubtitle), findsOneWidget);
     },
   );
 
@@ -226,8 +240,11 @@ void main() {
           of: find.byKey(const Key('cap19SettingsLeftSwipeAddToggle')),
           matching: find.text(l10n.cap19SettingsLeftSwipeAddSubtitle),
         ),
-        findsOneWidget,
+        findsNothing,
       );
+      await tester.tap(find.byKey(const Key('cap19SettingsLeftSwipeAddInfo')));
+      await tester.pumpAndSettle();
+      expect(find.text(l10n.cap19SettingsLeftSwipeAddSubtitle), findsOneWidget);
       expect(
         l10n.cap19SettingsLeftSwipeAddSubtitle,
         '保存到 WakeTok 相册，当作稍后在「照片」里查找或操作的标记 — 不会移动或删除原文件',

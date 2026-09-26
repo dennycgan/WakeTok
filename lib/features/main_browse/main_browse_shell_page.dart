@@ -22,6 +22,7 @@ import 'package:waketok/features/main_browse/cap27_l1_stall_probe_settings.dart'
 import 'package:waketok/features/main_browse/cap28_live_probe_settings.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/order_control_half_sheet.dart';
+import 'package:waketok/features/main_browse/settings_layout.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
@@ -384,16 +385,16 @@ class _SettingsStubPane extends StatelessWidget {
           // Cap 29.2 / ADR-059: Photos Access first (kickoff §2.8). Add only
           // ListView children — do not unwrap SafeArea (29.1 / 29.2 exit).
           const PhotosAccessSettingsSection(),
-          const SizedBox(height: 28),
+          const SizedBox(height: kSettingsSectionGap),
           const Cap19GesturesSettingsSection(),
-          const SizedBox(height: 28),
+          const SizedBox(height: kSettingsSectionGap),
           const BrowseDisplaySettingsSection(),
-          const SizedBox(height: 28),
+          const SizedBox(height: kSettingsSectionGap),
           const BrowseNotificationsSettingsSection(),
           // After Photos Access (Cap 29): debug smoke may sit below the
           // fold — tests use dragUntilVisible. Release omits the control.
           if (kDebugMode) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: kSettingsSectionGap),
             FilledButton(
               key: const Key('mainBrowseOpenLibrarySmokeDebug'),
               onPressed: () {
@@ -408,9 +409,9 @@ class _SettingsStubPane extends StatelessWidget {
           ],
           // After library-smoke debug (tests find that key without scrolling).
           if (!kReleaseMode) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: kSettingsSectionGap),
             const Cap27L1StallProbeSettingsSection(),
-            const SizedBox(height: 28),
+            const SizedBox(height: kSettingsSectionGap),
             const Cap28LiveProbeSettingsSection(),
           ],
         ],

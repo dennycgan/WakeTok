@@ -146,7 +146,7 @@ void main() {
   });
 
   testWidgets(
-    'W-28.6-6 Settings order Gestures → Browse display → Browse notices; '
+    'W-28.6-6 Settings order Gestures → On-screen details → On-screen messages; '
     'switch ON shows (polarity B)',
     (tester) async {
       final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
@@ -258,7 +258,8 @@ void main() {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text(l10n.browseDisplaySettingsSectionTitle), findsOneWidget);
     expect(find.text(l10n.browseDisplayMetaOverlayTitle), findsOneWidget);
-    expect(find.text(l10n.browseDisplayMetaOverlaySubtitle), findsOneWidget);
+    expect(find.text(l10n.browseDisplayMetaOverlaySubtitle), findsNothing);
+    expect(find.byKey(const Key('browseDisplayMetaOverlayInfo')), findsOneWidget);
     expect(find.text('Show item details'), findsOneWidget);
   });
 }

@@ -847,17 +847,24 @@ class AppLocalizationsZh extends AppLocalizations {
       'Once per launch when Browse is ready';
 
   @override
-  String get browseSettingsSectionTitle => 'Browse notices';
+  String get browseSettingsSectionTitle => 'On-screen messages';
 
   @override
   String get browseSettingsNewRoundToastTitle => 'Starting-over notice';
 
   @override
   String get browseSettingsNewRoundToastSubtitle =>
-      'When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.';
+      'A short message near the top of Browse when the list starts over';
 
   @override
-  String get browseDisplaySettingsSectionTitle => 'Browse display';
+  String get browseSettingsNewRoundToastInfo =>
+      'A short message appears near the top of Browse when the list starts over. Shows for about 1.5 seconds. Swipe away and it disappears right away.';
+
+  @override
+  String get settingsInfoBubbleSemantics => 'More information';
+
+  @override
+  String get browseDisplaySettingsSectionTitle => 'On-screen details';
 
   @override
   String get browseDisplayMetaOverlayTitle => 'Show item details';
@@ -1747,17 +1754,23 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get cap19SettingsLeftSwipeGuideSubtitle => '每次启动在浏览就绪时显示一次';
 
   @override
-  String get browseSettingsSectionTitle => '浏览提示';
+  String get browseSettingsSectionTitle => '屏幕内提示';
 
   @override
   String get browseSettingsNewRoundToastTitle => '重新开始提示';
 
   @override
-  String get browseSettingsNewRoundToastSubtitle =>
-      '当你把当前列表刷完、从头再看时，浏览页顶部会短暂出现一条提示，大约 1.5 秒。一划走就会立刻消失。';
+  String get browseSettingsNewRoundToastSubtitle => '列表重新开始时，浏览页顶部会出现一条短提示';
 
   @override
-  String get browseDisplaySettingsSectionTitle => '浏览显示';
+  String get browseSettingsNewRoundToastInfo =>
+      '列表重新开始时，浏览页顶部会出现一条短提示。大约显示 1.5 秒。一划走就会立刻消失。';
+
+  @override
+  String get settingsInfoBubbleSemantics => '更多说明';
+
+  @override
+  String get browseDisplaySettingsSectionTitle => '屏幕内详情展示';
 
   @override
   String get browseDisplayMetaOverlayTitle => '显示文件详情';

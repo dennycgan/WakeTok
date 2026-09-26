@@ -15,7 +15,7 @@ import 'package:waketok/domain/presentation/presentation_metadata.dart';
 import 'package:waketok/features/main_browse/cap19_browse_toast.dart';
 import 'package:waketok/features/main_browse/cap19_entry_layout.dart';
 import 'package:waketok/features/main_browse/cap24_minute_landmark.dart';
-import 'package:waketok/features/main_browse/cap24_timezone_note_bubble.dart';
+import 'package:waketok/features/main_browse/anchored_info_bubble.dart';
 import 'package:waketok/features/main_browse/center_playback_affordance.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/media_chrome_layout.dart';
@@ -777,10 +777,12 @@ void main() {
       final sheetContext =
           tester.element(find.byKey(const Key('cap24MoreHalfSheet')));
       final l10n = AppLocalizations.of(sheetContext)!;
-      final handle = showCap24TimezoneNoteBubble(
+      final handle = showAnchoredInfoBubble(
         context: sheetContext,
         message: l10n.cap24SoftDeleteSheetMinuteTimezoneNote,
         anchorOverlayRect: const Rect.fromLTWH(280, 520, 44, 44),
+        bubbleKey: const Key('cap24SoftDeleteSheetMinuteTimezoneNote'),
+        barrierKey: const Key('cap24SoftDeleteSheetMinuteTimezoneNoteBarrier'),
       );
       // Busy spinner animates forever — do not pumpAndSettle.
       await tester.pump();

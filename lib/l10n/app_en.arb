@@ -44,9 +44,9 @@
   "@limitedAccessManageSelection": {
     "description": "Opens the system limited-library picker"
   },
-  "photosAccessSettingsSectionTitle": "Photos Access",
+  "photosAccessSettingsSectionTitle": "Photo Library Access",
   "@photosAccessSettingsSectionTitle": {
-    "description": "Cap 29 Settings section title for Photos library access (ADR-059 / kickoff §2.8)"
+    "description": "Cap 29/31 Settings section title — photo library access (ADR-059 / kickoff §2.8); EN aligns with zh 照片访问权限"
   },
   "photosAccessFullStatusMessage": "Full access to your photo library.",
   "@photosAccessFullStatusMessage": {
@@ -1091,7 +1091,7 @@
   },
   "cap19SettingsLeftSwipeAddSubtitle": "Saves it to your WakeTok album as a bookmark for later in Photos — nothing is moved or deleted",
   "@cap19SettingsLeftSwipeAddSubtitle": {
-    "description": "Cap 30.6 / ADR-060 D7 — Settings master left-swipe-add subtitle (safety copy relocated from Browse coach)"
+    "description": "Cap 31.1 — left-swipe add safety copy in Settings info bubble (was Cap 30.6 list subtitle; D2 A)"
   },
   "cap19SettingsLeftSwipeGuideTitle": "Show left-swipe tip",
   "@cap19SettingsLeftSwipeGuideTitle": {
@@ -1099,23 +1099,31 @@
   },
   "cap19SettingsLeftSwipeGuideSubtitle": "Once per launch when Browse is ready",
   "@cap19SettingsLeftSwipeGuideSubtitle": {
-    "description": "Cap 19.7 guide tip toggle subtitle"
+    "description": "Cap 31.1 — left-swipe tip timing explanation in Settings info bubble (was list subtitle)"
   },
-  "browseSettingsSectionTitle": "Browse notices",
+  "browseSettingsSectionTitle": "On-screen messages",
   "@browseSettingsSectionTitle": {
-    "description": "Cap 22.5 Settings section for Browse notifications (not bottom-nav Browse)"
+    "description": "Cap 22.5/31 Settings section for in-app Browse messages (not system notifications)"
   },
   "browseSettingsNewRoundToastTitle": "Starting-over notice",
   "@browseSettingsNewRoundToastTitle": {
     "description": "Cap 22.5 toggle title for end-of-list restart toast"
   },
-  "browseSettingsNewRoundToastSubtitle": "When you finish browsing the whole list and it starts over, a short message appears near the top of Browse for about 1.5 seconds. Swipe away and it disappears right away.",
+  "browseSettingsNewRoundToastSubtitle": "A short message near the top of Browse when the list starts over",
   "@browseSettingsNewRoundToastSubtitle": {
-    "description": "Cap 22.5 toggle subtitle: where, when, duration, early dismiss"
+    "description": "Cap 31.1 — retained ARB; list UI no longer shows this (merged into browseSettingsNewRoundToastInfo bubble)"
   },
-  "browseDisplaySettingsSectionTitle": "Browse display",
+  "browseSettingsNewRoundToastInfo": "A short message appears near the top of Browse when the list starts over. Shows for about 1.5 seconds. Swipe away and it disappears right away.",
+  "@browseSettingsNewRoundToastInfo": {
+    "description": "Cap 31.1 — starting-over notice full explanation in Settings info bubble (place + duration + dismiss)"
+  },
+  "settingsInfoBubbleSemantics": "More information",
+  "@settingsInfoBubbleSemantics": {
+    "description": "Cap 31.1 — accessibility label for Settings anchored info i controls"
+  },
+  "browseDisplaySettingsSectionTitle": "On-screen details",
   "@browseDisplaySettingsSectionTitle": {
-    "description": "Cap 28.6 Settings section for Browse chrome display prefs"
+    "description": "Cap 28.6/31 Settings section for on-screen item details chrome"
   },
   "browseDisplayMetaOverlayTitle": "Show item details",
   "@browseDisplayMetaOverlayTitle": {
@@ -1123,7 +1131,7 @@
   },
   "browseDisplayMetaOverlaySubtitle": "Turn off to hide the details shown at the bottom-left of each item. Reopening the app restores display.",
   "@browseDisplayMetaOverlaySubtitle": {
-    "description": "Cap 28.6: how to hide (turn off) + location + process-only restore"
+    "description": "Cap 31.1 — meta overlay explanation in Settings info bubble (was list subtitle)"
   },
   "cap24MoreEntryIconSemantics": "More actions",
   "@cap24MoreEntryIconSemantics": {

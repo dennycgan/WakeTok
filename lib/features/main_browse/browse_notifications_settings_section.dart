@@ -1,11 +1,11 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
-import 'package:waketok/core/theme/waketok_theme.dart';
+import 'package:waketok/features/main_browse/settings_layout.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 22.5 — Browse notifications preferences (separate from Gestures).
+/// Cap 31.1 — explanatory copy in info bubble (list = title+i only).
 class BrowseNotificationsSettingsSection extends ConsumerStatefulWidget {
   const BrowseNotificationsSettingsSection({super.key});
 
@@ -58,17 +58,6 @@ class _BrowseNotificationsSettingsSectionState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: tokens.onSurface,
-          fontWeight: FontWeight.w600,
-        );
-    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: tokens.onSurface,
-        );
-    final mutedStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: tokens.onSurface.withValues(alpha: 0.65),
-        );
 
     if (!_loaded) {
       return const SizedBox.shrink();
@@ -78,34 +67,19 @@ class _BrowseNotificationsSettingsSectionState
       key: const Key('browseNotificationsSettingsSection'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(l10n.browseSettingsSectionTitle, style: titleStyle),
-        const SizedBox(height: 8),
-        Row(
+        SettingsSectionHeader(title: l10n.browseSettingsSectionTitle),
+        const SizedBox(height: kSettingsSectionTitleToRowGap),
+        SettingsToggleRow(
           key: const Key('browseSettingsNewRoundToastToggle'),
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l10n.browseSettingsNewRoundToastTitle,
-                    style: bodyStyle,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    l10n.browseSettingsNewRoundToastSubtitle,
-                    style: mutedStyle,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            CupertinoSwitch(
-              value: _newRoundEnabled,
-              onChanged: _setNewRoundEnabled,
-            ),
-          ],
+          title: l10n.browseSettingsNewRoundToastTitle,
+          value: _newRoundEnabled,
+          onChanged: _setNewRoundEnabled,
+          // Full explanation (place + duration + dismiss) in the bubble.
+          infoMessage: l10n.browseSettingsNewRoundToastInfo,
+          infoSemanticsLabel: l10n.settingsInfoBubbleSemantics,
+          infoButtonKey: const Key('browseSettingsNewRoundToastInfo'),
+          infoBubbleKey: const Key('browseSettingsNewRoundToastInfoBubble'),
+          infoBarrierKey: const Key('browseSettingsNewRoundToastInfoBarrier'),
         ),
       ],
     );

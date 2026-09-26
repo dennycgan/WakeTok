@@ -755,6 +755,15 @@ background per entry.
 | `kCap24MoreSheetTitleValueGap` | **4** | Title → value inside a meta block (shared helper; same for File size + Saved time) |
 | `kCap24MoreSheetTimezoneInfoHit` | **44** | Timezone `i` tap target; **OverflowBox** so it does not inflate the Saved-time value-line height (keeps optical title→value gap aligned with File size) |
 | `kCap24MoreSheetTimezoneInfoLayoutWidth` | **36** | Width reserved in the value row for `i` |
+
+> **Inline info `i` hug rule (cross-ref):** Settings pane info `i` must
+> hug the annotated label via `Text.rich` + `WidgetSpan` — never
+> `Flexible`/`Expanded(Text)` + trailing icon (Text expands and shoves
+> `i` to the column edge). Full rule:
+> `docs/reference/settings-layout-notes.md` §3. Cap 24 Saved-time `i` is
+> a value-row sibling (not WidgetSpan) but still uses OverflowBox hit +
+> reserved layout width so it stays next to the time string — do not
+> reintroduce an Expanded-trailing pattern there either.
 | Title color | `tokens.onMediaMuted` via `bodySmall` | Meta titles |
 | Value color | `tokens.onMedia` via `bodyMedium` | Size / Saved time values |
 | Add to Album | `onMediaMuted` + `onMedia`×0.4 border | Cap 26.5; same min size / radius as Delete |

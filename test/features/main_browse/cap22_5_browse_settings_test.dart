@@ -44,7 +44,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text(l10n.browseSettingsNewRoundToastTitle), findsOneWidget);
-    expect(find.text(l10n.browseSettingsNewRoundToastSubtitle), findsOneWidget);
+    expect(find.text(l10n.browseSettingsNewRoundToastSubtitle), findsNothing);
+    expect(find.byKey(const Key('browseSettingsNewRoundToastInfo')), findsOneWidget);
 
     final toggle = find.byKey(const Key('browseSettingsNewRoundToastToggle'));
     expect(tester.widget<CupertinoSwitch>(find.descendant(

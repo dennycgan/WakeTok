@@ -8,6 +8,7 @@ import 'package:waketok/features/authorization/cap29_access_scope_probe.dart';
 import 'package:waketok/features/authorization/open_app_settings.dart';
 import 'package:waketok/features/authorization/photos_authorization_notifier.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/settings_layout.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 29.2 / ADR-059 — Settings Photos Access entry (Debt 421).
@@ -24,13 +25,10 @@ class PhotosAccessSettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    final titleStyle = Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: tokens.onSurface,
-          fontWeight: FontWeight.w600,
-        );
-    final bodyStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-          color: tokens.onSurface,
-        );
+    // Photos Access special ladder (Cap 31.1): section label uses **section**
+    // title chrome; live status line uses **row** title chrome.
+    final sectionLabelStyle = settingsSectionTitleStyle(tokens);
+    final statusStyle = settingsRowTitleStyle(tokens);
 
     final async = ref.watch(photosAuthorizationProvider);
     final access = async.asData?.value;
@@ -45,10 +43,13 @@ class PhotosAccessSettingsSection extends ConsumerWidget {
       key: const Key('photosAccessSettingsSection'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(l10n.photosAccessSettingsSectionTitle, style: titleStyle),
-        const SizedBox(height: 8),
+        Text(
+          l10n.photosAccessSettingsSectionTitle,
+          style: sectionLabelStyle,
+        ),
+        const SizedBox(height: kSettingsSectionTitleToRowGap),
         if (isLimited) ...[
-          Text(l10n.limitedAccessBannerMessage, style: bodyStyle),
+          Text(l10n.limitedAccessBannerMessage, style: statusStyle),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
@@ -89,7 +90,7 @@ class PhotosAccessSettingsSection extends ConsumerWidget {
             ],
           ),
         ] else if (isFull) ...[
-          Text(l10n.photosAccessFullStatusMessage, style: bodyStyle),
+          Text(l10n.photosAccessFullStatusMessage, style: statusStyle),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,

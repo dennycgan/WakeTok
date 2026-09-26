@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/features/main_browse/cap28_live_probe.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
+import 'package:waketok/features/main_browse/settings_layout.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
 /// Cap 28.1 live probe controls (Profile/Debug; `!kReleaseMode`).
 ///
 /// Writes [kCap28LiveProbeLogFileName] for Settings round-trip / black-frame
 /// diagnosis. Release is a no-op (section hidden).
+/// Cap 31.1: section header chrome only — no group cards.
 class Cap28LiveProbeSettingsSection extends ConsumerWidget {
   const Cap28LiveProbeSettingsSection({super.key});
 
@@ -47,14 +49,11 @@ class Cap28LiveProbeSettingsSection extends ConsumerWidget {
       key: const Key('cap28LiveProbeSettingsSection'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          l10n.cap28LiveProbeSectionTitle,
-          style: tokens.titleChrome,
-        ),
-        const SizedBox(height: 8),
+        SettingsSectionHeader(title: l10n.cap28LiveProbeSectionTitle),
+        const SizedBox(height: kSettingsSectionTitleToRowGap),
         Text(
           l10n.cap28LiveProbeBlurb,
-          style: tokens.bodyChrome.copyWith(color: tokens.onSurface),
+          style: settingsStatusBodyStyle(tokens),
         ),
         const SizedBox(height: 12),
         OutlinedButton(
