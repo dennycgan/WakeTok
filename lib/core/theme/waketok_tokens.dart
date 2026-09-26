@@ -124,7 +124,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   final TextStyle bodyOnMedia;
 
   // Shared type sizes (L/D identical); colors differ per mode for chrome.
-  static const double _titleChromeSize = 20;
+  static const double _titleChromeSize = 24;
   static const double _labelChromeSize = 14;
   static const double _bodyChromeSize = 14;
   static const double _labelOnMediaSize = 12;
@@ -164,7 +164,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     scrubPreviewPlaceholderFill: Color(0xFF000000),
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w800,
       height: 1.25,
       color: Color(0xFF1A1A1A),
     ),
@@ -218,7 +218,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     scrubPreviewPlaceholderFill: Color(0xFF000000),
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w800,
       height: 1.25,
       color: Color(0xFFF5F5F5),
     ),

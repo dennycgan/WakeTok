@@ -72,7 +72,7 @@ void main() {
           container.read(mainBrowseDestinationProvider),
           MainBrowseDestination.settings,
         );
-        expect(find.text(l10n.cap19SettingsGesturesSectionTitle), findsOneWidget);
+        expect(find.text('${l10n.cap19SettingsGesturesSectionTitle}:'), findsOneWidget);
 
         // IndexedStack keeps Browse pane mounted offstage — assert chrome
         // state only while away (not chip Finder visibility).

@@ -34,11 +34,11 @@ font-size ladder between section and row.
 
 | Role | Token / helper | Size / weight / color | Notes |
 |------|----------------|-----------------------|-------|
-| Page title | `tokens.titleChrome` | 20 / w600 | `mainBrowseNavSettings` |
-| Section title | `settingsSectionTitleStyle` | **14 / w400** / `onSurface` | Same size as row; **not** bold; **never** `tokens.accent` |
+| Page title | `tokens.titleChrome` | **24 / w800** | Large chrome title role (`mainBrowseNavSettings`); also `textTheme.titleMedium` / AppBar — future surfaces (e.g. Clips) using this token stay linked |
+| Section title | `settingsSectionTitleStyle` | **14 / w400** / `onSurface` | Same size as row; **not** bold; **never** `tokens.accent`; display via `settingsSectionTitleWithColon` (EN `:` / zh `：`) |
 | Row title | `settingsRowTitleStyle` | **14 / w600** / `onSurface` | Same size as section; **bold** is the only section↔row axis |
-| Photos Access label | `settingsSectionTitleStyle` | **14 / w400** / `onSurface` | **Special (Photos only):** copy = Photo Library Access / 照片访问权限; uses **section** chrome (regular) |
-| Photos status body | `settingsRowTitleStyle` | **14 / w600** / `onSurface` | **Special (Photos only):** live Full/Limited status line; uses **row** chrome (bold); stays on list (not a bubble) |
+| Photos Access label | `settingsRowTitleStyle` | **14 / w600** / `onSurface` | **Special (Photos only):** copy = Photo Library Access / 照片访问权限; uses **row** chrome (bold) — not section chrome; **no** trailing colon |
+| Photos status body | `settingsRowTitleStyle` | **14 / w600** / `onSurface` | **Special (Photos only):** live Full/Limited status; same **row** chrome as the label; stays on list (not a bubble) |
 | Row subtitle | `settingsRowSubtitleStyle` | muted | **Rare** — Cap 31.1 product rows use bubble instead |
 | Info bubble body | `settingsInfoBubbleTextStyle` | 14 / w400 / `onSurface` | Chrome role — **not** `labelOnMedia` |
 
@@ -51,14 +51,14 @@ nav, Cap 30 guidance). Do not paint static section labels with accent.
 
 ### Photos Access special treatment (Cap 31.1)
 
-Unlike other Settings sections (label = section chrome, rows = row chrome),
-Photos Access **swaps weight roles** so the live status reads as the
-primary line:
+Unlike other Settings sections (label = **section** chrome / w400; rows =
+**row** chrome / w600), Photos Access paints **both** the section label and
+the live status line with **row** title chrome:
 
 | Element | Copy (EN / zh_Hans) | Style helper |
 |---------|---------------------|--------------|
-| Section label | Photo Library Access / 照片访问权限 | `settingsSectionTitleStyle` (w400) |
-| Status line | e.g. Full access… / 已获得…；Limited banner message | `settingsRowTitleStyle` (w600) |
+| Section label | Photo Library Access / 照片访问权限 | `settingsRowTitleStyle` (w600); **no** trailing colon |
+| Status line | e.g. Full access… / Limited banner message | `settingsRowTitleStyle` (w600) |
 
 Code: `photos_access_settings_section.dart` (not `SettingsSectionHeader`).
 Do **not** use muted `settingsStatusBodyStyle` here — that helper is for
@@ -86,8 +86,8 @@ on-media size). Settings must use chrome helpers above.
 | `kSettingsChromeTitleFontSize` | **14** | Shared section + row size |
 | `kSettingsStatusBodyOpacity` | **0.55** | Probe / helper muted body only (not Photos Access) |
 
-**Photos Access exception:** label = `settingsSectionTitleStyle`; status =
-`settingsRowTitleStyle` (see §1 “Photos Access special treatment”).
+**Photos Access exception:** label **and** status = `settingsRowTitleStyle`
+(see §1 “Photos Access special treatment”).
 
 ### Row gap root cause (Gestures pair)
 
@@ -189,9 +189,8 @@ surface recipe up front.
 1. Use `SettingsSectionHeader` + `kSettingsSectionGap` / title→row gap.  
 2. Prefer `SettingsToggleRow` for switch rows.  
 3. Put explanatory copy in the info bubble; keep the list to title + `i`.  
-4. Photos Access: label = section title style; status = row title style
-   (see §1). Other live helpers (probes) may still use muted
-   `settingsStatusBodyStyle`.  
+4. Photos Access: label **and** status = row title style (see §1). Other
+   live helpers (probes) may still use muted `settingsStatusBodyStyle`.  
 5. Access copy only via `AppLocalizations` (ADR-012).  
 6. Colors / type only via `WakeTokTokens` helpers (ADR-009); no accent on
    section labels.  

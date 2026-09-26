@@ -147,7 +147,7 @@ void main() {
       final tokens = Theme.of(
         tester.element(find.byKey(const Key('cap19LeftSwipeGuide'))),
       ).extension<WakeTokTokens>()!;
-      expect(tokens.titleChrome.fontSize, 20);
+      expect(tokens.titleChrome.fontSize, 24);
       expect(tokens.bodyOnMedia.fontSize, 13);
 
       final title3 = _styleOf(

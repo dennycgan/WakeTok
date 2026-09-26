@@ -39,11 +39,21 @@ void main() {
     expect(
       find.descendant(
         of: section,
-        matching: find.text(l10n.browseSettingsSectionTitle),
+        matching: find.text('${l10n.browseSettingsSectionTitle}:'),
       ),
       findsOneWidget,
     );
-    expect(find.text(l10n.browseSettingsNewRoundToastTitle), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((widget) {
+        if (widget is! RichText) {
+          return false;
+        }
+        return widget.text
+            .toPlainText()
+            .contains(l10n.browseSettingsNewRoundToastTitle);
+      }),
+      findsOneWidget,
+    );
     expect(find.text(l10n.browseSettingsNewRoundToastSubtitle), findsNothing);
     expect(find.byKey(const Key('browseSettingsNewRoundToastInfo')), findsOneWidget);
 

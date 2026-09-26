@@ -25,9 +25,10 @@ class PhotosAccessSettingsSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    // Photos Access special ladder (Cap 31.1): section label uses **section**
-    // title chrome; live status line uses **row** title chrome.
-    final sectionLabelStyle = settingsSectionTitleStyle(tokens);
+    // Photos Access special ladder (Cap 31.1): both the section label and the
+    // live status line use **row** title chrome (unlike other sections, whose
+    // labels use section chrome).
+    final sectionLabelStyle = settingsRowTitleStyle(tokens);
     final statusStyle = settingsRowTitleStyle(tokens);
 
     final async = ref.watch(photosAuthorizationProvider);

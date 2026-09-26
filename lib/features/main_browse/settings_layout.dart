@@ -94,6 +94,19 @@ TextStyle settingsInfoBubbleTextStyle(WakeTokTokens tokens) =>
       fontWeight: FontWeight.w400,
     );
 
+/// Settings pane section title display — always ends with a colon.
+///
+/// EN / other: ASCII `:`. zh*: fullwidth `：`. Idempotent if [title] already
+/// ends with either colon.
+String settingsSectionTitleWithColon(BuildContext context, String title) {
+  final isZh = Localizations.localeOf(context).languageCode.startsWith('zh');
+  final suffix = isZh ? '：' : ':';
+  if (title.endsWith(':') || title.endsWith('：')) {
+    return title;
+  }
+  return '$title$suffix';
+}
+
 /// Settings pane section title.
 class SettingsSectionHeader extends StatelessWidget {
   const SettingsSectionHeader({
@@ -106,7 +119,10 @@ class SettingsSectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = Theme.of(context).extension<WakeTokTokens>()!;
-    return Text(title, style: settingsSectionTitleStyle(tokens));
+    return Text(
+      settingsSectionTitleWithColon(context, title),
+      style: settingsSectionTitleStyle(tokens),
+    );
   }
 }
 

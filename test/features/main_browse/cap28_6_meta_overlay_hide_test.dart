@@ -157,9 +157,9 @@ void main() {
       await tester.tap(find.text(l10n.mainBrowseNavSettings));
       await tester.pumpAndSettle();
 
-      final gestures = find.text(l10n.cap19SettingsGesturesSectionTitle);
-      final display = find.text(l10n.browseDisplaySettingsSectionTitle);
-      final notices = find.text(l10n.browseSettingsSectionTitle);
+      final gestures = find.text('${l10n.cap19SettingsGesturesSectionTitle}:');
+      final display = find.text('${l10n.browseDisplaySettingsSectionTitle}:');
+      final notices = find.text('${l10n.browseSettingsSectionTitle}:');
       expect(gestures, findsOneWidget);
       expect(display, findsOneWidget);
       expect(notices, findsOneWidget);
@@ -256,7 +256,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
-    expect(find.text(l10n.browseDisplaySettingsSectionTitle), findsOneWidget);
+    expect(find.text('${l10n.browseDisplaySettingsSectionTitle}:'), findsOneWidget);
     expect(find.text(l10n.browseDisplayMetaOverlayTitle), findsOneWidget);
     expect(find.text(l10n.browseDisplayMetaOverlaySubtitle), findsNothing);
     expect(find.byKey(const Key('browseDisplayMetaOverlayInfo')), findsOneWidget);

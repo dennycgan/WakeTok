@@ -242,7 +242,7 @@ void main() {
     expect(scaffoldOf().backgroundColor, light.background);
     expect(barOf().color, dark.surface);
     final settingsContext =
-        tester.element(find.text(l10n.cap19SettingsGesturesSectionTitle));
+        tester.element(find.text('${l10n.cap19SettingsGesturesSectionTitle}:'));
     expect(
       Theme.of(settingsContext).extension<WakeTokTokens>()!.surface,
       light.surface,

@@ -63,7 +63,7 @@ void main() {
 
     await tester.tap(find.text(l10n.mainBrowseNavSettings));
     await tester.pumpAndSettle();
-    expect(find.text(l10n.cap19SettingsGesturesSectionTitle), findsOneWidget);
+    expect(find.text('${l10n.cap19SettingsGesturesSectionTitle}:'), findsOneWidget);
 
     await tester.tap(find.text(l10n.mainBrowseNavBrowse));
     await tester.pumpAndSettle();

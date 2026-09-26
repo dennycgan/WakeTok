@@ -341,7 +341,7 @@ void main() {
 
     final sectionStyle = _styleOf(
       tester,
-      find.text(l10n.cap19SettingsGesturesSectionTitle),
+      find.text('${l10n.cap19SettingsGesturesSectionTitle}:'),
     );
     final rowText = tester.widget<Text>(
       find.descendant(
@@ -399,7 +399,7 @@ void main() {
     expect(guide.top, greaterThanOrEqualTo(add.bottom));
   });
 
-  testWidgets('W-31.1-photos Access uses section/row chrome swap',
+  testWidgets('W-31.1-photos Access uses row chrome for label and status',
       (tester) async {
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     await tester.pumpWidget(
@@ -423,7 +423,7 @@ void main() {
     final status = tester.widget<Text>(
       find.text(l10n.photosAccessFullStatusMessage),
     );
-    expect(label.style!.fontWeight, FontWeight.w400);
+    expect(label.style!.fontWeight, FontWeight.w600);
     expect(label.style!.fontSize, kSettingsChromeTitleFontSize);
     expect(status.style!.fontWeight, FontWeight.w600);
     expect(status.style!.fontSize, kSettingsChromeTitleFontSize);
