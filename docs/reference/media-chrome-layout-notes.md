@@ -34,7 +34,7 @@
 > - `lib/features/main_browse/browse_top_chrome.dart` (shell top; §11)  
 > - `lib/features/main_browse/main_browse_shell_page.dart` (shell bottom; §11 / §11.4)  
 > - `lib/core/theme/waketok_tokens.dart` (`labelOnMedia`, `onMediaPillFill`, `mediaScrim`)  
-> - Goldens: `test/features/main_browse/goldens/media_chrome_preview/` — local-only, manual maintenance required (no CI; see debt **449** for the repo-wide CI gap). After any chrome visual tweak, re-run `flutter test --update-goldens` on this machine and eyeball the diff before committing
+> - No golden / screenshot test for media chrome. `media_chrome_layout_preview_test` was removed in Cap 31: it painted a hand-built replica (not production widgets), had drifted from production (action order, Reset icon size), and needed machine-local baseline PNGs. The visual baseline is this file (§2–§8) plus the device checklist in §10; geometry guards live in the widget tests listed in §10 item 6
 
 **How to retune:** change the named constant / token in the table, then reinstall Profile and re-check the alignment row in §3 (media) or §11 (shell). Prefer editing constants over hard-coding numbers in widgets.
 
@@ -361,11 +361,10 @@ control type, not copy the nearest number.
 
 1. Black still + light still: Reset gray shell readable; LIVE shell readable (top-leading).  
 2. Magnified: Reset gap above row 1 feels like 12.  
-3. Album icon bottom vs Reset bottom.  
+3. Lowest action (`…`) icon bottom vs Reset bottom.  
 4. LIVE top vs Browse band bottom + **0**; left **8** with Temp; Limited band **70** does not bury LIVE in Create helper.  
 5. **Longest realistic row-3 copy** must **not** collide with action chrome under trailing inset (**76**).  
-6. Run: `live_badge_meta_align_test`, Cap 20 still Reset tests (`T-20.3-1` included), `test/architecture/`.  
-7. If chrome layout goldens under `media_chrome_preview/` changed: re-run `flutter test --update-goldens` on this machine and eyeball the diff before committing. These goldens are local-only / manual (no CI). Debt **449** is the repo-wide “no push CI for `flutter test`” gap — not a chrome-only debt.
+6. Run: `live_badge_meta_align_test`, Cap 20 still Reset tests (`T-20.3-1` included), `test/architecture/`.
 
 ---
 
