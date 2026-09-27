@@ -342,17 +342,26 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 31.1 Settings hierarchy / weight / info
-      organization — work on `main` (`bac2521` + `809d238`)
+      organization — work on `main` (`bac2521` + `809d238` +
+      `4b335bf` + `edf46ab`)
 - Sub-steps done: extract `anchored_info_bubble`; Settings chrome
       helpers; info bubbles; Photos Access row-chrome special-case;
-      section title strings + locale colons; titleChrome 24/w800;
-      hierarchy tests; work commits pushed (push of `809d238` may
-      still be pending)
-- Next step: owner accept 31.1 close (or file follow-ups); then 31.2
+      section title strings + locale colons; meta overlay row title
+      names the bottom-left position (`4b335bf`); page heading split to
+      `titlePage`, `titleChrome` back to its Cap 7.2 values so closed-Cap
+      sheet / guide / button text returns to accepted state (`edf46ab`,
+      ADR-061 Proposed); media chrome golden preview test removed
+      (`02b26f6`); hierarchy tests; all work commits pushed
+- Next step: owner device recheck — A (sheet titles, "…" Delete vs
+      Add to Album, Settings heading) + B (fresh install: Cap 30 coach
+      `<1>` / `<2>` / `<3>` titles vs `cap30-30.6-notes.md`) → flip
+      ADR-061 to Accepted; then owner accept 31.1 close (or file
+      follow-ups); then 31.2
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
-      (chat); debts **480** / **481** Open; **441** Monitoring (31.3);
-      **478** Open (probe keep-while-Open — Settings UI later stripped
-      in 31.5, implementation retained until revisit)
+      (chat); ADR-061 Proposed (title token split); debts **480** /
+      **481** / **482** Open; **441** Monitoring (31.3); **478** Open (probe
+      keep-while-Open — Settings UI later stripped in 31.5,
+      implementation retained until revisit)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
@@ -811,6 +820,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 479 | Closed | Main Browse Screen / Cap 27.6 | Cap 27.6 | Settings leave/return (and similar non-Browse-current) `roundEpoch` remount head stuck on Layer 1; newestFirst easiest | **Related 477 (stays Closed).** Cap 27.4 prefer-Host closed Browse-current remount stick; Settings / auth limbs were **not** in that soak. Root: prefer-Host armed only under `isCurrent`, and a post-frame clear dropped pending while Browse was off — remount finished off-current never armed Cap 27.4 Host path. Fix in `8d6d7cc`: sticky `_epochRemountPreferHostPending` until consume + become-current re-arm. i17 soak PASS (three orders × immediate/dwell return; Confirm/Endless unaffected). Widget: W-27.6-479. Does not reopen **477**; does not close **478**. **Cap 28 follow-up:** Settings leave remount limb **dissolved by Cap 28 keep** (no `restartSession` on Browse→Settings). Sticky prefer-Host for remaining off-Browse→Browse remount (access-scope dirty on Settings → consume on return) covered by Cap 28.7 `W-28.7-479-sticky` (`5f4977c`); mechanism retained (ADR-058 D7). | Closed by Cap 27.6 (`8d6d7cc`) | ADR-055; Cap 27.4; Cap 28.4/28.5/28.7; debt **477** / **478**; `vertical_media_feed.dart` |
 | 480 | Open | Main Browse Screen / Cap 28.3 | Cap 28.3 | Confirm / Endless (and other `roundEpoch` remount) dual visible handoff: soft-L1 present → one-frame black between L1 and L2; soft-L1 absent → one-frame Loading item | **Settings limb closed by Cap 28 keep** (28.1/28.2: remount + prefer-Host + hardReload). Remount paths remain: Cap 27.4 prefer-Host skips Session L2-ready, forces Host L2, and on APPLY hard-reloads cover (clear keep-ready / bump Image key) — empty decode window when a soft preview was painted; miss chrome when no soft L1. **Candidate fix (not scheduled):** precache L2 Image before swapping key so keep-ready/gapless soft stick is broken without a blank frame. Out of Cap 28 product keep / meta hide. Related **477** / **479** (prefer-Host mechanism stays). | Unassigned | Cap 27.4/27.6; debt **477** / **479**; Cap 28.1/28.2 notes; ADR-058 |
 | 481 | Open | Main Browse Screen / Cap 28.4 | Cap 28.4 | Settings resume may show one poster/cover frame on video (play or pause) | **Symptom:** Browse→Settings→Browse on a completed video can flash one frame of the asset poster/cover before L2 PV is visually back — same whether the item was playing or paused. **Mechanism (Q-PV = B):** soft leave detaches the native Platform View; resume remounts PV. Cap 28.4 A′ keeps chrome gates (no Action Column staircase); the frame is the cover painted while `_surfaceReady` is briefly false (and/or Cap 15.11b poster-hold when that latch arms) — a deliberate anti-black hold, not the Cap 28 chrome cascade. **Intentional trade-off:** Q-PV = A (keep PV mounted under Settings) could remove the frame but risks off-screen PV bleed/touch steal, holding the 1+1 player slot, and power cost — rejected for this Cap. **Not a reopen of 429:** cousin symptom (poster vs L2), different mechanism (Settings PV detach/remount vs prior path). **Candidates:** (1) Q-PV = A + Host ready-for-display short-circuit; (2) latch a leave-time frame as the resume hold instead of the static poster (cost/feasibility unverified). Re-evaluate with Caps that redesign video surface lifecycle while Browse is non-visible (Background Audio / Auto-play track). | Unassigned (evaluate with Background Audio / Auto-play surface-lifecycle Caps) | ADR-058; ADR-006; ADR-032; cousin of closed **429** (do not reopen 429) |
+| 482 | Open | App Foundation / Cap 31.1 | Cap 31.1 | Sheet titles and sheet button labels (plus two guide titles) still borrow `titleMedium` = `titleChrome`; no dedicated text-style roles yet | **Deferred, not rejected.** ADR-061 evaluated splitting sheet titles and sheet button labels into their own tokens and deferred it (touches 6+ feature files; needs a new device acceptance); Cap 31.1 shipped only the `titlePage` split. Still coupled (canonical list: `media-chrome-layout-notes.md` §14): sheet titles — Cap 19.4 actions sheet, Cap 27.4 order sheet; sheet button labels — Cap 24.3 Delete, Cap 26.5 Add to Album; guide titles — Cap 19.6 left-swipe guide (Cap 30 `<3>`), Cap 30.3 vertical coach (`<1>`) — guide titles were not evaluated by ADR-061, decide their scope when this row is picked up. **Risk:** any `titleChrome` retune moves all six; Delete heavier than Add to Album (Cap 26.5 owner lock, guard `W-26.5-8`) holds only while `titleChrome` weight stays above Add to Album's local weight override. Out of scope: permission request / blocked AppBar titles stay on `titleChrome` by design (ADR-061 Decision 4). | Unassigned | ADR-061 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

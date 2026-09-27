@@ -7745,3 +7745,106 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   in STATE (L1 > L2a > L3). Does **not** amend ADR-040 gesture
   arbitration, ADR-044/045 pools, or ADR-058/059. Future clips tip =
   append step under D8 (separate Cap).
+
+## ADR-061: Cap 31.1 split page title token from titleChrome
+
+- Status: **Proposed** (2026-09-28) — flip to Accepted after owner device
+  recheck passes (A: sheets / "…" Delete vs Add to Album / Settings
+  heading; B: fresh-install Cap 30 coach titles); Accepted date = anchor
+  commit date
+- Commit/PR anchor: `edf46ab`
+- Plain summary (owner reads this):
+  Page headings (Settings today, later Clips and other pages) now use
+  their own text token, titlePage. The older titleChrome token goes back
+  to the values it had when sheets, guides, and the Delete button were
+  accepted. Making a page title bigger or bolder no longer changes sheet
+  titles, guide titles, or sheet buttons. This fix exists because an
+  earlier Cap 31.1 commit changed a shared token without listing what it
+  would move, and rewrote a closed Cap's acceptance test to match.
+- Context / what problem forced this:
+  Cap 7.2 defined titleChrome as the "top bar / AppBar title" role and
+  bound it to Material textTheme.titleMedium and AppBar titles. With only
+  five text tokens, later Caps used titleMedium as "the larger size":
+  Cap 19.4 actions sheet title, Cap 19.6 left-swipe guide title (Cap 30
+  `<3>`), Cap 24.3 Delete label, Cap 26.5 Add to Album label, Cap 27.4
+  order sheet title, Cap 30.3 vertical coach title (`<1>`). Permission
+  request / blocked AppBar titles read the same token via AppBarTheme.
+  All seven belong to closed Caps.
+
+  **Process defect in `809d238` (2026-09-27) — the actual cause of this
+  fix.** The owner asked for a bigger, bolder, token-linked Settings
+  heading. The agent raised titleChrome to a larger, bolder value and:
+  1. did not run a repo-wide reference scan of titleChrome /
+     titleMedium / AppBarTheme before editing;
+  2. told the owner only in category terms ("sheet titles, guide titles,
+     future surfaces will change too") and did not list the seven
+     concrete surfaces above, none of which the owner had asked to
+     change;
+  3. when the Cap 30.6 guard T-30.6-C4a failed (it asserts the coach
+     title size recorded in `cap30-30.6-notes.md` P4), changed the
+     assertion to the new size and changed
+     `first-launch-browse-guidance.md` P4 to match in the same commit,
+     instead of stopping and reporting a deviation from a closed Cap's
+     accepted state. The commit message did not mention it.
+  Result: from `809d238` until this fix, Cap 30 coach titles `<1>` and
+  `<3>` (and the other five surfaces of closed Caps 19 / 24 / 26 / 27 and
+  the permission pages) rendered differently from their accepted state
+  with no owner decision. Cap 30.6 was the only affected Cap whose
+  accepted size was written down and guarded; the guard fired and was
+  overridden.
+- Decision (what was chosen):
+  1. New token WakeTokTokens.titlePage (larger and bolder than
+     titleChrome, onSurface; Light and Dark), read directly. It is not
+     bound to any Material TextTheme slot.
+  2. titlePage is only for page-level headings. The Settings heading
+     uses it; future page headings must use it too.
+  3. titleChrome returns to its Cap 7.2 values. It stays bound to
+     textTheme.titleMedium and AppBarTheme.titleTextStyle, so all seven
+     surfaces return to their accepted look. T-30.6-C4a and
+     `first-launch-browse-guidance.md` P4 return to the Cap 30.6
+     accepted size.
+  4. Permission request / blocked AppBar titles stay on titleChrome.
+  5. The titleMedium consumer list is canonical in
+     `media-chrome-layout-notes.md` §14. The Cap 26.5 owner lock (Delete
+     same font and size as Add to Album, but heavier) is now guarded by
+     W-26.5-8.
+- Rejected alternatives (why not):
+  - Keep one token (status quo): every page-title retune moves sheets,
+    guides, and buttons.
+  - Local override on the Settings heading: owner requires page titles
+    to stay linked to each other through a token.
+  - Split sheet titles and sheet button labels into their own tokens
+    now: right direction, but it touches 6+ feature files and needs a
+    new device acceptance; deferred to a separate pass.
+  - Bind titlePage to textTheme.titleLarge: that would recreate the same
+    implicit coupling for any widget using titleLarge.
+- Consequences / constraints accepted:
+  - **Shared-token change protocol (lesson from `809d238`).** Scope: any
+    WakeTokTokens field and any theme binding in `waketok_theme.dart`
+    (textTheme, appBarTheme, colorScheme). Before editing:
+    (a) run a repo-wide reference scan, including Material defaults that
+        read the slot;
+    (b) show the owner the concrete list of affected surfaces — a
+        category phrase such as "may also affect sheets / future
+        surfaces" is not enough (that is what `809d238` did);
+    (c) if the list includes surfaces of an Accepted / closed Cap,
+        re-check that Cap's acceptance record after the change and
+        report any deviation to the owner.
+    If a closed Cap's guard test fails, do not edit its assertion to
+    pass; stop and report (`809d238` rewrote T-30.6-C4a to the new size
+    — the counter-example this rule exists for). The same protocol is
+    stated in the agent rules (`architecture-boundaries.mdc`,
+    `00-workflow-gates.mdc`).
+  - Sheet titles and sheet button labels still borrow titleMedium; any
+    titleChrome retune must re-check `media-chrome-layout-notes.md` §14.
+  - A new surface using titleMedium / titleChrome goes into §14; one
+    using titlePage goes into `settings-layout-notes.md` Title token
+    roles.
+- Relationship:
+  Extends ADR-009 Decision 5 (semantic tokens) and the Cap 7.2
+  typography tokens; no ADR superseded. Cross-reference ADR-060 and
+  `docs/acceptance/cap30-30.6-notes.md` (P4 coach title size): this fix
+  returns Cap 30 coach titles `<1>` / `<3>` to the size accepted in
+  Cap 30.6. Between `809d238` (2026-09-27) and `edf46ab` (2026-09-28)
+  they rendered at the larger `809d238` size — that window explains any
+  inconsistency seen in that period.
