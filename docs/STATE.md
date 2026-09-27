@@ -350,15 +350,13 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       names the bottom-left position (`4b335bf`); page heading split to
       `titlePage`, `titleChrome` back to its Cap 7.2 values so closed-Cap
       sheet / guide / button text returns to accepted state (`edf46ab`,
-      ADR-061 Proposed); media chrome golden preview test removed
-      (`02b26f6`); hierarchy tests; all work commits pushed
-- Next step: owner device recheck — A (sheet titles, "…" Delete vs
-      Add to Album, Settings heading) + B (fresh install: Cap 30 coach
-      `<1>` / `<2>` / `<3>` titles vs `cap30-30.6-notes.md`) → flip
-      ADR-061 to Accepted; then owner accept 31.1 close (or file
-      follow-ups); then 31.2
+      ADR-061); media chrome golden preview test removed
+      (`02b26f6`); hierarchy tests; all work commits pushed; owner
+      device recheck A (sheet titles, "…" Delete vs Add to Album,
+      Settings heading) + B (fresh install: Cap 30 coach titles) PASS
+- Next step: owner accept 31.1 close (or file follow-ups); then 31.2
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
-      (chat); ADR-061 Proposed (title token split); debts **480** /
+      (chat); ADR-061 Accepted (title token split); debts **480** /
       **481** / **482** Open; **441** Monitoring (31.3); **478** Open (probe
       keep-while-Open — Settings UI later stripped in 31.5,
       implementation retained until revisit)

@@ -7748,10 +7748,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-061: Cap 31.1 split page title token from titleChrome
 
-- Status: **Proposed** (2026-09-28) — flip to Accepted after owner device
-  recheck passes (A: sheets / "…" Delete vs Add to Album / Settings
-  heading; B: fresh-install Cap 30 coach titles); Accepted date = anchor
-  commit date
+- Status: **Accepted** (2026-09-28) — owner device recheck A + B PASS
+  (i17 Green, Release, fresh install)
 - Commit/PR anchor: `edf46ab`
 - Plain summary (owner reads this):
   Page headings (Settings today, later Clips and other pages) now use
