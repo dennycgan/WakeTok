@@ -120,7 +120,7 @@ as list subtitles.
 | Left-swipe add | **none** | `cap19SettingsLeftSwipeAddSubtitle` |
 | Left-swipe tip | **none** | `cap19SettingsLeftSwipeGuideSubtitle` |
 | Starting-over notice | **none** | `browseSettingsNewRoundToastInfo` (full) |
-| Show item details | **none** | `browseDisplayMetaOverlaySubtitle` |
+| Show bottom-left details | **none** | `browseDisplayMetaOverlaySubtitle` |
 | Photos Access status | muted status line (not a bubble) | — |
 
 ### Hard rule — info `i` hugs the annotated text

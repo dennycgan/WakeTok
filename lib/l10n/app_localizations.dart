@@ -1608,10 +1608,10 @@ abstract class AppLocalizations {
   /// **'On-screen details'**
   String get browseDisplaySettingsSectionTitle;
 
-  /// Cap 28.6 toggle title; switch ON shows bottom-left meta rows
+  /// Cap 28.6/31 toggle title; names the bottom-left position; switch ON shows bottom-left meta rows
   ///
   /// In en, this message translates to:
-  /// **'Show item details'**
+  /// **'Show bottom-left details'**
   String get browseDisplayMetaOverlayTitle;
 
   /// Cap 31.1 — meta overlay explanation in Settings info bubble (was list subtitle)

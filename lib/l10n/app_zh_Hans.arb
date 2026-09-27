@@ -252,7 +252,7 @@
   "browseSettingsNewRoundToastInfo": "列表重新开始时，浏览页顶部会出现一条短提示。大约显示 1.5 秒。一划走就会立刻消失。",
   "settingsInfoBubbleSemantics": "更多说明",
   "browseDisplaySettingsSectionTitle": "屏幕内详情展示",
-  "browseDisplayMetaOverlayTitle": "显示文件详情",
+  "browseDisplayMetaOverlayTitle": "显示左下角文件详情",
   "browseDisplayMetaOverlaySubtitle": "关闭后隐藏每个内容左下角显示的详细信息。重新打开 App 后恢复显示。",
   "cap24MoreEntryIconSemantics": "更多操作",
   "cap24SoftDeleteSheetDelete": "删除",

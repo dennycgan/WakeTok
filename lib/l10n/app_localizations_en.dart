@@ -871,7 +871,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseDisplaySettingsSectionTitle => 'On-screen details';
 
   @override
-  String get browseDisplayMetaOverlayTitle => 'Show item details';
+  String get browseDisplayMetaOverlayTitle => 'Show bottom-left details';
 
   @override
   String get browseDisplayMetaOverlaySubtitle =>

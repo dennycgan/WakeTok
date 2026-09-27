@@ -867,7 +867,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get browseDisplaySettingsSectionTitle => 'On-screen details';
 
   @override
-  String get browseDisplayMetaOverlayTitle => 'Show item details';
+  String get browseDisplayMetaOverlayTitle => 'Show bottom-left details';
 
   @override
   String get browseDisplayMetaOverlaySubtitle =>
@@ -1773,7 +1773,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get browseDisplaySettingsSectionTitle => '屏幕内详情展示';
 
   @override
-  String get browseDisplayMetaOverlayTitle => '显示文件详情';
+  String get browseDisplayMetaOverlayTitle => '显示左下角文件详情';
 
   @override
   String get browseDisplayMetaOverlaySubtitle =>

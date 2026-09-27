@@ -8,7 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// [MediaInfoOverlay.columnHeightFor] stays fixed). Does **not** gate
 /// metadata fetch or [presentationSizeCacheProvider].
 ///
-/// Settings UI polarity (title "Show item details"): CupertinoSwitch ON means
+/// Settings UI polarity (title "Show bottom-left details"): CupertinoSwitch ON means
 /// show → bind `value: shown`, `onChanged: setShown`. Default ON = details
 /// visible.
 final browseMetaOverlayShownProvider =

@@ -257,9 +257,15 @@ void main() {
     await tester.pumpAndSettle();
     final l10n = await AppLocalizations.delegate.load(const Locale('en'));
     expect(find.text('${l10n.browseDisplaySettingsSectionTitle}:'), findsOneWidget);
-    expect(find.text(l10n.browseDisplayMetaOverlayTitle), findsOneWidget);
+    Finder richTitle(String title) => find.byWidgetPredicate((widget) {
+          if (widget is! RichText) {
+            return false;
+          }
+          return widget.text.toPlainText().contains(title);
+        });
+    expect(richTitle(l10n.browseDisplayMetaOverlayTitle), findsOneWidget);
     expect(find.text(l10n.browseDisplayMetaOverlaySubtitle), findsNothing);
     expect(find.byKey(const Key('browseDisplayMetaOverlayInfo')), findsOneWidget);
-    expect(find.text('Show item details'), findsOneWidget);
+    expect(richTitle('Show bottom-left details'), findsOneWidget);
   });
 }
