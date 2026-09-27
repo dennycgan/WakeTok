@@ -430,6 +430,42 @@ void main() {
     expect(status.style!.color!.a, closeTo(1.0, 0.01));
   });
 
+  testWidgets('W-31.1-page-title uses titlePage, decoupled from titleChrome',
+      (tester) async {
+    final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: ControllablePhotosAuthorizationRepository(PhotosAccess.full),
+        assetSources: FakeAssetSourceRepository(
+          allIds: const ['a1'],
+          availabilityById:
+              FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+        ),
+        cap30FirstLaunchGuidePreferences:
+            FakeCap30FirstLaunchGuidePreferences()..step = 3,
+      ),
+    );
+    await tester.pumpAndSettle();
+    await _openSettings(tester);
+
+    final tokens = Theme.of(
+      tester.element(find.text(l10n.photosAccessSettingsSectionTitle)),
+    ).extension<WakeTokTokens>()!;
+    final pageTitles = tester
+        .widgetList<Text>(find.text(l10n.mainBrowseNavSettings))
+        .where((t) => t.style == tokens.titlePage);
+    expect(pageTitles, hasLength(1));
+    expect(tokens.titlePage, isNot(tokens.titleChrome));
+    final theme = Theme.of(
+      tester.element(find.text(l10n.photosAccessSettingsSectionTitle)),
+    );
+    expect(theme.textTheme.titleMedium?.fontSize, tokens.titleChrome.fontSize);
+    expect(
+      theme.textTheme.titleMedium?.fontSize,
+      isNot(tokens.titlePage.fontSize),
+    );
+  });
+
   testWidgets('W-31.1-theme-tokens bubble colors follow Brightness',
       (tester) async {
     Future<Color?> pumpBubble(Brightness brightness) async {

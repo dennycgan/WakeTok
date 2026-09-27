@@ -75,12 +75,15 @@ void main() {
     final light = waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     final dark = waketokTheme(Brightness.dark).extension<WakeTokTokens>()!;
 
+    expect(light.titlePage.fontSize, dark.titlePage.fontSize);
     expect(light.titleChrome.fontSize, dark.titleChrome.fontSize);
     expect(light.labelChrome.fontSize, dark.labelChrome.fontSize);
     expect(light.bodyChrome.fontSize, dark.bodyChrome.fontSize);
     expect(light.labelOnMedia.fontSize, dark.labelOnMedia.fontSize);
     expect(light.bodyOnMedia.fontSize, dark.bodyOnMedia.fontSize);
 
+    expect(light.titlePage.color, light.onSurface);
+    expect(dark.titlePage.color, dark.onSurface);
     expect(light.titleChrome.color, light.onSurface);
     expect(dark.titleChrome.color, dark.onSurface);
     expect(light.labelOnMedia.color, light.onMedia);

@@ -52,6 +52,45 @@ void main() {
   );
 
   testWidgets(
+    'W-26.5-8 Add and Delete share titleMedium size; Delete is heavier',
+    (tester) async {
+      final repo =
+          ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+      await tester.pumpWidget(
+        permissionUiHarness(repo: repo, assetSources: _localSources()),
+      );
+      await tester.pumpAndSettle();
+      await _openMoreSheet(tester);
+
+      TextStyle labelStyle(Key buttonKey) {
+        return tester
+            .widget<Text>(
+              find.descendant(
+                of: find.byKey(buttonKey),
+                matching: find.byType(Text),
+              ),
+            )
+            .style!;
+      }
+
+      final add = labelStyle(const Key('cap24MoreSheetAddToAlbum'));
+      final del = labelStyle(const Key('cap24SoftDeleteSheetDelete'));
+      final titleMedium = Theme.of(
+        tester.element(find.byKey(const Key('cap24SoftDeleteSheetDelete'))),
+      ).textTheme.titleMedium!;
+
+      expect(add.fontSize, titleMedium.fontSize);
+      expect(del.fontSize, titleMedium.fontSize);
+      expect(add.fontFamily, del.fontFamily);
+      expect(
+        FontWeight.values.indexOf(del.fontWeight!),
+        greaterThan(FontWeight.values.indexOf(add.fontWeight!)),
+        reason: 'Delete label must read heavier than Add to Album',
+      );
+    },
+  );
+
+  testWidgets(
     'W-26.5-2 Full: Add closes "…" then opens Cap 19 sheet',
     (tester) async {
       final repo =

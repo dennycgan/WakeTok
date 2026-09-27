@@ -34,7 +34,7 @@ font-size ladder between section and row.
 
 | Role | Token / helper | Size / weight / color | Notes |
 |------|----------------|-----------------------|-------|
-| Page title | `tokens.titleChrome` | **24 / w800** | Large chrome title role (`mainBrowseNavSettings`); also `textTheme.titleMedium` / AppBar — future surfaces (e.g. Clips) using this token stay linked |
+| Page title | `tokens.titlePage` | **24 / w700** | Page-level heading (`mainBrowseNavSettings`); future page titles (e.g. Clips) use the same token. **Not** `titleChrome` — see **Title token roles** below |
 | Section title | `settingsSectionTitleStyle` | **14 / w400** / `onSurface` | Same size as row; **not** bold; **never** `tokens.accent`; display via `settingsSectionTitleWithColon` (EN `:` / zh `：`) |
 | Row title | `settingsRowTitleStyle` | **14 / w600** / `onSurface` | Same size as section; **bold** is the only section↔row axis |
 | Photos Access label | `settingsRowTitleStyle` | **14 / w600** / `onSurface` | **Special (Photos only):** copy = Photo Library Access / 照片访问权限; uses **row** chrome (bold) — not section chrome; **no** trailing colon |
@@ -48,6 +48,29 @@ section regular). Do not also enlarge the section.
 
 **Accent ban:** `tokens.accent` already means selected / coach focus (bottom
 nav, Cap 30 guidance). Do not paint static section labels with accent.
+
+### Title token roles (Cap 31.1)
+
+Two title tokens in `waketok_tokens.dart` (Light + Dark). Do not use one for
+the other's role.
+
+| Token | Value | Bound to | Role |
+|-------|-------|----------|------|
+| `titlePage` | **24 / w700** | nothing (read directly) | Page-level heading only: Settings today, future page titles |
+| `titleChrome` | **20 / w600** | `textTheme.titleMedium` + `AppBarTheme.titleTextStyle` | AppBar / sheet / guide titles (Cap 7.2 role) |
+
+**`titlePage` consumers:** Settings page title
+(`main_browse_shell_page.dart`). Retuning it moves page headings only.
+
+**`titleChrome` consumers** (6 `titleMedium` surfaces + permission AppBar
+titles): canonical list in `media-chrome-layout-notes.md` **§14**. Retuning
+`titleChrome` moves all of them; re-check each on device. A new surface that
+uses `titlePage` must be added here; one that uses `titleMedium` /
+`titleChrome` goes in §14.
+
+**Not in this pass:** sheet titles and sheet button labels
+(Delete / Add to Album) still borrow `titleMedium` rather than having their
+own roles. Splitting them is a separate, device-accepted pass.
 
 ### Photos Access special treatment (Cap 31.1)
 

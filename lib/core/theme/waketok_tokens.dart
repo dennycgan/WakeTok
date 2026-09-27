@@ -29,6 +29,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     required this.scrubProgressPlayed,
     required this.scrubProgressLiveGhost,
     required this.scrubPreviewPlaceholderFill,
+    required this.titlePage,
     required this.titleChrome,
     required this.labelChrome,
     required this.bodyChrome,
@@ -108,7 +109,14 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   /// Cap 18.5 scrub preview bubble non-photographic placeholder.
   final Color scrubPreviewPlaceholderFill;
 
-  /// Top bar / AppBar title role.
+  /// Page-level heading. Every standalone screen heading must use this
+  /// (Settings today; future screens such as Clips). Not bound to any
+  /// Material [TextTheme] slot, so retuning it never moves sheets, guides, or
+  /// buttons.
+  final TextStyle titlePage;
+
+  /// Top bar / AppBar title role. Also [TextTheme.titleMedium], so sheet
+  /// titles, guide titles, and some sheet button labels follow it.
   final TextStyle titleChrome;
 
   /// Top tabs / bottom bar labels.
@@ -124,7 +132,8 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
   final TextStyle bodyOnMedia;
 
   // Shared type sizes (L/D identical); colors differ per mode for chrome.
-  static const double _titleChromeSize = 24;
+  static const double _titlePageSize = 24;
+  static const double _titleChromeSize = 20;
   static const double _labelChromeSize = 14;
   static const double _bodyChromeSize = 14;
   static const double _labelOnMediaSize = 12;
@@ -162,9 +171,15 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     scrubProgressLiveGhost: Color(0xA6E0C590),
     // Opaque — semi-transparent fill lets video show through JPEG decode gaps.
     scrubPreviewPlaceholderFill: Color(0xFF000000),
+    titlePage: TextStyle(
+      fontSize: _titlePageSize,
+      fontWeight: FontWeight.w700,
+      height: 1.25,
+      color: Color(0xFF1A1A1A),
+    ),
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w600,
       height: 1.25,
       color: Color(0xFF1A1A1A),
     ),
@@ -216,9 +231,15 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     scrubProgressLiveGhost: Color(0xA6E0C590),
     // Opaque — semi-transparent fill lets video show through JPEG decode gaps.
     scrubPreviewPlaceholderFill: Color(0xFF000000),
+    titlePage: TextStyle(
+      fontSize: _titlePageSize,
+      fontWeight: FontWeight.w700,
+      height: 1.25,
+      color: Color(0xFFF5F5F5),
+    ),
     titleChrome: TextStyle(
       fontSize: _titleChromeSize,
-      fontWeight: FontWeight.w800,
+      fontWeight: FontWeight.w600,
       height: 1.25,
       color: Color(0xFFF5F5F5),
     ),
@@ -268,6 +289,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
     Color? scrubProgressPlayed,
     Color? scrubProgressLiveGhost,
     Color? scrubPreviewPlaceholderFill,
+    TextStyle? titlePage,
     TextStyle? titleChrome,
     TextStyle? labelChrome,
     TextStyle? bodyChrome,
@@ -296,6 +318,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
           scrubProgressLiveGhost ?? this.scrubProgressLiveGhost,
       scrubPreviewPlaceholderFill:
           scrubPreviewPlaceholderFill ?? this.scrubPreviewPlaceholderFill,
+      titlePage: titlePage ?? this.titlePage,
       titleChrome: titleChrome ?? this.titleChrome,
       labelChrome: labelChrome ?? this.labelChrome,
       bodyChrome: bodyChrome ?? this.bodyChrome,
@@ -341,6 +364,7 @@ class WakeTokTokens extends ThemeExtension<WakeTokTokens> {
         other.scrubPreviewPlaceholderFill,
         t,
       )!,
+      titlePage: TextStyle.lerp(titlePage, other.titlePage, t)!,
       titleChrome: TextStyle.lerp(titleChrome, other.titleChrome, t)!,
       labelChrome: TextStyle.lerp(labelChrome, other.labelChrome, t)!,
       bodyChrome: TextStyle.lerp(bodyChrome, other.bodyChrome, t)!,

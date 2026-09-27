@@ -168,7 +168,7 @@ Browse coaches `<1>` / `<2>` / `<3>` share **two** text roles. Values match
 
 | Role | TextTheme → token | Size | Used for |
 |------|-------------------|------|----------|
-| Coach **title** | `titleMedium` → `titleChrome` | **24** | `<1>` title, `<3>` title |
+| Coach **title** | `titleMedium` → `titleChrome` | **20** | `<1>` title, `<3>` title |
 | Coach **body** | `bodySmall` → `bodyOnMedia` | **13** | `<3>` subtitle, `<2>` tip message |
 
 **Do not** use `labelSmall` / `labelOnMedia` (**12**) for any Browse
@@ -240,7 +240,7 @@ Layer 1 paint and `<1>` are **not** bound: coach timing follows
 `<1>` / `<2>` label + caret use `tokens.accent` + `onMediaLabelShadows`.  
 `<3>` keeps `onMedia` / `onMediaMuted` (Cap 19 copy); icon also gets
 `onMediaLabelShadows` for media behind the opaque sheet edge cases.
-Text sizes: **P4** (title 24 / body 13).
+Text sizes: **P4** (title 20 / body 13).
 
 ## Copy (Cap 30.6 / ADR-060 D7) — Browse vs Settings
 

@@ -380,7 +380,7 @@ class _SettingsStubPane extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          Text(l10n.mainBrowseNavSettings, style: tokens.titleChrome),
+          Text(l10n.mainBrowseNavSettings, style: tokens.titlePage),
           const SizedBox(height: 20),
           // Cap 29.2 / ADR-059: Photos Access first (kickoff §2.8). Add only
           // ListView children — do not unwrap SafeArea (29.1 / 29.2 exit).

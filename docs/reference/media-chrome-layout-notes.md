@@ -741,7 +741,7 @@ background per entry.
 | 1 | **Location slot** | **Zero height** (`SizedBox.shrink`); content deferred (debt **401**). **Locked product home = this sheet, not Overlay row 4** — see **§12.6**. |
 | 2 | **File size** | Title **always** shown. Value: blank while first request in flight; formatted bytes when known; em dash "—" when resolved ∧ nil/negative/failure. **Never omit** the row. |
 | 3 | **Saved time** | Title + Cap 24 minute-landmark value + timezone `i`. Landmark miss / parse fail → **omit entire block** (title+value). |
-| 4 | **Add to Album** | Cap **26.5**. Full-width `OutlinedButton` (48pt, radius 12) matching Delete geometry. Label = `cap19PanelAddToAlbumTitle`. Colors: `tokens.onMediaMuted` label; border `tokens.onMedia` × **0.4**. Typography: same `titleMedium` **size** as Delete, `FontWeight.w400` (Delete stays `titleChrome` w600) so the longer string does not dominate. Tap: Cap 23 gate → pop this sheet → next-frame `showCap19ActionsHalfSheet` (ADR-052 D9; `_addToAlbumLatch` anti-reentry). |
+| 4 | **Add to Album** | Cap **26.5**. Full-width `OutlinedButton` (48pt, radius 12) matching Delete geometry. Label = `cap19PanelAddToAlbumTitle`. Colors: `tokens.onMediaMuted` label; border `tokens.onMedia` × **0.4**. Typography: same `titleMedium` **size** as Delete, `FontWeight.w400` (Delete inherits `titleChrome`, **20 / w600** — see §14; guard `W-26.5-8`) so the longer string does not dominate. Tap: Cap 23 gate → pop this sheet → next-frame `showCap19ActionsHalfSheet` (ADR-052 D9; `_addToAlbumLatch` anti-reentry). |
 | 5 | Delete | Unchanged (destructive outline) |
 
 ### 12.2 Layout metrics (code constants)
@@ -915,6 +915,50 @@ is out of Cap 26.4b gate split.
 - Depends on: `_ReloadableFileImage` `gaplessPlayback: true` (Cap 15.5)
 - Tests: `cap26_4a_meta_overlay_cover_upgrade_test.dart`
   (W-26.4a-keep / W-26.4a-switch / W-26.4a-broken)
+
+---
+
+## 14. `titleMedium` linkage (sheet / guide / sheet-button text)
+
+`textTheme.titleMedium` **is** `tokens.titleChrome` (`waketok_theme.dart`;
+**20 / w600**, Light + Dark). Retuning `titleChrome` moves **every** row below
+at once. The Settings page heading does **not** use it (`titlePage`, see
+`settings-layout-notes.md` Title token roles).
+
+### 14.1 Product consumers (exactly these 6)
+
+| Surface | Code | How it uses `titleMedium` | Result today |
+|---------|------|---------------------------|--------------|
+| Cap 19.4 actions half-sheet title (`cap19PanelAddToAlbumTitle`) | `cap19_actions_half_sheet.dart` | color only (`onMedia`) | **20 / w600** |
+| Cap 19.6 left-swipe guide title (Cap 30 `<3>`) | `cap19_left_swipe_guide.dart` | + own **w600**, `onMedia` | **20 / w600** |
+| Cap 24.3 "…" sheet Delete label | `cap24_more_half_sheet.dart` | color only (`destructive`) | **20 / w600** |
+| Cap 26.5 "…" sheet Add to Album label | `cap24_more_half_sheet.dart` | + own **w400**, `onMediaMuted` | **20 / w400** |
+| Cap 27.4 order half-sheet title (`mainBrowseOrderSheetTitle`) | `order_control_half_sheet.dart` | color only (`onMedia`) | **20 / w600** |
+| Cap 30.3 first-launch vertical coach title (`<1>`) | `cap30_vertical_hint_guide.dart` | + own **w600**, `accent`, on-media shadows | **20 / w600** |
+
+**Owner lock (Cap 26.5):** Delete and Add to Album use the same font and size
+(`titleMedium`); Delete reads **heavier** than Add to Album. Guard:
+`W-26.5-8` (`cap26_5_more_sheet_add_to_album_test.dart`).
+
+### 14.2 Same token, not via `titleMedium`
+
+| Surface | Path | Result today |
+|---------|------|--------------|
+| Permission request / blocked AppBar title (`appTitle`) | `AppBarTheme.titleTextStyle` = `titleChrome` | **20 / w600** |
+
+### 14.3 Checked and **not** linked
+
+- `ListTile` / `RadioListTile` titles (album picker, saved pools, Build Pool,
+  order sheet options): Material 3 default is `bodyLarge`, not
+  `titleMedium` (`useMaterial3` is on by default; the theme does not turn it
+  off).
+- Build Pool AppBar: explicit `labelChrome`.
+- Saved-pool dialog title: `labelOnMedia`.
+- Debug-only `library_smoke` pages read `titleMedium` but are not product
+  surfaces.
+
+**Rule:** a new widget that reads `titleMedium` (directly or through a
+Material default) must be added to §14.1 in the same change.
 
 ---
 
