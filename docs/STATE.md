@@ -284,11 +284,14 @@ needs deeper split; do not renumber later mains. Sequential only (not
 parallel tracks).
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] 31.1 Settings hierarchy / weight / info organization
+- [x] 31.1 Settings hierarchy / weight / info organization
       (title / subtitle / body layering; long copy into info bubbles;
       no full EN/ZH copy sweep; no privacy / about screens — those
       stay on post-v1 Settings Cap)
-- [ ] 31.2 Live Photo: album-case triage → diagnose / fix
+      — work `bac2521` + `809d238` + `4b335bf` + `edf46ab`
+        (+ test `02b26f6`); ADR-061 Accepted; owner accepted
+        2026-09-28
+- [~] 31.2 Live Photo: album-case triage → diagnose / fix
       (map each album case to debt **470** / **471** and ADR-051
       Decision 12 — reuse vs new path; owner-confirmed bugs, do not
       re-litigate “is it a bug”; deepen with 31.2a / 31.2b if needed)
@@ -341,20 +344,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 31.1 Settings hierarchy / weight / info
-      organization — work on `main` (`bac2521` + `809d238` +
-      `4b335bf` + `edf46ab`)
-- Sub-steps done: extract `anchored_info_bubble`; Settings chrome
-      helpers; info bubbles; Photos Access row-chrome special-case;
-      section title strings + locale colons; meta overlay row title
-      names the bottom-left position (`4b335bf`); page heading split to
-      `titlePage`, `titleChrome` back to its Cap 7.2 values so closed-Cap
-      sheet / guide / button text returns to accepted state (`edf46ab`,
-      ADR-061); media chrome golden preview test removed
-      (`02b26f6`); hierarchy tests; all work commits pushed; owner
-      device recheck A (sheet titles, "…" Delete vs Add to Album,
-      Settings heading) + B (fresh install: Cap 30 coach titles) PASS
-- Next step: owner accept 31.1 close (or file follow-ups); then 31.2
+- Goal (one line): Cap 31.2 Live Photo album-case triage — single-asset
+      case first, then the fixed-condition case
+- Sub-steps done: —
+- Next step: single-asset case fix + dual-device verification
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); debts **480** /
       **481** / **482** Open; **441** Monitoring (31.3); **478** Open (probe
