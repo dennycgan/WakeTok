@@ -295,6 +295,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (map each album case to debt **470** / **471** and ADR-051
       Decision 12 — reuse vs new path; owner-confirmed bugs, do not
       re-litigate “is it a bug”; deepen with 31.2a / 31.2b if needed)
+  - [x] 31.2a Single-asset case (IMG_1935: `PHLivePhotoView` never
+        delivers `didEndPlaybackWith`) — work `b8b7b9b`; ADR-063
+        Accepted; owner accepted 2026-09-28 (dual-device + probe-free
+        recheck); notes `docs/acceptance/cap31-31.2-notes.md`
+  - [ ] 31.2b Fixed-condition case; owner description pending
 - [ ] 31.3 Video one-frame black dig
       (start from debt **441** Monitoring + Cap 15.11 family; owner
       paces accept-vs-continue; no agent time cap; split 31.3a / 31.3b
@@ -344,12 +349,14 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 31.2 Live Photo album-case triage — single-asset
-      case first, then the fixed-condition case
+- Goal (one line): Cap 31.2b Live Photo fixed-condition case (owner
+      description pending)
 - Sub-steps done: —
-- Next step: single-asset case fix + dual-device verification
+- Next step: owner describes the case → triage (map to debt **470** /
+      **471**, ADR-051 D12, ADR-063)
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
-      (chat); ADR-061 Accepted (title token split); debts **480** /
+      (chat); ADR-061 Accepted (title token split); ADR-063 Accepted
+      (31.2a Live motion-end fallback); debts **480** /
       **481** / **482** Open; **441** Monitoring (31.3); **478** Open (probe
       keep-while-Open — Settings UI later stripped in 31.5,
       implementation retained until revisit)
@@ -411,11 +418,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
   `docs/reference/cap21-smart-album-boundary.md`. New iOS subtypes do
   **not** auto-join; owner edits the table + ARB deliberately. Work
   `67cb08b`.
-- PhotoKit multi-surface identity mismatches (Live/Animated;
-  `mediaSubtypes` vs `playbackStyle` vs smart-album membership) +
-  other implicit Host index:
+- PhotoKit implicit behaviors: multi-surface Live/Animated identity
+  mismatches (`mediaSubtypes` vs `playbackStyle` vs smart-album
+  membership), `PHLivePhotoView` natural-end callback not guaranteed,
+  plus other implicit Host index:
   `docs/reference/ios-photokit-implicit-behavior-notes.md`
-  (debt **471**; ADR-052 D11; ADR-053)
+  (debt **471**; ADR-052 D11; ADR-053; ADR-063)
 - Localization guard: ADR-012 + test/architecture/localization_test.dart
 - Theme: lib/core/theme/ (WakeTokTokens ThemeExtension + waketokTheme; ADR-009)
 - Authorization: lib/domain/authorization/, lib/platform/photo_library_gateway.dart, lib/features/authorization/ (ADR-010)

@@ -1397,7 +1397,9 @@ remain `false`. Kickoff Data Contract field no longer placeholder-only.
   never shipped) and then by ADR-052 (Proposed 2026-09-15 — App
   long-press replaces that control; system
   `playbackGestureRecognizer` hard gate unchanged; Accepted +
-  implementing anchor when Cap 26.2+ lands)
+  implementing anchor when Cap 26.2+ lands); Decisions 1 / 8 narrowly
+  supplemented by ADR-063 (2026-09-28 — Host motion-end fallback adds a
+  second Host end source; play-once lifecycle unchanged)
 - Commit/PR anchor: 98fe191
 - Plain summary (owner reads this):
   Live Photos in Manual browse play motion once through a dedicated native
@@ -7916,3 +7918,173 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Deviates from kickoff ADR-U §11–12 and §14 (zh line) for v1 by owner
   decision. Complements ADR-012 (ARB guards); no ADR superseded.
   Debt 420.
+
+## ADR-063: Cap 31.2 Host motion-end fallback for Live Photo playback
+
+- Status: **Accepted** (2026-09-28)
+- Commit/PR anchor: b8b7b9b
+- Plain summary (owner reads this):
+  Some Live Photos never deliver the "motion finished" signal to
+  WakeTok. Until now WakeTok waited 6 seconds for it, so the photo sat
+  frozen on its last frame, Share stayed dim, and the photo was marked
+  to show only its still on revisit. Now the native side reads how long
+  the motion is and, if the signal stays missing, ends the motion
+  itself shortly after that length. Only unedited, normal-style Live
+  Photos stored on the phone use this; everything else behaves as
+  before, with the 6-second safety net unchanged.
+- Context / what problem forced this:
+  ADR-019 Decision 1 makes the Host responsible for Live end (Swift owns
+  PHLivePhotoView and end/fail). Since Cap 9 the Host's only end source
+  has been `PHLivePhotoView` `livePhotoView(_:didEndPlaybackWith:)`,
+  forwarded as `onLivePhotoPlaybackEnded`. Cap 31.2 found an unedited,
+  locally stored `.livePhoto` asset (IMG_1935) where that callback never
+  fires — neither on auto-play nor on long-press — while
+  `willBeginPlaybackWith` arrives normally (~38 ms after
+  `startPlayback`). The only exit is the Dart 6 s ended watchdog
+  (ADR-052 Decision 4 / Cap 26.4b): the last frame stays on screen for
+  ~4.3 s, Share stays dim (ADR-051 Decision 14 `¬liveMotionMounted`),
+  and the id is added to the Session skip set, so a revisit shows the
+  still. Same-day controls and the Photos app behave normally. Whether
+  the missing callback is an iOS defect or specific to WakeTok's hosting
+  (Flutter Platform View, disabled playback gesture) is investigated by
+  a minimal native repro recorded in `docs/acceptance/cap31-31.2-notes.md`;
+  either way, WakeTok's end signal must not depend solely on it. The
+  repro conclusion is recorded under Consequences. The one measured
+  layout difference (movie − video-track gap 0.073 s vs 0.000–0.035 s)
+  is a side note, not a proven trigger.
+- Decision (what was chosen):
+  1. **Scope.** A Host-only fallback for plays started by Host
+     `startPlayback`. No Dart logic change; no new Pigeon method (the
+     `onLivePhotoPlaybackEnded` doc comment is updated, signature
+     unchanged).
+  2. **Eligibility.** The fallback applies only when
+     `PHAsset.playbackStyle == .livePhoto`, the resources include
+     `.pairedVideo`, and none of `.fullSizePairedVideo`,
+     `.adjustmentData`, `.adjustmentBasePairedVideo` are present
+     (unedited, so the played motion is the original paired video).
+     `playbackStyle` is read for this timer only; ADR-052 Decision 11
+     eligibility is unaffected.
+  3. **Duration read and deadline.** After `onLivePhotoReady`, the Host
+     makes one streaming `PHAssetResourceManager.requestData` read of the
+     `.pairedVideo` resource: `isNetworkAccessAllowed = false`, no retry,
+     no file copy. It walks top-level QuickTime atoms to `moov/mvhd`
+     (`moov` buffered up to 4 MB; 64-bit `largesize` supported) and calls
+     `cancelDataRequest` as soon as `mvhd` is parsed. `startPlayback`
+     never waits for the read. Deadline = `willBegin` + movie duration +
+     slack:
+     - duration known at `willBegin` → arm for the full delay;
+     - duration arrives after `willBegin` → arm with the remaining time;
+     - deadline already passed with no system end → fire immediately;
+     - duration arrives after the play is closed → do not arm;
+     - unreadable or unknown → no fallback (behavior as before this ADR).
+     Only successful reads are cached (bounded, 64 entries).
+  4. **Fallback action.** On timeout the Host calls `stopPlayback()` on
+     the view and emits the same `onLivePhotoPlaybackEnded`.
+  5. **Single end per play.** The Host forwards only the first end of
+     the current play on the current surface. A play is one Host
+     `startPlayback` that reached the view, on one surface (per-start
+     serial + surface identity). A play is closed by its first forwarded
+     end (system or fallback), Dart `stopPlayback`, `cancel`, a new
+     `requestLivePhoto`, a new `startPlayback`, or a surface bind /
+     unbind. Every system end that arrives after the play is closed is
+     dropped, and the fallback timer is cancelled on the same events, so
+     a late end from an earlier play or surface cannot end a following
+     Path R / Path S replay.
+  6. **Slack.** Named constant `LiveMotionEndPolicy.slack` = 1.0 s,
+     chosen by the owner from dual-device natural-end samples (selection
+     rule and sampling rules in `docs/acceptance/cap31-31.2-notes.md`).
+  7. **Last resort unchanged.** The Dart 6 s watchdog and skip set stay
+     as they are and still cover every case this fallback does not.
+- Rejected alternatives (why not):
+  - Only stop adding the asset to the skip set — revisit would auto-play
+    again, but every visit would still freeze ~4.3 s on the last frame
+    with Share dim.
+  - Shorten the Dart watchdog globally — Dart does not know motion
+    length; it would cut long motions or stay too long on short ones.
+  - Parallel duration read at request time — competes for I/O with
+    `requestLivePhoto` and the first frame; one read after ready is
+    enough because the deadline is anchored on `willBegin`.
+  - Retry or network-allowed read — may trigger iCloud downloads;
+    "unknown → current behavior" is an acceptable residual.
+  - Copy the paired video to a file / use `AVURLAsset` track duration —
+    leaves user video copies on disk (included in backups) and adds
+    I/O; `mvhd` movie duration is ≥ the track duration, so it errs late,
+    not early.
+  - Observe `PHLivePhotoView` playback state by polling — no public API.
+- Consequences / constraints accepted:
+  - IMG_1935-class assets: freeze ≈ slack plus the movie − video-track
+    gap (the deadline uses the `mvhd` container duration, which is
+    longer than the video track); no skip-set add; revisit auto-plays.
+  - Residuals that still rely on the 6 s watchdog: edited Live; Loop /
+    Bounce / Long Exposure; paired video not local (network-off read
+    fails); `willBegin` never arrives (the timer is never armed); `moov`
+    larger than 4 MB or `mvhd` parse failure (duration unknown).
+  - End events after a Dart stop / cancel no longer reach Dart. All
+    seven Dart stop / cancel call sites unload or invalidate first, so
+    none depended on them.
+  - One local read per asset, on its first ready; later readies hit the
+    cache and skip it. Unsuccessful reads are not cached, so an asset
+    whose read failed (e.g. paired video not local) is read again on its
+    next ready; the bounded cache is cleared when full, after which
+    assets are read again. When `moov` sits after `mdat`, PhotoKit
+    streams through the media data (not stored); bytes read are recorded
+    in acceptance notes.
+  - The `mvhd` parser is bounded and unit-tested in RunnerTests
+    (largesize, v1, moov after mdat, chunk boundaries, truncated /
+    malformed input, timescale 0 → unknown).
+  - Final slack: `LiveMotionEndPolicy.slack = 1.0 s`. The selection
+    rule's stop condition (any device max overrun > 0.75 s) fired; the
+    rule's value (max + 0.25 s = 1.006 s) exceeded its 1.0 s cap, and
+    the owner chose 1.0 s. The actual margin over the largest observed
+    overrun is ~244 ms, slightly below the rule's 250 ms; this is an
+    owner-accepted value, not a full match of the rule.
+  - Acceptance samples: 28 natural-end samples on two devices (iPhone
+    17, iOS 26.6.2: 14; iPhone 13 Pro, iOS 26.6: 14). Overrun after
+    `willBegin` + movie duration: max 756 ms (iPhone 17) and 657 ms
+    (iPhone 13 Pro); median ≈ 0.49 s (494.5 ms); 4 samples above
+    600 ms (756, 723, 657, 609). First-visit-with-read and cache-hit
+    plays did not separate clearly. Zero fallback fires on normal
+    assets.
+  - Residual: if a normal play's system end ever arrives later than
+    1.0 s after `willBegin` + movie duration, its closing transition is
+    cut short by the fallback.
+  - IMG_1935: every play that stayed on screen past the deadline was
+    ended by the fallback (iPhone 17: 7 of 7; iPhone 13 Pro, AirDropped
+    copy: 3 of 3); 3 other plays were left or released before the
+    deadline. Revisit auto-played every time. Owner probe-free recheck:
+    freeze ~1.2 s (0.073 s gap + 1.0 s slack + ~0.04–0.13 s main-thread
+    latency), accepted; slightly different from the closing transition
+    of normal assets.
+  - The "paired video not local" failure path has no device sample;
+    its behavior follows from design only.
+  - Native repro: a minimal standalone UIKit repro (no Flutter, no
+    WakeTok code) reproduced the missing `didEndPlaybackWith` at natural
+    end for this asset on iPhone 17 (iOS 26.6.2): 10/10 runs, both
+    default and disabled `playbackGestureRecognizer`. A control asset
+    (IMG_1934) delivered `didEnd` normally in all 10 runs. This is
+    treated as an iOS/PhotoKit behavior specific to this asset's
+    content, not something triggered by WakeTok's Platform View hosting
+    or gesture configuration — though the repro cannot rule out effects
+    specific to Platform View hosting itself.
+  - Decision 5 is required, not only a precaution. The repro showed
+    that `stopPlayback()` does end motion with `didEndPlaybackWith`,
+    asynchronously ~0.31 s later (305–312 ms, control asset IMG_1934),
+    so any Host stop — Dart's or the fallback's — can be followed by a
+    late system end while the view is still alive. In the acceptance
+    builds no late end followed a stop (21 cases), most likely because
+    the Dart side unmounts the view within 0–14 ms; the
+    drop-after-close rule was exercised by cancel-triggered ends (64
+    dropped, none forwarded). Whether a stop on an asset that never delivers a
+    natural end (IMG_1935) is followed by a late end was not tested.
+- Relationship:
+  - ADR-019 Decisions 1 / 8: narrow supplement — adds a second Host end
+    source; play-once lifecycle unchanged. ADR-019's Status line notes
+    "narrowly supplemented by ADR-063" (same form as its existing
+    ADR-040 / ADR-052 notes); its Decision body is not edited.
+  - ADR-052 Decision 4: body unchanged; the watchdog becomes a rarer
+    last resort for eligible assets (recorded here, not there).
+  - ADR-051 Decision 14: consumer — Share re-enables when
+    `liveMotionMounted` clears, which now happens at the fallback.
+  - ADR-009: no Dart or boundary change.
+  - Phenomenon record:
+    `docs/reference/ios-photokit-implicit-behavior-notes.md` §3.1.

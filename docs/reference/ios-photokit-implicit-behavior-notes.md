@@ -116,8 +116,10 @@ Evidence classes (do not collapse these):
 
 ## 3. Other PhotoKit implicit behaviors (index only)
 
-Pointers only — details stay in ADRs / STATE debt. Revisit on major iOS
-Photos changes if the linked Cap is active.
+Pointers only — details stay in ADRs / STATE debt, except
+non-classification phenomena that need their own evidence record
+(subsections below the table). Revisit on major iOS Photos changes if
+the linked Cap is active.
 
 | Topic | Why “implicit” | See |
 |-------|----------------|-----|
@@ -126,6 +128,52 @@ Photos changes if the linked Cap is active.
 | Limited library settle race | Authorization UI can return before PhotoKit library is populated | Cap authorization / resolve ADRs |
 | `PHImageManager` opportunistic double callback / cancel | Multiple resultHandler invocations; cancel best-effort | Browse load / iCloud path ADRs |
 | `PHLivePhotoView` / UiKitView vs Flutter `Transform` | Platform View may not follow Flutter magnification transforms | Known debt **470**; ADR-043 |
+| `PHLivePhotoView` natural-end callback not guaranteed | `didEndPlaybackWith` is the only public end signal, but it did not arrive after natural end for one asset | §3.1 below; ADR-063 |
+
+### 3.1 `PHLivePhotoView` natural-end callback missing (Cap 31.2)
+
+- **Phenomenon:** For one unedited, locally stored `.livePhoto` asset
+  (IMG_1935), `PHLivePhotoView` reported
+  `livePhotoView(_:willBeginPlaybackWith:)` and then never reported
+  `livePhotoView(_:didEndPlaybackWith:)` after the motion finished, on
+  auto-play and on long-press replay. In WakeTok, no play that stayed
+  on screen past the motion length received it (iPhone 17: 7 of 7;
+  iPhone 13 Pro: 3 of 3). The Photos app plays the same asset normally
+  (owner observation).
+- **Follows the file content:** an AirDropped copy on a second device
+  (a new library asset; same paired video, 3,212,167 bytes, `mvhd`
+  duration 1.757 s) reproduced it in WakeTok.
+- **Reproduced without WakeTok:** a minimal standalone UIKit app (no
+  Flutter, no WakeTok code) on iPhone 17 missed `didEndPlaybackWith` at
+  natural end for this asset in 10 of 10 runs, with the default and
+  with a disabled `playbackGestureRecognizer` (5 runs each). Control
+  IMG_1934 delivered it in 10 of 10 runs.
+- **Mid-motion end triggers:** `stopPlayback()` does not deliver
+  `didEndPlaybackWith` synchronously; it arrives asynchronously about
+  305–312 ms later (native repro, IMG_1934, view kept in the window).
+  In WakeTok the callback was not observed after a stop (21 cases; no
+  callback for 0.43–4.7 s, until the next Host event), most likely
+  because the Dart side unmounts the view within 0–14 ms of the stop
+  (view release time is not logged). Setting `livePhoto = nil` produced
+  the callback within ~1 ms every time in WakeTok (64 cases, 3 of them
+  on IMG_1935). A stop on IMG_1935 itself with the view kept alive was
+  not tested.
+- **Control (normal assets):** the system end arrived after
+  `willBegin` + paired-video `mvhd` duration by typically ~0.47–0.51 s
+  (24 of 28 natural-end samples); the other 4 samples were 0.61–0.76 s.
+- **Only measured layout difference:** movie − video-track gap 0.073 s
+  vs 0.000–0.035 s on controls; not a proven trigger.
+- **Attribution:** treated as iOS / PhotoKit behavior specific to this
+  asset's content — it reproduces without Flutter or WakeTok code and
+  with either gesture configuration. The repro cannot rule out
+  additional effects specific to Platform View hosting.
+- **Evidence class:** **Device probe** — temporary Host log
+  (Cap 31.2 acceptance build) on iPhone 17, iOS 26.6.2 (23G90), and
+  iPhone13pro Kafka, iOS 26.6 (23G71); minimal native repro on
+  iPhone 17, iOS 26.6.2.
+- **Cross-ref:** ADR-063; `docs/acceptance/cap31-31.2-notes.md`. No
+  debt row (Cap 31.2 triage mapped it to a new path, not debt 470 /
+  471).
 
 ---
 
