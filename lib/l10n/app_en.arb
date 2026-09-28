@@ -8,15 +8,23 @@
   "@appTitle": {
     "description": "Application title"
   },
-  "permissionRequestTitle": "Access your photo library",
+  "permissionRequestTitle": "Wake what you saved, the way you scroll short videos.",
   "@permissionRequestTitle": {
-    "description": "First-launch Photos permission screen title"
+    "description": "First-launch Photos permission screen headline, below the app name"
   },
-  "permissionRequestBody": "WakeTok shows your photos and videos in a private, on-device feed. Your media never leaves this device.",
-  "@permissionRequestBody": {
-    "description": "First-launch Photos permission screen body"
+  "permissionRequestPointRediscover": "Rediscover your local photos and videos.",
+  "@permissionRequestPointRediscover": {
+    "description": "First-launch Photos permission screen, first short line (EN only). zh intentionally empty; the permission page hides this line when the localized value is empty; do not fill it in without an owner decision."
   },
-  "permissionRequestContinue": "Continue",
+  "permissionRequestPointNoAccount": "No account. Nothing uploaded.",
+  "@permissionRequestPointNoAccount": {
+    "description": "First-launch Photos permission screen, first short line (privacy)"
+  },
+  "permissionRequestPointChooseOrder": "Choose what to browse and in what order.",
+  "@permissionRequestPointChooseOrder": {
+    "description": "First-launch Photos permission screen, second short line (user picks sources and order)"
+  },
+  "permissionRequestContinue": "Allow Photo Access and Start",
   "@permissionRequestContinue": {
     "description": "CTA that triggers the system Photos permission prompt"
   },
@@ -28,7 +36,7 @@
   "@permissionBlockedTitleRestricted": {
     "description": "Blocked screen title when Photos access is restricted"
   },
-  "permissionBlockedBody": "WakeTok needs photo library access to show your media. You can enable access in Settings.",
+  "permissionBlockedBody": "WakeTok needs access to your photos and videos to work. You can turn it on in Settings.",
   "@permissionBlockedBody": {
     "description": "Blocked screen body for denied or restricted access"
   },
@@ -432,7 +440,7 @@
   "@mainBrowseBuildPoolSmartCatalogFailed": {
     "description": "Cap 21.4b system-albums section AsyncError fallback"
   },
-  "smartAlbumFavorites": "Favorites",
+  "smartAlbumFavorites": "Favourites",
   "@smartAlbumFavorites": {
     "description": "Cap 21.4b Build smart-album row label (subtype 203)"
   },
@@ -968,7 +976,7 @@
   "@cap19PanelAddToAlbumTitle": {
     "description": "Cap 19 half-sheet title (shared Full/Limited chrome; keep Add to Album — bare Add rejected on device under Limited)"
   },
-  "cap19PanelAddToAlbumLimitedMessage": "Favorites and albums need full Photos access. Open Settings to allow access to all photos.",
+  "cap19PanelAddToAlbumLimitedMessage": "Favourites and albums need full Photos access. Open Settings to allow access to all photos.",
   "@cap19PanelAddToAlbumLimitedMessage": {
     "description": "Cap 19.4 D4 non-interactive Limited upgrade copy (Cap 19.5b: favorites + albums)"
   },
@@ -1009,23 +1017,23 @@
   "@cap19PanelAlbumsSectionTitle": {
     "description": "Cap 19.5b Albums section header below Favorites row"
   },
-  "cap19PanelAddToFavorites": "Add to Favorites",
+  "cap19PanelAddToFavorites": "Add to Favourites",
   "@cap19PanelAddToFavorites": {
     "description": "Cap 19.5b Favorites row when asset is not favorited"
   },
-  "cap19PanelRemoveFromFavorites": "Favorited — Remove",
+  "cap19PanelRemoveFromFavorites": "Favourited — Remove",
   "@cap19PanelRemoveFromFavorites": {
     "description": "Cap 19.5b Favorites row when asset is already favorited; states status then action"
   },
-  "cap19PanelFavoritesAddedSuccess": "Added to Favorites",
+  "cap19PanelFavoritesAddedSuccess": "Added to Favourites",
   "@cap19PanelFavoritesAddedSuccess": {
     "description": "Cap 19.5b toggle-on success toast"
   },
-  "cap19PanelFavoritesRemovedSuccess": "Removed from Favorites",
+  "cap19PanelFavoritesRemovedSuccess": "Removed from Favourites",
   "@cap19PanelFavoritesRemovedSuccess": {
     "description": "Cap 19.5b toggle-off success toast"
   },
-  "cap19PanelFavoritesError": "Couldn't update Favorites. Try again.",
+  "cap19PanelFavoritesError": "Couldn't update Favourites. Try again.",
   "@cap19PanelFavoritesError": {
     "description": "Cap 19.5b Favorites Host read/toggle failure (not media-not-ready)"
   },

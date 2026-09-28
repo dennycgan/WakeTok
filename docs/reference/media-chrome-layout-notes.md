@@ -942,9 +942,10 @@ at once. The Settings page heading does **not** use it (`titlePage`, see
 
 ### 14.2 Same token, not via `titleMedium`
 
-| Surface | Path | Result today |
-|---------|------|--------------|
-| Permission request / blocked AppBar title (`appTitle`) | `AppBarTheme.titleTextStyle` = `titleChrome` | **20 / w600** |
+None today. `AppBarTheme.titleTextStyle` = `titleChrome` (**20 / w600**)
+has no product reader since the permission blocked page dropped its AppBar
+(Cap 31.4); a new AppBar that keeps the default title style must be added
+here.
 
 ### 14.3 Checked and **not** linked
 
@@ -976,7 +977,8 @@ after Build Pool its light icons stuck onto the Light Settings pane.
 | Browse pane (incl. half-sheets, dialogs, Cap 30 coaches on top) | shell `AnnotatedRegion` (`mainBrowseStatusBarStyle`, `main_browse_shell_page.dart`) | light, both Appearances |
 | Settings pane | same shell region, from ambient `Theme.brightness` | follow Appearance |
 | Build Pool (pushed, forced dark) | its AppBar (dark theme) | light |
-| Permission request / blocked | their AppBar (follows Appearance) | follow Appearance |
+| Permission request | baseline (no AppBar) | follow Appearance |
+| Permission blocked | baseline (no AppBar) | follow Appearance |
 | Permission gate loading / error | baseline (no AppBar) | follow Appearance |
 
 The shell region stays unconditional (it also covers Settings) so the
@@ -988,6 +990,35 @@ not paint a region, so the shell region underneath still applies. Guards:
 without an AppBar declares its own `AnnotatedRegion<SystemUiOverlayStyle>`
 only when its theme differs from the app theme (e.g. forced dark), and is
 added to this table. Do not remove the baseline.
+
+## 16. Photos permission pages: one flow, one style (Cap 31.4)
+
+The permission request page (`permission_request_page.dart`) and the
+permission blocked page (`permission_blocked_page.dart`, denied and
+restricted) are two states of one flow and share one style: the constants
+and `PermissionPageStyle.of(context)` in `permission_page_style.dart`
+(padding, the three text sizes, per-locale body and button sizes, gaps,
+button height, button fill and text colors — light-mode set in both
+Appearances).
+
+**Rule:** change layout, text sizes, spacing, or the button for these
+pages only in `permission_page_style.dart`, never in one page alone. Only
+request-page-only details (bullet dots, gap between points) stay in
+`permission_request_page.dart`.
+
+**Not linked:** the Settings Photos access section
+(`photos_access_settings_section.dart`). Manage Selection (filled,
+Limited only) and Open Settings (outlined) use theme default button
+styles; the dark-mode maroon filled-button text is recorded in
+`docs/acceptance/cap31-31.4-notes.md`.
+
+**Auth state:** all three screens share one source,
+`photosAuthorizationProvider` (`photos_authorization_notifier.dart`).
+`PhotosAccessGate` decides which page shows (notDetermined → request;
+denied / restricted → blocked, passing `access` in; limited / full →
+Browse, where Settings reads the provider) and refreshes on resume. Before
+changing auth state logic, check every reader
+(`rg photosAuthorizationProvider lib`), not just these three screens.
 
 ---
 

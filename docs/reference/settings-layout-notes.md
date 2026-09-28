@@ -62,8 +62,9 @@ the other's role.
 **`titlePage` consumers:** Settings page title
 (`main_browse_shell_page.dart`). Retuning it moves page headings only.
 
-**`titleChrome` consumers** (6 `titleMedium` surfaces + permission AppBar
-titles): canonical list in `media-chrome-layout-notes.md` **§14**. Retuning
+**`titleChrome` consumers** (6 `titleMedium` surfaces; no AppBar title
+reads it since Cap 31.4): canonical list in `media-chrome-layout-notes.md`
+**§14**. Retuning
 `titleChrome` moves all of them; re-check each on device. A new surface that
 uses `titlePage` must be added here; one that uses `titleMedium` /
 `titleChrome` goes in §14.

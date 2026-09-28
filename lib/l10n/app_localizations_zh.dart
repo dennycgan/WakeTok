@@ -15,13 +15,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appTitle => 'WakeTok';
 
   @override
-  String get permissionRequestTitle => '访问你的照片图库';
+  String get permissionRequestTitle => '像刷短视频一样，重新发现你珍藏的图片和视频。';
 
   @override
-  String get permissionRequestBody => 'WakeTok 在本机以私密方式展示你的图片和视频。媒体不会离开这台设备。';
+  String get permissionRequestPointRediscover => '';
 
   @override
-  String get permissionRequestContinue => '继续';
+  String get permissionRequestPointNoAccount => '无需账号，不上传任何内容。';
+
+  @override
+  String get permissionRequestPointChooseOrder => '自己决定刷什么，自己定顺序。';
+
+  @override
+  String get permissionRequestContinue => '授权相册开始刷';
 
   @override
   String get permissionBlockedTitleDenied => '未开启照片访问权限';
@@ -30,7 +36,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get permissionBlockedTitleRestricted => '照片访问受限';
 
   @override
-  String get permissionBlockedBody => 'WakeTok 需要照片图库权限才能展示媒体。你可以在设置中开启访问。';
+  String get permissionBlockedBody => 'WakeTok 需要访问你的照片和视频才能正常使用。你可以在设置中开启。';
 
   @override
   String get permissionOpenSettings => '打开设置';
@@ -341,7 +347,7 @@ class AppLocalizationsZh extends AppLocalizations {
       'Could not load system albums.';
 
   @override
-  String get smartAlbumFavorites => 'Favorites';
+  String get smartAlbumFavorites => 'Favourites';
 
   @override
   String get smartAlbumLivePhotos => 'Live Photos';
@@ -738,7 +744,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap19PanelAddToAlbumLimitedMessage =>
-      'Favorites and albums need full Photos access. Open Settings to allow access to all photos.';
+      'Favourites and albums need full Photos access. Open Settings to allow access to all photos.';
 
   @override
   String get cap19PanelAddToAlbumFullPlaceholder =>
@@ -769,20 +775,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get cap19PanelAlbumsSectionTitle => 'Albums';
 
   @override
-  String get cap19PanelAddToFavorites => 'Add to Favorites';
+  String get cap19PanelAddToFavorites => 'Add to Favourites';
 
   @override
-  String get cap19PanelRemoveFromFavorites => 'Favorited — Remove';
+  String get cap19PanelRemoveFromFavorites => 'Favourited — Remove';
 
   @override
-  String get cap19PanelFavoritesAddedSuccess => 'Added to Favorites';
+  String get cap19PanelFavoritesAddedSuccess => 'Added to Favourites';
 
   @override
-  String get cap19PanelFavoritesRemovedSuccess => 'Removed from Favorites';
+  String get cap19PanelFavoritesRemovedSuccess => 'Removed from Favourites';
 
   @override
   String get cap19PanelFavoritesError =>
-      'Couldn\'t update Favorites. Try again.';
+      'Couldn\'t update Favourites. Try again.';
 
   @override
   String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';
@@ -951,13 +957,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get appTitle => 'WakeTok';
 
   @override
-  String get permissionRequestTitle => '访问你的照片图库';
+  String get permissionRequestTitle => '像刷短视频一样，重新发现你珍藏的图片和视频。';
 
   @override
-  String get permissionRequestBody => 'WakeTok 在本机以私密方式展示你的图片和视频。媒体不会离开这台设备。';
+  String get permissionRequestPointRediscover => '';
 
   @override
-  String get permissionRequestContinue => '继续';
+  String get permissionRequestPointNoAccount => '无需账号，不上传任何内容。';
+
+  @override
+  String get permissionRequestPointChooseOrder => '自己决定刷什么，自己定顺序。';
+
+  @override
+  String get permissionRequestContinue => '授权相册开始刷';
 
   @override
   String get permissionBlockedTitleDenied => '未开启照片访问权限';
@@ -966,7 +978,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get permissionBlockedTitleRestricted => '照片访问受限';
 
   @override
-  String get permissionBlockedBody => 'WakeTok 需要照片图库权限才能展示媒体。你可以在设置中开启访问。';
+  String get permissionBlockedBody => 'WakeTok 需要访问你的照片和视频才能正常使用。你可以在设置中开启。';
 
   @override
   String get permissionOpenSettings => '打开设置';

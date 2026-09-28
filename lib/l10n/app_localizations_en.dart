@@ -15,14 +15,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'WakeTok';
 
   @override
-  String get permissionRequestTitle => 'Access your photo library';
+  String get permissionRequestTitle =>
+      'Wake what you saved, the way you scroll short videos.';
 
   @override
-  String get permissionRequestBody =>
-      'WakeTok shows your photos and videos in a private, on-device feed. Your media never leaves this device.';
+  String get permissionRequestPointRediscover =>
+      'Rediscover your local photos and videos.';
 
   @override
-  String get permissionRequestContinue => 'Continue';
+  String get permissionRequestPointNoAccount => 'No account. Nothing uploaded.';
+
+  @override
+  String get permissionRequestPointChooseOrder =>
+      'Choose what to browse and in what order.';
+
+  @override
+  String get permissionRequestContinue => 'Allow Photo Access and Start';
 
   @override
   String get permissionBlockedTitleDenied => 'Photo access is turned off';
@@ -32,7 +40,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionBlockedBody =>
-      'WakeTok needs photo library access to show your media. You can enable access in Settings.';
+      'WakeTok needs access to your photos and videos to work. You can turn it on in Settings.';
 
   @override
   String get permissionOpenSettings => 'Open Settings';
@@ -345,7 +353,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Could not load system albums.';
 
   @override
-  String get smartAlbumFavorites => 'Favorites';
+  String get smartAlbumFavorites => 'Favourites';
 
   @override
   String get smartAlbumLivePhotos => 'Live Photos';
@@ -742,7 +750,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap19PanelAddToAlbumLimitedMessage =>
-      'Favorites and albums need full Photos access. Open Settings to allow access to all photos.';
+      'Favourites and albums need full Photos access. Open Settings to allow access to all photos.';
 
   @override
   String get cap19PanelAddToAlbumFullPlaceholder =>
@@ -773,20 +781,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cap19PanelAlbumsSectionTitle => 'Albums';
 
   @override
-  String get cap19PanelAddToFavorites => 'Add to Favorites';
+  String get cap19PanelAddToFavorites => 'Add to Favourites';
 
   @override
-  String get cap19PanelRemoveFromFavorites => 'Favorited — Remove';
+  String get cap19PanelRemoveFromFavorites => 'Favourited — Remove';
 
   @override
-  String get cap19PanelFavoritesAddedSuccess => 'Added to Favorites';
+  String get cap19PanelFavoritesAddedSuccess => 'Added to Favourites';
 
   @override
-  String get cap19PanelFavoritesRemovedSuccess => 'Removed from Favorites';
+  String get cap19PanelFavoritesRemovedSuccess => 'Removed from Favourites';
 
   @override
   String get cap19PanelFavoritesError =>
-      'Couldn\'t update Favorites. Try again.';
+      'Couldn\'t update Favourites. Try again.';
 
   @override
   String get cap19CurrentMediaNotReady => 'Media isn\'t ready yet.';

@@ -111,22 +111,34 @@ abstract class AppLocalizations {
   /// **'WakeTok'**
   String get appTitle;
 
-  /// First-launch Photos permission screen title
+  /// First-launch Photos permission screen headline, below the app name
   ///
   /// In en, this message translates to:
-  /// **'Access your photo library'**
+  /// **'Wake what you saved, the way you scroll short videos.'**
   String get permissionRequestTitle;
 
-  /// First-launch Photos permission screen body
+  /// First-launch Photos permission screen, first short line (EN only). zh intentionally empty; the permission page hides this line when the localized value is empty; do not fill it in without an owner decision.
   ///
   /// In en, this message translates to:
-  /// **'WakeTok shows your photos and videos in a private, on-device feed. Your media never leaves this device.'**
-  String get permissionRequestBody;
+  /// **'Rediscover your local photos and videos.'**
+  String get permissionRequestPointRediscover;
+
+  /// First-launch Photos permission screen, first short line (privacy)
+  ///
+  /// In en, this message translates to:
+  /// **'No account. Nothing uploaded.'**
+  String get permissionRequestPointNoAccount;
+
+  /// First-launch Photos permission screen, second short line (user picks sources and order)
+  ///
+  /// In en, this message translates to:
+  /// **'Choose what to browse and in what order.'**
+  String get permissionRequestPointChooseOrder;
 
   /// CTA that triggers the system Photos permission prompt
   ///
   /// In en, this message translates to:
-  /// **'Continue'**
+  /// **'Allow Photo Access and Start'**
   String get permissionRequestContinue;
 
   /// Blocked screen title when Photos access is denied
@@ -144,7 +156,7 @@ abstract class AppLocalizations {
   /// Blocked screen body for denied or restricted access
   ///
   /// In en, this message translates to:
-  /// **'WakeTok needs photo library access to show your media. You can enable access in Settings.'**
+  /// **'WakeTok needs access to your photos and videos to work. You can turn it on in Settings.'**
   String get permissionBlockedBody;
 
   /// Button that opens the iOS Settings app
@@ -669,7 +681,7 @@ abstract class AppLocalizations {
   /// Cap 21.4b Build smart-album row label (subtype 203)
   ///
   /// In en, this message translates to:
-  /// **'Favorites'**
+  /// **'Favourites'**
   String get smartAlbumFavorites;
 
   /// Cap 21.4b Build smart-album row label (subtype 213)
@@ -1383,7 +1395,7 @@ abstract class AppLocalizations {
   /// Cap 19.4 D4 non-interactive Limited upgrade copy (Cap 19.5b: favorites + albums)
   ///
   /// In en, this message translates to:
-  /// **'Favorites and albums need full Photos access. Open Settings to allow access to all photos.'**
+  /// **'Favourites and albums need full Photos access. Open Settings to allow access to all photos.'**
   String get cap19PanelAddToAlbumLimitedMessage;
 
   /// Cap 19.4 Full Access placeholder until Cap 19.5 picker
@@ -1437,31 +1449,31 @@ abstract class AppLocalizations {
   /// Cap 19.5b Favorites row when asset is not favorited
   ///
   /// In en, this message translates to:
-  /// **'Add to Favorites'**
+  /// **'Add to Favourites'**
   String get cap19PanelAddToFavorites;
 
   /// Cap 19.5b Favorites row when asset is already favorited; states status then action
   ///
   /// In en, this message translates to:
-  /// **'Favorited — Remove'**
+  /// **'Favourited — Remove'**
   String get cap19PanelRemoveFromFavorites;
 
   /// Cap 19.5b toggle-on success toast
   ///
   /// In en, this message translates to:
-  /// **'Added to Favorites'**
+  /// **'Added to Favourites'**
   String get cap19PanelFavoritesAddedSuccess;
 
   /// Cap 19.5b toggle-off success toast
   ///
   /// In en, this message translates to:
-  /// **'Removed from Favorites'**
+  /// **'Removed from Favourites'**
   String get cap19PanelFavoritesRemovedSuccess;
 
   /// Cap 19.5b Favorites Host read/toggle failure (not media-not-ready)
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t update Favorites. Try again.'**
+  /// **'Couldn\'t update Favourites. Try again.'**
   String get cap19PanelFavoritesError;
 
   /// Cap 19 when current asset id is unset (panel row or toast; may split later)

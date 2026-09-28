@@ -27,7 +27,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>WakeTok needs photo library access to show your photos and videos in a private, on-device feed. (PLACEHOLDER — final copy owner-approved.)</string>
+	<string>WakeTok lets you swipe up and down through the photos and videos in your library, and organise, share, or delete them as you go. It has no account and never uploads your photos.</string>
 	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>
