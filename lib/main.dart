@@ -8,6 +8,7 @@ import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
+import 'package:waketok/core/theme/status_bar_style.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/data/local/drift_saved_pool_repository.dart';
 import 'package:waketok/data/local/waketok_database.dart';
@@ -106,6 +107,7 @@ class WakeTokApp extends StatelessWidget {
       theme: waketokTheme(Brightness.light),
       darkTheme: waketokTheme(Brightness.dark),
       themeMode: ThemeMode.system,
+      builder: statusBarBaselineBuilder,
       home: const PhotosAccessGate(),
     );
   }

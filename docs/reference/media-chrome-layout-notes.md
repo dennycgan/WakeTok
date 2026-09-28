@@ -960,6 +960,35 @@ at once. The Settings page heading does **not** use it (`titlePage`, see
 **Rule:** a new widget that reads `titleMedium` (directly or through a
 Material default) must be added to §14.1 in the same change.
 
+## 15. iOS status bar style (Cap 31.4)
+
+The status bar icon color comes from the `SystemUiOverlayStyle` of the
+deepest `AnnotatedRegion` painted under the status bar. With no region,
+nothing is sent and iOS keeps the **last** style; `MaterialApp` itself
+re-sends a follow-theme default only when the theme changes, not on
+navigation. Before Cap 31.4 no surface declared one: Light Appearance put
+dark icons on forced-dark Browse (time / signal / Wi-Fi invisible), and
+after Build Pool its light icons stuck onto the Light Settings pane.
+
+| Surface | Declared by | Icons |
+|---------|-------------|-------|
+| Any route (baseline) | app-root region (`statusBarBaselineBuilder`, `lib/core/theme/status_bar_style.dart`, `MaterialApp.builder`) | follow Appearance |
+| Browse pane (incl. half-sheets, dialogs, Cap 30 coaches on top) | shell `AnnotatedRegion` (`mainBrowseStatusBarStyle`, `main_browse_shell_page.dart`) | light, both Appearances |
+| Settings pane | same shell region, from ambient `Theme.brightness` | follow Appearance |
+| Build Pool (pushed, forced dark) | its AppBar (dark theme) | light |
+| Permission request / blocked | their AppBar (follows Appearance) | follow Appearance |
+| Permission gate loading / error | baseline (no AppBar) | follow Appearance |
+
+The shell region stays unconditional (it also covers Settings) so the
+shell subtree keeps a stable widget type. Modal half-sheets and dialogs do
+not paint a region, so the shell region underneath still applies. Guards:
+`W-31.4-statusbar-*` (`cap31_4_status_bar_style_test.dart`).
+
+**Rule:** a new full-screen surface (pushed page, new shell destination)
+without an AppBar declares its own `AnnotatedRegion<SystemUiOverlayStyle>`
+only when its theme differs from the app theme (e.g. forced dark), and is
+added to this table. Do not remove the baseline.
+
 ---
 
 *Update this file in the same docs commit whenever owner-visible chrome constants change.*

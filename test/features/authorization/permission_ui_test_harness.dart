@@ -9,6 +9,7 @@ import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
+import 'package:waketok/core/theme/status_bar_style.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/authorization/photos_authorization_repository.dart';
@@ -209,6 +210,7 @@ Widget permissionUiHarness({
       theme: waketokTheme(Brightness.light),
       darkTheme: waketokTheme(Brightness.dark),
       themeMode: themeMode,
+      builder: statusBarBaselineBuilder,
       home: const PhotosAccessGate(),
     ),
   );

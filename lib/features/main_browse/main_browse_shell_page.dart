@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/browse/browse_session_providers.dart';
+import 'package:waketok/core/theme/status_bar_style.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/authorization/photos_access_settings_section.dart';
@@ -83,26 +85,35 @@ class MainBrowseShellPage extends ConsumerWidget {
         ? waketokTheme(Brightness.dark).extension<WakeTokTokens>()!
         : Theme.of(context).extension<WakeTokTokens>()!;
 
-    return Scaffold(
-      backgroundColor: scaffoldTokens.background,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                body,
-                if (destination == MainBrowseDestination.browse) ...[
-                  const Cap24MoreEntryIconSlot(),
-                  const Cap25ShareEntryIconSlot(),
-                  Cap19EntryIconSlot(access: access),
+    // Browse is forced dark, so it overrides the app-root baseline. Keep this
+    // region unconditional: wrapping only on Browse would change this slot's
+    // widget type and dispose the whole stack on every destination switch.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      key: const Key('mainBrowseStatusBarStyle'),
+      value: statusBarStyleFor(
+        immersiveContent ? Brightness.dark : ambientTheme.brightness,
+      ),
+      child: Scaffold(
+        backgroundColor: scaffoldTokens.background,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  body,
+                  if (destination == MainBrowseDestination.browse) ...[
+                    const Cap24MoreEntryIconSlot(),
+                    const Cap25ShareEntryIconSlot(),
+                    Cap19EntryIconSlot(access: access),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          bottomBar,
-        ],
+            bottomBar,
+          ],
+        ),
       ),
     );
   }
