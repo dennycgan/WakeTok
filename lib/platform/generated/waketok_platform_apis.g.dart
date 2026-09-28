@@ -2806,6 +2806,13 @@ abstract class LivePhotoFlutterApi {
 
   void onLivePhotoFailed(String assetIdentifier, ErrorCode errorCode);
 
+  /// Motion for the current play has ended (ADR-063). Source is either
+  /// `PHLivePhotoView` `didEndPlaybackWith`, or — for an unedited
+  /// `.livePhoto`-style asset whose paired-video duration is known — the
+  /// Host after duration + slack from `willBeginPlaybackWith` (the system
+  /// callback is not guaranteed to arrive). At most once per play; never
+  /// sent for a play already ended by [LivePhotoApi.stopPlayback] /
+  /// [LivePhotoApi.cancel] or superseded by a new start / surface.
   void onLivePhotoPlaybackEnded(String assetIdentifier);
 
   static void setUp(LivePhotoFlutterApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {

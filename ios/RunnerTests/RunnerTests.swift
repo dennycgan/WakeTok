@@ -830,3 +830,386 @@ final class PlaybackScrubPreviewHostTests: XCTestCase {
   }
 }
 
+
+// MARK: - ADR-063 Live motion end
+
+final class LiveMotionEndPolicyTests: XCTestCase {
+  func testUneditedLivePhotoStyleIsEligible() {
+    XCTAssertTrue(
+      LiveMotionEndPolicy.isEligible(
+        playbackStyle: .livePhoto,
+        resourceTypes: [.photo, .pairedVideo]
+      )
+    )
+  }
+
+  func testLoopBounceAndLongExposureStylesAreNotEligible() {
+    for style: PHAsset.PlaybackStyle in [.videoLooping, .image, .imageAnimated, .video] {
+      XCTAssertFalse(
+        LiveMotionEndPolicy.isEligible(playbackStyle: style, resourceTypes: [.photo, .pairedVideo]),
+        "style \(style.rawValue)"
+      )
+    }
+  }
+
+  func testEditedLivePhotoIsNotEligible() {
+    let markers: [PHAssetResourceType] = [
+      .fullSizePairedVideo, .adjustmentData, .adjustmentBasePairedVideo,
+    ]
+    for marker in markers {
+      XCTAssertFalse(
+        LiveMotionEndPolicy.isEligible(
+          playbackStyle: .livePhoto,
+          resourceTypes: [.photo, .pairedVideo, marker]
+        ),
+        "marker \(marker.rawValue)"
+      )
+    }
+  }
+
+  func testMissingPairedVideoIsNotEligible() {
+    XCTAssertFalse(LiveMotionEndPolicy.isEligible(playbackStyle: .livePhoto, resourceTypes: [.photo]))
+  }
+
+  func testDeadlineIsAnchoredOnWillBegin() {
+    let deadline = LiveMotionEndPolicy.deadline(willBeginAt: 100, duration: 1.757, slack: 0.8)
+    XCTAssertEqual(deadline, 102.557, accuracy: 1e-9)
+    XCTAssertEqual(LiveMotionEndPolicy.delay(until: deadline, now: 100), 2.557, accuracy: 1e-9)
+  }
+
+  func testLateDurationArmsWithRemainingTime() {
+    let deadline = LiveMotionEndPolicy.deadline(willBeginAt: 100, duration: 1.757, slack: 0.8)
+    XCTAssertEqual(LiveMotionEndPolicy.delay(until: deadline, now: 101.5), 1.057, accuracy: 1e-9)
+  }
+
+  func testDurationAfterDeadlineFiresImmediately() {
+    let deadline = LiveMotionEndPolicy.deadline(willBeginAt: 100, duration: 1.757, slack: 0.8)
+    XCTAssertEqual(LiveMotionEndPolicy.delay(until: deadline, now: 110), 0)
+  }
+
+  private let surfaceA = NSObject()
+  private let surfaceB = NSObject()
+
+  private func play(willBeginAt: CFTimeInterval?) -> LiveMotionPlayTracker.Play {
+    LiveMotionPlayTracker.Play(serial: 1, surface: ObjectIdentifier(surfaceA), willBeginAt: willBeginAt)
+  }
+
+  func testFallbackNotArmedWhenDurationArrivesAfterPlayClosed() {
+    var tracker = LiveMotionPlayTracker()
+    tracker.start(surface: ObjectIdentifier(surfaceA))
+    XCTAssertTrue(tracker.willBegin(surface: ObjectIdentifier(surfaceA), at: 100))
+    tracker.invalidate()
+    XCTAssertNil(
+      LiveMotionEndPolicy.fallbackDelay(
+        play: tracker.currentPlay,
+        surface: ObjectIdentifier(surfaceA),
+        duration: 1.757,
+        now: 101,
+        slack: 0.8
+      )
+    )
+  }
+
+  func testFallbackNotArmedBeforeWillBegin() {
+    XCTAssertNil(
+      LiveMotionEndPolicy.fallbackDelay(
+        play: play(willBeginAt: nil),
+        surface: ObjectIdentifier(surfaceA),
+        duration: 1.757,
+        now: 101,
+        slack: 0.8
+      )
+    )
+  }
+
+  func testFallbackNotArmedForOtherSurface() {
+    XCTAssertNil(
+      LiveMotionEndPolicy.fallbackDelay(
+        play: play(willBeginAt: 100),
+        surface: ObjectIdentifier(surfaceB),
+        duration: 1.757,
+        now: 101,
+        slack: 0.8
+      )
+    )
+  }
+
+  func testFallbackNotArmedWhenDurationUnknown() {
+    XCTAssertNil(
+      LiveMotionEndPolicy.fallbackDelay(
+        play: play(willBeginAt: 100),
+        surface: ObjectIdentifier(surfaceA),
+        duration: nil,
+        now: 101,
+        slack: 0.8
+      )
+    )
+  }
+
+  func testFallbackLateDurationArmsWithRemainingTime() {
+    let delay = LiveMotionEndPolicy.fallbackDelay(
+      play: play(willBeginAt: 100),
+      surface: ObjectIdentifier(surfaceA),
+      duration: 1.757,
+      now: 101.5,
+      slack: 0.8
+    )
+    XCTAssertEqual(try XCTUnwrap(delay), 1.057, accuracy: 1e-9)
+  }
+
+  func testFallbackPastDeadlineFiresImmediately() {
+    let delay = LiveMotionEndPolicy.fallbackDelay(
+      play: play(willBeginAt: 100),
+      surface: ObjectIdentifier(surfaceA),
+      duration: 1.757,
+      now: 110,
+      slack: 0.8
+    )
+    XCTAssertEqual(delay, 0)
+  }
+}
+
+final class LiveMotionPlayTrackerTests: XCTestCase {
+  private let surfaceA = NSObject()
+  private let surfaceB = NSObject()
+  private var a: ObjectIdentifier { ObjectIdentifier(surfaceA) }
+  private var b: ObjectIdentifier { ObjectIdentifier(surfaceB) }
+
+  func testFirstSystemEndIsForwardedOnce() {
+    var tracker = LiveMotionPlayTracker()
+    tracker.start(surface: a)
+    XCTAssertTrue(tracker.willBegin(surface: a, at: 1))
+    XCTAssertNotNil(tracker.endCurrentPlay(surface: a))
+    XCTAssertNil(tracker.endCurrentPlay(surface: a))
+  }
+
+  func testFallbackEndBlocksLaterSystemEnd() {
+    var tracker = LiveMotionPlayTracker()
+    let serial = tracker.start(surface: a)
+    XCTAssertTrue(tracker.endPlay(serial: serial, surface: a))
+    XCTAssertNil(tracker.endCurrentPlay(surface: a))
+  }
+
+  func testSystemEndBlocksLaterFallback() {
+    var tracker = LiveMotionPlayTracker()
+    let serial = tracker.start(surface: a)
+    XCTAssertNotNil(tracker.endCurrentPlay(surface: a))
+    XCTAssertFalse(tracker.endPlay(serial: serial, surface: a))
+  }
+
+  func testInvalidateDropsLaterEnds() {
+    var tracker = LiveMotionPlayTracker()
+    let serial = tracker.start(surface: a)
+    tracker.invalidate()
+    XCTAssertNil(tracker.endCurrentPlay(surface: a))
+    XCTAssertFalse(tracker.endPlay(serial: serial, surface: a))
+    XCTAssertFalse(tracker.willBegin(surface: a, at: 1))
+  }
+
+  func testNewStartOnSameSurfaceSupersedesOldFallback() {
+    var tracker = LiveMotionPlayTracker()
+    let first = tracker.start(surface: a)
+    let second = tracker.start(surface: a)
+    XCTAssertNotEqual(first, second)
+    XCTAssertFalse(tracker.endPlay(serial: first, surface: a))
+    XCTAssertTrue(tracker.endPlay(serial: second, surface: a))
+  }
+
+  /// Path R: a late end from the previous surface must not end the replay.
+  func testLateEndFromOldSurfaceDoesNotEndReplayOnNewSurface() {
+    var tracker = LiveMotionPlayTracker()
+    tracker.start(surface: a)
+    tracker.invalidate()
+    let replay = tracker.start(surface: b)
+    XCTAssertNil(tracker.endCurrentPlay(surface: a))
+    XCTAssertFalse(tracker.willBegin(surface: a, at: 5))
+    XCTAssertEqual(tracker.currentPlay?.serial, replay)
+    XCTAssertNotNil(tracker.endCurrentPlay(surface: b))
+  }
+
+  func testWillBeginRecordsAnchorOnCurrentPlay() {
+    var tracker = LiveMotionPlayTracker()
+    tracker.start(surface: a)
+    XCTAssertNil(tracker.currentPlay?.willBeginAt)
+    XCTAssertTrue(tracker.willBegin(surface: a, at: 42))
+    XCTAssertEqual(tracker.currentPlay?.willBeginAt, 42)
+  }
+}
+
+final class LiveMotionDurationCacheTests: XCTestCase {
+  func testCacheIsBounded() {
+    var cache = LiveMotionDurationCache()
+    for i in 0..<(LiveMotionDurationCache.limit * 2 + 3) {
+      cache.store(1, for: "id\(i)")
+      XCTAssertLessThanOrEqual(cache.count, LiveMotionDurationCache.limit)
+    }
+  }
+
+  func testRemoveDropsStaleValue() {
+    var cache = LiveMotionDurationCache()
+    cache.store(1.5, for: "a")
+    cache.remove("a")
+    XCTAssertNil(cache.duration(for: "a"))
+  }
+}
+
+final class MovieDurationScannerTests: XCTestCase {
+  private func be32(_ v: UInt32) -> [UInt8] {
+    [UInt8(v >> 24 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v & 0xFF)]
+  }
+
+  private func be64(_ v: UInt64) -> [UInt8] {
+    be32(UInt32(v >> 32)) + be32(UInt32(v & 0xFFFF_FFFF))
+  }
+
+  private func atom(_ type: String, _ body: [UInt8]) -> [UInt8] {
+    be32(UInt32(8 + body.count)) + Array(type.utf8) + body
+  }
+
+  private func largeAtom(_ type: String, _ body: [UInt8]) -> [UInt8] {
+    be32(1) + Array(type.utf8) + be64(UInt64(16 + body.count)) + body
+  }
+
+  private func mvhdV0(timescale: UInt32, duration: UInt32) -> [UInt8] {
+    atom("mvhd", [0, 0, 0, 0] + be32(0) + be32(0) + be32(timescale) + be32(duration) + [UInt8](repeating: 0, count: 80))
+  }
+
+  private func mvhdV1(timescale: UInt32, duration: UInt64) -> [UInt8] {
+    atom("mvhd", [1, 0, 0, 0] + be64(0) + be64(0) + be32(timescale) + be64(duration) + [UInt8](repeating: 0, count: 80))
+  }
+
+  private func scan(_ bytes: [UInt8], chunk: Int = .max) -> MovieDurationScanner {
+    var scanner = MovieDurationScanner()
+    var i = 0
+    while i < bytes.count {
+      let end = min(bytes.count, i + max(1, min(chunk, bytes.count)))
+      scanner.feed(Data(bytes[i..<end]))
+      i = end
+    }
+    scanner.finish()
+    return scanner
+  }
+
+  func testMoovBeforeMdatV0() {
+    let file = atom("ftyp", Array("qt  ".utf8) + be32(0)) + atom("moov", mvhdV0(timescale: 600, duration: 1054))
+      + atom("mdat", [UInt8](repeating: 7, count: 1000))
+    let s = scan(file)
+    XCTAssertEqual(s.outcome, .found(1054.0 / 600.0, moovAfterMdat: false))
+    XCTAssertLessThan(s.bytesConsumed, Int64(file.count))
+  }
+
+  func testMoovAfterMdatV1() {
+    let file = atom("ftyp", Array("qt  ".utf8) + be32(0)) + atom("wide", [])
+      + atom("mdat", [UInt8](repeating: 7, count: 5000))
+      + atom("moov", mvhdV1(timescale: 44100, duration: 77_490))
+    let s = scan(file)
+    XCTAssertEqual(s.outcome, .found(77_490.0 / 44100.0, moovAfterMdat: true))
+  }
+
+  func testLargesizeMdatIsSkipped() {
+    let file = atom("ftyp", []) + largeAtom("mdat", [UInt8](repeating: 1, count: 3000))
+      + atom("moov", atom("trak", []) + mvhdV0(timescale: 1000, duration: 1757))
+    let s = scan(file)
+    XCTAssertEqual(s.outcome, .found(1.757, moovAfterMdat: true))
+  }
+
+  func testEveryChunkBoundaryGivesSameResult() {
+    let file = atom("ftyp", []) + largeAtom("mdat", [UInt8](repeating: 1, count: 300))
+      + atom("moov", mvhdV1(timescale: 600, duration: 1010))
+    for chunk in [1, 2, 3, 7, 8, 15, 16, 17, 64, 333] {
+      XCTAssertEqual(scan(file, chunk: chunk).outcome, .found(1010.0 / 600.0, moovAfterMdat: true), "chunk \(chunk)")
+    }
+  }
+
+  func testTruncatedMoovIsUnknown() {
+    let file = atom("ftyp", []) + atom("moov", mvhdV0(timescale: 600, duration: 1054))
+    let s = scan(Array(file.dropLast(20)))
+    XCTAssertEqual(s.outcome, .unknown)
+  }
+
+  func testMissingMoovIsUnknown() {
+    let s = scan(atom("ftyp", []) + atom("mdat", [1, 2, 3]))
+    XCTAssertEqual(s.outcome, .unknown)
+  }
+
+  func testTruncatedMvhdBodyIsUnknown() {
+    let shortMvhd = atom("mvhd", [0, 0, 0, 0] + be32(0) + be32(0) + be32(600))
+    XCTAssertEqual(scan(atom("moov", shortMvhd)).outcome, .unknown)
+  }
+
+  func testMalformedAtomSizesAreUnknown() {
+    XCTAssertEqual(scan(be32(4) + Array("mdat".utf8) + [0, 0, 0, 0]).outcome, .unknown)
+    XCTAssertEqual(scan(be32(1) + Array("mdat".utf8) + be64(3)).outcome, .unknown)
+    XCTAssertEqual(scan(be32(1) + Array("mdat".utf8) + be64(UInt64.max)).outcome, .unknown)
+    let badChild = be32(200) + Array("mvhd".utf8) + [0, 0, 0, 0]
+    XCTAssertEqual(scan(atom("moov", badChild)).outcome, .unknown)
+    XCTAssertEqual(scan([UInt8](repeating: 0xFF, count: 64)).outcome, .unknown)
+  }
+
+  func testOversizedMoovIsUnknown() {
+    let header = be32(UInt32(MovieDurationScanner.maxMoovBytes + 9)) + Array("moov".utf8)
+    XCTAssertEqual(scan(header + [0, 0, 0]).outcome, .unknown)
+  }
+
+  func testZeroTimescaleOrDurationIsUnknown() {
+    XCTAssertEqual(scan(atom("moov", mvhdV0(timescale: 0, duration: 1054))).outcome, .unknown)
+    XCTAssertEqual(scan(atom("moov", mvhdV0(timescale: 600, duration: 0))).outcome, .unknown)
+    XCTAssertEqual(scan(atom("moov", mvhdV0(timescale: 600, duration: .max))).outcome, .unknown)
+    XCTAssertEqual(scan(atom("moov", mvhdV1(timescale: 0, duration: 1054))).outcome, .unknown)
+  }
+
+  func testFeedAfterResultIsIgnored() {
+    var scanner = MovieDurationScanner()
+    scanner.feed(Data(atom("moov", mvhdV0(timescale: 600, duration: 600))))
+    let consumed = scanner.bytesConsumed
+    scanner.feed(Data([UInt8](repeating: 0, count: 100)))
+    scanner.finish()
+    XCTAssertEqual(scanner.outcome, .found(1, moovAfterMdat: false))
+    XCTAssertEqual(scanner.bytesConsumed, consumed)
+  }
+
+  func testAppleWrittenMovMatchesAVFoundationDuration() throws {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent("wt312-mvhd-\(UUID().uuidString).mov")
+    addTeardownBlock { try? FileManager.default.removeItem(at: url) }
+    let writer = try AVAssetWriter(outputURL: url, fileType: .mov)
+    let input = AVAssetWriterInput(
+      mediaType: .video,
+      outputSettings: [
+        AVVideoCodecKey: AVVideoCodecType.h264, AVVideoWidthKey: 64, AVVideoHeightKey: 64,
+      ]
+    )
+    input.expectsMediaDataInRealTime = false
+    let adaptor = AVAssetWriterInputPixelBufferAdaptor(
+      assetWriterInput: input,
+      sourcePixelBufferAttributes: [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
+        kCVPixelBufferWidthKey as String: 64,
+        kCVPixelBufferHeightKey as String: 64,
+      ]
+    )
+    writer.add(input)
+    writer.startWriting()
+    writer.startSession(atSourceTime: .zero)
+    var pixelBuffer: CVPixelBuffer?
+    CVPixelBufferCreate(kCFAllocatorDefault, 64, 64, kCVPixelFormatType_32ARGB, nil, &pixelBuffer)
+    let buffer = try XCTUnwrap(pixelBuffer)
+    for frame in 0..<10 {
+      while !input.isReadyForMoreMediaData { Thread.sleep(forTimeInterval: 0.01) }
+      adaptor.append(buffer, withPresentationTime: CMTime(value: CMTimeValue(frame), timescale: 30))
+    }
+    input.markAsFinished()
+    writer.endSession(atSourceTime: CMTime(value: 10, timescale: 30))
+    let sem = DispatchSemaphore(value: 0)
+    writer.finishWriting { sem.signal() }
+    sem.wait()
+    XCTAssertEqual(writer.status, .completed)
+
+    let data = try Data(contentsOf: url)
+    let s = scan([UInt8](data), chunk: 4096)
+    guard case .found(let duration, _) = s.outcome else {
+      return XCTFail("expected duration, got \(s.outcome)")
+    }
+    XCTAssertEqual(duration, AVURLAsset(url: url).duration.seconds, accuracy: 0.001)
+  }
+}

@@ -2818,6 +2818,13 @@ class LivePhotoApiSetup {
 protocol LivePhotoFlutterApiProtocol {
   func onLivePhotoReady(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
   func onLivePhotoFailed(assetIdentifier assetIdentifierArg: String, errorCode errorCodeArg: ErrorCode, completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Motion for the current play has ended (ADR-063). Source is either
+  /// `PHLivePhotoView` `didEndPlaybackWith`, or — for an unedited
+  /// `.livePhoto`-style asset whose paired-video duration is known — the
+  /// Host after duration + slack from `willBeginPlaybackWith` (the system
+  /// callback is not guaranteed to arrive). At most once per play; never
+  /// sent for a play already ended by [LivePhotoApi.stopPlayback] /
+  /// [LivePhotoApi.cancel] or superseded by a new start / surface.
   func onLivePhotoPlaybackEnded(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class LivePhotoFlutterApi: LivePhotoFlutterApiProtocol {
@@ -2866,6 +2873,13 @@ class LivePhotoFlutterApi: LivePhotoFlutterApiProtocol {
       }
     }
   }
+  /// Motion for the current play has ended (ADR-063). Source is either
+  /// `PHLivePhotoView` `didEndPlaybackWith`, or — for an unedited
+  /// `.livePhoto`-style asset whose paired-video duration is known — the
+  /// Host after duration + slack from `willBeginPlaybackWith` (the system
+  /// callback is not guaranteed to arrive). At most once per play; never
+  /// sent for a play already ended by [LivePhotoApi.stopPlayback] /
+  /// [LivePhotoApi.cancel] or superseded by a new start / surface.
   func onLivePhotoPlaybackEnded(assetIdentifier assetIdentifierArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.waketok.LivePhotoFlutterApi.onLivePhotoPlaybackEnded\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
