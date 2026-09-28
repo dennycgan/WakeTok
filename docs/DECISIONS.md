@@ -7846,3 +7846,73 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   Cap 30.6. Between `809d238` (2026-09-27) and `edf46ab` (2026-09-28)
   they rendered at the larger `809d238` size — that window explains any
   inconsistency seen in that period.
+
+## ADR-062: v1 app language follows the system only; Photos permission prompt English only
+
+- Status: **Accepted** (2026-09-28)
+- Commit/PR anchor: docs-only decision, no code; this commit
+- Plain summary (owner reads this):
+  In v1 the app picks English or Simplified Chinese from the system's
+  first preferred language only, and there is no in-app or iOS Settings
+  language choice. The iOS Photos permission prompt stays English on
+  every system, including Chinese ones. This is an owner decision to
+  waive the Chinese line of the kickoff ADR-U §14 release gate for v1.
+  Chinese prompt text later needs a new ADR and a device check first.
+- Context / what problem forced this:
+  Kickoff ADR-U has rules that conflict under iOS's localization model:
+  §10 (first preferred locale only; any zh → Simplified Chinese; else
+  English), §11–12 (in-app manual language choice), §13–14 (permission
+  purpose string localized via `InfoPlist.strings`; en + zh-Hans is an
+  MVP release gate). App Foundation 4.4 implemented only §10 in Flutter
+  (`locale_resolution.dart`) and left §11–14 untracked.
+  iOS chooses the permission prompt language, and shows a per-app
+  Language row in Settings, by "first language in the preferred list
+  that the bundle supports". Cap 31.4 declared en + zh-Hans in
+  `CFBundleLocalizations` as a test (not committed): the Language row
+  appeared and contradicted §10 under `[ja, zh-Hans]` and
+  `[zh-Hant, en]` (evidence in `docs/acceptance/cap31-31.4-notes.md`).
+  Consequence of the conflict: under `[ja, zh-Hans]` the iOS Language
+  row shows Simplified Chinese while the app shows English, and under
+  `[zh-Hant, en]` the row shows English while the app shows Simplified
+  Chinese; in both cases tapping the language the row shows as selected
+  writes no override, so the user cannot switch the app to it from that
+  row.
+- Decision (what was chosen):
+  1. v1 language source is the system only, resolved by §10 in Flutter.
+     The bundle ships no localization besides the English development
+     language (`Base.lproj` only, no `CFBundleLocalizations`), so iOS
+     shows no per-app Language row.
+  2. The Photos permission purpose string is English only in v1. The
+     owner explicitly waives the zh-Hans line of kickoff ADR-U §14 for
+     v1. The English wording is still owner-only and still blocks
+     TestFlight internal testing (debt 420).
+  3. §11–12 in-app manual language choice is deferred out of v1.
+  4. Chinese prompt localization is out of v1; reopening needs a new
+     ADR.
+- Rejected alternatives (why not):
+  - B. Ship zh-Hans + zh-Hant `InfoPlist.strings`, keep §10: the prompt
+    would differ from the app under `[ja, zh-Hans]`, and the Language
+    row would return with the conflict above. Not chosen for v1.
+  - C. Resolve the Flutter locale the way iOS does (overturn §10) and
+    ship the resources: consistent end to end, and the iOS Language row
+    could serve §11, but it changes an accepted product rule and needs
+    a full language retest. Not chosen for v1.
+- Consequences:
+  - Chinese-system users see an English permission prompt. System UI
+    shown inside the app (share sheet, Limited Access picker, Photos
+    delete confirmation) may also be English; device results pending
+    (31.4 notes).
+  - Do not add any `.lproj` / `InfoPlist.strings` or
+    `CFBundleLocalizations` without a new ADR choosing B or C.
+  - The prompt language and Language row behavior after adding `.lproj`
+    resources are inferred from the `CFBundleLocalizations` test, not
+    measured. Before adopting B or C, verify on a device: prompt
+    language and Language row under `[zh-Hans]`, `[zh-Hant]`,
+    `[ja, zh-Hans]`, `[zh-Hant, en]`.
+  - Correction to an earlier chat claim: aligning with iOS does not
+    force zh-Hant users to English; shipping a zh-Hant resource (with
+    Simplified text, per §10) avoids it.
+- Relationship:
+  Deviates from kickoff ADR-U §11–12 and §14 (zh line) for v1 by owner
+  decision. Complements ADR-012 (ARB guards); no ADR superseded.
+  Debt 420.
