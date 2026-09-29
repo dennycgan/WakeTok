@@ -6828,7 +6828,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-054: Cap 26.4c media-cover-visible gate for Browse mutations
 
-- Status: Accepted (2026-09-18)
+- Status: Accepted (2026-09-18); Decision 2 (publish only from current) narrowly supplemented by ADR-066 (2026-09-29)
 - Commit/PR anchor: `32dd521`
 - Plain summary (owner reads this):
   While the current Browse page has not painted a real media cover
@@ -8329,3 +8329,79 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     (owner decision); the Decision 10 (3) criteria are unchanged.
   - ADR-064: the share path is separate and unchanged.
   - ADR-009: no Dart or boundary change.
+
+## ADR-066: Cap 31.2c Feed clears shell cover gates on roundEpoch remount
+
+- Status: **Accepted** (2026-09-29)
+- Commit/PR anchor: 08aa987
+- Plain summary (owner reads this):
+  After a round change (Confirm, Endless, order change) the first item
+  briefly showed the Action Column enabled with the previous item's
+  state, then dimmed, then re-enabled. The shell kept the old values
+  until the new page published its own. The feed now resets the three
+  shared gates to "not ready" the moment the round changes, before the
+  new page paints, so the icons stay dim until the new page is really
+  ready. Only resets to "not ready" come from the feed; "ready" still
+  comes only from the current page.
+- Context / what problem forced this:
+  Debt **485**. `mainBrowseCurrentAssetMediaCoverVisibleProvider`,
+  `mainBrowseCurrentAssetLayer2DisplayReadyProvider` and
+  `mainBrowseCurrentLiveMotionMountedProvider` are shell-level
+  providers written only by the current `MediaFeedPage` (ADR-054
+  Decision 2 "publish only from current", post-frame). A `roundEpoch`
+  remount replaces the whole page tree; the old page is disposed
+  post-frame and the new page publishes after its first frame, so the
+  new tree's first frame read the previous tree's values. i17 Profile
+  chrome-axis logs reproduced it on every remount head (still and Live
+  pools) on trees before and after 31.2b-1.
+- Decision (what was chosen):
+  1. **Second writer, false only.** `VerticalMediaFeed` listens to
+     `browseSessionProvider.select((s) => s.asData?.value.roundEpoch)`;
+     when a loaded epoch differs from the last one it observed, it sets
+     the three providers to `false`. It never writes `true`. The
+     current `MediaFeedPage` remains the only writer of `true`
+     (ADR-054 Decision 2 unchanged for that direction).
+  2. **Timing.** The write runs in the provider listener, before the
+     new tree's first frame — never during build. Riverpod 3
+     `WidgetRef.listen` has no `fireImmediately`, so the observed epoch
+     is seeded in build; null epochs (session loading) are ignored, so
+     each comparison is against the last loaded epoch.
+  3. **Scope.** `roundEpoch` changes only. Ordinary feed-index swipes,
+     leave-current and page-local transitions keep their existing
+     writers. The canonical ADR-054 Decision 2 predicate, including the
+     coverless-video `_surfaceReady` clause, is unchanged — Cap 31.2c
+     re-checked it for the remount-head coverless video (no poster
+     after Cap 27.4 skips Layer 1) and found every enabled icon runs by
+     asset id.
+- Rejected alternatives (why not):
+  - Clear from the old page's dispose — the old page is off-current at
+    that point and ADR-054 forbids off-current writes (debt **475**
+    neighbour-wipe class); dispose also runs post-frame, after the new
+    tree has painted.
+  - Clear from the new page's `initState` — writing providers during
+    build / mount is unsafe, and a page that is not current must not
+    write shell gates.
+  - Fold the reset into `actionable` (ADR-042) — axes stay orthogonal
+    (ADR-054 rejected alternative).
+  - Reset on every feed-index change — normal swipes already hand over
+    through leave-current / become-current; widening the writer would
+    add dim flicker on the common path.
+- Consequences / constraints accepted:
+  - The three providers now have two writers: the current page (true
+    and false) and the feed (false on `roundEpoch` change). Provider
+    doc comments name both.
+  - Live ↔ shell hygiene gaps outside remount stay debt **476**.
+  - Widget guard W-31.2c-A1. i17 + Kafka Release acceptance.
+  - Fixes B and C of Cap 31.2c (reveal hold, a4 tag before the first
+    frame; debt **480**) are page-local chrome changes under ADR-031 /
+    ADR-034 and are recorded in STATE and the acceptance notes, not
+    here.
+- Relationship:
+  - ADR-054 Decision 2: narrowly supplemented — adds the feed as a
+    false-only writer on `roundEpoch` change. Its Status line gains
+    "Decision 2 (publish only from current) narrowly supplemented by
+    ADR-066 (2026-09-29)"; its Decision body is not edited.
+  - ADR-051 Decision 14 / ADR-052: `Layer2DisplayReady` and
+    `LiveMotionMounted` semantics unchanged.
+  - ADR-055 / ADR-058: prefer-Host remount mechanism unchanged.
+  - ADR-009 / ADR-010: feature-layer only; no boundary change.

@@ -314,6 +314,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
           `phys_footprint` file log (ADR-031 D10(3) plateau); "visual
           sharpness vs Photos" + "iCloud file size" added to still
           acceptance items (notes)
+- [x] 31.2c `roundEpoch` remount head chrome flicker (acceptance
+      kin bug found during 31.2b-1; pre-existing; still and Live
+      pools): (A) Feed `roundEpoch` listener clears the three shell
+      gates before the new tree's first frame → debt **485** Closed;
+      (B) remount Host still APPLY holds a Loading shell over the
+      mounted cover until decode-ready (Live prepare deferred) and
+      (C) born-current page tags Cap 17.3 a4 before its first frame
+      → debt **480** Closed; coverless remount-head video unchanged
+      (ADR-054 icon timing verified); debt **476** untouched — work
+      `08aa987`; ADR-066 Accepted; owner accepted 2026-09-29 (i17 +
+      Kafka Release); notes `docs/acceptance/cap31-31.2-notes.md`
 - [ ] 31.3 Video one-frame black dig
       (start from debt **441** Monitoring + Cap 15.11 family; owner
       paces accept-vs-continue; no agent time cap; split 31.3a / 31.3b
@@ -363,26 +374,22 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): roundEpoch remount head chrome flicker (Action
-      Column dim/enabled flips, corner spinner, late Meta) —
-      acceptance-discovered during 31.2b-1; pre-existing (reproduced
-      100% on the `77e3f10` tree, still and Live pools)
+- Goal (one line): 31.3 — video one-frame black dig (start from debt
+      **441** Monitoring + Cap 15.11 family)
 - Sub-steps done: 31.2 closed (31.2a `b8b7b9b` / ADR-063; 31.2b-2
-      `bd6a870` / ADR-064; 31.2b-1 `7d3d450` / ADR-065); Profile A/B
-      chrome-axis log on i17 for the `77e3f10` tree
-- Next step: compare the `7d3d450` Profile log with the `77e3f10` one
-      (timing only vs added / removed states); then list affected
-      guard tests, ADR-054 / Cap 27.4 clauses and debt placement (new
-      row vs reopen **476** / **480**) for owner scope approval before
-      any code
+      `bd6a870` / ADR-064; 31.2b-1 `7d3d450` / ADR-065); 31.2c closed
+      (`08aa987` / ADR-066; debts **480** / **485** Closed)
+- Next step: owner kickoff for 31.3 (repro cue and diagnosis plan
+      for debt **441**) before any code
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); ADR-063 Accepted
       (31.2a Live motion-end fallback); ADR-064 Accepted (31.2b-2
-      share); ADR-065 Accepted (31.2b-1 still render); ADR-054 /
-      Cap 27.4 (remount chrome gates); debts
-      **476** / **480** / **481** / **482** / **484** Open; **441** Monitoring
-      (31.3); **478** Open (probe keep-while-Open — Settings UI later
-      stripped in 31.5, implementation retained until revisit)
+      share); ADR-065 Accepted (31.2b-1 still render); ADR-066 Accepted
+      (31.2c remount shell-gate clear); ADR-032 / ADR-034 (video
+      cover handoff); debts **476** / **481** / **482** / **484** Open;
+      **441** Monitoring (31.3); **478** Open (probe keep-while-Open —
+      Settings UI later stripped in 31.5, implementation retained until
+      revisit)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
@@ -841,11 +848,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 477 | Closed | Main Browse Screen / Cap 27.4 | Cap 27.4 | `roundEpoch` remount head stuck on Layer 1 (Confirm / Endless `same_list_to_0` / order→shuffle, incl. never-visited shuffle head) | **Scope: device-local remount only; Browse-current remount paths only** (Confirm / Endless / in-Browse order change). Root: remount skipped Session L2-ready then All-tab still painted soft L1; Cap 26.4a keep-ready + gapless stuck the soft frame after Host `LAYER2_APPLY` (probe: SKIP+APPLY while owner still saw L1; heal via swipe Session L2-ready). Fix in `893c296`: one-shot prefer-Host (no `hadSessionToken` gate), omit Cap 22.5 L1 seed + All-tab soft preview on remount Host L2, hard-reload cover on APPLY. Kafka+i17 soak PASS; `OWNER_MARK_STUCK`=0. **Does not** cover non-`deviceLocal` / iCloud remount — see debt **478**. **Did not** cover Settings / auth / other non-Browse-current remount limbs at Cap 27.4 close — that separate arming-window gap was later found and closed as debt **479** (`8d6d7cc`); do not read this Closed row as full off-Browse coverage. | Closed by Cap 27.4 | ADR-055; Cap 15.10/15.12/22.5/26.4a; debt **468** / **478** / **479** |
 | 478 | Open | Main Browse Screen / Cap 27.4 | Cap 27.4 | Non-`deviceLocal` (incl. iCloud) `roundEpoch` remount head may still stick soft Layer 1 | **Mechanism risk (not a confirmed iCloud product repro).** Cap 27.4 skip-L1-paint applies only on the device-local fast path; full L1→L2 still paints soft preview first. `_forceStillCoverHardReload` may be consumed on L1 `_trackStillCoverPath`, so `LAYER2_APPLY` can re-enter Cap 26.4a keep-ready + gapless soft stick. Parked until iCloud-only / non-local remount assets can soak a fix. Does not reopen debt **477**. **Probe (keep while Open):** Debug/Profile Settings → **L1-stall probe** (`Cap27L1StallProbeSettingsSection` / `cap27_l1_stall_probe.dart`); log `Documents/cap27_l1_stall_probe.log`; gate `!kReleaseMode` (Release UI hidden + log no-op). | Unassigned | Cap 15.12/26.4a; debt **477**; ADR-055; `cap27_l1_stall_probe*.dart` |
 | 479 | Closed | Main Browse Screen / Cap 27.6 | Cap 27.6 | Settings leave/return (and similar non-Browse-current) `roundEpoch` remount head stuck on Layer 1; newestFirst easiest | **Related 477 (stays Closed).** Cap 27.4 prefer-Host closed Browse-current remount stick; Settings / auth limbs were **not** in that soak. Root: prefer-Host armed only under `isCurrent`, and a post-frame clear dropped pending while Browse was off — remount finished off-current never armed Cap 27.4 Host path. Fix in `8d6d7cc`: sticky `_epochRemountPreferHostPending` until consume + become-current re-arm. i17 soak PASS (three orders × immediate/dwell return; Confirm/Endless unaffected). Widget: W-27.6-479. Does not reopen **477**; does not close **478**. **Cap 28 follow-up:** Settings leave remount limb **dissolved by Cap 28 keep** (no `restartSession` on Browse→Settings). Sticky prefer-Host for remaining off-Browse→Browse remount (access-scope dirty on Settings → consume on return) covered by Cap 28.7 `W-28.7-479-sticky` (`5f4977c`); mechanism retained (ADR-058 D7). | Closed by Cap 27.6 (`8d6d7cc`) | ADR-055; Cap 27.4; Cap 28.4/28.5/28.7; debt **477** / **478**; `vertical_media_feed.dart` |
-| 480 | Open | Main Browse Screen / Cap 28.3 | Cap 28.3 | Confirm / Endless (and other `roundEpoch` remount) dual visible handoff: soft-L1 present → one-frame black between L1 and L2; soft-L1 absent → one-frame Loading item | **Settings limb closed by Cap 28 keep** (28.1/28.2: remount + prefer-Host + hardReload). Remount paths remain: Cap 27.4 prefer-Host skips Session L2-ready, forces Host L2, and on APPLY hard-reloads cover (clear keep-ready / bump Image key) — empty decode window when a soft preview was painted; miss chrome when no soft L1. **Candidate fix (not scheduled):** precache L2 Image before swapping key so keep-ready/gapless soft stick is broken without a blank frame. Out of Cap 28 product keep / meta hide. Related **477** / **479** (prefer-Host mechanism stays). | Unassigned | Cap 27.4/27.6; debt **477** / **479**; Cap 28.1/28.2 notes; ADR-058 |
+| 480 | Closed | Main Browse Screen / Cap 28.3 | Cap 28.3 | Confirm / Endless (and other `roundEpoch` remount) dual visible handoff: soft-L1 present → one-frame black between L1 and L2; soft-L1 absent → one-frame Loading item | **Settings limb closed by Cap 28 keep** (28.1/28.2: remount + prefer-Host + hardReload). Remount paths: Cap 27.4 prefer-Host skips Session L2-ready, forces Host L2, and on APPLY hard-reloads cover (clear keep-ready / bump Image key). **Closed by Cap 31.2c (`08aa987`):** (B) on the remount hard-reload still APPLY the L2 cover mounts normally while a Loading shell overlay (`IgnorePointer`) stays on top until frame-ready / decode-broken; Live motion prepare is deferred until reveal; Cap 26.4b forced spinner excluded during the hold — the black / all-dim decode gap and the spinner peek are gone. (C) a born-current page with a Session L2-ready token is tagged Cap 17.3 a4 in `initState`, so the first frame no longer paints ADR-031 miss chrome (corner gold + "Loading item"). The earlier precache candidate was infeasible (`ResizeImage` cache size depends on layout box × DPR). **Coverless remount-head video (Cap 27.4 skips L1; no poster): no change** — Action Column enables at `_surfaceReady` per ADR-054 D2/D3, and "…" / Album / Share all run by asset id (i17 log: 13 coverless remount heads, 0 enabled-before-ready); the black is missing L1 or the video's own content. Widget: W-31.2c-B1/B2/B3. i17 + Kafka Release PASS. Prefer-Host mechanism (**477** / **479**) unchanged; non-`deviceLocal` stick stays debt **478**. | Closed by Cap 31.2c (`08aa987`) | Cap 27.4/27.6; debt **477** / **478** / **479**; Cap 28.1/28.2 notes; ADR-054; ADR-058 |
 | 481 | Open | Main Browse Screen / Cap 28.4 | Cap 28.4 | Settings resume may show one poster/cover frame on video (play or pause) | **Symptom:** Browse→Settings→Browse on a completed video can flash one frame of the asset poster/cover before L2 PV is visually back — same whether the item was playing or paused. **Mechanism (Q-PV = B):** soft leave detaches the native Platform View; resume remounts PV. Cap 28.4 A′ keeps chrome gates (no Action Column staircase); the frame is the cover painted while `_surfaceReady` is briefly false (and/or Cap 15.11b poster-hold when that latch arms) — a deliberate anti-black hold, not the Cap 28 chrome cascade. **Intentional trade-off:** Q-PV = A (keep PV mounted under Settings) could remove the frame but risks off-screen PV bleed/touch steal, holding the 1+1 player slot, and power cost — rejected for this Cap. **Not a reopen of 429:** cousin symptom (poster vs L2), different mechanism (Settings PV detach/remount vs prior path). **Candidates:** (1) Q-PV = A + Host ready-for-display short-circuit; (2) latch a leave-time frame as the resume hold instead of the static poster (cost/feasibility unverified). Re-evaluate with Caps that redesign video surface lifecycle while Browse is non-visible (Background Audio / Auto-play track). | Unassigned (evaluate with Background Audio / Auto-play surface-lifecycle Caps) | ADR-058; ADR-006; ADR-032; cousin of closed **429** (do not reopen 429) |
 | 482 | Open | App Foundation / Cap 31.1 | Cap 31.1 | Sheet titles and sheet button labels (plus two guide titles) still borrow `titleMedium` = `titleChrome`; no dedicated text-style roles yet | **Deferred, not rejected.** ADR-061 evaluated splitting sheet titles and sheet button labels into their own tokens and deferred it (touches 6+ feature files; needs a new device acceptance); Cap 31.1 shipped only the `titlePage` split. Still coupled (canonical list: `media-chrome-layout-notes.md` §14): sheet titles — Cap 19.4 actions sheet, Cap 27.4 order sheet; sheet button labels — Cap 24.3 Delete, Cap 26.5 Add to Album; guide titles — Cap 19.6 left-swipe guide (Cap 30 `<3>`), Cap 30.3 vertical coach (`<1>`) — guide titles were not evaluated by ADR-061, decide their scope when this row is picked up. **Risk:** any `titleChrome` retune moves all six; Delete heavier than Add to Album (Cap 26.5 owner lock, guard `W-26.5-8`) holds only while `titleChrome` weight stays above Add to Album's local weight override. Out of scope: the permission request / blocked pages have no AppBar since Cap 31.4 (`7d47ef3`), so ADR-061 Decision 4 has no remaining consumer. | Unassigned | ADR-061 |
 | 483 | Accepted (phase) | iOS Photos permission | Cap 31.4 | On a zh system the Photos permission prompt shows the purpose string in English | ADR-062 deliberately waived this for v1 | Reopening needs a new ADR plus device verification | ADR-062 |
 | 484 | Open | Share / Cap 31.2b | Cap 31.2b | Video share hands over the original Photos file, which keeps its capture location; stills are shared with location removed (ADR-064) | Cap 31.2b device check: a camera-recorded `.MOV` shared from WakeTok arrived on Mac with latitude/longitude (`mdls`). Video share was out of 31.2b scope; behaviour is unchanged since Cap 25 | Owner product decision (keep, or strip location from video share) | ADR-051, ADR-064 |
+| 485 | Closed | Main Browse Screen / Cap 31.2c | Cap 31.2c | `roundEpoch` remount head: shell gates (`MediaCoverVisible`, `Layer2DisplayReady`, `LiveMotionMounted`) keep the previous tree's values for the new tree's first frame — Action Column paints enabled, then dims, then re-enables | Pre-existing (reproduced 100 % on `77e3f10` and `7d3d450`, still and Live pools; i17 Profile chrome-axis logs). ADR-054 D2 publishes only from the current `MediaFeedPage` post-frame, so nothing cleared the shell between the old tree's dispose and the new page's first publish. **Closed by Cap 31.2c (`08aa987`):** `VerticalMediaFeed` listens to `roundEpoch` and writes `false` to the three gates before the new tree's first frame (false-only second writer, ADR-066). Widget: W-31.2c-A1. i17 + Kafka Release PASS. Live ↔ shell hygiene gaps stay debt **476** (untouched). | Closed by Cap 31.2c (`08aa987`) | ADR-066; ADR-054; debt **476** |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
