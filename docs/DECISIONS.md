@@ -561,7 +561,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-009: Production layered architecture lock
 
-- Status: Accepted (2026-07-31)
+- Status: Accepted (2026-07-31); narrowly supplemented by ADR-067 (2026-09-29)
 - Commit/PR anchor: 79459e0
 - Plain summary (owner reads this):
   Kickoff’s layered architecture is now a repo constraint. The App Foundation
@@ -8405,3 +8405,68 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     `LiveMotionMounted` semantics unchanged.
   - ADR-055 / ADR-058: prefer-Host remount mechanism unchanged.
   - ADR-009 / ADR-010: feature-layer only; no boundary change.
+
+## ADR-067: File-content reads banned in features and app (ADR-009 supplement)
+
+- Status: **Accepted** (2026-09-29)
+- Commit/PR anchor: f176ebf
+- Plain summary (owner reads this):
+  Flutter feature and app code may no longer open a file and read what
+  is inside it. When the native side knows something (capture time, file
+  size, format), it must hand it over as a declared Pigeon field. A file
+  path from the native side may still be shown as an image or checked
+  for existence. An automated architecture test enforces this; the one
+  existing exception (Cap 24 capture time, debt 486) is listed by name
+  and must be removed when that debt is paid.
+- Context / what problem forced this:
+  Cap 31.2b-1 (ADR-065) changed the Layer 2 display temp from original
+  bytes to an ImageIO-rendered JPEG, and the Cap 24 exact capture minute
+  silently fell back to `~`: `loadCap24MinuteLandmark` reads that temp
+  and parses its EXIF / TIFF tags in Dart — content no Pigeon contract
+  declares (debt 486). A scan of `lib/` found this to be the only such
+  read; every other Host file path or byte payload is used for display
+  as its Pigeon doc declares. Planned Caps (Physical Clip Export,
+  import, Background Audio physical clips) will exchange files between
+  Host and Dart, so the rule is locked now while the allowlist has one
+  entry.
+- Decision (what was chosen):
+  1. **Rule.** `lib/features/**` and `lib/app/**` must not read file
+     contents through `dart:io`: `readAsBytes`, `readAsString`,
+     `readAsLines`, `open`, `openRead`, `RandomAccessFile`, sync
+     variants included. Host → Dart data comes as Pigeon fields.
+  2. **Allowed.** Display of a Pigeon file path (`Image.file` /
+     `FileImage`), presence checks (`existsSync`), and writes (probe
+     logs). `lib/data/**` (persistence) and `lib/platform/**` are out of
+     scope.
+  3. **Enforcement.** `test/architecture/file_content_read_test.dart`
+     scans the two trees (whole-line comments skipped). Each allowlist
+     entry names its debt; an entry with no remaining read fails the
+     test so the exception cannot outlive its debt. Initial allowlist:
+     `lib/features/main_browse/cap24_minute_landmark.dart` (debt 486).
+  4. **New exceptions** need an owner-approved debt row naming the file
+     before the allowlist grows.
+- Rejected alternatives (why not):
+  - Ban file paths crossing the boundary — `DisplayAssetDto.localFilePath`
+    ("always a static JPEG" for `Image.file`) is a declared contract;
+    the defect is parsing undeclared content, not the path.
+  - Detect byte-level parsing (format markers, byte indexing) —
+    too many false positives (scrub preview and album cover bytes are
+    decoded for display legitimately).
+  - Wait until debt 486 is decoupled or the first file-exchange Cap
+    starts — the guard would then audit existing code instead of
+    stopping it at the source; the owner chose to add it now.
+- Consequences / constraints accepted:
+  - Blind spots, covered by review: parsing of Pigeon-returned bytes,
+    Swift reading files Dart hands over, `lib/data/**`.
+  - Runs only where `flutter test` runs (no CI, debt 449; agent gates
+    run the architecture suite on every `lib/` task).
+  - Debt 486 decouple must delete the allowlist entry (the test forces
+    it).
+- Relationship:
+  - ADR-009: narrowly supplemented — adds this ban to the layer rules.
+    Its Status line gains "narrowly supplemented by ADR-067
+    (2026-09-29)"; its Decision body is not edited.
+  - ADR-050 D7 / ADR-065 D4: the Cap 24 capture-time path stays as the
+    allowlisted exception until debt 486 is paid.
+  - `.cursor/rules/architecture-boundaries.mdc` (local agent rules;
+    `.cursor/` is gitignored): Ban list and Enforcement updated to match.
