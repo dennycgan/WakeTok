@@ -75,15 +75,15 @@ final class LivePhotoApiHost: NSObject, LivePhotoApi {
     options.isNetworkAccessAllowed = true
     options.deliveryMode = .highQualityFormat
 
-    let targetSize = CGSize(
-      width: CGFloat(max(asset.pixelWidth, 1)),
-      height: CGFloat(max(asset.pixelHeight, 1))
-    )
+    // Cap 31.2b-1 / ADR-065: PHLivePhotoView shows the key still at motion
+    // start and end; a full-size still is downscaled in one linear step
+    // (moiré). Motion always plays at fit (ADR-043 D1), so screen size is enough.
+    let targetSize = DisplayStillTarget.screenFitted(asset)
 
     requestId = PHImageManager.default().requestLivePhoto(
       for: asset,
       targetSize: targetSize,
-      contentMode: .aspectFill,
+      contentMode: .aspectFit,
       options: options
     ) { [weak self] livePhoto, info in
       guard let self else { return }

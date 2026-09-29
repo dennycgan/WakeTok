@@ -1,6 +1,7 @@
 import AVFoundation
 import ImageIO
 import Photos
+import UIKit
 import UniformTypeIdentifiers
 import XCTest
 
@@ -1213,6 +1214,207 @@ final class MovieDurationScannerTests: XCTestCase {
       return XCTFail("expected duration, got \(s.outcome)")
     }
     XCTAssertEqual(duration, AVURLAsset(url: url).duration.seconds, accuracy: 0.001)
+  }
+}
+
+final class DisplayStillTargetTests: XCTestCase {
+  private let screen = CGSize(width: 1206, height: 2622)
+
+  private func size(_ w: Int, _ h: Int) -> CGSize {
+    DisplayStillTarget.pixelSize(assetWidth: w, assetHeight: h, bounds: screen)
+  }
+
+  func testPortraitFitsScreenWidth() {
+    XCTAssertEqual(size(4284, 5712), CGSize(width: 1206, height: 1608))
+  }
+
+  func testLandscapeFitsScreenWidth() {
+    XCTAssertEqual(size(1920, 1080), CGSize(width: 1206, height: 678))
+  }
+
+  func testTallPanoramaFitsScreenHeight() {
+    XCTAssertEqual(size(1000, 10000), CGSize(width: 262, height: 2622))
+  }
+
+  func testSmallAssetIsNotUpscaled() {
+    XCTAssertEqual(size(800, 600), CGSize(width: 800, height: 600))
+  }
+
+  func testDegenerateDimensionsStayPositive() {
+    XCTAssertEqual(size(0, 0), CGSize(width: 1, height: 1))
+    XCTAssertEqual(size(100_000, 1), CGSize(width: 1206, height: 1))
+  }
+}
+
+final class DisplayStillRenderTests: XCTestCase {
+  /// 64×48 JPEG, EXIF orientation 6 (displays as 48×64), with a capture time.
+  private func original() throws -> Data {
+    let context = try XCTUnwrap(
+      CGContext(
+        data: nil, width: 64, height: 48, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+      )
+    )
+    context.setFillColor(red: 0.3, green: 0.6, blue: 0.2, alpha: 1)
+    context.fill(CGRect(x: 0, y: 0, width: 64, height: 48))
+    let output = NSMutableData()
+    let destination = try XCTUnwrap(
+      CGImageDestinationCreateWithData(output, UTType.jpeg.identifier as CFString, 1, nil)
+    )
+    let properties: [CFString: Any] = [
+      kCGImagePropertyOrientation: 6,
+      kCGImagePropertyExifDictionary: [
+        kCGImagePropertyExifDateTimeOriginal: "2016:01:23 08:47:10"
+      ],
+    ]
+    CGImageDestinationAddImage(
+      destination, try XCTUnwrap(context.makeImage()), properties as CFDictionary
+    )
+    XCTAssertTrue(CGImageDestinationFinalize(destination))
+    return output as Data
+  }
+
+  private func properties(of data: Data) throws -> [CFString: Any] {
+    let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+    XCTAssertEqual(CGImageSourceGetType(source) as String?, UTType.jpeg.identifier)
+    return try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+  }
+
+  func testDownsampledUprightWithCaptureTime() throws {
+    let output = try XCTUnwrap(
+      DisplayStillRender.jpeg(from: try original(), maxPixelSize: 32, quality: 0.9)
+    )
+    let properties = try properties(of: output)
+    XCTAssertEqual(properties[kCGImagePropertyPixelWidth] as? Int, 24)
+    XCTAssertEqual(properties[kCGImagePropertyPixelHeight] as? Int, 32)
+    XCTAssertEqual(properties[kCGImagePropertyOrientation] as? Int ?? 1, 1)
+    let exif = try XCTUnwrap(properties[kCGImagePropertyExifDictionary] as? [CFString: Any])
+    XCTAssertEqual(exif[kCGImagePropertyExifDateTimeOriginal] as? String, "2016:01:23 08:47:10")
+  }
+
+  func testSmallOriginalIsNotUpscaled() throws {
+    let output = try XCTUnwrap(
+      DisplayStillRender.jpeg(from: try original(), maxPixelSize: 1000, quality: 0.9)
+    )
+    let properties = try properties(of: output)
+    XCTAssertEqual(properties[kCGImagePropertyPixelWidth] as? Int, 48)
+    XCTAssertEqual(properties[kCGImagePropertyPixelHeight] as? Int, 64)
+  }
+
+  func testNonImageDataFails() {
+    XCTAssertNil(DisplayStillRender.jpeg(from: Data([0, 1, 2]), maxPixelSize: 32, quality: 0.9))
+  }
+}
+
+final class DisplayCaptureTimeTests: XCTestCase {
+  private func cgImage() throws -> CGImage {
+    let context = try XCTUnwrap(
+      CGContext(
+        data: nil, width: 64, height: 48, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+      )
+    )
+    context.setFillColor(red: 0.8, green: 0.4, blue: 0.1, alpha: 1)
+    context.fill(CGRect(x: 0, y: 0, width: 64, height: 48))
+    return try XCTUnwrap(context.makeImage())
+  }
+
+  /// ImageIO drops TIFF DateTime on a fresh encode and merges it only into an
+  /// existing TIFF IFD, so the fixture encodes a Model first and merges after.
+  private func source(exif: [CFString: Any], tiffDateTime: String?) throws -> CGImageSource {
+    let encoded = NSMutableData()
+    let destination = try XCTUnwrap(
+      CGImageDestinationCreateWithData(encoded, UTType.jpeg.identifier as CFString, 1, nil)
+    )
+    let properties: [CFString: Any] = [
+      kCGImagePropertyExifDictionary: exif,
+      kCGImagePropertyTIFFDictionary: [kCGImagePropertyTIFFModel: "fixture"],
+    ]
+    CGImageDestinationAddImage(destination, try cgImage(), properties as CFDictionary)
+    XCTAssertTrue(CGImageDestinationFinalize(destination))
+    let source = try XCTUnwrap(CGImageSourceCreateWithData(encoded, nil))
+    guard let tiffDateTime else { return source }
+
+    let metadata = CGImageMetadataCreateMutable()
+    XCTAssertTrue(
+      CGImageMetadataSetValueMatchingImageProperty(
+        metadata, kCGImagePropertyTIFFDictionary, kCGImagePropertyTIFFDateTime,
+        tiffDateTime as CFString
+      )
+    )
+    let merged = NSMutableData()
+    let mergeDestination = try XCTUnwrap(
+      CGImageDestinationCreateWithData(merged, UTType.jpeg.identifier as CFString, 1, nil)
+    )
+    let options: [CFString: Any] = [
+      kCGImageDestinationMetadata: metadata,
+      kCGImageDestinationMergeMetadata: true,
+    ]
+    XCTAssertTrue(
+      CGImageDestinationCopyImageSource(mergeDestination, source, options as CFDictionary, nil)
+    )
+    let result = try XCTUnwrap(CGImageSourceCreateWithData(merged, nil))
+    let tiff = (CGImageSourceCopyPropertiesAtIndex(result, 0, nil) as? [CFString: Any])?[
+      kCGImagePropertyTIFFDictionary
+    ] as? [CFString: Any]
+    XCTAssertEqual(tiff?[kCGImagePropertyTIFFDateTime] as? String, tiffDateTime)
+    return result
+  }
+
+  private func displayJpeg(_ orientation: UIImage.Orientation = .right) throws -> Data {
+    let image = UIImage(cgImage: try cgImage(), scale: 1, orientation: orientation)
+    return try XCTUnwrap(image.jpegData(compressionQuality: 0.9))
+  }
+
+  private func properties(of data: Data) throws -> [CFString: Any] {
+    let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+    return try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+  }
+
+  func testCaptureTimeCopiedKeepingOrientationAndSize() throws {
+    for orientation in [UIImage.Orientation.right, .up] {
+      try assertCaptureTimeCopied(into: try displayJpeg(orientation))
+    }
+  }
+
+  private func assertCaptureTimeCopied(into jpeg: Data) throws {
+    let before = try properties(of: jpeg)
+    let original = try source(
+      exif: [
+        kCGImagePropertyExifDateTimeOriginal: "2016:01:23 08:47:10",
+        kCGImagePropertyExifOffsetTimeOriginal: "+13:00",
+        kCGImagePropertyExifLensModel: "not copied",
+      ],
+      tiffDateTime: "2016:01:23 08:47:10"
+    )
+
+    let merged = try properties(of: DisplayCaptureTime.merging(into: jpeg, from: original))
+
+    let exif = try XCTUnwrap(merged[kCGImagePropertyExifDictionary] as? [CFString: Any])
+    let tiff = try XCTUnwrap(merged[kCGImagePropertyTIFFDictionary] as? [CFString: Any])
+    XCTAssertEqual(exif[kCGImagePropertyExifDateTimeOriginal] as? String, "2016:01:23 08:47:10")
+    XCTAssertEqual(exif[kCGImagePropertyExifOffsetTimeOriginal] as? String, "+13:00")
+    XCTAssertNil(exif[kCGImagePropertyExifLensModel])
+    XCTAssertEqual(tiff[kCGImagePropertyTIFFDateTime] as? String, "2016:01:23 08:47:10")
+    XCTAssertEqual(
+      merged[kCGImagePropertyOrientation] as? Int ?? 1,
+      before[kCGImagePropertyOrientation] as? Int ?? 1
+    )
+    XCTAssertEqual(merged[kCGImagePropertyPixelWidth] as? Int, before[kCGImagePropertyPixelWidth] as? Int)
+    XCTAssertEqual(merged[kCGImagePropertyPixelHeight] as? Int, before[kCGImagePropertyPixelHeight] as? Int)
+  }
+
+  func testUnchangedWithoutSource() throws {
+    let jpeg = try displayJpeg()
+    XCTAssertEqual(DisplayCaptureTime.merging(into: jpeg, from: nil), jpeg)
+  }
+
+  func testUnchangedWhenSourceHasNoCaptureTime() throws {
+    let jpeg = try displayJpeg()
+    let original = try source(exif: [kCGImagePropertyExifLensModel: "x"], tiffDateTime: nil)
+    XCTAssertEqual(DisplayCaptureTime.merging(into: jpeg, from: original), jpeg)
   }
 }
 

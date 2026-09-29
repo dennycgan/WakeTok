@@ -21,6 +21,9 @@ final class PhotoLibraryService: PhotoLibraryApi {
   private static let previewTargetSize = CGSize(width: 512, height: 512)
   private static let previewJpegQuality: CGFloat = 0.8
 
+  /// Layer 2 still: screen-sized ImageIO render (Cap 31.2b-1 / ADR-065).
+  private static let displayJpegQuality: CGFloat = 0.9
+
   /// Cap 25 Share: AppDelegate wires `PlaybackApiHost` here so present can
   /// disable the bound video Platform View's UIKit hit-testing. Weak — Share
   /// must not retain Playback.
@@ -917,16 +920,24 @@ final class PhotoLibraryService: PhotoLibraryApi {
       }
 
       let kind = mapMediaKind(asset)
+      // Cap 31.2b-1 / ADR-065: the original is still fetched (it stays local
+      // for Tier 4 file size and carries the capture time), but the Host
+      // downsamples it to screen size so Flutter does not (Impeller resizes
+      // with a one-step bilinear MPS scale, which aliases fine detail into moiré).
+      let target = DisplayStillTarget.screenFitted(asset)
+      let maxPixelSize = Int(max(target.width, target.height))
       let requestId = PHImageManager.default().requestImageDataAndOrientation(
         for: asset,
         options: options
       ) { [weak self] data, _, _, info in
+        // Dimensions stay the asset's (Cap 20 fitted box), not the render's.
         self?.handleDisplayResult(
           assetIdentifier: assetIdentifier,
           generation: generation,
           mediaKind: kind,
           pixelWidth: Int64(asset.pixelWidth),
           pixelHeight: Int64(asset.pixelHeight),
+          maxPixelSize: maxPixelSize,
           data: data,
           info: info
         )
@@ -1351,13 +1362,14 @@ final class PhotoLibraryService: PhotoLibraryApi {
     mediaKind: MediaKind,
     pixelWidth: Int64,
     pixelHeight: Int64,
-    data: Data?,
+    maxPixelSize: Int,
+    data original: Data?,
     info: [AnyHashable: Any]?
   ) {
     let infoDict = info ?? [:]
     let cancelled = (infoDict[PHImageCancelledKey] as? Bool) == true
 
-    if let data, !cancelled {
+    if let original, !cancelled {
       let take = displayRequests.takeForDelivery(
         assetId: assetIdentifier,
         generation: generation
@@ -1370,6 +1382,25 @@ final class PhotoLibraryService: PhotoLibraryApi {
       }
       displayWriteQueue.async { [weak self] in
         guard let self else { return }
+        guard
+          let data = DisplayStillRender.jpeg(
+            from: original,
+            maxPixelSize: maxPixelSize,
+            quality: Self.displayJpegQuality
+          )
+        else {
+          self.finishDisplay(
+            assetIdentifier: assetIdentifier,
+            generation: generation,
+            result: .failure(
+              self.fail(
+                .assetUnavailable,
+                message: "Failed to render display image"
+              )
+            )
+          )
+          return
+        }
         do {
           let path = try self.displayRequests.commitIfCurrent(
             assetId: assetIdentifier,
@@ -2698,6 +2729,160 @@ enum ShareStillFile {
       height > 0
     else { return nil }
     return CGSize(width: width, height: height)
+  }
+}
+
+// MARK: - Display still target size (Cap 31.2b-1 / ADR-065)
+
+enum DisplayStillTarget {
+  /// Used only when no window scene reports a screen (largest iPhone, portrait).
+  private static let fallbackScreenPixelSize = CGSize(width: 1320, height: 2868)
+
+  /// [asset] aspect-fitted into the portrait screen (portrait-only app, ADR-028).
+  static func screenFitted(_ asset: PHAsset) -> CGSize {
+    pixelSize(
+      assetWidth: asset.pixelWidth,
+      assetHeight: asset.pixelHeight,
+      bounds: screenPixelSize()
+    )
+  }
+
+  static func screenPixelSize() -> CGSize {
+    let screen = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .first?.screen
+    guard let bounds = screen?.nativeBounds,
+      bounds.width > 0,
+      bounds.height > 0
+    else { return fallbackScreenPixelSize }
+    return CGSize(
+      width: min(bounds.width, bounds.height),
+      height: max(bounds.width, bounds.height)
+    )
+  }
+
+  /// Asset size aspect-fitted into [bounds] (pixels); never upscales.
+  static func pixelSize(
+    assetWidth: Int,
+    assetHeight: Int,
+    bounds: CGSize
+  ) -> CGSize {
+    let width = CGFloat(max(assetWidth, 1))
+    let height = CGFloat(max(assetHeight, 1))
+    let scale = min(bounds.width / width, bounds.height / height, 1)
+    return CGSize(
+      width: max((width * scale).rounded(), 1),
+      height: max((height * scale).rounded(), 1)
+    )
+  }
+}
+
+// MARK: - Display still render (Cap 31.2b-1 / ADR-065)
+
+enum DisplayStillRender {
+  /// Upright JPEG of [original] whose longer side is at most [maxPixelSize],
+  /// downsampled by ImageIO, with the original's capture time. Nil when
+  /// [original] is not a decodable image.
+  static func jpeg(from original: Data, maxPixelSize: Int, quality: CGFloat) -> Data? {
+    guard let source = CGImageSourceCreateWithData(original as CFData, nil) else {
+      return nil
+    }
+    let thumbnailOptions: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceThumbnailMaxPixelSize: max(maxPixelSize, 1),
+    ]
+    let output = NSMutableData()
+    guard
+      let image = CGImageSourceCreateThumbnailAtIndex(
+        source,
+        CGImageSourceGetPrimaryImageIndex(source),
+        thumbnailOptions as CFDictionary
+      ),
+      let destination = CGImageDestinationCreateWithData(
+        output,
+        UTType.jpeg.identifier as CFString,
+        1,
+        nil
+      )
+    else { return nil }
+    let properties: [CFString: Any] = [
+      kCGImageDestinationLossyCompressionQuality: quality
+    ]
+    CGImageDestinationAddImage(destination, image, properties as CFDictionary)
+    guard CGImageDestinationFinalize(destination) else { return nil }
+    return DisplayCaptureTime.merging(into: output as Data, from: source)
+  }
+}
+
+// MARK: - Display still capture time (Cap 31.2b-1 / ADR-065)
+
+/// The Layer 2 temp is a re-encoded JPEG; ADR-050 D7 reads its capture time.
+enum DisplayCaptureTime {
+  private static let tags: [(dictionary: CFString, key: CFString)] = [
+    (kCGImagePropertyExifDictionary, kCGImagePropertyExifDateTimeOriginal),
+    (kCGImagePropertyExifDictionary, kCGImagePropertyExifOffsetTimeOriginal),
+    (kCGImagePropertyTIFFDictionary, kCGImagePropertyTIFFDateTime),
+  ]
+
+  /// Copies the capture-time tags of [source] into [jpeg] losslessly, keeping
+  /// its other metadata (orientation). Returns [jpeg] unchanged when there is
+  /// nothing to copy or the rewrite fails.
+  static func merging(into jpeg: Data, from source: CGImageSource?) -> Data {
+    guard let source,
+      let properties = CGImageSourceCopyPropertiesAtIndex(
+        source,
+        CGImageSourceGetPrimaryImageIndex(source),
+        nil
+      ) as? [CFString: Any],
+      let jpegSource = CGImageSourceCreateWithData(jpeg as CFData, nil),
+      let type = CGImageSourceGetType(jpegSource)
+    else { return jpeg }
+    let metadata = CGImageMetadataCreateMutable()
+    var copied = false
+    for tag in tags {
+      guard
+        let group = properties[tag.dictionary] as? [CFString: Any],
+        let value = group[tag.key]
+      else { continue }
+      if CGImageMetadataSetValueMatchingImageProperty(
+        metadata,
+        tag.dictionary,
+        tag.key,
+        value as CFTypeRef
+      ) {
+        copied = true
+      }
+    }
+    guard copied else { return jpeg }
+    // ImageIO only writes TIFF DateTime into an existing TIFF IFD; restating
+    // the current orientation (default up) guarantees one.
+    let orientation =
+      (CGImageSourceCopyPropertiesAtIndex(jpegSource, 0, nil) as? [CFString: Any])?[
+        kCGImagePropertyOrientation
+      ] as? Int ?? 1
+    _ = CGImageMetadataSetValueMatchingImageProperty(
+      metadata,
+      kCGImagePropertyTIFFDictionary,
+      kCGImagePropertyTIFFOrientation,
+      orientation as CFNumber
+    )
+    let output = NSMutableData()
+    guard let destination = CGImageDestinationCreateWithData(output, type, 1, nil)
+    else { return jpeg }
+    let options: [CFString: Any] = [
+      kCGImageDestinationMetadata: metadata,
+      kCGImageDestinationMergeMetadata: true,
+    ]
+    guard
+      CGImageDestinationCopyImageSource(
+        destination,
+        jpegSource,
+        options as CFDictionary,
+        nil
+      )
+    else { return jpeg }
+    return output as Data
   }
 }
 
