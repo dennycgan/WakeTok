@@ -1,8 +1,11 @@
 import AVFoundation
 import Foundation
+import ImageIO
 import Photos
 import PhotosUI
 import UIKit
+import UniformTypeIdentifiers
+import os
 
 /// Production PhotoLibraryApi host (Capability 5.2+).
 ///
@@ -25,6 +28,11 @@ final class PhotoLibraryService: PhotoLibraryApi {
 
   /// Cap 25 Bug#2: Host → Dart share-sheet dismiss (wall-clock ms).
   var photoLibraryFlutterApi: PhotoLibraryFlutterApi?
+
+  private static let shareLog = Logger(
+    subsystem: Bundle.main.bundleIdentifier ?? "com.dennycgan.waketok",
+    category: "share"
+  )
 
   private let previewRequests = PreviewImageRequestTable()
   private let displayRequests = PhotoKitRequestTable<PreviewCompletion>()
@@ -2223,10 +2231,10 @@ final class PhotoLibraryService: PhotoLibraryApi {
   /// `operationCancelled`. Missing asset / cannot build items / no root VC →
   /// `assetUnavailable`.
   ///
-  /// Still + Live Photo: **same** static key-frame path
-  /// (`requestImage` only — never `requestLivePhoto` / `PHLivePhoto` as the
-  /// activity item). Present only a **non-degraded** `UIImage` (skip
-  /// `PHImageResultIsDegradedKey == true` callbacks). Video unchanged
+  /// Still + Live Photo: **same** still path (ADR-064) — current-version
+  /// image data (`requestImageDataAndOrientation`, `.highQualityFormat`),
+  /// location removed, handed over as a share-scoped file. Never
+  /// `requestLivePhoto` / `PHLivePhoto` as the activity item. Video unchanged
   /// (`requestAVAsset`).
   ///
   /// iPad: set a minimal `popoverPresentationController` anchor to avoid
@@ -2312,7 +2320,12 @@ final class PhotoLibraryService: PhotoLibraryApi {
             .setBoundSurfaceUserInteractionEnabled(false)
           self.playbackSurfaceTouchGate?
             .beginBoundPlatformViewWrapperShareGate()
-          activity.completionWithItemsHandler = { [weak self] _, _, _, _ in
+          activity.completionWithItemsHandler = {
+            [weak self] activityType, completed, returnedItems, error in
+            let nsError = error as NSError?
+            Self.shareLog.debug(
+              "completion activity=\(activityType?.rawValue ?? "nil", privacy: .public) completed=\(completed) returnedItems=\(returnedItems?.count ?? 0) error=\(nsError?.domain ?? "nil", privacy: .public)#\(nsError?.code ?? 0)"
+            )
             self?.playbackSurfaceTouchGate?
               .endBoundPlatformViewWrapperShareGate(phase: "dismiss")
             self?.playbackSurfaceTouchGate?
@@ -2354,63 +2367,65 @@ final class PhotoLibraryService: PhotoLibraryApi {
     buildShareStillImageItems(for: asset, completion: completion)
   }
 
-  /// Still + Live key frame for Share. Skips degraded callbacks; presents
-  /// only a non-degraded `UIImage` (ADR-051 D13). Does not touch video.
+  /// Still + Live key frame for Share (ADR-064): current-version image data
+  /// with location removed, written to a share-scoped file. Fails rather
+  /// than hand over data that still carries GPS. Does not touch video.
   private func buildShareStillImageItems(
     for asset: PHAsset,
     completion: @escaping (Result<ShareActivityPayload, Error>) -> Void
   ) {
+    ShareStillFile.removeLeftovers()
     let options = PHImageRequestOptions()
     options.isNetworkAccessAllowed = true
-    // Opportunistic can deliver degraded then final; we ignore degraded.
-    options.deliveryMode = .opportunistic
-    options.resizeMode = .none
+    options.version = .current
+    // Single final-quality delivery — no degraded result to skip.
+    options.deliveryMode = .highQualityFormat
     options.isSynchronous = false
-    let targetSize = CGSize(
-      width: CGFloat(max(asset.pixelWidth, 1)),
-      height: CGFloat(max(asset.pixelHeight, 1))
+    let fileStem = ShareStillFile.fileStem(
+      originalFilename: PHAssetResource.assetResources(for: asset)
+        .first { $0.type == .photo }?.originalFilename
     )
-    PHImageManager.default().requestImage(
+    PHImageManager.default().requestImageDataAndOrientation(
       for: asset,
-      targetSize: targetSize,
-      contentMode: .aspectFit,
       options: options
-    ) { [weak self] image, info in
+    ) { [weak self] data, _, _, info in
       guard let self else { return }
-      DispatchQueue.main.async {
-        if let cancelled = info?[PHImageCancelledKey] as? Bool, cancelled {
+      let cancelled = (info?[PHImageCancelledKey] as? Bool) ?? false
+      DispatchQueue.global(qos: .userInitiated).async {
+        let fileURL =
+          cancelled ? nil : data.flatMap { ShareStillFile.write($0, fileStem: fileStem) }
+        DispatchQueue.main.async {
+          if cancelled {
+            completion(
+              .failure(
+                self.fail(
+                  .assetUnavailable,
+                  message: "Still share request cancelled"
+                )
+              )
+            )
+            return
+          }
+          guard let fileURL else {
+            completion(
+              .failure(
+                self.fail(
+                  .assetUnavailable,
+                  message: "Failed to build still share item"
+                )
+              )
+            )
+            return
+          }
           completion(
-            .failure(
-              self.fail(
-                .assetUnavailable,
-                message: "Still share request cancelled"
+            .success(
+              ShareActivityPayload(
+                items: [fileURL],
+                temporaryFileURLs: [fileURL.deletingLastPathComponent()]
               )
             )
           )
-          return
         }
-        if let degraded = info?[PHImageResultIsDegradedKey] as? Bool,
-          degraded
-        {
-          // Wait for the non-degraded callback; do not present yet.
-          return
-        }
-        guard let image else {
-          completion(
-            .failure(
-              self.fail(
-                .assetUnavailable,
-                message: "Failed to build still share item"
-              )
-            )
-          )
-          return
-        }
-        completion(
-          .success(
-            ShareActivityPayload(items: [image], temporaryFileURLs: [])
-          )
-        )
       }
     }
   }
@@ -2484,6 +2499,205 @@ final class PhotoLibraryService: PhotoLibraryApi {
       }
     }
     return fail(fallback, message: nsError.localizedDescription)
+  }
+}
+
+// MARK: - Share still files (Cap 31.2b / ADR-064)
+
+/// Share-scoped still file: location removal and placement under
+/// `tmp/share/<uuid>/`. Never uses the display / preview temp pools
+/// (ADR-051 D2).
+enum ShareStillFile {
+  enum LocationRemoval: Equatable {
+    case notNeeded
+    case lossless
+    case reencodedJPEG
+  }
+
+  struct Prepared {
+    let data: Data
+    let typeIdentifier: String
+    let locationRemoval: LocationRemoval
+  }
+
+  static let jpegFallbackQuality: CGFloat = 0.9
+
+  static func rootDirectory(
+    base: URL = FileManager.default.temporaryDirectory
+  ) -> URL {
+    base.appendingPathComponent("share", isDirectory: true)
+  }
+
+  static func removeLeftovers(root: URL = rootDirectory()) {
+    try? FileManager.default.removeItem(at: root)
+  }
+
+  static func fileStem(originalFilename: String?) -> String {
+    let stem = ((originalFilename ?? "") as NSString).deletingPathExtension
+      .replacingOccurrences(of: "/", with: "_")
+    return stem.isEmpty ? "Photo" : stem
+  }
+
+  static func fileExtension(forTypeIdentifier identifier: String) -> String? {
+    UTType(identifier)?.preferredFilenameExtension
+  }
+
+  /// Writes location-free [data] to `root/<uuid>/<fileStem>.<ext>`.
+  /// Returns nil (and leaves nothing behind) on any failure.
+  static func write(
+    _ data: Data,
+    fileStem: String,
+    root: URL = rootDirectory()
+  ) -> URL? {
+    guard let prepared = removingLocation(from: data),
+      let ext = fileExtension(forTypeIdentifier: prepared.typeIdentifier)
+    else { return nil }
+    let directory = root.appendingPathComponent(
+      UUID().uuidString,
+      isDirectory: true
+    )
+    let url = directory.appendingPathComponent(fileStem)
+      .appendingPathExtension(ext)
+    do {
+      try FileManager.default.createDirectory(
+        at: directory,
+        withIntermediateDirectories: true
+      )
+      try prepared.data.write(to: url, options: .atomic)
+      return url
+    } catch {
+      try? FileManager.default.removeItem(at: directory)
+      return nil
+    }
+  }
+
+  /// Lossless metadata rewrite first; JPEG re-encode if the rewrite's output
+  /// still has GPS or a different pixel size. `kCGImageMetadataShouldExcludeGPS`
+  /// alone returns true on HEIC without removing GPS, and on JPEG also drops
+  /// orientation — hence source metadata + merge, and the read-back check.
+  static func removingLocation(from data: Data) -> Prepared? {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+      let type = CGImageSourceGetType(source),
+      let size = pixelSize(of: source)
+    else { return nil }
+    if !hasGPS(source) {
+      return Prepared(
+        data: data,
+        typeIdentifier: type as String,
+        locationRemoval: .notNeeded
+      )
+    }
+    if let output = losslessCopyExcludingGPS(source, type: type),
+      isLocationFree(output, pixelSize: size)
+    {
+      return Prepared(
+        data: output,
+        typeIdentifier: type as String,
+        locationRemoval: .lossless
+      )
+    }
+    if let output = jpegExcludingGPS(source),
+      isLocationFree(output, pixelSize: size)
+    {
+      return Prepared(
+        data: output,
+        typeIdentifier: UTType.jpeg.identifier,
+        locationRemoval: .reencodedJPEG
+      )
+    }
+    return nil
+  }
+
+  private static func losslessCopyExcludingGPS(
+    _ source: CGImageSource,
+    type: CFString
+  ) -> Data? {
+    let output = NSMutableData()
+    guard
+      let destination = CGImageDestinationCreateWithData(
+        output,
+        type,
+        CGImageSourceGetCount(source),
+        nil
+      ),
+      let metadata = CGImageSourceCopyMetadataAtIndex(
+        source,
+        CGImageSourceGetPrimaryImageIndex(source),
+        nil
+      )
+    else { return nil }
+    let options: [CFString: Any] = [
+      kCGImageDestinationMetadata: metadata,
+      kCGImageDestinationMergeMetadata: true,
+      kCGImageMetadataShouldExcludeGPS: true,
+    ]
+    guard
+      CGImageDestinationCopyImageSource(
+        destination,
+        source,
+        options as CFDictionary,
+        nil
+      )
+    else { return nil }
+    return output as Data
+  }
+
+  private static func jpegExcludingGPS(_ source: CGImageSource) -> Data? {
+    let output = NSMutableData()
+    guard
+      let destination = CGImageDestinationCreateWithData(
+        output,
+        UTType.jpeg.identifier as CFString,
+        1,
+        nil
+      )
+    else { return nil }
+    let properties: [CFString: Any] = [
+      kCGImagePropertyGPSDictionary: kCFNull as Any,
+      kCGImageDestinationLossyCompressionQuality: jpegFallbackQuality,
+    ]
+    CGImageDestinationAddImageFromSource(
+      destination,
+      source,
+      CGImageSourceGetPrimaryImageIndex(source),
+      properties as CFDictionary
+    )
+    guard CGImageDestinationFinalize(destination) else { return nil }
+    return output as Data
+  }
+
+  private static func isLocationFree(
+    _ data: Data,
+    pixelSize expected: CGSize
+  ) -> Bool {
+    guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+      let size = pixelSize(of: source)
+    else { return false }
+    return !hasGPS(source) && size == expected
+  }
+
+  private static func hasGPS(_ source: CGImageSource) -> Bool {
+    (0..<CGImageSourceGetCount(source)).contains { index in
+      let properties =
+        CGImageSourceCopyPropertiesAtIndex(source, index, nil)
+        as? [CFString: Any]
+      return properties?[kCGImagePropertyGPSDictionary] != nil
+    }
+  }
+
+  private static func pixelSize(of source: CGImageSource) -> CGSize? {
+    guard
+      let properties = CGImageSourceCopyPropertiesAtIndex(
+        source,
+        CGImageSourceGetPrimaryImageIndex(source),
+        nil
+      ) as? [CFString: Any],
+      let width = properties[kCGImagePropertyPixelWidth] as? Int,
+      let height = properties[kCGImagePropertyPixelHeight] as? Int,
+      width > 0,
+      height > 0
+    else { return nil }
+    return CGSize(width: width, height: height)
   }
 }
 

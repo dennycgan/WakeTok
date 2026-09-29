@@ -1,5 +1,7 @@
 import AVFoundation
+import ImageIO
 import Photos
+import UniformTypeIdentifiers
 import XCTest
 
 @testable import Runner
@@ -1211,5 +1213,145 @@ final class MovieDurationScannerTests: XCTestCase {
       return XCTFail("expected duration, got \(s.outcome)")
     }
     XCTAssertEqual(duration, AVURLAsset(url: url).duration.seconds, accuracy: 0.001)
+  }
+}
+
+final class ShareStillFileTests: XCTestCase {
+  private var root: URL!
+
+  override func setUp() {
+    root = FileManager.default.temporaryDirectory
+      .appendingPathComponent("share-tests-\(UUID().uuidString)", isDirectory: true)
+  }
+
+  override func tearDown() {
+    try? FileManager.default.removeItem(at: root)
+  }
+
+  private func jpegFixture(withGPS: Bool) throws -> Data {
+    let width = 64
+    let height = 48
+    let context = try XCTUnwrap(
+      CGContext(
+        data: nil, width: width, height: height, bitsPerComponent: 8, bytesPerRow: 0,
+        space: CGColorSpaceCreateDeviceRGB(),
+        bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+      )
+    )
+    context.setFillColor(red: 0.2, green: 0.5, blue: 0.8, alpha: 1)
+    context.fill(CGRect(x: 0, y: 0, width: width, height: height))
+    let image = try XCTUnwrap(context.makeImage())
+    var properties: [CFString: Any] = [
+      kCGImagePropertyOrientation: 6,
+      kCGImagePropertyExifDictionary: [
+        kCGImagePropertyExifDateTimeOriginal: "2026:09:28 10:00:00"
+      ],
+      kCGImagePropertyTIFFDictionary: [kCGImagePropertyTIFFModel: "iPhone 17"],
+    ]
+    if withGPS {
+      properties[kCGImagePropertyGPSDictionary] = [
+        kCGImagePropertyGPSLatitude: 36.85,
+        kCGImagePropertyGPSLatitudeRef: "S",
+        kCGImagePropertyGPSLongitude: 174.76,
+        kCGImagePropertyGPSLongitudeRef: "E",
+      ]
+    }
+    let output = NSMutableData()
+    let destination = try XCTUnwrap(
+      CGImageDestinationCreateWithData(output, UTType.jpeg.identifier as CFString, 1, nil)
+    )
+    CGImageDestinationAddImage(destination, image, properties as CFDictionary)
+    XCTAssertTrue(CGImageDestinationFinalize(destination))
+    return output as Data
+  }
+
+  private func properties(of data: Data) throws -> [CFString: Any] {
+    let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+    return try XCTUnwrap(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any])
+  }
+
+  func testFileExtensionFromTypeIdentifier() {
+    XCTAssertEqual(ShareStillFile.fileExtension(forTypeIdentifier: "public.heic"), "heic")
+    XCTAssertEqual(ShareStillFile.fileExtension(forTypeIdentifier: "public.jpeg"), "jpeg")
+    XCTAssertEqual(ShareStillFile.fileExtension(forTypeIdentifier: "public.png"), "png")
+    XCTAssertNil(ShareStillFile.fileExtension(forTypeIdentifier: "com.example.not-a-type"))
+  }
+
+  func testFileStemFromOriginalFilename() {
+    XCTAssertEqual(ShareStillFile.fileStem(originalFilename: "IMG_1935.HEIC"), "IMG_1935")
+    XCTAssertEqual(ShareStillFile.fileStem(originalFilename: "a/b.jpg"), "a_b")
+    XCTAssertEqual(ShareStillFile.fileStem(originalFilename: nil), "Photo")
+    XCTAssertEqual(ShareStillFile.fileStem(originalFilename: ""), "Photo")
+  }
+
+  func testDefaultRootIsShareDirectoryUnderTmp() {
+    let defaultRoot = ShareStillFile.rootDirectory()
+    XCTAssertEqual(defaultRoot.lastPathComponent, "share")
+    XCTAssertEqual(
+      defaultRoot.deletingLastPathComponent().standardizedFileURL.path,
+      FileManager.default.temporaryDirectory.standardizedFileURL.path
+    )
+  }
+
+  func testWritePlacesFileInOwnDirectoryUnderRoot() throws {
+    let url = try XCTUnwrap(
+      ShareStillFile.write(try jpegFixture(withGPS: true), fileStem: "IMG_0001", root: root)
+    )
+    XCTAssertEqual(url.lastPathComponent, "IMG_0001.jpeg")
+    let directory = url.deletingLastPathComponent()
+    XCTAssertEqual(
+      directory.deletingLastPathComponent().standardizedFileURL.path,
+      root.standardizedFileURL.path
+    )
+    XCTAssertNotNil(UUID(uuidString: directory.lastPathComponent))
+    XCTAssertTrue(FileManager.default.fileExists(atPath: url.path))
+
+    try FileManager.default.removeItem(at: directory)
+    XCTAssertFalse(FileManager.default.fileExists(atPath: url.path))
+  }
+
+  func testRemoveLeftoversDeletesRoot() throws {
+    _ = try XCTUnwrap(
+      ShareStillFile.write(try jpegFixture(withGPS: false), fileStem: "IMG_0002", root: root)
+    )
+    ShareStillFile.removeLeftovers(root: root)
+    XCTAssertFalse(FileManager.default.fileExists(atPath: root.path))
+  }
+
+  func testWriteFailsForNonImageDataAndLeavesNothing() {
+    XCTAssertNil(ShareStillFile.write(Data([0x00, 0x01, 0x02]), fileStem: "x", root: root))
+    XCTAssertFalse(FileManager.default.fileExists(atPath: root.path))
+  }
+
+  func testJpegLocationRemovedLosslesslyKeepingOrientationDateAndModel() throws {
+    let input = try jpegFixture(withGPS: true)
+    XCTAssertNotNil(try properties(of: input)[kCGImagePropertyGPSDictionary])
+
+    let prepared = try XCTUnwrap(ShareStillFile.removingLocation(from: input))
+    XCTAssertEqual(prepared.locationRemoval, .lossless)
+    XCTAssertEqual(prepared.typeIdentifier, UTType.jpeg.identifier)
+
+    let output = try properties(of: prepared.data)
+    XCTAssertNil(output[kCGImagePropertyGPSDictionary])
+    XCTAssertEqual(output[kCGImagePropertyOrientation] as? Int, 6)
+    XCTAssertEqual(
+      (output[kCGImagePropertyExifDictionary] as? [CFString: Any])?[
+        kCGImagePropertyExifDateTimeOriginal] as? String,
+      "2026:09:28 10:00:00"
+    )
+    XCTAssertEqual(
+      (output[kCGImagePropertyTIFFDictionary] as? [CFString: Any])?[kCGImagePropertyTIFFModel]
+        as? String,
+      "iPhone 17"
+    )
+    XCTAssertEqual(output[kCGImagePropertyPixelWidth] as? Int, 64)
+    XCTAssertEqual(output[kCGImagePropertyPixelHeight] as? Int, 48)
+  }
+
+  func testDataWithoutLocationIsHandedOverUnchanged() throws {
+    let input = try jpegFixture(withGPS: false)
+    let prepared = try XCTUnwrap(ShareStillFile.removingLocation(from: input))
+    XCTAssertEqual(prepared.locationRemoval, .notNeeded)
+    XCTAssertEqual(prepared.data, input)
   }
 }
