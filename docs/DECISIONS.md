@@ -6071,7 +6071,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-051: Cap 25 Share current asset from Action Column
 
-- Status: Accepted (2026-09-12); Decision 14 (Share enable — Layer-2 display ready + Live motion idle; unified, no iCloud exception) Accepted (2026-09-14; work `c1d7d2f`); Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`)
+- Status: Accepted (2026-09-12); Decision 14 (Share enable — Layer-2 display ready + Live motion idle; unified, no iCloud exception) Accepted (2026-09-14; work `c1d7d2f`); Decision 15 (exclude saveToCameraRoll only) Accepted (2026-09-14; work `39f04a4`); Decision 13 (materialisation form) and Decision 12 (the "same static `requestImage` path" clause) narrowly superseded by ADR-064 (2026-09-29)
 - Commit/PR anchor: 99c2e73
 - Plain summary (owner reads this):
   Browse Action Column gains a Share control between "…" and Add-to-Album.
@@ -8088,3 +8088,123 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - ADR-009: no Dart or boundary change.
   - Phenomenon record:
     `docs/reference/ios-photokit-implicit-behavior-notes.md` §3.1.
+
+## ADR-064: Cap 31.2b Share still as original file with location removed
+
+- Status: **Accepted** (2026-09-29)
+- Commit/PR anchor: bd6a870
+- Plain summary (owner reads this):
+  Sharing a photo used to hand the share sheet a fully decoded,
+  full-size picture. For some photos taken of a computer screen,
+  third-party share targets (WhatsApp, WeChat, Facebook, QQ) opened and
+  closed again within about a second. WakeTok now hands over the
+  photo's own file, like the Photos app, with the location removed so
+  recipients still do not get where the photo was taken. Everything
+  else in the file is kept. Videos are not changed.
+- Context / what problem forced this:
+  ADR-051 Decision 13 materialises a still share as a full-size,
+  non-degraded `UIImage` from `requestImage`. Cap 31.2b fixed condition:
+  a set of Live Photos shot of a computer screen showing game cutscenes
+  (iPhone 17 main camera, 24 MP 5712×4284 HEIF) made third-party share
+  extensions dismiss about one second after opening; AirDrop and Notes
+  worked, and ordinary photos shared normally. 24 MP, HEIF and Live are
+  shared by ordinary photos and are not distinguishing features. The
+  same photo shared from the Photos app, which hands over the original
+  file, worked. Recorded as: sharing failed when handing over a
+  full-size decoded image and works when handing over the original
+  file. The decoded size (~98 MB) is not claimed as the proven cause —
+  ordinary 24 MP photos have the same decoded size and share normally.
+- Decision (what was chosen):
+  1. **Scope.** Host `buildShareStillImageItems` only (stills and
+     Live-as-still). Video share, presentation chrome, Decision 14
+     enable and Decision 15 exclusions are unchanged. No Pigeon or Dart
+     change.
+  2. **Materialisation.** `requestImageDataAndOrientation` with
+     `version = .current`, `deliveryMode = .highQualityFormat`,
+     `isNetworkAccessAllowed = true`. It delivers one final-quality
+     result, so no degraded result can be shared. Edited photos share
+     their current rendered version; Live Photos share their still only.
+  3. **Location removal.** If the data has no GPS metadata, it is
+     shared as is. Otherwise:
+     - lossless rewrite: `CGImageDestinationCopyImageSource` with the
+       source metadata, `kCGImageDestinationMergeMetadata = true` and
+       `kCGImageMetadataShouldExcludeGPS = true`; the output is then
+       re-read (metadata only) and accepted only if it has no GPS and
+       the same pixel size;
+     - otherwise re-encode as JPEG (quality 0.9) with
+       `CGImageDestinationAddImageFromSource`, GPS dictionary removed,
+       accepted under the same re-read check;
+     - if both fail, the share fails with the existing prepare-failure
+       toast; data with GPS is never handed over, and there is no
+       fallback to the old `UIImage` path.
+     Only GPS is removed; other metadata is kept.
+  4. **Handover.** The result is written to a share-scoped directory
+     `tmp/share/<uuid>/`, named from the original filename stem plus the
+     extension of the shared data's type, and passed as a file URL. The
+     directory is deleted in `completionWithItemsHandler` via
+     `temporaryFileURLs`; leftovers are removed when the next still
+     share starts.
+  5. **Diagnostics.** `completionWithItemsHandler` logs its four
+     parameters (activity type, completed, returned item count, error
+     domain / code) at `Logger` debug level.
+- Rejected alternatives (why not):
+  - Keep the full-size `UIImage` — the failing case above.
+  - Downscale the `UIImage` — lowers shared quality; Photos hands over
+    the original.
+  - `NSItemProvider` with in-memory data — no filename; weaker
+    third-party compatibility than a file URL.
+  - Reuse the Layer-2 display temp file — Decision 2 keeps share temps
+    out of the display pool, and the pool may evict the file while an
+    extension is reading it.
+  - `kCGImageMetadataShouldExcludeGPS` alone — on macOS 26.6.1 it
+    returned success on HEIC but left GPS in place (output
+    byte-identical), and on JPEG it also dropped orientation, capture
+    date and model. The return value alone therefore cannot trigger
+    the fallback; the re-read check does.
+  - Always re-encode — one extra lossy generation, drops the HDR gain
+    map, and delays the sheet.
+  - Editing the HEIF container by hand — a custom parser for no gain
+    over the lossless rewrite.
+  - Keep location like the Photos app — changes WakeTok's current
+    behaviour (recipients got no location), and the system share sheet
+    offers WakeTok no per-share location toggle.
+- Consequences / constraints accepted:
+  - Recipient format changes. Before: the system encoded a `UIImage`
+    with no metadata. After: unedited photos arrive as the original HEIC
+    (HDR gain map and metadata kept, except GPS); edited photos arrive
+    in their rendered format; the JPEG fallback loses the HDR gain map
+    and is larger.
+  - The original still keeps Apple maker metadata, including the Live
+    pairing identifier; without the paired video the recipient gets a
+    still.
+  - Feasibility checked on macOS 26.6.1 with three real iPhone HEICs
+    (original and edited): lossless rewrite removed GPS, kept
+    orientation, date, model and HDR gain map, and decoded pixels were
+    identical. Device check on iPhone 17 (iOS 26.6.2, Release build of
+    this tree): the problem photo AirDropped from WakeTok to Mac arrived
+    as HEIC, 5712×4284, with no latitude / longitude (`mdls`), while the
+    same photo AirDropped from the Photos app carried them — the
+    lossless path ran and removed the location.
+  - Pure helpers (type to extension, filename stem, temp directory
+    scope, GPS removal on an orientation-6 JPEG keeping orientation,
+    capture date and model) are unit-tested in RunnerTests.
+  - Video share is unchanged and still carries capture location
+    (debt 484).
+  - The `presentShareSheet` doc comment in
+    `pigeon/waketok_platform_apis.dart` (lines 610–611) still describes
+    the old mechanism (`requestImage` / `UIImage`); it is left to be
+    updated the next time the Pigeon source is touched.
+- Relationship:
+  - ADR-051 Decision 13: superseded in materialisation form (`UIImage`
+    → share-scoped original file); "never share a degraded result" is
+    kept.
+  - ADR-051 Decision 12: the clause "same static `requestImage` path"
+    is superseded; still-only, never `PHLivePhoto`, is unchanged.
+  - ADR-051 Decision 2: within "Allowed" (temporary URLs, share-scoped,
+    cleaned after the completion handler). This is not the rejected
+    export-to-temp product pipeline: the file exists only for one
+    share and is deleted after it.
+  - ADR-051's Status line notes "Decision 13 (materialisation form) and
+    Decision 12 (the "same static `requestImage` path" clause) narrowly
+    superseded by ADR-064"; its Decision bodies are not edited.
+  - ADR-009: no Dart or boundary change.

@@ -299,7 +299,19 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
         delivers `didEndPlaybackWith`) — work `b8b7b9b`; ADR-063
         Accepted; owner accepted 2026-09-28 (dual-device + probe-free
         recheck); notes `docs/acceptance/cap31-31.2-notes.md`
-  - [ ] 31.2b Fixed-condition case; owner description pending
+  - [~] 31.2b Fixed-condition case (Live Photos shot of a computer
+        screen); split: 31.2b-2 share first, then 31.2b-1 still moiré;
+        notes `docs/acceptance/cap31-31.2-notes.md`
+    - [x] 31.2b-2 Third-party share extensions dismiss ~1 s after
+          opening → still share hands over the original file with
+          location removed — work `bd6a870`; ADR-064 Accepted; owner
+          accepted 2026-09-29 (i17 Release); debt **484** Open
+    - [ ] 31.2b-1 Still moiré vs Photos (Layer-2 decode-time large
+          downscale): one minimal change; ADR-031 D10(3) peak memory
+          measured once before and once after (baseline first, D11
+          precedent); acceptance = owner eye, same photo in WakeTok vs
+          Photos; then add "visual sharpness vs Photos" to still
+          acceptance items
 - [ ] 31.3 Video one-frame black dig
       (start from debt **441** Monitoring + Cap 15.11 family; owner
       paces accept-vs-continue; no agent time cap; split 31.3a / 31.3b
@@ -349,17 +361,21 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 31.2b Live Photo fixed-condition case (owner
-      description pending)
-- Sub-steps done: —
-- Next step: owner describes the case → triage (map to debt **470** /
-      **471**, ADR-051 D12, ADR-063)
+- Goal (one line): Cap 31.2b-1 still moiré on the screen-shot Live
+      Photos (WakeTok still shows it; Photos and the first motion frame
+      do not)
+- Sub-steps done: 31.2b-2 share fix (`bd6a870`, ADR-064)
+- Next step: propose the one minimal change (PhotoKit display-size
+      high-quality downscale vs Flutter-side downscale quality — pick
+      one, with reasons) and the peak-memory measurement method; take
+      the baseline on the `bd6a870` tree before any 31.2b-1 code
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); ADR-063 Accepted
-      (31.2a Live motion-end fallback); debts **480** /
-      **481** / **482** Open; **441** Monitoring (31.3); **478** Open (probe
-      keep-while-Open — Settings UI later stripped in 31.5,
-      implementation retained until revisit)
+      (31.2a Live motion-end fallback); ADR-064 Accepted (31.2b-2
+      share); ADR-031 D10(3) / D11 (31.2b-1 memory gate); debts
+      **480** / **481** / **482** / **484** Open; **441** Monitoring
+      (31.3); **478** Open (probe keep-while-Open — Settings UI later
+      stripped in 31.5, implementation retained until revisit)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must
@@ -822,6 +838,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 481 | Open | Main Browse Screen / Cap 28.4 | Cap 28.4 | Settings resume may show one poster/cover frame on video (play or pause) | **Symptom:** Browse→Settings→Browse on a completed video can flash one frame of the asset poster/cover before L2 PV is visually back — same whether the item was playing or paused. **Mechanism (Q-PV = B):** soft leave detaches the native Platform View; resume remounts PV. Cap 28.4 A′ keeps chrome gates (no Action Column staircase); the frame is the cover painted while `_surfaceReady` is briefly false (and/or Cap 15.11b poster-hold when that latch arms) — a deliberate anti-black hold, not the Cap 28 chrome cascade. **Intentional trade-off:** Q-PV = A (keep PV mounted under Settings) could remove the frame but risks off-screen PV bleed/touch steal, holding the 1+1 player slot, and power cost — rejected for this Cap. **Not a reopen of 429:** cousin symptom (poster vs L2), different mechanism (Settings PV detach/remount vs prior path). **Candidates:** (1) Q-PV = A + Host ready-for-display short-circuit; (2) latch a leave-time frame as the resume hold instead of the static poster (cost/feasibility unverified). Re-evaluate with Caps that redesign video surface lifecycle while Browse is non-visible (Background Audio / Auto-play track). | Unassigned (evaluate with Background Audio / Auto-play surface-lifecycle Caps) | ADR-058; ADR-006; ADR-032; cousin of closed **429** (do not reopen 429) |
 | 482 | Open | App Foundation / Cap 31.1 | Cap 31.1 | Sheet titles and sheet button labels (plus two guide titles) still borrow `titleMedium` = `titleChrome`; no dedicated text-style roles yet | **Deferred, not rejected.** ADR-061 evaluated splitting sheet titles and sheet button labels into their own tokens and deferred it (touches 6+ feature files; needs a new device acceptance); Cap 31.1 shipped only the `titlePage` split. Still coupled (canonical list: `media-chrome-layout-notes.md` §14): sheet titles — Cap 19.4 actions sheet, Cap 27.4 order sheet; sheet button labels — Cap 24.3 Delete, Cap 26.5 Add to Album; guide titles — Cap 19.6 left-swipe guide (Cap 30 `<3>`), Cap 30.3 vertical coach (`<1>`) — guide titles were not evaluated by ADR-061, decide their scope when this row is picked up. **Risk:** any `titleChrome` retune moves all six; Delete heavier than Add to Album (Cap 26.5 owner lock, guard `W-26.5-8`) holds only while `titleChrome` weight stays above Add to Album's local weight override. Out of scope: the permission request / blocked pages have no AppBar since Cap 31.4 (`7d47ef3`), so ADR-061 Decision 4 has no remaining consumer. | Unassigned | ADR-061 |
 | 483 | Accepted (phase) | iOS Photos permission | Cap 31.4 | On a zh system the Photos permission prompt shows the purpose string in English | ADR-062 deliberately waived this for v1 | Reopening needs a new ADR plus device verification | ADR-062 |
+| 484 | Open | Share / Cap 31.2b | Cap 31.2b | Video share hands over the original Photos file, which keeps its capture location; stills are shared with location removed (ADR-064) | Cap 31.2b device check: a camera-recorded `.MOV` shared from WakeTok arrived on Mac with latitude/longitude (`mdls`). Video share was out of 31.2b scope; behaviour is unchanged since Cap 25 | Owner product decision (keep, or strip location from video share) | ADR-051, ADR-064 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
