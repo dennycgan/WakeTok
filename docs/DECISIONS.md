@@ -5744,6 +5744,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   in MVP '…' sheet — deferred" is **narrowly reopened by ADR-052**
   (Proposed 2026-09-15) for the **Add-to-Album entry-button half
   only** — location row / Known debt **401** stay deferred.
+  Decision 7 (Layer 2 temp content note) narrowly superseded by
+  ADR-065 (Accepted 2026-09-29, anchor `7d3d450`).
   Soft-delete entry, half-sheet, Session semantics, and all other
   ADR-050 decisions remain binding.
 - Commit/PR anchor: 32d4bd1
@@ -8207,4 +8209,123 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - ADR-051's Status line notes "Decision 13 (materialisation form) and
     Decision 12 (the "same static `requestImage` path" clause) narrowly
     superseded by ADR-064"; its Decision bodies are not edited.
+  - ADR-009: no Dart or boundary change.
+
+## ADR-065: Cap 31.2b-1 Screen-sized still rendering on the Host (Layer 2 and Live key still)
+
+- Status: **Accepted** (2026-09-29)
+- Commit/PR anchor: 7d3d450
+- Plain summary (owner reads this):
+  Some photos taken of a computer screen showed a strong grid pattern
+  (moiré) in WakeTok but not in the Photos app — on the still, and on the
+  first and last frames of Live motion. The cause was one rough shrink of
+  the full-size picture down to screen size. The native side now shrinks
+  each photo to screen size with the system's high-quality downsampler
+  before Flutter shows it, and asks for Live Photos at screen size. The
+  original is still fetched as before, so iCloud photos keep showing
+  their file size and capture time. Nothing changes in Flutter.
+- Context / what problem forced this:
+  Cap 31.2b fixed condition (the ADR-064 photo set: iPhone 17 main
+  camera, 24 MP 5712×4284 HEIF Live Photos of game cutscenes on a
+  computer screen) showed moiré on the Layer 2 still and on the Live key
+  still. Local engine source (Flutter 3.41.9): HEIF decodes through
+  `SkImageGeneratorCG` at full size (no scaled decode); Impeller uploads
+  the full texture and resizes it with `BlitPass::ResizeTexture`, which
+  on Metal is `MPSImageBilinearScale` — one bilinear step of ~4.7×
+  (iPhone 17, 1206 px wide) or ~4.9× (iPhone 13 Pro, 1170 px), which
+  aliases fine detail. JPEG originals use SkCodec's scaled decode and
+  were less affected. Dart cannot select the resize filter. The Live key
+  still came from `requestLivePhoto` at the asset's full size and was
+  downscaled by `PHLivePhotoView` in one linear step at motion start and
+  end.
+- Decision (what was chosen):
+  1. **Scope.** Host only: `requestDisplayAsset` (stills and
+     Live-as-still) and the `LivePhotoApiHost` request size. No Pigeon,
+     Dart or feature change.
+  2. **Target size.** The asset's pixel size aspect-fitted into the
+     portrait screen's native pixels (`UIWindowScene.screen.nativeBounds`;
+     fallback 1320×2868), never upscaled (`DisplayStillTarget`).
+  3. **Layer 2 still.** The fetch is unchanged —
+     `requestImageDataAndOrientation`, network allowed, current version —
+     so the original stays in PhotoKit's local store (Tier 4 file size,
+     ADR-018) and supplies metadata. On the display write queue,
+     `CGImageSourceCreateThumbnailAtIndex` (from image always, with
+     transform, max pixel size = the target's longer side) renders an
+     upright bitmap, encoded as JPEG quality 0.9 into the existing Layer 2
+     temp. `DisplayAssetDto.pixelWidth` / `pixelHeight` stay the asset's
+     (Cap 20 fitted box). Undecodable data fails with `assetUnavailable`.
+  4. **Capture time.** `DateTimeOriginal`, `OffsetTimeOriginal` and TIFF
+     `DateTime` are copied from the original into the JPEG losslessly
+     (`CGImageDestinationCopyImageSource`, merged metadata). ImageIO
+     writes TIFF `DateTime` only into an existing TIFF IFD, so the JPEG's
+     current orientation (default 1) is restated. No other metadata is
+     copied. If nothing can be copied, the JPEG is used without it
+     (ADR-050 Decision 7 Instant `~` fallback).
+  5. **Live key still.** `requestLivePhoto` uses the same target size
+     with `.aspectFit` (was full size, `.aspectFill`). Motion always plays
+     at fit (ADR-043 Decision 1).
+- Rejected alternatives (why not):
+  - Dart-side options (`FilterQuality`, `ResizeImage` policy, a smaller
+    decode target) — the engine's one-step GPU resize is not selectable
+    from Dart.
+  - PhotoKit `requestImage` at the target size (first implementation in
+    this phase) — removed the moiré, but for iCloud assets the original
+    no longer landed locally, so Tier 4 file size disappeared from the
+    info overlay and the "…" sheet (ADR-018 forbids downloading for size)
+    and capture time fell back to `~`. Rejected after device check.
+  - A second, local-only metadata request — an extra PhotoKit round
+    trip, and iCloud assets still lose capture time.
+  - JPEG quality 0.95 — 0.9 showed no visible artefacts at the 4×
+    magnification limit.
+- Consequences / constraints accepted:
+  - The Layer 2 temp is now a screen-sized JPEG carrying only
+    capture-time metadata.
+  - HEIF and PNG originals, whose raw bytes the JPEG-only Cap 24 parser
+    could not read, now also show the bare wall-clock minute; JPEG
+    originals are unchanged.
+  - Magnification (max 4×, `kCap20MaxScale`) scales the screen-sized
+    bitmap, as before (Flutter already decoded to the box size).
+  - Brightness differences from the Photos app's HDR rendering are out
+    of scope.
+  - Measurements (iPhone 13 Pro, iOS 26.6, Release, temporary
+    `phys_footprint` file probe, not committed; three problem photos):
+    session peak 719 MB before; 442 MB with the PhotoKit render; 406 MB
+    with the Live fix added; 538 MB for the final form over a 634 s mixed
+    session including iCloud downloads. Repeat round on the final form
+    (348 s: ~4 min back and forth over the three photos, 93 Layer 2
+    loads, then ~90 s idle): the idle floor rose from ~243 MB to ~360 MB
+    in the first ~90 s (cache warm-up), then stayed at 358–364 MB through
+    the remaining ~80 loads and the idle period; session peak 537 MB,
+    per-photo max 517 / 532 / 517 MB. Judged a plateau, not a sustained
+    climb (ADR-031 Decision 10 (3)). No jetsam or force-quit in any
+    round. Host Layer 2 time for the 24 MP HEIFs: ~107 ms mean (before:
+    ~23 ms, after which Flutter decoded the full image).
+  - Mac pre-check on one problem HEIF: a one-step bilinear downscale
+    reproduced the moiré; the ImageIO thumbnail matched Core Image
+    Lanczos.
+  - iCloud spinner and failure mapping are unchanged (same fetch).
+  - Unit-tested in RunnerTests: target sizing; render (upright, bounded,
+    no upscale, capture time, non-image failure); capture-time merge
+    (both orientations, orientation and size kept, unchanged without a
+    source or a time).
+  - Final device acceptance: iPhone 13 Pro (iOS 26.6) — moiré, Live
+    start and end frames, iCloud file size, capture time, speed and
+    regression; iPhone 17 — the three problem photos and Live start and
+    end frames.
+- Relationship:
+  - ADR-006 Cap 7.3 fill-in: contract unchanged; the "host JPEG temp" is
+    now literally a JPEG.
+  - ADR-018: Tier 4 local size preserved by keeping the original fetch.
+  - ADR-019: Live host ownership unchanged; request size only.
+  - ADR-043 Decision 1: relied on (motion plays at fit).
+  - ADR-050 Decision 7: source priority unchanged. Its note that temps
+    are raw `requestImageDataAndOrientation` bytes (not a UIImage
+    re-encode) and that EXIF may be absent is superseded: temps are
+    ImageIO-rendered JPEGs carrying capture-time tags. ADR-050's Status
+    line gains "Decision 7 (Layer 2 temp content note) narrowly
+    superseded by ADR-065"; its Decision body is not edited.
+  - ADR-031 Decision 10 (3) / Decision 11: this phase judged memory from
+    a `phys_footprint` file log instead of the Xcode Memory Report
+    (owner decision); the Decision 10 (3) criteria are unchanged.
+  - ADR-064: the share path is separate and unchanged.
   - ADR-009: no Dart or boundary change.

@@ -291,7 +291,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       — work `bac2521` + `809d238` + `4b335bf` + `edf46ab`
         (+ test `02b26f6`); ADR-061 Accepted; owner accepted
         2026-09-28
-- [~] 31.2 Live Photo: album-case triage → diagnose / fix
+- [x] 31.2 Live Photo: album-case triage → diagnose / fix
       (map each album case to debt **470** / **471** and ADR-051
       Decision 12 — reuse vs new path; owner-confirmed bugs, do not
       re-litigate “is it a bug”; deepen with 31.2a / 31.2b if needed)
@@ -299,19 +299,21 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
         delivers `didEndPlaybackWith`) — work `b8b7b9b`; ADR-063
         Accepted; owner accepted 2026-09-28 (dual-device + probe-free
         recheck); notes `docs/acceptance/cap31-31.2-notes.md`
-  - [~] 31.2b Fixed-condition case (Live Photos shot of a computer
+  - [x] 31.2b Fixed-condition case (Live Photos shot of a computer
         screen); split: 31.2b-2 share first, then 31.2b-1 still moiré;
         notes `docs/acceptance/cap31-31.2-notes.md`
     - [x] 31.2b-2 Third-party share extensions dismiss ~1 s after
           opening → still share hands over the original file with
           location removed — work `bd6a870`; ADR-064 Accepted; owner
           accepted 2026-09-29 (i17 Release); debt **484** Open
-    - [ ] 31.2b-1 Still moiré vs Photos (Layer-2 decode-time large
-          downscale): one minimal change; ADR-031 D10(3) peak memory
-          measured once before and once after (baseline first, D11
-          precedent); acceptance = owner eye, same photo in WakeTok vs
-          Photos; then add "visual sharpness vs Photos" to still
-          acceptance items
+    - [x] 31.2b-1 Still moiré vs Photos (Impeller one-step bilinear
+          downscale) → Host renders Layer 2 and the Live key still at
+          screen size (ImageIO; original fetch kept for Tier 4 size and
+          capture time) — work `7d3d450`; ADR-065 Accepted; owner
+          accepted 2026-09-29 (Kafka full + i17 visual); memory via
+          `phys_footprint` file log (ADR-031 D10(3) plateau); "visual
+          sharpness vs Photos" + "iCloud file size" added to still
+          acceptance items (notes)
 - [ ] 31.3 Video one-frame black dig
       (start from debt **441** Monitoring + Cap 15.11 family; owner
       paces accept-vs-continue; no agent time cap; split 31.3a / 31.3b
@@ -361,19 +363,24 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 31.2b-1 still moiré on the screen-shot Live
-      Photos (WakeTok still shows it; Photos and the first motion frame
-      do not)
-- Sub-steps done: 31.2b-2 share fix (`bd6a870`, ADR-064)
-- Next step: propose the one minimal change (PhotoKit display-size
-      high-quality downscale vs Flutter-side downscale quality — pick
-      one, with reasons) and the peak-memory measurement method; take
-      the baseline on the `bd6a870` tree before any 31.2b-1 code
+- Goal (one line): roundEpoch remount head chrome flicker (Action
+      Column dim/enabled flips, corner spinner, late Meta) —
+      acceptance-discovered during 31.2b-1; pre-existing (reproduced
+      100% on the `77e3f10` tree, still and Live pools)
+- Sub-steps done: 31.2 closed (31.2a `b8b7b9b` / ADR-063; 31.2b-2
+      `bd6a870` / ADR-064; 31.2b-1 `7d3d450` / ADR-065); Profile A/B
+      chrome-axis log on i17 for the `77e3f10` tree
+- Next step: compare the `7d3d450` Profile log with the `77e3f10` one
+      (timing only vs added / removed states); then list affected
+      guard tests, ADR-054 / Cap 27.4 clauses and debt placement (new
+      row vs reopen **476** / **480**) for owner scope approval before
+      any code
 - Related decisions: Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); ADR-063 Accepted
       (31.2a Live motion-end fallback); ADR-064 Accepted (31.2b-2
-      share); ADR-031 D10(3) / D11 (31.2b-1 memory gate); debts
-      **480** / **481** / **482** / **484** Open; **441** Monitoring
+      share); ADR-065 Accepted (31.2b-1 still render); ADR-054 /
+      Cap 27.4 (remount chrome gates); debts
+      **476** / **480** / **481** / **482** / **484** Open; **441** Monitoring
       (31.3); **478** Open (probe keep-while-Open — Settings UI later
       stripped in 31.5, implementation retained until revisit)
 
