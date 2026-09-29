@@ -305,8 +305,9 @@ class MainBrowseCurrentAssetHostUnavailable extends Notifier<bool> {
 
 /// Cap 25 / ADR-051 Decision 14: current page L2 display / video surface ready.
 ///
-/// Written by [MediaFeedPage] only. Still: full L2 apply; video: `_surfaceReady`.
-/// Cleared on arm in-flight / leave-current / reload / fail. Not
+/// Written by [MediaFeedPage]. Still: full L2 apply; video: `_surfaceReady`.
+/// Cleared on arm in-flight / leave-current / reload / fail, and (false only)
+/// by [VerticalMediaFeed] on `roundEpoch` change (Cap 31.2c / ADR-066). Not
 /// [browseL2ReadySessionProvider] (session mint can precede video surface-ready).
 final mainBrowseCurrentAssetLayer2DisplayReadyProvider =
     NotifierProvider<MainBrowseCurrentAssetLayer2DisplayReady, bool>(
@@ -327,8 +328,10 @@ class MainBrowseCurrentAssetLayer2DisplayReady extends Notifier<bool> {
 
 /// Cap 26.4c / ADR-054: current page has painted a real media cover.
 ///
-/// Written by [MediaFeedPage] only (see [mediaCoverVisiblePredicate]).
-/// Cleared on leave-current. Orthogonal to actionable / Layer2DisplayReady.
+/// Written by [MediaFeedPage] (see [mediaCoverVisiblePredicate]). Cleared on
+/// leave-current, and (false only) by [VerticalMediaFeed] on `roundEpoch`
+/// change (Cap 31.2c / ADR-066). Orthogonal to actionable /
+/// Layer2DisplayReady.
 final mainBrowseCurrentAssetMediaCoverVisibleProvider =
     NotifierProvider<MainBrowseCurrentAssetMediaCoverVisible, bool>(
       MainBrowseCurrentAssetMediaCoverVisible.new,
@@ -349,7 +352,9 @@ class MainBrowseCurrentAssetMediaCoverVisible extends Notifier<bool> {
 /// Cap 25 / ADR-051 Decision 14: Live motion UiKitView mounted on current item.
 ///
 /// Published from [BrowseMagnificationNotifier.onLiveMotionMountedChanged]
-/// (and leave-current clear). Must not live on [BrowseMagnificationState] —
+/// (and leave-current clear; false-only clear by [VerticalMediaFeed] on
+/// `roundEpoch` change, Cap 31.2c / ADR-066). Must not live on
+/// [BrowseMagnificationState] —
 /// [BrowseMagnificationNotifier.forceFit] resets that state.
 final mainBrowseCurrentLiveMotionMountedProvider =
     NotifierProvider<MainBrowseCurrentLiveMotionMounted, bool>(

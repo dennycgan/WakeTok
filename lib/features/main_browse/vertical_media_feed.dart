@@ -109,6 +109,9 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
   /// remount landing page. Sticky until that page **consumes** prefer-Host
   /// (not cleared post-frame — Settings dwell must not drop the arm).
   bool _epochRemountPreferHostPending = false;
+  /// Cap 31.2c / ADR-066: last loaded [BrowseSessionView.roundEpoch] seen by
+  /// the shell-gate clear listener (includes epochs across AsyncLoading).
+  int? _shellGateObservedRoundEpoch;
   StreamSubscription<PlaybackRestoreRequest>? _restoreSub;
   List<String> _ids = const [];
   bool _advancingRound = false;
@@ -412,6 +415,21 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
 
   void _onEpochRemountPreferHostConsumed() {
     _epochRemountPreferHostPending = false;
+  }
+
+  /// Cap 31.2c / ADR-066: false-only writer beside the current
+  /// [MediaFeedPage] (ADR-054 D2). Runs from a provider listener, never
+  /// during build.
+  void _clearShellCoverGatesForRoundEpochRemount() {
+    ref
+        .read(mainBrowseCurrentAssetMediaCoverVisibleProvider.notifier)
+        .setVisible(false);
+    ref
+        .read(mainBrowseCurrentAssetLayer2DisplayReadyProvider.notifier)
+        .setReady(false);
+    ref
+        .read(mainBrowseCurrentLiveMotionMountedProvider.notifier)
+        .setMounted(false);
   }
 
   Future<void> _showNewRoundToastAfterAdvance({
@@ -1119,6 +1137,26 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
       },
     );
 
+    // Cap 31.2c / ADR-066: a roundEpoch remount disposes the old current
+    // MediaFeedPage without clearing the shell cover gates, and the new head
+    // only publishes post-frame. Clear them here (false only) so the new
+    // tree's first frame cannot paint the previous item's enabled chrome.
+    ref.listen<int?>(
+      browseSessionProvider.select((s) => s.asData?.value.roundEpoch),
+      (prev, next) {
+        if (next == null) {
+          return;
+        }
+        final observed = _shellGateObservedRoundEpoch ?? prev;
+        _shellGateObservedRoundEpoch = next;
+        if (observed == null || observed == next) {
+          return;
+        }
+        _clearShellCoverGatesForRoundEpochRemount();
+      },
+    );
+    _shellGateObservedRoundEpoch ??= asyncSession.asData?.value.roundEpoch;
+
     ref.listen<int>(mainBrowseFeedIndexProvider, (prev, next) {
       final controller = _pageController;
       if (controller == null || !controller.hasClients) {
@@ -1635,6 +1673,31 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Path [_stillCoverReady] / broken tracking is armed for.
   String? _stillCoverTrackedPath;
 
+  /// Cap 31.2c (debt 480): remount Host APPLY (hard reload) keeps the Loading
+  /// shell over the page until this cover path's first decoded frame, so
+  /// Loading ends on the same frame the cover and Meta appear.
+  String? _remountRevealHoldPath;
+
+  /// Live motion prepare deferred until the remount reveal hold releases, so
+  /// Live motion cannot mount (and enable Album / More) before the cover.
+  bool _livePrepareDeferredForReveal = false;
+
+  bool get _remountRevealHoldActive {
+    final holdPath = _remountRevealHoldPath;
+    return holdPath != null &&
+        holdPath == _media?.display?.localFilePath &&
+        !_stillCoverReady &&
+        !_stillCoverDecodeBroken;
+  }
+
+  void _runLivePrepareDeferredForReveal() {
+    if (!_livePrepareDeferredForReveal) {
+      return;
+    }
+    _livePrepareDeferredForReveal = false;
+    unawaited(_prepareLiveMotion());
+  }
+
   /// Cap 21.6: Host `assetUnavailable` fail chrome (page-failed or coverless).
   bool get _isAssetUnavailableFailure {
     if (_media?.kind == FeedPageMediaKind.failed &&
@@ -1730,6 +1793,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     _stillCoverTrackedPath = null;
     _stillCoverReady = false;
     _stillCoverDecodeBroken = false;
+    _remountRevealHoldPath = null;
   }
 
   void _onStillCoverFrameReady() {
@@ -1746,8 +1810,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     setState(() {
       _stillCoverReady = true;
       _stillCoverDecodeBroken = false;
+      _remountRevealHoldPath = null;
     });
     _syncMediaCoverVisibleGate();
+    _runLivePrepareDeferredForReveal();
   }
 
   bool _computeMediaCoverVisible() {
@@ -1976,6 +2042,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   void debugForceStillCoverDecodeBroken(bool broken) {
     void apply() {
       _stillCoverDecodeBroken = broken;
+      _remountRevealHoldPath = null;
       if (broken) {
         _stillCoverReady = false;
         _previewReloadTriedPath = _media?.display?.localFilePath;
@@ -1991,7 +2058,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
     setState(apply);
     _syncMediaCoverVisibleGate();
+    _runLivePrepareDeferredForReveal();
   }
+
+  @visibleForTesting
+  bool get debugRemountRevealHoldActive => _remountRevealHoldActive;
+
+  @visibleForTesting
+  bool get debugLivePrepareDeferredForReveal => _livePrepareDeferredForReveal;
 
   /// Test seam: cover path tracked but first frame not ready (unresolved).
   ///
@@ -2781,6 +2855,17 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _loading = false;
       _trackStillCoverPath(seedDisplay.localFilePath);
     }
+    // Cap 17.3 B / Cap 31.2c (debt 480): tag a4 before the first frame.
+    // [_startLoad] tags it only after its first await, so a born-current
+    // page (roundEpoch remount head) painted one ADR-031 miss frame
+    // (corner gold + "Loading item").
+    if (widget.isCurrent &&
+        ref
+                .read(browseL2ReadySessionProvider.notifier)
+                .lookup(widget.assetIdentifier) !=
+            null) {
+      _layer2WaitPath = WaitChromePathClass.a4L2ReadyEvict;
+    }
     _startLoad();
   }
 
@@ -3014,6 +3099,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               ref.read(mainBrowseCurrentAssetLayer2DisplayReadyProvider),
         }),
       );
+      if (_livePrepareDeferredForReveal) {
+        _livePrepareDeferredForReveal = false;
+        _abandonLivePreparingHandoff();
+      }
       _cancelLiveEndedWatchdog();
       final coordinator = ref.read(playbackCoordinatorProvider);
       _playbackRepo ??= ref.read(playbackRepositoryProvider);
@@ -3942,6 +4031,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (display.assetIdentifier != widget.assetIdentifier) {
       return;
     }
+    if (_remountRevealHoldPath != null) {
+      setState(() => _remountRevealHoldPath = null);
+      _runLivePrepareDeferredForReveal();
+    }
     if (_previewReloadInFlight || _previewReloadTriedPath == path) {
       return;
     }
@@ -4315,6 +4408,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     /// directly instead. No production caller sets this today.
     bool bypassDeviceLocalFastPath = false,
   }) async {
+    _livePrepareDeferredForReveal = false;
     final startedOffCurrent = !widget.isCurrent;
     FeedMediaRequestGate? gate;
     int? generation;
@@ -5039,10 +5133,14 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final liveStill =
         layer2.kind == FeedPageMediaKind.still &&
         layer2.display?.mediaKind == PlaybackMediaKind.livePhoto;
+    final revealHoldPath = _forceStillCoverHardReload
+        ? layer2.display?.localFilePath
+        : null;
     setState(() {
       _media = layer2;
       _loading = false;
       _trackStillCoverPath(layer2.display?.localFilePath);
+      _remountRevealHoldPath = revealHoldPath;
       // Capture before L2 clear — latch is for this inFlight only.
       final latchedL2WaitChrome = _layer2WaitChromeLatched;
       _completeLayer2InFlightForSuccess();
@@ -5067,6 +5165,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
     _publishHostUnavailableGate();
     _publishLayer2DisplayReady(true);
+    if (liveStill && _remountRevealHoldActive) {
+      _livePrepareDeferredForReveal = true;
+      return;
+    }
     await _prepareLiveMotion();
   }
 
@@ -5540,46 +5642,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     }
 
     if (_loading) {
-      // Layer 1 miss chrome (ADR-031 Q2): immediate corner spinner.
-      // Cap 17.3 B: a4 eviction remount is not a true first-visit L1 miss —
-      // no miss gold. E: peek (!isCurrent) — never miss gold (retained, not
-      // Decision-2-promoted). After-band Layer3 owns in-flight chrome once
-      // media exists.
-      // ADR-039: source-switch remounts delay visible center copy only.
-      // Corner spinner + VoiceOver semantics remain immediate.
-      final a4Loading = _layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict;
-      final showLoadingSpinner = widget.isCurrent && !a4Loading;
-      final showLayer1CenterLabel = shouldShowLayer1CenterLabel(
-        showLoadingSpinner: showLoadingSpinner,
-        sourceSwitchDelayArmed: _layer1CenterLabelDelayArmedAt != null,
-        elapsedSinceArm: _initialLayer1CenterLabelDelayElapsed,
-      );
-      return ColoredBox(
+      return _layer1LoadingShell(
         key: const Key('mainBrowseFeedPageLoading'),
-        color: tokens.feedBackground,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _FeedCornerChrome(
-              color: tokens.brandGold,
-              showSpinner: showLoadingSpinner,
-              rowKey: const Key('mainBrowseFeedPageLoadingChrome'),
-              spinnerKey: const Key('mainBrowseFeedPageLoadingSpinner'),
-              semanticsLabel: showLoadingSpinner
-                  ? l10n.mainBrowseFeedLayer1Loading
-                  : null,
-            ),
-            _coverlessCenterStatus(
-              showWaitLabel: showLayer1CenterLabel,
-              waitLabel: l10n.mainBrowseFeedLayer1Loading,
-              showFailed: false,
-              l10n: l10n,
-              tokens: tokens,
-            ),
-            if (_showMediaInfoOverlayEffective)
-              MediaInfoOverlay(snapshot: widget.overlaySnapshot),
-          ],
-        ),
+        l10n: l10n,
+        tokens: tokens,
+        showMediaInfoOverlay: _showMediaInfoOverlayEffective,
       );
     }
 
@@ -5628,9 +5695,13 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         !_stillCoverReady &&
         !_stillCoverDecodeBroken;
     final hostWorkOutstanding = _layer2InFlight || _livePreparing;
+    // Cap 31.2c: during the remount reveal hold the Loading shell owns the
+    // corner chrome — no forced spinner (and no wait-chrome latch) under it.
+    final remountRevealHold = _remountRevealHoldActive;
     final forceUnresolvedHostWaitSpinner = widget.isCurrent &&
         coverUnresolved &&
         hostWorkOutstanding &&
+        !remountRevealHold &&
         !_suppressStillCoverWaitChrome;
     final showLayer2WaitSpinner =
         !_suppressStillCoverWaitChrome && _evaluateShowLayer2WaitChrome();
@@ -5758,6 +5829,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         playbackTapIsCurrent: widget.isCurrent,
         showMediaInfoOverlay: _showMediaInfoOverlayEffective,
         overlaySnapshot: widget.overlaySnapshot,
+        remountRevealHold: remountRevealHold,
       ),
       FeedPageMediaKind.pendingVideo => () {
         return ColoredBox(
@@ -6020,6 +6092,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     PlaybackRepository? playbackRepository,
     bool showMediaInfoOverlay = false,
     PresentationOverlaySnapshot? overlaySnapshot,
+    bool remountRevealHold = false,
   }) {
     final guard = ref.watch(pvTransitionGuardProvider);
     final coverPath = guard.isCovering(widget.assetIdentifier)
@@ -6172,7 +6245,67 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         ),
         // Cap 20.3 D2-A: last layer (defensive); arming already shrinks swipe.
         MagnificationResetButton(overlaySnapshot: overlaySnapshot),
+        // Cap 31.2c: trailing so toggling it keeps every Element above.
+        if (remountRevealHold)
+          IgnorePointer(
+            child: _layer1LoadingShell(
+              key: const Key('mainBrowseFeedRemountRevealHold'),
+              l10n: l10n,
+              tokens: tokens,
+            ),
+          ),
       ],
+    );
+  }
+
+  /// Page "Loading item" shell. Also drawn over a mounted cover during the
+  /// Cap 31.2c remount reveal hold ([_remountRevealHoldActive]).
+  Widget _layer1LoadingShell({
+    required Key key,
+    required AppLocalizations l10n,
+    required WakeTokTokens tokens,
+    bool showMediaInfoOverlay = false,
+  }) {
+    // Layer 1 miss chrome (ADR-031 Q2): immediate corner spinner.
+    // Cap 17.3 B: a4 eviction remount is not a true first-visit L1 miss —
+    // no miss gold. E: peek (!isCurrent) — never miss gold (retained, not
+    // Decision-2-promoted). After-band Layer3 owns in-flight chrome once
+    // media exists.
+    // ADR-039: source-switch remounts delay visible center copy only.
+    // Corner spinner + VoiceOver semantics remain immediate.
+    final a4Loading = _layer2WaitPath == WaitChromePathClass.a4L2ReadyEvict;
+    final showLoadingSpinner = widget.isCurrent && !a4Loading;
+    final showLayer1CenterLabel = shouldShowLayer1CenterLabel(
+      showLoadingSpinner: showLoadingSpinner,
+      sourceSwitchDelayArmed: _layer1CenterLabelDelayArmedAt != null,
+      elapsedSinceArm: _initialLayer1CenterLabelDelayElapsed,
+    );
+    return ColoredBox(
+      key: key,
+      color: tokens.feedBackground,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          _FeedCornerChrome(
+            color: tokens.brandGold,
+            showSpinner: showLoadingSpinner,
+            rowKey: const Key('mainBrowseFeedPageLoadingChrome'),
+            spinnerKey: const Key('mainBrowseFeedPageLoadingSpinner'),
+            semanticsLabel: showLoadingSpinner
+                ? l10n.mainBrowseFeedLayer1Loading
+                : null,
+          ),
+          _coverlessCenterStatus(
+            showWaitLabel: showLayer1CenterLabel,
+            waitLabel: l10n.mainBrowseFeedLayer1Loading,
+            showFailed: false,
+            l10n: l10n,
+            tokens: tokens,
+          ),
+          if (showMediaInfoOverlay)
+            MediaInfoOverlay(snapshot: widget.overlaySnapshot),
+        ],
+      ),
     );
   }
 
