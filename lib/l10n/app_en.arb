@@ -8,7 +8,7 @@
   "@appTitle": {
     "description": "Application title"
   },
-  "permissionRequestTitle": "Wake what you saved, the way you scroll short videos.",
+  "permissionRequestTitle": "Wake what you saved, the way you scroll.",
   "@permissionRequestTitle": {
     "description": "First-launch Photos permission screen headline, below the app name"
   },

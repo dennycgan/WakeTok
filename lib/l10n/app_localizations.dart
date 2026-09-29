@@ -114,7 +114,7 @@ abstract class AppLocalizations {
   /// First-launch Photos permission screen headline, below the app name
   ///
   /// In en, this message translates to:
-  /// **'Wake what you saved, the way you scroll short videos.'**
+  /// **'Wake what you saved, the way you scroll.'**
   String get permissionRequestTitle;
 
   /// First-launch Photos permission screen, first short line (EN only). zh intentionally empty; the permission page hides this line when the localized value is empty; do not fill it in without an owner decision.

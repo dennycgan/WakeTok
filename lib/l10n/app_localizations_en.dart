@@ -16,7 +16,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get permissionRequestTitle =>
-      'Wake what you saved, the way you scroll short videos.';
+      'Wake what you saved, the way you scroll.';
 
   @override
   String get permissionRequestPointRediscover =>
