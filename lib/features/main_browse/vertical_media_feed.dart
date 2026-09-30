@@ -1411,7 +1411,8 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                         ids[index],
                       ),
                       isCurrent: isCurrent,
-                      showMediaInfoOverlay: isCurrent && browseActive,
+                      showMediaInfoOverlay:
+                          isCurrent && browseActive && verticalFeedSettled,
                       overlaySnapshot: _overlaySnapshot,
                       verticalFeedSettled: verticalFeedSettled,
                       isPreheatNeighbor: isPreheatNeighbor,
@@ -1591,6 +1592,8 @@ class MediaFeedPage extends ConsumerStatefulWidget {
   /// List-time availability from Session Snapshot resolve (Cap 15.12).
   final AssetAvailability? listTimeAvailability;
   final bool isCurrent;
+
+  /// Cap 31.3b: current page and vertical feed settled — hidden during peek.
   final bool showMediaInfoOverlay;
   final PresentationOverlaySnapshot? overlaySnapshot;
   final bool verticalFeedSettled;
