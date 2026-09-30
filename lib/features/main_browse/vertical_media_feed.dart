@@ -6100,7 +6100,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         : null;
     // Cap 15.11: residual cover only when UiKitView is in the Stack.
     final showGuardCover = coverPath != null && video != null;
-    // Cap 15.11b probe: hide whole video slot (incl. ColoredBox) via Opacity;
+    // Cap 15.11b probe: hide whole video slot via Opacity;
     // Stack order stays Cap 15.7 — never reorder poster/video.
     final hideVideoUntilReady = _holdPosterUntilFirstFrame && video != null;
     if (hideVideoUntilReady) {}
@@ -6847,13 +6847,13 @@ class _VideoPageState extends State<_VideoPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tokens = Theme.of(context).extension<WakeTokTokens>()!;
     // Empty gestureRecognizers (same as library_smoke probe): do NOT use
     // EagerGestureRecognizer — it steals vertical drags and freezes PageView.
     // IgnorePointer keeps platform-view touches from competing with Manual swipe.
-    return ColoredBox(
+    // No background: the poster below must show through until the native
+    // layer draws its first frame (Cap 31.3b).
+    return KeyedSubtree(
       key: Key('mainBrowseFeedVideo_${widget.assetIdentifier}'),
-      color: tokens.feedBackground,
       child: defaultTargetPlatform == TargetPlatform.iOS
           ? IgnorePointer(
               child: UiKitView(

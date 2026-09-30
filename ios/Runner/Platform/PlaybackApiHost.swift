@@ -1583,7 +1583,9 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     boundAssetId = assetId
     self.host = host
     container = PlaybackSurfaceContainer(frame: frame)
-    container.backgroundColor = .black
+    // Clear, not black: the Flutter poster below must show through until the
+    // player layer draws its first frame (Cap 31.3b).
+    container.backgroundColor = .clear
     playerLayer.videoGravity = .resizeAspect
     container.playerLayer = playerLayer
     container.magnificationContent.layer.addSublayer(playerLayer)
