@@ -71,6 +71,9 @@ class BrowseL2ReadySession extends Notifier<Map<String, FeedL2ReadyEntry>> {
   /// Yields one event-loop turn so [didUpdateWidget] / [build] can finish,
   /// then uses [File.existsSync] (await [File.exists] hangs under FakeAsync /
   /// testWidgets). Do not call this from widget lifecycle methods.
+  ///
+  /// Cap 31.3b: an entry without a cover is a miss (entry kept) — the fast
+  /// path would mount the video over an empty stack until surface ready.
   Future<FeedL2ReadyEntry?> lookupIfCoverOnDisk(String assetIdentifier) async {
     final entry = state[assetIdentifier];
     if (entry == null) {
@@ -78,7 +81,7 @@ class BrowseL2ReadySession extends Notifier<Map<String, FeedL2ReadyEntry>> {
     }
     final path = entry.cover?.localFilePath;
     if (path == null) {
-      return entry;
+      return null;
     }
     await Future<void>.value();
     if (!_pathExists(path)) {

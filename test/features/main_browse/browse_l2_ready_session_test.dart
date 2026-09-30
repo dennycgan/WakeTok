@@ -116,6 +116,23 @@ void main() {
       expect(container.read(browseL2ReadySessionProvider), isEmpty);
     });
 
+    test('T-31.3b-1 lookupIfCoverOnDisk misses coverless entry and keeps it', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final notifier = container.read(browseL2ReadySessionProvider.notifier);
+      notifier.record(
+        const FeedL2ReadyEntry(
+          assetIdentifier: 'a1',
+          kind: FeedL2ReadyKind.video,
+        ),
+      );
+
+      expect(await notifier.lookupIfCoverOnDisk('a1'), isNull);
+      expect(notifier.lookup('a1'), isNotNull);
+      expect(container.read(browseL2ReadySessionProvider), contains('a1'));
+    });
+
     test('evictEntriesWithMissingPathsAsync removes stale tokens only', () async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
