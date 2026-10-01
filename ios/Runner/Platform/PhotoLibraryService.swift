@@ -1055,6 +1055,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
 
       let generation = start.generation
       let kind = mapMediaKind(asset)
+      let assetPixelWidth = asset.pixelWidth
+      let assetPixelHeight = asset.pixelHeight
       let requestId = PHImageManager.default().requestImage(
         for: asset,
         targetSize: Self.previewTargetSize,
@@ -1065,6 +1067,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
           assetIdentifier: assetIdentifier,
           generation: generation,
           mediaKind: kind,
+          assetPixelWidth: assetPixelWidth,
+          assetPixelHeight: assetPixelHeight,
           image: image,
           info: info
         )
@@ -1126,6 +1130,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
     assetIdentifier: String,
     generation: UInt64,
     mediaKind: MediaKind,
+    assetPixelWidth: Int,
+    assetPixelHeight: Int,
     image: UIImage?,
     info: [AnyHashable: Any]?
   ) {
@@ -1147,6 +1153,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
         assetIdentifier: assetIdentifier,
         generation: generation,
         mediaKind: mediaKind,
+        assetPixelWidth: assetPixelWidth,
+        assetPixelHeight: assetPixelHeight,
         image: image
       )
       return
@@ -1189,6 +1197,8 @@ final class PhotoLibraryService: PhotoLibraryApi {
     assetIdentifier: String,
     generation: UInt64,
     mediaKind: MediaKind,
+    assetPixelWidth: Int,
+    assetPixelHeight: Int,
     image: UIImage
   ) {
     previewEncodeQueue.async { [weak self] in
@@ -1217,8 +1227,16 @@ final class PhotoLibraryService: PhotoLibraryApi {
         )
         return
       }
-      let pixelWidth = Int64((image.size.width * image.scale).rounded())
-      let pixelHeight = Int64((image.size.height * image.scale).rounded())
+      // Asset dimensions, not the thumbnail's: rounding a small thumbnail skews
+      // its aspect, and the video poster box must match the player rect
+      // (Cap 31.3). Thumbnail size only when the asset reports none.
+      let hasAssetSize = assetPixelWidth > 0 && assetPixelHeight > 0
+      let pixelWidth = hasAssetSize
+        ? Int64(assetPixelWidth)
+        : Int64((image.size.width * image.scale).rounded())
+      let pixelHeight = hasAssetSize
+        ? Int64(assetPixelHeight)
+        : Int64((image.size.height * image.scale).rounded())
       do {
         guard let path = try self.previewRequests.writeIfCurrent(
           assetId: assetIdentifier,
