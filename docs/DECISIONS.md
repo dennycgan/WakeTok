@@ -561,7 +561,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 
 ## ADR-009: Production layered architecture lock
 
-- Status: Accepted (2026-07-31); narrowly supplemented by ADR-067 (2026-09-29)
+- Status: Accepted (2026-07-31); narrowly supplemented by ADR-067 (2026-09-29); Cap 7.8 note `onPrimary` sentence superseded by ADR-069 (2026-10-01)
 - Commit/PR anchor: 79459e0
 - Plain summary (owner reads this):
   Kickoff’s layered architecture is now a repo constraint. The App Foundation
@@ -8572,3 +8572,80 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - ADR-006: unchanged (shared native view, Dart owns product rules).
   - Cap 27.4 skip-L1-paint (debt 477, no ADR): narrowed for video heads
     by the late poster only; stills unchanged.
+
+## ADR-069: Pin the text color on accent fills (`onAccent` / `onPrimary`)
+
+- Status: **Accepted** (2026-10-01)
+- Commit/PR anchor: aef5862
+- Plain summary (owner reads this):
+  Text on a pink (accent) fill now has its own fixed color instead of
+  one Flutter generates. There are two fixed pairs: icon pink with white
+  text, and bright pink with black text. Each screen picks a pair:
+  Settings follows the phone's Light / Dark setting, the always-dark
+  browse screens always use bright pink + black, and the permission
+  page button always uses icon pink + white. The Build Pool "Save and
+  browse" and order sheet "Confirm" buttons had white text on bright
+  pink, which was hard to read; they now use black. An automated test
+  stops a pink fill from being paired with any other text color.
+- Context / what problem forced this:
+  - `WakeTokTokens` had single colors and no paired text token for
+    `accent`. Build Pool "Save and browse" (Cap 22.3) and the order sheet
+    "Confirm" (Cap 27.4) sit on forced-dark surfaces (Dark `accent`) and
+    borrowed `onMedia` white: 2.72:1, below the 3:1 component floor.
+  - `colorScheme.onPrimary` was Material `fromSeed` output (ADR-009
+    Cap 7.8 note: "not pinned"): a dark maroon in Dark, white in Light.
+    Default Material readers (Settings "Manage selection") used it, so
+    the text on an accent fill depended on Flutter's generator and could
+    shift on a Flutter upgrade.
+  - The permission request / blocked page CTA hand-picked the Light
+    `accent` with `onMedia` white, a third way of choosing the same text.
+- Decision (what was chosen):
+  1. **Token.** `WakeTokTokens.onAccent`: Light set white, Dark set
+     black. Black replaced the generated maroon after an owner device
+     look (2026-10-01, iPhone 17, Release); 7.7:1 on the Dark `accent`.
+  2. **Theme binding.** `colorScheme.onPrimary` = `onAccent`, so default
+     Material readers use the same value.
+  3. **Pairs are fixed; surfaces pick one.** Light set: `accent` +
+     `onAccent` (icon pink + white). Dark set: `accent` + `onAccent`
+     (bright pink + black). Settings follows the system Appearance;
+     forced-dark Browse surfaces always use the Dark set; the permission
+     request / blocked page CTA always uses the Light set in both
+     Appearances (foreground switched from `onMedia` to `onAccent`,
+     visually unchanged).
+  4. **Pair rule.** An `accent` fill takes `onAccent` text, never
+     `onMedia` or another text token. Build Pool "Save and browse" and the
+     order sheet "Confirm" switch to `onAccent`.
+  5. **Enforcement.** `test/architecture/accent_fill_pairing_test.dart`
+     scans `lib/features/**` and `lib/app/**`: a call with
+     `backgroundColor: …accent` must pass `foregroundColor: …onAccent` in
+     the same call (strings and comments skipped; nested calls do not
+     count).
+- Rejected alternatives (why not):
+  - Keep `onPrimary` from `fromSeed` — unpinned; can change on a Flutter
+    upgrade.
+  - White text on the Dark `accent` — 2.72:1.
+  - Keep the generated dark maroon — owner rejected it after the device
+    look.
+  - Pin `onPrimary` in the theme only, without a token — feature code
+    sets `foregroundColor` from tokens and would still have nothing to
+    pair with.
+- Consequences / constraints accepted:
+  - Visual changes: Build Pool "Save and browse" (Cap 22.3) and order
+    sheet "Confirm" (Cap 27.4) white → black text; Settings "Manage
+    selection" in Dark maroon → black text. Permission pages and all
+    Light surfaces unchanged. Debug-only buttons are not product
+    surfaces. No guard test asserted these text colors.
+  - The Light pair stays white on icon pink (3.79:1), unchanged.
+  - Changing a pair's text color is one token value; changing an
+    `accent` reaches every accent reader (selected chrome, borders,
+    delete text) and needs its pair's contrast re-checked.
+  - Guard blind spots, covered by review: fill and text set on different
+    widgets (`Container(color: …)` + `Text(style: …)`), colors passed
+    through local variables, theme overrides, and quotes nested inside
+    string interpolation.
+- Relationship:
+  - ADR-009 Cap 7.8 note: only its sentence "`onPrimary` remains
+    Material `fromSeed` (not pinned)" is superseded. ADR-009's Status
+    line gains "Cap 7.8 note `onPrimary` sentence superseded by ADR-069
+    (2026-10-01)"; its body is not edited. Accent hex values unchanged.
+  - ADR-061: shared token change; affected surfaces listed above.
