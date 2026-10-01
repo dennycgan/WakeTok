@@ -2834,6 +2834,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Host L2 (device-local path otherwise requestPreview→soft then APPLY).
   bool _skipLayer1PaintForRemountHost = false;
 
+  /// Cap 31.3: video head applied coverless after [_skipLayer1PaintForRemountHost];
+  /// one poster request runs once the surface is up (see
+  /// [_requestRemountLatePoster]).
+  ({FeedMediaRequestGate gate, int generation})? _remountLatePosterPending;
+
   @override
   void initState() {
     super.initState();
@@ -5015,7 +5020,52 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Cap 15.14c: arm whenever DEVICE_LOCAL reaches video APPLY — independent
       // of canReuseCover (dead peek file still needs hold; align with L2_READY).
       armPosterHoldOnL2Apply: true,
+      requestLatePosterForCoverlessVideo: skipLayer1Paint,
     );
+  }
+
+  /// Cap 31.3: a coverless remount video head would flip to pendingVideo
+  /// (black) on leave. Once the surface is up, request one poster and slot it
+  /// under the video. Cover gates are already open from the surface, so the
+  /// poster keeps them open instead of re-arming its decode wait (no Meta /
+  /// Action Column blink). No poster hold: the video slot is already mounted.
+  Future<void> _requestRemountLatePoster() async {
+    final pending = _remountLatePosterPending;
+    if (pending == null || !_surfaceReady) {
+      return;
+    }
+    _remountLatePosterPending = null;
+    if (!pending.gate.isCurrent(pending.generation)) {
+      return;
+    }
+    final assetId = widget.assetIdentifier;
+    final layer1 = await loadFeedPageLayer1(
+      gate: pending.gate,
+      generation: pending.generation,
+      assetIdentifier: assetId,
+      displayRepository: ref.read(mediaDisplayRepositoryProvider),
+    );
+    final poster = layer1?.display;
+    final media = _media;
+    if (!mounted ||
+        !pending.gate.isCurrent(pending.generation) ||
+        !widget.isCurrent ||
+        widget.assetIdentifier != assetId ||
+        media == null ||
+        media.kind != FeedPageMediaKind.video ||
+        media.videoAssetId != assetId ||
+        media.display != null ||
+        poster == null ||
+        poster.assetIdentifier != assetId ||
+        poster.mediaKind != PlaybackMediaKind.video) {
+      return;
+    }
+    setState(() {
+      _media = FeedPageMedia.video(assetId, poster: poster);
+      _stillCoverTrackedPath = poster.localFilePath;
+      _stillCoverReady = true;
+      _stillCoverDecodeBroken = false;
+    });
   }
 
   Future<void> _applyLayer2Result({
@@ -5027,6 +5077,10 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     /// Cap 15.14b/c: L2-ready + DEVICE_LOCAL arm poster-hold at L2 apply —
     /// not first-visit full L1→L2 (15.11b mount-time arm).
     bool armPosterHoldOnL2Apply = false,
+
+    /// Cap 31.3: remount Host skipped L1; a coverless video APPLY queues one
+    /// late poster request. Stills are unaffected.
+    bool requestLatePosterForCoverlessVideo = false,
   }) async {
     if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
       // A: drop — this attempt no longer owns the page; clear only if owner.
@@ -5123,8 +5177,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         if (armPosterHoldOnL2Apply) {
           _armPosterHoldOnVideoSlotMount();
         }
+        if (requestLatePosterForCoverlessVideo && _media?.display == null) {
+          _remountLatePosterPending = (gate: gate, generation: generation);
+        }
       });
       _recordL2ReadySession(layer2: layer2, layer1: layer1);
+      unawaited(_requestRemountLatePoster());
       // Cap 15.11b: first-visit full L1→L2 still arms hold on video-slot
       // mount only (defer / in-flight ordering). DEVICE_LOCAL / L2-ready
       // use armPosterHoldOnL2Apply above (15.14b/c).
@@ -5927,6 +5985,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
                         _surfaceReady = true;
                       });
                       _syncMediaCoverVisibleGate();
+                      unawaited(_requestRemountLatePoster());
                       if (widget.isCurrent) {
                         widget.onCurrentLayer2MediaReady?.call(
                           widget.assetIdentifier,
