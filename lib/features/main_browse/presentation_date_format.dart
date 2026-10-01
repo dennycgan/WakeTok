@@ -49,16 +49,13 @@ String formatOverlayRelativeDate({
   }
 
   if (years > 0 && months > 0) {
-    return l10n.mediaInfoRelativeYearsMonthsAgo(
-      years.toString(),
-      months.toString(),
-    );
+    return l10n.mediaInfoRelativeYearsMonthsAgo(years, months);
   }
   if (years > 0) {
-    return l10n.mediaInfoRelativeYearsAgo(years.toString());
+    return l10n.mediaInfoRelativeYearsAgo(years);
   }
   if (months > 0) {
-    return l10n.mediaInfoRelativeMonthsAgo(months.toString());
+    return l10n.mediaInfoRelativeMonthsAgo(months);
   }
   // Calendar edge (e.g. ~31 days) — fall back to days.
   return l10n.mediaInfoRelativeDaysAgo(diffDays.toString());

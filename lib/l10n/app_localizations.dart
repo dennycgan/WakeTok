@@ -177,7 +177,7 @@ abstract class AppLocalizations {
   /// **'Manage selection'**
   String get limitedAccessManageSelection;
 
-  /// Cap 29/31 Settings section title — photo library access (ADR-059 / kickoff §2.8); EN aligns with zh 照片访问权限
+  /// Cap 29/31 Settings section title — photo library access (ADR-059 / kickoff §2.8); EN aligns with the zh_Hans title
   ///
   /// In en, this message translates to:
   /// **'Photo Library Access'**
@@ -1227,20 +1227,20 @@ abstract class AppLocalizations {
   /// Overlay row 1 when age is over 30 days and only months (no years)
   ///
   /// In en, this message translates to:
-  /// **'{count} months ago'**
-  String mediaInfoRelativeMonthsAgo(String count);
+  /// **'{count, plural, one{{count} month ago} other{{count} months ago}}'**
+  String mediaInfoRelativeMonthsAgo(int count);
 
   /// Overlay row 1 when age is whole years (no leftover months)
   ///
   /// In en, this message translates to:
-  /// **'{count} years ago'**
-  String mediaInfoRelativeYearsAgo(String count);
+  /// **'{count, plural, one{{count} year ago} other{{count} years ago}}'**
+  String mediaInfoRelativeYearsAgo(int count);
 
   /// Overlay row 1 when age is over 30 days with both years and months
   ///
   /// In en, this message translates to:
-  /// **'{years} years {months} months ago'**
-  String mediaInfoRelativeYearsMonthsAgo(String years, String months);
+  /// **'{years, plural, one{{years} year} other{{years} years}} {months, plural, one{{months} month} other{{months} months}} ago'**
+  String mediaInfoRelativeYearsMonthsAgo(int years, int months);
 
   /// Overlay row 2 approximate local calendar date (~ prefix; day precision; not minute-exact)
   ///

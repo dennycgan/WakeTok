@@ -131,7 +131,11 @@ void main() {
       final created = DateTime(2024, 5, 10, 12);
       expect(
         formatOverlayRelativeDate(l10n: en, createdAt: created, now: now),
-        en.mediaInfoRelativeMonthsAgo('1'),
+        en.mediaInfoRelativeMonthsAgo(1),
+      );
+      expect(
+        formatOverlayRelativeDate(l10n: en, createdAt: created, now: now),
+        '1 month ago',
       );
     });
 

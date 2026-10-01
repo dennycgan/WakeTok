@@ -642,18 +642,42 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String mediaInfoRelativeMonthsAgo(String count) {
-    return '$count months ago';
+  String mediaInfoRelativeMonthsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count months ago',
+      one: '$count month ago',
+    );
+    return '$_temp0';
   }
 
   @override
-  String mediaInfoRelativeYearsAgo(String count) {
-    return '$count years ago';
+  String mediaInfoRelativeYearsAgo(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count years ago',
+      one: '$count year ago',
+    );
+    return '$_temp0';
   }
 
   @override
-  String mediaInfoRelativeYearsMonthsAgo(String years, String months) {
-    return '$years years $months months ago';
+  String mediaInfoRelativeYearsMonthsAgo(int years, int months) {
+    String _temp0 = intl.Intl.pluralLogic(
+      years,
+      locale: localeName,
+      other: '$years years',
+      one: '$years year',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      months,
+      locale: localeName,
+      other: '$months months',
+      one: '$months month',
+    );
+    return '$_temp0 $_temp1 ago';
   }
 
   @override

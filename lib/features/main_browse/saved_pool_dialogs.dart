@@ -575,7 +575,7 @@ class _SavedPoolNamingDialogState extends State<_SavedPoolNamingDialog> {
 
 /// Keeps committed edits within [kSavedPoolDisplayNameMaxWeight].
 ///
-/// IME composing / pre-edit (e.g. Pinyin before 上屏) is not weighed. When a
+/// IME composing / pre-edit (e.g. Pinyin before commit) is not weighed. When a
 /// committed string is over budget (bulk IME / paste), truncates to the longest
 /// in-budget **prefix** instead of rejecting the whole edit. Legacy over-budget
 /// values may still shorten even while remaining over budget.

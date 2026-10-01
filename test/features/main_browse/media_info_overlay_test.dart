@@ -292,7 +292,7 @@ void main() {
         createdAt: DateTime(2021, 6, 10),
         now: now,
       ),
-      l10n.mediaInfoRelativeYearsAgo('3'),
+      l10n.mediaInfoRelativeYearsAgo(3),
     );
     expect(
       formatOverlayRelativeDate(
@@ -300,7 +300,7 @@ void main() {
         createdAt: DateTime(2021, 3, 10),
         now: now,
       ),
-      l10n.mediaInfoRelativeYearsMonthsAgo('3', '3'),
+      l10n.mediaInfoRelativeYearsMonthsAgo(3, 3),
     );
     expect(
       formatOverlayFileSize(l10n: l10n, fileSizeBytes: 2_000),

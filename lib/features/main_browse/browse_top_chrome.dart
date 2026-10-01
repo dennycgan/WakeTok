@@ -58,8 +58,8 @@ const TextHeightBehavior _kChromeTextHeightBehavior =
 ///
 /// **Locale-linked:** measures the Create label under the same style /
 /// [TextHeightBehavior] as the capsule (CJK glyphs are taller than Latin
-/// at the same `fontSize`). Do **not** hard-code EN `12` — that made ZH
-/// "创建片库" stadium taller than the helper offset (flush / overlap).
+/// at the same `fontSize`). Do **not** hard-code EN `12` — that made the ZH
+/// Create stadium taller than the helper offset (flush / overlap).
 double _createRequiresFullAccessTop({
   required String createLabel,
   required TextStyle createLabelStyle,

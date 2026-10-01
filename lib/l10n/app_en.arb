@@ -54,7 +54,7 @@
   },
   "photosAccessSettingsSectionTitle": "Photo Library Access",
   "@photosAccessSettingsSectionTitle": {
-    "description": "Cap 29/31 Settings section title — photo library access (ADR-059 / kickoff §2.8); EN aligns with zh 照片访问权限"
+    "description": "Cap 29/31 Settings section title — photo library access (ADR-059 / kickoff §2.8); EN aligns with the zh_Hans title"
   },
   "photosAccessFullStatusMessage": "Full access to your photo library.",
   "@photosAccessFullStatusMessage": {
@@ -823,26 +823,26 @@
       "count": {"type": "String"}
     }
   },
-  "mediaInfoRelativeMonthsAgo": "{count} months ago",
+  "mediaInfoRelativeMonthsAgo": "{count, plural, one{{count} month ago} other{{count} months ago}}",
   "@mediaInfoRelativeMonthsAgo": {
     "description": "Overlay row 1 when age is over 30 days and only months (no years)",
     "placeholders": {
-      "count": {"type": "String"}
+      "count": {"type": "int"}
     }
   },
-  "mediaInfoRelativeYearsAgo": "{count} years ago",
+  "mediaInfoRelativeYearsAgo": "{count, plural, one{{count} year ago} other{{count} years ago}}",
   "@mediaInfoRelativeYearsAgo": {
     "description": "Overlay row 1 when age is whole years (no leftover months)",
     "placeholders": {
-      "count": {"type": "String"}
+      "count": {"type": "int"}
     }
   },
-  "mediaInfoRelativeYearsMonthsAgo": "{years} years {months} months ago",
+  "mediaInfoRelativeYearsMonthsAgo": "{years, plural, one{{years} year} other{{years} years}} {months, plural, one{{months} month} other{{months} months}} ago",
   "@mediaInfoRelativeYearsMonthsAgo": {
     "description": "Overlay row 1 when age is over 30 days with both years and months",
     "placeholders": {
-      "years": {"type": "String"},
-      "months": {"type": "String"}
+      "years": {"type": "int"},
+      "months": {"type": "int"}
     }
   },
   "mediaInfoExactDateApprox": "~ {year}-{month}-{day}",
