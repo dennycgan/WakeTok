@@ -8470,3 +8470,105 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     allowlisted exception until debt 486 is paid.
   - `.cursor/rules/architecture-boundaries.mdc` (local agent rules;
     `.cursor/` is gitignored): Ban list and Enforcement updated to match.
+
+## ADR-068: Cap 31.3 video handoff black frames — clear video slot, native letterbox cover, late remount poster
+
+- Status: **Accepted** (2026-10-01)
+- Commit/PR anchor: 960ac21 (clear slot), 61dcf27 + 8b6334f (bright edge),
+  f451166 (late poster); related a743521 (coverless L2-ready miss),
+  384fc67 (Meta after settle)
+- Plain summary (owner reads this):
+  When you swipe onto a video, its cover now stays visible until the
+  video's first frame is on screen. Before, the video slot painted black
+  over the cover for a moment. Making the slot see-through exposed thin
+  bright lines above and below some videos; WakeTok now uses the real
+  video size for covers and draws black bars around the video natively.
+  Those bars cover the seam; they do not remove the overlap — the cover
+  still sits under the video on purpose. A video that opens a new round
+  or follows a pool or order change had no cover and flashed black on the
+  first swipe away; it now gets a cover shortly after it appears, except
+  when you swipe away within a few tens of milliseconds.
+- Context / what problem forced this:
+  - Debt 441 (Type1: a one-frame black in the peek window when
+    switching videos): on covered video pages (revisit promote), a black frame
+    could show between the cover and the video's first frame after the
+    ADR-032 poster hold cleared.
+  - Cause (inference, not a code fact): the video slot carried two
+    opaque backgrounds above the poster — the Flutter `feedBackground`
+    `ColoredBox` in `_VideoPage` and the native
+    `PlaybackSurfaceContainer.backgroundColor = .black` — painting black
+    until `AVPlayerLayer` drew. Evidence: the knife C probe run (both
+    backgrounds transparent) against the run before it, covered revisit
+    promote only: 3 owner-reported black frames (1 not fully certain)
+    versus 0; offline replays found no blank in either run, the runs
+    differed in more than knife C, and the sample is small. After the
+    product fix, owner use over one evening on two devices (iPhone 17,
+    iPhone 13 Pro) reported no Type1 — a subjective usage observation,
+    not a controlled experiment. Not established: whether the iPhone 13
+    Pro use included iCloud / Optimise-Storage video revisits (debt 441
+    was first seen in that setup; that library is mostly iCloud, but the
+    acceptance did not record it).
+  - Side effects found on device: (a) bright top/bottom edges on some
+    videos — the L1 preview reported its rounded thumbnail size
+    (120x68 for a 1280x720 video), so the poster box was taller than the
+    player rect; with the size fixed, a sub-pixel seam remained where
+    Flutter's poster edge and Core Animation's video edge meet at
+    fractional pixels, flickering while the page settled. (b) a coverless
+    remount video head (Cap 27.4 skip-L1-paint, debt 477) flipped to
+    black `pendingVideo` on its first leave, about 40 ms until a
+    neighbour preheat painted.
+- Decision (what was chosen):
+  1. **No opaque background in the video slot.** `_VideoPage` has no
+     Flutter background; the native container is `.clear`. Before the
+     first frame the poster below shows through.
+  2. **Poster stays under the video.** The overlap is kept on purpose: it
+     is the Type1 safety net for every moment the native layer has no
+     frame (first frame, background return, pool clear, player swap),
+     which Flutter does not learn about synchronously.
+  3. **L1 previews report asset dimensions** (`asset.pixelWidth/Height`),
+     as the L2 still path does; thumbnail size only when the asset
+     reports none. Applies to all L1 previews.
+  4. **Native letterbox bars cover the seam.** Four black layers below
+     `playerLayer`, outside `playerLayer.videoRect` and one device pixel
+     into it, in one implicit-animation-free transaction with the player
+     frame, following the magnification transform. Shown only when the
+     layer is ready for display and `videoRect` agrees with the item's
+     `presentationSize`; otherwise hidden, so the container stays clear.
+     This is a cover, not removal of the overlap.
+  5. **Late poster for coverless remount video heads.** Device-local video
+     heads applied without a poster request one L1 preview after the
+     surface is up and slot it under the video if gate, current page,
+     asset, still-coverless and video-kind checks pass. Cover gates stay
+     open (no Meta / Action Column blink); no poster hold; not written to
+     the L2-ready Session. Photos and `skipLayer1Paint` are unchanged.
+     Limit: leaving within tens of milliseconds of the remount, before
+     the poster returns, still shows black once.
+- Rejected alternatives (why not):
+  - Restore the opaque slot background — brings Type1 back.
+  - Stop drawing the poster after ready-for-display (removes the overlap):
+    the native side drops its frame without telling Flutter (background,
+    pool clear, player swap; the not-ready edge is not sent to Dart), so
+    black would show; needs a new Pigeon event and changes to ADR-032 and
+    Cap 15.7 accepted behaviour.
+  - Shrink the poster box below the video rect — inset size is a guess,
+    and a 1 px black seam would stay visible during long L1-only periods.
+  - Compute bar positions from `presentationSize` — its rotation handling
+    is not documented; `videoRect` is what the layer draws.
+  - Earlier neighbour preview at drag start for the coverless leave —
+    not deterministic.
+- Consequences / constraints accepted:
+  - Bars are hard-coded native black, matching `feedBackground` in both
+    themes; changing `feedBackground` needs the same change in Swift.
+  - If the 2 s poster-hold timeout fires before the first frame, the bars
+    stay hidden (ready-for-display gate), so no black ring shows.
+  - The late poster keeps `_stillCoverReady` true without waiting for its
+    decode; a decode failure still hides Meta (W-31.3-L2).
+  - Coverless-leave black remains possible in the tens-of-ms window above.
+- Relationship:
+  - ADR-032: unchanged; ready-for-display stays the only trust point.
+  - ADR-032 entering-side cover: in effect only the deferred native view
+    mount; `_PvTransitionCover` never paints in production.
+  - Cap 15.7: poster at the bottom of the stack retained.
+  - ADR-006: unchanged (shared native view, Dart owns product rules).
+  - Cap 27.4 skip-L1-paint (debt 477, no ADR): narrowed for video heads
+    by the late poster only; stills unchanged.
