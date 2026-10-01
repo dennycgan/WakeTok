@@ -196,11 +196,11 @@
       coverage — near-zero cost, attach to whichever Cap above is
       convenient)
 - [ ] TestFlight internal testing and release-candidate validation
-      (MVP v1 track; owner executes distribution; Cursor prepares
+      (MVP v1 track; owner executes distribution; the agent prepares
       build and metadata)
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
-      (MVP v1 track first Review; owner executes submission; Cursor
+      (MVP v1 track first Review; owner executes submission; the agent
       prepares assets only)
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
@@ -251,12 +251,12 @@
       accessibility, privacy, and error-state hardening
       (full-product / post-Clips pass; distinct from MVP v1 hardening)
 - [ ] TestFlight internal testing and release-candidate validation
-      (post–v1 / Clips track; owner executes distribution; Cursor
+      (post–v1 / Clips track; owner executes distribution; the agent
       prepares build and metadata)
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
       (post–v1 full-product Review — Clip / background privacy
-      disclosures etc.; owner executes submission; Cursor prepares
+      disclosures etc.; owner executes submission; the agent prepares
       assets only)
 
 > Each line is a capability, not a sub-step. Completed capabilities stay one line
@@ -340,7 +340,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       line “owner proposed XX; fix/polish because YY” before code;
       no mandatory new debt/ADR; **no new features**; filed items so far
       live in `docs/acceptance/cap31-31.4-notes.md` — check that file
-      before assuming this bucket is empty)
+      before assuming this bucket is empty; Known debt review (every
+      Open / Monitoring row) runs last in 31.4, after all other items,
+      with the owner going through one row at a time)
 - [ ] 31.5 Probe / debug cleanup (pre-v1)
       (**Inventory layers A–D**, owner 2026-09-27 chat — not
       “Settings-only vs whole-repo”.)
@@ -374,6 +376,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - [ ] 31.6 Competitor-codename full-repo scan
       (**after** 31.1–31.5 complete — scan near-final tree, not mid-Cap;
       ARB / comments / code strings / docs; Release-visible first)
+      Scope (owner 2026-10-01): files in `git ls-files` only (local
+      agent-rule paths are gitignored); text files only; English terms
+      match whole words, case-insensitive. Terms: competitor names,
+      bundle IDs, Instruments process tokens and AI tool / company
+      names from the local term list in
+      `docs/private/competitor-codenames.md` ("31.6 scan term list");
+      an AI tool / company name counts only where it means the tool or
+      company, not a generic technical word. Output is a
+      read-only list (path + line + context); no replace or delete
+      before owner approval per hit. Commit-history hits go in a
+      separate read-only, not-handled list (no history rewrite).
 - [ ] 31.7 Device acceptance matrix + Cap close-out
       (Cap 30.7 pattern: device matrix + needed regression; STATE `[x]`
       + PHASE_HISTORY + debt status updates; includes any deferred
@@ -787,7 +800,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 416 | Open | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only | Final real-device performance, memory, accessibility, privacy, and error-state hardening | ADR-007 |
 | 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred. **Also (logged Cap 21.5 follow-up):** `app_zh_Hans.arb` debug / probe strings under `source*` / `playbackProbe*` / `cap19*Probe*` still carry Latin product/API tokens (Photos, Videos, Pool, Limited, unauthorized, estimatedCount, PHAsset, bootstrap, L-BOOT, …). Visible only under `kDebugMode` / library_smoke — not Release product risk; systematic ZH cleanup deferred to Settings and localisation completion (same Inventory lane). Cap 21.5 follow-up only aligned `playbackProbeLoadImage` / `playbackProbeLoadVideo` with `libraryRowPhotos` / `libraryRowVideos` wording. | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | 418 | Open | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload | TestFlight internal testing | — |
-| 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); Cursor reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7) | — |
+| 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); the agent reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7) | — |
 | 420 | Closed | iOS Photos permission |  | NSPhotoLibraryUsageDescription was PLACEHOLDER copy; replaced with owner-approved English wording (zh prompt gap: 483) | Final permission wording is owner-only (release-handoff) | Closed by Cap 31.4 (`7d47ef3`; owner device PASS on iPhone 13 Pro + iPhone 17) | ADR-062 |
 | 421 | Closed | iOS Photos permission |  | Limited Access product chrome unmounted from Main Browse (`01a7611`) | Banner sat above IndexedStack (all four tabs) and the shell Column had no SafeArea (notch clipped it). **Removed the product mount, not the feature.** **Closed by Cap 29** (ADR-059): Settings Photos Access — Manage → `presentLimitedLibraryPicker` (every dismiss dirty via Cap 28.5 authority); Open Settings never notifies; Full status ± Open Settings; no Browse launch remind (v1). ADR-059 D10: access-scope consume clears Snapshot cache + feed index 0 before `restartSession` so Manage round-trips are product-visible. Kickoff ADR-K §3 in-app entry met for Limited manage + system path to Full. Debug `library_smoke` Limited banner remains `kDebugMode` only. | Closed by Cap 29 | kickoff ADR-K; ADR-058 D4; ADR-059 |
 | 422 | Open | iOS Photos permission |  | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK. Host uses KVC in `mapAvailability`. **Cap 15.12 / 15.15 (ADR-033):** become-current may call `getAssetAvailabilities` (on-demand; resolve returns empty availabilities). Same KVC helper for probed ids only. **Further expansion** of KVC beyond this gate still needs explicit owner re-board. | Future Cap if expanding | ADR-033 |
