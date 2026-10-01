@@ -17,7 +17,7 @@
   "permissionBlockedTitleRestricted": "照片访问受限",
   "permissionBlockedBody": "WakeTok 需要访问你的照片和视频才能正常使用。你可以在设置中开启。",
   "permissionOpenSettings": "打开设置",
-  "limitedAccessBannerMessage": "当前仅显示你选择的图片和视频。相册与切片功能需要完全访问权限。",
+  "limitedAccessBannerMessage": "当前为有限访问。仅显示你选择的图片和视频。相册与更多功能需要完全访问权限。",
   "limitedAccessManageSelection": "管理所选内容",
   "photosAccessSettingsSectionTitle": "照片访问权限",
   "photosAccessFullStatusMessage": "已获得照片图库的完全访问权限。",

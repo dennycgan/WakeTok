@@ -42,7 +42,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get permissionOpenSettings => '打开设置';
 
   @override
-  String get limitedAccessBannerMessage => '当前仅显示你选择的图片和视频。相册与切片功能需要完全访问权限。';
+  String get limitedAccessBannerMessage =>
+      '当前为有限访问。仅显示你选择的图片和视频。相册与更多功能需要完全访问权限。';
 
   @override
   String get limitedAccessManageSelection => '管理所选内容';
@@ -1008,7 +1009,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get permissionOpenSettings => '打开设置';
 
   @override
-  String get limitedAccessBannerMessage => '当前仅显示你选择的图片和视频。相册与切片功能需要完全访问权限。';
+  String get limitedAccessBannerMessage =>
+      '当前为有限访问。仅显示你选择的图片和视频。相册与更多功能需要完全访问权限。';
 
   @override
   String get limitedAccessManageSelection => '管理所选内容';

@@ -44,7 +44,7 @@
   "@permissionOpenSettings": {
     "description": "Button that opens the iOS Settings app"
   },
-  "limitedAccessBannerMessage": "Showing only selected photos and videos. Album features and clips need full access.",
+  "limitedAccessBannerMessage": "Limited access. Only selected photos and videos are shown. Albums and more features need full access.",
   "@limitedAccessBannerMessage": {
     "description": "Limited Photos Access banner message (ADR-K)"
   },

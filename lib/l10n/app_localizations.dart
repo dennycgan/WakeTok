@@ -168,7 +168,7 @@ abstract class AppLocalizations {
   /// Limited Photos Access banner message (ADR-K)
   ///
   /// In en, this message translates to:
-  /// **'Showing only selected photos and videos. Album features and clips need full access.'**
+  /// **'Limited access. Only selected photos and videos are shown. Albums and more features need full access.'**
   String get limitedAccessBannerMessage;
 
   /// Opens the system limited-library picker

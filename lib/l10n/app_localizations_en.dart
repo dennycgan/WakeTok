@@ -47,7 +47,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get limitedAccessBannerMessage =>
-      'Showing only selected photos and videos. Album features and clips need full access.';
+      'Limited access. Only selected photos and videos are shown. Albums and more features need full access.';
 
   @override
   String get limitedAccessManageSelection => 'Manage selection';
