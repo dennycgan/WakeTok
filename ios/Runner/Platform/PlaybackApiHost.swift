@@ -1542,18 +1542,34 @@ private final class PlaybackSurfaceContainer: UIView {
   /// identity prevents UIKit from folding scale into `bounds` (Cap 20 shrink).
   let magnificationContent = UIView()
   var playerLayer: AVPlayerLayer?
+  /// Black outside the player's video rect, below [playerLayer], reaching one
+  /// device pixel into it. The Flutter poster under the clear container then
+  /// never meets the video edge on screen. Shown only once the player layer
+  /// has a frame for the bound item; otherwise hidden so the poster shows
+  /// through (Cap 31.3b).
+  private let letterboxBars: [CALayer] = (0..<4).map { _ in
+    let bar = CALayer()
+    bar.backgroundColor = UIColor.black.cgColor
+    bar.isHidden = true
+    return bar
+  }
 
   override init(frame: CGRect) {
     super.init(frame: frame)
-    clipsToBounds = true
-    magnificationContent.backgroundColor = .clear
-    addSubview(magnificationContent)
+    configureSubviews()
   }
 
   required init?(coder: NSCoder) {
     super.init(coder: coder)
+    configureSubviews()
+  }
+
+  private func configureSubviews() {
     clipsToBounds = true
     magnificationContent.backgroundColor = .clear
+    for bar in letterboxBars {
+      magnificationContent.layer.insertSublayer(bar, at: 0)
+    }
     addSubview(magnificationContent)
   }
 
@@ -1563,7 +1579,85 @@ private final class PlaybackSurfaceContainer: UIView {
     // transform; assigning `frame` would reintroduce the shrink bug.
     magnificationContent.bounds = CGRect(origin: .zero, size: bounds.size)
     magnificationContent.center = CGPoint(x: bounds.midX, y: bounds.midY)
-    playerLayer?.frame = magnificationContent.bounds
+    layoutPlayerAndLetterbox()
+  }
+
+  /// Player frame and letterbox bars move in one transaction without implicit
+  /// animations, so the bars never lag the video edge.
+  func layoutPlayerAndLetterbox() {
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+    defer { CATransaction.commit() }
+    let area = magnificationContent.bounds
+    playerLayer?.frame = area
+    guard let playerLayer,
+      let item = playerLayer.player?.currentItem,
+      playerLayer.isReadyForDisplay
+    else {
+      hideLetterbox()
+      return
+    }
+    let video = playerLayer.videoRect
+    guard video.width > 0, video.height > 0,
+      Self.videoRect(video, fits: item.presentationSize, in: area)
+    else {
+      hideLetterbox()
+      return
+    }
+    let screenScale = window?.screen.scale ?? traitCollection.displayScale
+    let onePixel = 1 / max(screenScale, 1)
+    let inner = video.insetBy(dx: onePixel, dy: onePixel)
+    let edge = inner.isEmpty ? video : inner
+    let frames = [
+      CGRect(
+        x: area.minX, y: area.minY,
+        width: area.width, height: max(edge.minY - area.minY, 0)
+      ),
+      CGRect(
+        x: area.minX, y: edge.maxY,
+        width: area.width, height: max(area.maxY - edge.maxY, 0)
+      ),
+      CGRect(
+        x: area.minX, y: edge.minY,
+        width: max(edge.minX - area.minX, 0), height: edge.height
+      ),
+      CGRect(
+        x: edge.maxX, y: edge.minY,
+        width: max(area.maxX - edge.maxX, 0), height: edge.height
+      ),
+    ]
+    for (bar, frame) in zip(letterboxBars, frames) {
+      bar.frame = frame
+      bar.isHidden = false
+    }
+  }
+
+  private func hideLetterbox() {
+    for bar in letterboxBars {
+      bar.isHidden = true
+    }
+  }
+
+  /// Rejects a video rect left over from a previous item. Either orientation
+  /// of [presentationSize] is accepted because its rotation handling is not
+  /// documented; a stale rect of the same aspect lands in the same place.
+  private static func videoRect(
+    _ video: CGRect,
+    fits presentationSize: CGSize,
+    in area: CGRect
+  ) -> Bool {
+    guard presentationSize.width > 0, presentationSize.height > 0 else {
+      return false
+    }
+    let rotated = CGSize(
+      width: presentationSize.height,
+      height: presentationSize.width
+    )
+    return [presentationSize, rotated].contains { size in
+      let fitted = AVMakeRect(aspectRatio: size, insideRect: area)
+      return abs(fitted.width - video.width) <= 1
+        && abs(fitted.height - video.height) <= 1
+    }
   }
 }
 
@@ -1576,6 +1670,8 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
   private var readyForDisplayObservation: NSKeyValueObservation?
   private var lastReadyForDisplay: Bool?
   private var didEmitReadyForDisplay = false
+  /// Re-lays the letterbox when the bound item's video size changes.
+  private var presentationSizeObservation: NSKeyValueObservation?
 
   var playerLayerIsReadyForDisplay: Bool { playerLayer.isReadyForDisplay }
 
@@ -1596,6 +1692,7 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
 
   deinit {
     readyForDisplayObservation?.invalidate()
+    presentationSizeObservation?.invalidate()
     host?.unbindSurface(self)
   }
 
@@ -1607,7 +1704,16 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
     // New player bind → allow a fresh ready-for-display emit.
     didEmitReadyForDisplay = false
     playerLayer.player = player
-    playerLayer.frame = container.magnificationContent.bounds
+    presentationSizeObservation?.invalidate()
+    presentationSizeObservation = player?.currentItem?.observe(
+      \.presentationSize,
+      options: [.new]
+    ) { [weak self] _, _ in
+      DispatchQueue.main.async {
+        self?.container.layoutPlayerAndLetterbox()
+      }
+    }
+    container.layoutPlayerAndLetterbox()
     noteReadyForDisplayEdge(force: true)
   }
 
@@ -1644,6 +1750,9 @@ final class PlaybackSurfaceView: NSObject, FlutterPlatformView {
       guard let self else { return }
       let next = change.newValue ?? self.playerLayer.isReadyForDisplay
       self.noteReadyForDisplayEdge(force: false, next: next)
+      DispatchQueue.main.async { [weak self] in
+        self?.container.layoutPlayerAndLetterbox()
+      }
     }
   }
 
