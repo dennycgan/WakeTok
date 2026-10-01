@@ -46,8 +46,8 @@ class PermissionPageStyle {
     final tokens = theme.extension<WakeTokTokens>()!;
     final isZh = Localizations.localeOf(context).languageCode == 'zh';
     final base = theme.textTheme.bodyLarge!.copyWith(color: tokens.onSurface);
-    // The CTA keeps the light-mode colors in both Appearances (light accent,
-    // white text); the dark theme's generated onPrimary is a dark maroon.
+    // The CTA keeps the light-mode accent / onAccent pair in both
+    // Appearances (owner choice).
     final buttonTokens =
         waketokTheme(Brightness.light).extension<WakeTokTokens>()!;
     return PermissionPageStyle._(
@@ -67,7 +67,7 @@ class PermissionPageStyle {
       button: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(kPermissionButtonHeight),
         backgroundColor: buttonTokens.accent,
-        foregroundColor: buttonTokens.onMedia,
+        foregroundColor: buttonTokens.onAccent,
         textStyle: theme.textTheme.labelLarge!.copyWith(
           fontSize:
               isZh ? kPermissionButtonFontSizeZh : kPermissionButtonFontSizeEn,

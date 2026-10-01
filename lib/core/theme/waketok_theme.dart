@@ -20,6 +20,7 @@ ThemeData waketokTheme(Brightness brightness) {
     brightness: brightness,
   ).copyWith(
     primary: tokens.accent,
+    onPrimary: tokens.onAccent,
     surface: tokens.surface,
     onSurface: tokens.onSurface,
   );

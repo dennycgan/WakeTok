@@ -191,7 +191,7 @@ class _OrderControlHalfSheetState extends ConsumerState<OrderControlHalfSheet> {
                       onPressed: () => unawaited(_onConfirm()),
                       style: FilledButton.styleFrom(
                         backgroundColor: tokens.accent,
-                        foregroundColor: tokens.onMedia,
+                        foregroundColor: tokens.onAccent,
                       ),
                       child: Text(l10n.mainBrowseOrderSheetConfirm),
                     ),

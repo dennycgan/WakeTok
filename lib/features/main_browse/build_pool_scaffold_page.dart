@@ -266,7 +266,7 @@ class _BuildPoolScaffoldPageState extends ConsumerState<BuildPoolScaffoldPage> {
                     onPressed: canStart ? _saveAndBrowse : null,
                     style: FilledButton.styleFrom(
                       backgroundColor: tokens.accent,
-                      foregroundColor: tokens.onMedia,
+                      foregroundColor: tokens.onAccent,
                       disabledBackgroundColor: tokens.onMediaMuted.withValues(
                         alpha: 0.25,
                       ),
