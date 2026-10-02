@@ -177,14 +177,12 @@
       D7 Browse↔Settings copy; per-step durations; outward `<2>` caret
       `057deb9`; notes `docs/acceptance/cap30-30.7-notes.md`;
       PHASE_HISTORY; debts **480** / **481** remain Open)
-- [ ] Pre-v1 bug fix and UI polish sweep
-      (Cap 31; scope = Settings hierarchy/weight + Live Photo
-      album-case fix + video black-frame dig + owner-filed fix/polish
-      free bucket + probe/debug Settings cleanup + competitor-codename
-      full-repo scan + device acceptance / Cap close-out;
-      acceptance-discovered kin bugs OK; **no new features**;
-      Cap 30 close boundary: debug / fix / non-behaviour polish only)
-      <-- YOU ARE HERE
+- [x] Pre-v1 bug fix and UI polish sweep
+      (Cap 31 / ADR-061…ADR-071 Accepted; Settings hierarchy; Live
+      album cases + share + still render; video handoff; probe cleanup;
+      competitor-codename scan; light Release smoke `3482826` i17 +
+      Kafka PASS; notes `docs/acceptance/cap31-31.7-notes.md`;
+      PHASE_HISTORY)
 - [ ] MVP v1 pre-submission hardening
       (privacy policy final copy — after Cap 31 above lands; the
       in-app privacy entry (none exists today) is the only `lib/`
@@ -220,15 +218,26 @@
       file-timestamp and disk-space APIs and ships no manifest); allow
       one re-upload; in the same Cap, research the fix read-only
       (upgrade the sqlite3-related packages, or add an app-level
-      manifest) — no code change. Empty and small library: test the
-      Release build on device once with Limited access and no photos
-      selected and once with a few selected; the simulator only
+      manifest) — no code change. Empty and small library: Limited
+      access with no photos selected is confirmed possible on an iOS 26
+      device (Cap 31.7 notes); test the Release build on device that way
+      once with none and once with a few selected; the simulator only
       supplements (Flutter runs only debug builds on the iOS
-      simulator); never delete the real library; App Review notes say the app needs the photo
-      library, how to use it, and how Limited access behaves (the agent
-      drafts, the owner enters them). Privacy policy fact list (for the
-      later draft): iOS downloads originals from iCloud through PhotoKit
-      (done by Apple; WakeTok sends no data); writes to the photo
+      simulator); never delete the real library. Full access with an
+      empty library (code read, V1 code unchanged): Browse shows the
+      loading panel through the empty-resolve retries, then the same
+      "No items in this source." panel with no guidance; the Host has
+      no photo-library change observer, so whether that panel refreshes
+      after photos are added is unverified — check it. App Review
+      notes (the agent drafts, the owner enters them): the app needs
+      photos in the library and how to use it; what an empty library
+      shows and what to do; with Limited access and none selected the
+      empty panel is expected, and items can be added via Settings >
+      Photo Library Access > Manage selection; attach a 2–3 minute
+      screen recording of the app in use (owner records). Privacy
+      policy fact list (for the later draft): iOS downloads originals
+      from iCloud through PhotoKit (done by Apple; WakeTok sends no
+      data); writes to the photo
       library are Favorites, add to an existing album, and creating the
       WakeTok album; delete goes through the system confirmation into
       Recently Deleted; stills are shared without location, videos keep
@@ -245,6 +254,7 @@
       screenshots / keywords; empty-state Action Column dim widget-test
       coverage — near-zero cost, attach to whichever Cap above is
       convenient)
+      <-- YOU ARE HERE
 - [ ] TestFlight internal testing and release-candidate validation
       (MVP v1 track; owner executes distribution; the agent prepares
       build and metadata)
@@ -324,183 +334,27 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: Pre-v1 bug fix and UI polish sweep (Cap 31)
-Contract: Settings hierarchy/weight + Live Photo album-case fix +
-video black-frame dig + free fix/polish bucket + probe/debug cleanup
-(31.5) + competitor-codename full-repo scan (after 31.1–31.5) +
-device acceptance / Cap close-out; acceptance kin bugs OK; **no new
-features**; Cap 30 close boundary (debug / fix / non-behaviour polish
-only). No separate contract-freeze phase — Capability Roadmap line is
-the boundary. Insert 31.Na / 31.Nb under a main phase when that item
-needs deeper split; do not renumber later mains. Sequential only (not
-parallel tracks).
-Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
-
-- [x] 31.1 Settings hierarchy / weight / info organization
-      (title / subtitle / body layering; long copy into info bubbles;
-      no full EN/ZH copy sweep; no privacy / about screens — those
-      stay on post-v1 Settings Cap)
-      — work `bac2521` + `809d238` + `4b335bf` + `edf46ab`
-        (+ test `02b26f6`); ADR-061 Accepted; owner accepted
-        2026-09-28
-- [x] 31.2 Live Photo: album-case triage → diagnose / fix
-      (map each album case to debt **470** / **471** and ADR-051
-      Decision 12 — reuse vs new path; owner-confirmed bugs, do not
-      re-litigate “is it a bug”; deepen with 31.2a / 31.2b if needed)
-  - [x] 31.2a Single-asset case (IMG_1935: `PHLivePhotoView` never
-        delivers `didEndPlaybackWith`) — work `b8b7b9b`; ADR-063
-        Accepted; owner accepted 2026-09-28 (dual-device + probe-free
-        recheck); notes `docs/acceptance/cap31-31.2-notes.md`
-  - [x] 31.2b Fixed-condition case (Live Photos shot of a computer
-        screen); split: 31.2b-2 share first, then 31.2b-1 still moiré;
-        notes `docs/acceptance/cap31-31.2-notes.md`
-    - [x] 31.2b-2 Third-party share extensions dismiss ~1 s after
-          opening → still share hands over the original file with
-          location removed — work `bd6a870`; ADR-064 Accepted; owner
-          accepted 2026-09-29 (i17 Release); debt **484** Open
-    - [x] 31.2b-1 Still moiré vs Photos (Impeller one-step bilinear
-          downscale) → Host renders Layer 2 and the Live key still at
-          screen size (ImageIO; original fetch kept for Tier 4 size and
-          capture time) — work `7d3d450`; ADR-065 Accepted; owner
-          accepted 2026-09-29 (Kafka full + i17 visual); memory via
-          `phys_footprint` file log (ADR-031 D10(3) plateau); "visual
-          sharpness vs Photos" + "iCloud file size" added to still
-          acceptance items (notes)
-- [x] 31.2c `roundEpoch` remount head chrome flicker (acceptance
-      kin bug found during 31.2b-1; pre-existing; still and Live
-      pools): (A) Feed `roundEpoch` listener clears the three shell
-      gates before the new tree's first frame → debt **485** Closed;
-      (B) remount Host still APPLY holds a Loading shell over the
-      mounted cover until decode-ready (Live prepare deferred) and
-      (C) born-current page tags Cap 17.3 a4 before its first frame
-      → debt **480** Closed; coverless remount-head video unchanged
-      (ADR-054 icon timing verified); debt **476** untouched — work
-      `08aa987`; ADR-066 Accepted; owner accepted 2026-09-29 (i17 +
-      Kafka Release); notes `docs/acceptance/cap31-31.2-notes.md`
-- [x] 31.3 Video one-frame black dig (frictional; cause is an
-      inference): video slot backgrounds cleared so the poster shows
-      until the first frame; L1 previews report asset dimensions +
-      native letterbox bars cover the poster/video seam; late poster
-      for coverless remount video heads; coverless L2-ready entry is a
-      revisit miss; Meta shown only after the feed settles → debt
-      **441** Closed — work
-      `a743521` + `960ac21` + `384fc67` + `61dcf27` + `8b6334f` +
-      `f451166`; ADR-068 Accepted; owner accepted 2026-10-01 (i17 +
-      Kafka); notes `docs/acceptance/cap31-31.3-notes.md`
-- [x] 31.4 Free fix / polish bucket
-      (owner may add items anytime; each new item: one acceptance-notes
-      line “owner proposed XX; fix/polish because YY” before code;
-      no mandatory new debt/ADR; **no new features**; filed items so far
-      live in `docs/acceptance/cap31-31.4-notes.md` — check that file
-      before assuming this bucket is empty; Known debt review (every
-      Open / Monitoring row) runs last in 31.4, after all other items,
-      with the owner going through one row at a time)
-      — work `02b26f6` + `e9765db` + `7d47ef3` + `4261a06` + `f176ebf`
-      + `9785892` + `735befb` + `aef5862` + `ed344ed` + `9d54313`;
-      ADR-062 / ADR-067 / ADR-069 / ADR-070 Accepted; debts **397** /
-      **406** / **418** / **420** Closed; Known debt review done (owner,
-      2026-10-02); notes `docs/acceptance/cap31-31.4-notes.md`
-- [x] 31.4a Live long-press replay failure feedback
-      (owner observation 2026-10-02, iPhone 13 Pro offline: a Live
-      Photo whose motion is only in iCloud fails the long-press replay
-      with no visible feedback; scope: center "!" plus one neutral line
-      (new key, announced once to VoiceOver) while the finger stays
-      down, on a replay failure that arrives while the finger is
-      still down — finger already up or a cancel does not show it;
-      auto-play failure stays silent)
-      — work `ee47970` + `7450e94` + `e0c434c`; ADR-071 Accepted;
-      debt **436** Closed; debt **488** Accepted (phase); notes
-      `docs/acceptance/cap31-31.4a-notes.md`
-- [x] 31.5 Probe / debug cleanup (pre-v1)
-      (**Inventory layers A–D**, owner 2026-09-27 chat — not
-      “Settings-only vs whole-repo”.)
-      **In scope this phase:**
-      (1) **A1+A2** — remove Settings-visible Cap 27 L1-stall + Cap 28
-      live probe sections (`!kReleaseMode` mounts in Settings
-      `ListView`); product Settings chrome only.
-      (2) **D1** — gate `ScrubPreviewProbe` (and its Host call sites)
-      + Release-only filter for the `WT18.5` Dart debugPrint lines in
-      main() so **Flutter/App Store Release is silent**; keep Debug+Profile
-      emission if still needed for soaks. **Do not** implement the
-      Release gate as bare `#if DEBUG` alone (Profile iOS usually has
-      `DEBUG` false — that would also kill Profile Console). Prefer a
-      Release-vs-(Debug|Profile) split (e.g. Dart `!kReleaseMode`
-      wired once, or an equivalent compile flag).
-      (3) **B1** — delete the `Cap27L1StallProbe` implementation
-      (`cap27_l1_stall_probe*.dart` + Browse call sites) together with
-      A1 (debt **478** Accepted (phase), owner Cap 31.4 debt review).
-      **Explicit start gate:** before any 31.5 code, confirm 31.2 /
-      31.3 no longer need A1/A2 buttons or B1/B2 Documents logging;
-      do not assume “later phase number ⇒ safe.”
-      **B1 deleted, B2–B4 kept (owner 2026-10-02):** debt **478** already
-      decided B1's deletion. B2 (`wtlive.log`), the Cap 28 chrome-axis
-      probe + Browse Host (B3), and the Cap 29 access-scope probe (B4)
-      are passive recorders that work without a Settings entry and are
-      Release no-ops (checked on a Release build). Deleting B2/B3 would
-      touch about 14 more Browse feed call sites; B4 sits in the
-      V1-verified Limited access authority path — not worth touching
-      for a no-op. B2 loses `teeCap27` with B1.
-      **Out of scope / deferred:**
-      — **A3+C** library_smoke Debug entry + smoke ARB: keep per debt
-      **417** (post-v1 Settings / localisation Cap).
-      — **D2** (`#if DEBUG` native test helpers) / **D3** (other Dart
-      `debugPrint`): not required this phase.
-      **Do not** delete product `library_smoke/*_providers` composition
-      seams under the smoke folder name.
-      — work `0c921fa` + `a00b86a`; B1 deleted, B2–B4 kept; notes
-      `docs/acceptance/cap31-31.5-notes.md`
-- [x] 31.6 Competitor-codename full-repo scan
-      (**after** 31.1–31.5 complete — scan near-final tree, not mid-Cap;
-      ARB / comments / code strings / docs; Release-visible first)
-      Scope (owner 2026-10-01): files in `git ls-files` only (local
-      agent-rule paths are not tracked); text files only; English terms
-      match whole words, case-insensitive. Terms: competitor names,
-      bundle IDs, Instruments process tokens and AI tool / company
-      names from the local term list in
-      `docs/private/competitor-codenames.md` ("31.6 scan term list");
-      an AI tool / company name counts only where it means the tool or
-      company, not a generic technical word. Output is a
-      read-only list (path + line + context); no replace or delete
-      before owner approval per hit. Commit-history scope: commit
-      messages and historical file contents across every branch and tag
-      that would become public (at least `main` and `spike/poc`); hits
-      go in a separate read-only, not-handled list (no history rewrite).
-      — work `356d95a` + `b5bfadd`; 16 current-file hits replaced or
-      removed (none Release-visible); local agent-rules ignore moved to
-      `.git/info/exclude`; history list not handled; notes
-      `docs/acceptance/cap31-31.6-notes.md`
-- [ ] 31.7 Device acceptance matrix + Cap close-out
-      (Cap 30.7 pattern: device matrix + needed regression; STATE `[x]`
-      + PHASE_HISTORY + debt status updates; includes any deferred
-      B-layer probe teardown decision if still Open)
+Active capability: MVP v1 pre-submission hardening
+Capability Roadmap closed for Cap 31 (Pre-v1 bug fix and UI polish
+sweep; snapshot in docs/PHASE_HISTORY.md). Hardening phases await
+owner scope / kickoff review — scope lives on its Capability Roadmap
+line; no numbered phases yet.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 31.7 — device acceptance matrix + Cap close-out
-- Sub-steps done: 31.2 closed (31.2a `b8b7b9b` / ADR-063; 31.2b-2
-      `bd6a870` / ADR-064; 31.2b-1 `7d3d450` / ADR-065); 31.2c closed
-      (`08aa987` / ADR-066; debts **480** / **485** Closed); 31.3
-      closed (`a743521` … `f451166` / ADR-068; debt **441** Closed);
-      31.4 closed (`02b26f6` … `9d54313` / ADR-062, ADR-067, ADR-069,
-      ADR-070; Known debt review done); 31.4a closed (`ee47970` …
-      `e0c434c` / ADR-071; debt **436** Closed, **488** Accepted
-      (phase)); 31.5 closed (`0c921fa` + `a00b86a`; B1 deleted, B2–B4
-      kept); 31.6 closed (`356d95a` + `b5bfadd`; history list not
-      handled)
-- Next step: 31.7 light Release smoke (one full pass each on i17 and
-      Kafka; zh-Hans check on Kafka), full `flutter test`, then Cap 31
-      close-out
-- Related decisions: ADR-071 Accepted (31.4a long-press replay
-      failure "!" and line); Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
-      (chat); ADR-061 Accepted (title token split); ADR-062 Accepted
-      (system-only language, English permission prompt); ADR-067
-      Accepted (file-content read ban); ADR-069 Accepted (accent fill
-      text pairing); ADR-070 Accepted (iPhone-only v1); ADR-063 Accepted
-      (31.2a Live motion-end fallback); ADR-064 Accepted (31.2b-2
-      share); ADR-065 Accepted (31.2b-1 still render); ADR-066 Accepted
-      (31.2c remount shell-gate clear); ADR-068 Accepted (31.3 video
-      handoff); ADR-032 / ADR-034 (video cover handoff); debts
-      **476** / **478** / **481** / **482** / **484** Accepted (phase)
-      (31.4 debt review; the **478** probe is deleted in 31.5)
+- Goal (one line): MVP v1 pre-submission hardening — phases awaiting
+      owner scope
+- Sub-steps done: none (Cap 31 closed; Limited access with no photos
+      selected already observed on Release `3482826` — see
+      `docs/acceptance/cap31-31.7-notes.md` Findings)
+- Next step: owner approves the hardening phases from its Capability
+      Roadmap line (in-app privacy entry, export compliance key, page
+      review and publish, PrivacyInfo probe, empty / small library,
+      remaining verify items)
+- Related decisions: ADR-062 Accepted (system-only language, English
+      permission prompt); ADR-064 Accepted (still share without
+      location; video unchanged — debt **484**); ADR-070 Accepted
+      (iPhone-only v1); ADR-028 (portrait-only); ADR-007 (iOS 18.0
+      floor — debt **416**)
 
 ## Contract pointers (don't memorize, go read the source)
 - **BrowseSession ↔ Origin (ADR-057 D6):** `BrowseSessionNotifier` must

@@ -1492,3 +1492,176 @@ Related ADR: ADR-060 Accepted (2026-09-24) on
 P3 per-step durations, D7 final copy, outward caret, gesture baseline.
 Complements ADR-041 (D6 narrow gate only). Known debt at close:
 **480** / **481** remain Open (out of Cap 30).
+
+
+## Pre-v1 bug fix and UI polish sweep (Cap 31) — completed 2026-10-03
+
+Contract: Settings hierarchy/weight + Live Photo album-case fix +
+video black-frame dig + free fix/polish bucket + probe/debug cleanup
+(31.5) + competitor-codename full-repo scan (after 31.1–31.5) +
+device acceptance / Cap close-out; acceptance kin bugs OK; **no new
+features**; Cap 30 close boundary (debug / fix / non-behaviour polish
+only). No separate contract-freeze phase — Capability Roadmap line is
+the boundary. Insert 31.Na / 31.Nb under a main phase when that item
+needs deeper split; do not renumber later mains. Sequential only (not
+parallel tracks).
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+
+- [x] 31.1 Settings hierarchy / weight / info organization
+      (title / subtitle / body layering; long copy into info bubbles;
+      no full EN/ZH copy sweep; no privacy / about screens — those
+      stay on post-v1 Settings Cap)
+      — work `bac2521` + `809d238` + `4b335bf` + `edf46ab`
+        (+ test `02b26f6`); ADR-061 Accepted; owner accepted
+        2026-09-28
+- [x] 31.2 Live Photo: album-case triage → diagnose / fix
+      (map each album case to debt **470** / **471** and ADR-051
+      Decision 12 — reuse vs new path; owner-confirmed bugs, do not
+      re-litigate “is it a bug”; deepen with 31.2a / 31.2b if needed)
+  - [x] 31.2a Single-asset case (IMG_1935: `PHLivePhotoView` never
+        delivers `didEndPlaybackWith`) — work `b8b7b9b`; ADR-063
+        Accepted; owner accepted 2026-09-28 (dual-device + probe-free
+        recheck); notes `docs/acceptance/cap31-31.2-notes.md`
+  - [x] 31.2b Fixed-condition case (Live Photos shot of a computer
+        screen); split: 31.2b-2 share first, then 31.2b-1 still moiré;
+        notes `docs/acceptance/cap31-31.2-notes.md`
+    - [x] 31.2b-2 Third-party share extensions dismiss ~1 s after
+          opening → still share hands over the original file with
+          location removed — work `bd6a870`; ADR-064 Accepted; owner
+          accepted 2026-09-29 (i17 Release); debt **484** Open
+    - [x] 31.2b-1 Still moiré vs Photos (Impeller one-step bilinear
+          downscale) → Host renders Layer 2 and the Live key still at
+          screen size (ImageIO; original fetch kept for Tier 4 size and
+          capture time) — work `7d3d450`; ADR-065 Accepted; owner
+          accepted 2026-09-29 (Kafka full + i17 visual); memory via
+          `phys_footprint` file log (ADR-031 D10(3) plateau); "visual
+          sharpness vs Photos" + "iCloud file size" added to still
+          acceptance items (notes)
+- [x] 31.2c `roundEpoch` remount head chrome flicker (acceptance
+      kin bug found during 31.2b-1; pre-existing; still and Live
+      pools): (A) Feed `roundEpoch` listener clears the three shell
+      gates before the new tree's first frame → debt **485** Closed;
+      (B) remount Host still APPLY holds a Loading shell over the
+      mounted cover until decode-ready (Live prepare deferred) and
+      (C) born-current page tags Cap 17.3 a4 before its first frame
+      → debt **480** Closed; coverless remount-head video unchanged
+      (ADR-054 icon timing verified); debt **476** untouched — work
+      `08aa987`; ADR-066 Accepted; owner accepted 2026-09-29 (i17 +
+      Kafka Release); notes `docs/acceptance/cap31-31.2-notes.md`
+- [x] 31.3 Video one-frame black dig (frictional; cause is an
+      inference): video slot backgrounds cleared so the poster shows
+      until the first frame; L1 previews report asset dimensions +
+      native letterbox bars cover the poster/video seam; late poster
+      for coverless remount video heads; coverless L2-ready entry is a
+      revisit miss; Meta shown only after the feed settles → debt
+      **441** Closed — work
+      `a743521` + `960ac21` + `384fc67` + `61dcf27` + `8b6334f` +
+      `f451166`; ADR-068 Accepted; owner accepted 2026-10-01 (i17 +
+      Kafka); notes `docs/acceptance/cap31-31.3-notes.md`
+- [x] 31.4 Free fix / polish bucket
+      (owner may add items anytime; each new item: one acceptance-notes
+      line “owner proposed XX; fix/polish because YY” before code;
+      no mandatory new debt/ADR; **no new features**; filed items so far
+      live in `docs/acceptance/cap31-31.4-notes.md` — check that file
+      before assuming this bucket is empty; Known debt review (every
+      Open / Monitoring row) runs last in 31.4, after all other items,
+      with the owner going through one row at a time)
+      — work `02b26f6` + `e9765db` + `7d47ef3` + `4261a06` + `f176ebf`
+      + `9785892` + `735befb` + `aef5862` + `ed344ed` + `9d54313`;
+      ADR-062 / ADR-067 / ADR-069 / ADR-070 Accepted; debts **397** /
+      **406** / **418** / **420** Closed; Known debt review done (owner,
+      2026-10-02); notes `docs/acceptance/cap31-31.4-notes.md`
+- [x] 31.4a Live long-press replay failure feedback
+      (owner observation 2026-10-02, iPhone 13 Pro offline: a Live
+      Photo whose motion is only in iCloud fails the long-press replay
+      with no visible feedback; scope: center "!" plus one neutral line
+      (new key, announced once to VoiceOver) while the finger stays
+      down, on a replay failure that arrives while the finger is
+      still down — finger already up or a cancel does not show it;
+      auto-play failure stays silent)
+      — work `ee47970` + `7450e94` + `e0c434c`; ADR-071 Accepted;
+      debt **436** Closed; debt **488** Accepted (phase); notes
+      `docs/acceptance/cap31-31.4a-notes.md`
+- [x] 31.5 Probe / debug cleanup (pre-v1)
+      (**Inventory layers A–D**, owner 2026-09-27 chat — not
+      “Settings-only vs whole-repo”.)
+      **In scope this phase:**
+      (1) **A1+A2** — remove Settings-visible Cap 27 L1-stall + Cap 28
+      live probe sections (`!kReleaseMode` mounts in Settings
+      `ListView`); product Settings chrome only.
+      (2) **D1** — gate `ScrubPreviewProbe` (and its Host call sites)
+      + Release-only filter for the `WT18.5` Dart debugPrint lines in
+      main() so **Flutter/App Store Release is silent**; keep Debug+Profile
+      emission if still needed for soaks. **Do not** implement the
+      Release gate as bare `#if DEBUG` alone (Profile iOS usually has
+      `DEBUG` false — that would also kill Profile Console). Prefer a
+      Release-vs-(Debug|Profile) split (e.g. Dart `!kReleaseMode`
+      wired once, or an equivalent compile flag).
+      (3) **B1** — delete the `Cap27L1StallProbe` implementation
+      (`cap27_l1_stall_probe*.dart` + Browse call sites) together with
+      A1 (debt **478** Accepted (phase), owner Cap 31.4 debt review).
+      **Explicit start gate:** before any 31.5 code, confirm 31.2 /
+      31.3 no longer need A1/A2 buttons or B1/B2 Documents logging;
+      do not assume “later phase number ⇒ safe.”
+      **B1 deleted, B2–B4 kept (owner 2026-10-02):** debt **478** already
+      decided B1's deletion. B2 (`wtlive.log`), the Cap 28 chrome-axis
+      probe + Browse Host (B3), and the Cap 29 access-scope probe (B4)
+      are passive recorders that work without a Settings entry and are
+      Release no-ops (checked on a Release build). Deleting B2/B3 would
+      touch about 14 more Browse feed call sites; B4 sits in the
+      V1-verified Limited access authority path — not worth touching
+      for a no-op. B2 loses `teeCap27` with B1.
+      **Out of scope / deferred:**
+      — **A3+C** library_smoke Debug entry + smoke ARB: keep per debt
+      **417** (post-v1 Settings / localisation Cap).
+      — **D2** (`#if DEBUG` native test helpers) / **D3** (other Dart
+      `debugPrint`): not required this phase.
+      **Do not** delete product `library_smoke/*_providers` composition
+      seams under the smoke folder name.
+      — work `0c921fa` + `a00b86a`; B1 deleted, B2–B4 kept; notes
+      `docs/acceptance/cap31-31.5-notes.md`
+- [x] 31.6 Competitor-codename full-repo scan
+      (**after** 31.1–31.5 complete — scan near-final tree, not mid-Cap;
+      ARB / comments / code strings / docs; Release-visible first)
+      Scope (owner 2026-10-01): files in `git ls-files` only (local
+      agent-rule paths are not tracked); text files only; English terms
+      match whole words, case-insensitive. Terms: competitor names,
+      bundle IDs, Instruments process tokens and AI tool / company
+      names from the local term list in
+      `docs/private/competitor-codenames.md` ("31.6 scan term list");
+      an AI tool / company name counts only where it means the tool or
+      company, not a generic technical word. Output is a
+      read-only list (path + line + context); no replace or delete
+      before owner approval per hit. Commit-history scope: commit
+      messages and historical file contents across every branch and tag
+      that would become public (at least `main` and `spike/poc`); hits
+      go in a separate read-only, not-handled list (no history rewrite).
+      — work `356d95a` + `b5bfadd`; 16 current-file hits replaced or
+      removed (none Release-visible); local agent-rules ignore moved to
+      `.git/info/exclude`; history list not handled; notes
+      `docs/acceptance/cap31-31.6-notes.md`
+- [x] 31.7 Light Release smoke + Cap close-out
+      (Release `3482826`, one full pass each on i17 and Kafka; 11-row
+      matrix incl. left-swipe add and zh-Hans on Kafka — all PASS;
+      full `flutter test` +1317 PASS; no findings in the matrix; the
+      B-layer probe teardown decision was settled in 31.5)
+      — docs (this commit); notes `docs/acceptance/cap31-31.7-notes.md`
+
+Docs close-out (notes + STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-061 … ADR-071 Accepted (061 title token split; 062
+system-only language; 063 Live motion-end fallback; 064 still share
+without location; 065 still render; 066 remount shell-gate clear; 067
+file-content read ban; 068 video handoff; 069 accent fill text
+pairing; 070 iPhone-only v1; 071 long-press replay failure feedback).
+Known debt during Cap 31 (mechanical diff of the STATE Known debt
+table, Cap 30 close `9bf9a36` → Cap 31 close):
+- Logged in Cap 31: **482** (31.1), **484** (31.2b), **486** / **487**
+  (31.3), **483** (31.4), **488** / **489** (31.4a) — Accepted (phase);
+  **485** (31.2c) — Closed.
+- Closed by Cap 31: **397**, **406**, **418**, **420**, **436**,
+  **441**, **480** (plus **485** above).
+- Accepted (phase) in Cap 31: **403a**, **407**, **422**, **424**,
+  **428**, **432**, **452**, **456a**, **457**, **476**, **478**,
+  **481**.
+- Accepted (permanent) in Cap 31: **405**, **471**.
