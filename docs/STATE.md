@@ -398,11 +398,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       seams under the smoke folder name.
       — work `0c921fa` + `a00b86a`; B1 deleted, B2–B4 kept; notes
       `docs/acceptance/cap31-31.5-notes.md`
-- [ ] 31.6 Competitor-codename full-repo scan
+- [x] 31.6 Competitor-codename full-repo scan
       (**after** 31.1–31.5 complete — scan near-final tree, not mid-Cap;
       ARB / comments / code strings / docs; Release-visible first)
       Scope (owner 2026-10-01): files in `git ls-files` only (local
-      agent-rule paths are gitignored); text files only; English terms
+      agent-rule paths are not tracked); text files only; English terms
       match whole words, case-insensitive. Terms: competitor names,
       bundle IDs, Instruments process tokens and AI tool / company
       names from the local term list in
@@ -414,13 +414,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       messages and historical file contents across every branch and tag
       that would become public (at least `main` and `spike/poc`); hits
       go in a separate read-only, not-handled list (no history rewrite).
+      — work `356d95a` + `b5bfadd`; 16 current-file hits replaced or
+      removed (none Release-visible); local agent-rules ignore moved to
+      `.git/info/exclude`; history list not handled; notes
+      `docs/acceptance/cap31-31.6-notes.md`
 - [ ] 31.7 Device acceptance matrix + Cap close-out
       (Cap 30.7 pattern: device matrix + needed regression; STATE `[x]`
       + PHASE_HISTORY + debt status updates; includes any deferred
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 31.6 — competitor-codename full-repo scan
+- Goal (one line): 31.7 — device acceptance matrix + Cap close-out
 - Sub-steps done: 31.2 closed (31.2a `b8b7b9b` / ADR-063; 31.2b-2
       `bd6a870` / ADR-064; 31.2b-1 `7d3d450` / ADR-065); 31.2c closed
       (`08aa987` / ADR-066; debts **480** / **485** Closed); 31.3
@@ -429,15 +433,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       ADR-070; Known debt review done); 31.4a closed (`ee47970` …
       `e0c434c` / ADR-071; debt **436** Closed, **488** Accepted
       (phase)); 31.5 closed (`0c921fa` + `a00b86a`; B1 deleted, B2–B4
-      kept)
-- Next step: run the 31.6 scan per its Phase Roadmap scope — tracked
-      text files (`git ls-files`), whole-word case-insensitive English
-      terms from the local term list `docs/private/competitor-codenames.md`
-      ("31.6 scan term list"); output a read-only hit list (path + line
-      + context), no edit before owner approval per hit; commit messages
-      and historical file contents on every branch / tag that would
-      become public (at least `main` and `spike/poc`) go in a separate
-      read-only list (no history rewrite)
+      kept); 31.6 closed (`356d95a` + `b5bfadd`; history list not
+      handled)
+- Next step: draft the 31.7 device acceptance matrix for owner approval
+      (Cap 30.7 pattern) — Release builds on i17 and Kafka; one row per
+      Cap 31 phase: 31.1 Settings hierarchy / info bubbles, 31.2a–c Live
+      album cases / still render / remount chrome, 31.3 video handoff
+      black frame, 31.4 bucket items, 31.4a long-press replay failure
+      feedback, 31.5 Settings without probe sections; plus full
+      `flutter test` (architecture + localization guards); then Cap
+      close-out: STATE `[x]`, PHASE_HISTORY snapshot, Known debt status
+      review
 - Related decisions: ADR-071 Accepted (31.4a long-press replay
       failure "!" and line); Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); ADR-062 Accepted
@@ -840,7 +846,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 416 | Open | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only. No iOS 18 device; the runtime is installable on the dev Mac. Runner Swift compiles against 18.0 with no `#available` branches, so unguarded newer APIs would fail the build; behaviour / layout on iOS 18 and plugin native code stay unverified | MVP v1 pre-submission hardening (iOS 18 simulator smoke: launch, Photos permission, Browse, Settings, Light/Dark) | ADR-007 |
 | 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred. **Also (logged Cap 21.5 follow-up):** `app_zh_Hans.arb` debug / probe strings under `source*` / `playbackProbe*` / `cap19*Probe*` still carry Latin product/API tokens (Photos, Videos, Pool, Limited, unauthorized, estimatedCount, PHAsset, bootstrap, L-BOOT, …). Visible only under `kDebugMode` / library_smoke — not Release product risk; systematic ZH cleanup deferred to Settings and localisation completion (same Inventory lane). Cap 21.5 follow-up only aligned `playbackProbeLoadImage` / `playbackProbeLoadVideo` with `libraryRowPhotos` / `libraryRowVideos` wording. | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | 418 | Closed | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload. **Closed (Cap 31.4):** iPhone slots and the 1024 marketing icon carry the WakeTok design (`5645bb1`); v1 is iPhone-only and the five iPad-only placeholder icons are removed (`9d54313`); owner device check passed 2026-10-02 (iPhone 17, iPhone 13 Pro, Release) | Closed by Cap 31.4 | ADR-070 |
-| 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); the agent reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7), including the 31.6 commit-history hit list once 31.6 has run | — |
+| 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); the agent reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7), including the 31.6 commit-history hit list (done; see `cap31-31.6-notes.md` and the local `docs/private/cap31-31.6-history-hits.md`) | — |
 | 420 | Closed | iOS Photos permission |  | NSPhotoLibraryUsageDescription was PLACEHOLDER copy; replaced with owner-approved English wording (zh prompt gap: 483) | Final permission wording is owner-only (release-handoff) | Closed by Cap 31.4 (`7d47ef3`; owner device PASS on iPhone 13 Pro + iPhone 17) | ADR-062 |
 | 421 | Closed | iOS Photos permission |  | Limited Access product chrome unmounted from Main Browse (`01a7611`) | Banner sat above IndexedStack (all four tabs) and the shell Column had no SafeArea (notch clipped it). **Removed the product mount, not the feature.** **Closed by Cap 29** (ADR-059): Settings Photos Access — Manage → `presentLimitedLibraryPicker` (every dismiss dirty via Cap 28.5 authority); Open Settings never notifies; Full status ± Open Settings; no Browse launch remind (v1). ADR-059 D10: access-scope consume clears Snapshot cache + feed index 0 before `restartSession` so Manage round-trips are product-visible. Kickoff ADR-K §3 in-app entry met for Limited manage + system path to Full. Debug `library_smoke` Limited banner remains `kDebugMode` only. | Closed by Cap 29 | kickoff ADR-K; ADR-058 D4; ADR-059 |
 | 422 | Accepted (phase) | iOS Photos permission |  | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK. Host uses KVC in `mapAvailability`. **Cap 15.12 / 15.15 (ADR-033):** become-current may call `getAssetAvailabilities` (on-demand; resolve returns empty availabilities). Same KVC helper for probed ids only. **Further expansion** of KVC beyond this gate still needs explicit owner re-board. | Re-evaluate only if App Review or TestFlight external beta review flags it | ADR-033 |
