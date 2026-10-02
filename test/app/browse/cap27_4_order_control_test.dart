@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -321,5 +322,80 @@ void main() {
       await tester.ensureVisible(find.byKey(const Key('orderControlCancel')));
       expect(find.byKey(const Key('orderControlCancel')), findsOneWidget);
     });
+
+    testWidgets(
+        'W-31.4-S2 Confirm finishing during sheet exit keeps the page below', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      final container = ProviderContainer(
+        overrides: [
+          assetSourceRepositoryProvider.overrideWithValue(
+            FakeAssetSourceRepository(allIds: const ['a', 'b']),
+          ),
+          browseShuffleRandomFactoryProvider.overrideWith(
+            (ref) => () => Random(0),
+          ),
+          browseEmptyRetryDelaysProvider.overrideWithValue(const []),
+          photosAuthorizationRepositoryProvider.overrideWithValue(
+            ControllablePhotosAuthorizationRepository(PhotosAccess.full),
+          ),
+          browseSessionProvider.overrideWith(
+            () => _StallingBrowseSessionNotifier(gate),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(browseSessionProvider.future);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => Center(
+                  child: TextButton(
+                    key: const Key('orderSheetTestOpen'),
+                    onPressed: () => showOrderControlHalfSheet(context),
+                    child: const Text('open'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const Key('orderSheetTestOpen')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('orderControlOption_newestFirst')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('orderControlConfirm')));
+      await tester.pump();
+      // Cancel while Confirm is still applying.
+      await tester.tap(find.byKey(const Key('orderControlCancel')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      gate.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('orderControlHalfSheet')), findsNothing);
+      expect(find.byKey(const Key('orderSheetTestOpen')), findsOneWidget);
+    });
   });
+}
+
+class _StallingBrowseSessionNotifier extends BrowseSessionNotifier {
+  _StallingBrowseSessionNotifier(this.gate);
+
+  final Completer<void> gate;
+
+  @override
+  Future<bool> applyConfirmedOrderPreference(OrderPolicy confirmed) async {
+    await gate.future;
+    return super.applyConfirmedOrderPreference(confirmed);
+  }
 }

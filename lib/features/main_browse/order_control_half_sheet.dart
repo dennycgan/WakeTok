@@ -110,7 +110,11 @@ class _OrderControlHalfSheetState extends ConsumerState<OrderControlHalfSheet> {
           .read(mainBrowseCurrentAssetListAvailabilityProvider.notifier)
           .setAvailability(null);
     }
-    Navigator.of(context).pop();
+    // A sheet closed during the await stays mounted through its exit
+    // animation; popping then would remove the page beneath it.
+    if (ModalRoute.isCurrentOf(context) ?? false) {
+      Navigator.of(context).pop();
+    }
   }
 
   void _onCancel() {

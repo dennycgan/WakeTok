@@ -173,7 +173,11 @@ class _AlbumList extends ConsumerWidget {
     }
     switch (outcome) {
       case Cap19AlbumAppendOutcome.success:
-        Navigator.of(context).pop();
+        // A sheet closed during the await stays mounted through its exit
+        // animation; popping then would remove the page beneath it.
+        if (ModalRoute.isCurrentOf(context) ?? false) {
+          Navigator.of(context).pop();
+        }
         showCap19AddToAlbumSuccessToast(hostContext, l10n, album.displayName);
       case Cap19AlbumAppendOutcome.mediaNotReady:
         showCap19CurrentMediaNotReadyToast(hostContext, l10n);

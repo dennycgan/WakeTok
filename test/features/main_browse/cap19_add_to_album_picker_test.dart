@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -273,4 +275,55 @@ void main() {
     expect(find.text(l10n.cap19PanelAddToAlbumEmpty), findsOneWidget);
     expect(find.byKey(const Key('cap19AlbumPickerRow-readonly')), findsNothing);
   });
+
+  testWidgets(
+      'W-31.4-S1 append finishing during sheet exit keeps the Browse page',
+      (tester) async {
+    final repo = ControllablePhotosAuthorizationRepository(PhotosAccess.full);
+    final sources = FakeAssetSourceRepository(
+      allIds: const ['a1'],
+      availabilityById: FakeAssetSourceRepository.deviceLocalForIds(const ['a1']),
+      extraSources: [
+        _writableAlbum(id: 'album-1', displayName: 'Vacation'),
+      ],
+    );
+    final mutations = _StallingAlbumMutationRepository();
+    await tester.pumpWidget(
+      permissionUiHarness(
+        repo: repo,
+        assetSources: sources,
+        albumMutations: mutations,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await _openFullSheet(tester);
+    await tester.tap(find.byKey(const Key('cap19AlbumPickerRow-album-1')));
+    await tester.pump();
+    expect(mutations.addCalls, 1);
+
+    // Barrier tap while the append is in flight.
+    await tester.tapAt(const Offset(20, 20));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    mutations.gate.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('cap19ActionsHalfSheet')), findsNothing);
+    expect(find.byType(MainBrowseShellPage), findsOneWidget);
+    await _settleCap19Toasts(tester);
+  });
+}
+
+class _StallingAlbumMutationRepository extends FakeAlbumMutationRepository {
+  final Completer<void> gate = Completer<void>();
+
+  @override
+  Future<void> addAssetToAlbum(
+    String assetIdentifier,
+    String albumIdentifier,
+  ) async {
+    await super.addAssetToAlbum(assetIdentifier, albumIdentifier);
+    await gate.future;
+  }
 }
