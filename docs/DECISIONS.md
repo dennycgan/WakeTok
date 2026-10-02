@@ -626,8 +626,8 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
 - Consequences / constraints accepted:
   - Architecture is repo-visible; conflict priority
     (owner > DECISIONS > STATE > kickoff) closes for layering.
-  - Local Cursor rules cite ADR-009 / ADR-006 and the ban list; they do not
-    duplicate kickoff prose (`.cursor/` is gitignored).
+  - Local agent rules cite ADR-009 / ADR-006 and the ban list; they do not
+    duplicate kickoff prose (the local agent-rules directory is gitignored).
   - The three App Foundation path choices are canonical, not debt.
   - Dart boundaries = guard tests; Swift product-rule discipline = review +
     ADR-006 (not claimed by Dart scanners).
@@ -683,7 +683,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
   - ADR-010 applies from Cap 5.2 onward for new feature state.
   - Temporary DEBUG auth harness in `lib/main.dart` is not product UI and
     must not become the 5.3 permission-screen foundation.
-  - Local Cursor rules should cite ADR-010 alongside ADR-009 for domain /
+  - Local agent rules should cite ADR-010 alongside ADR-009 for domain /
     composition-root constraints.
 ---
 
@@ -804,7 +804,7 @@ semantics (1:1, exhaustive, unknown fallback) unchanged.
     **already exist** but whose zh-Hans copy may still need polish. It no
     longer owns “does this key exist?” — that duty belongs to
     `localization_test.dart` key-parity (Decision 2).
-  - Local Cursor rules cite ADR-012; published truth is DECISIONS + tests.
+  - Local agent rules cite ADR-012; published truth is DECISIONS + tests.
 
 ---
 
@@ -4372,7 +4372,7 @@ iPhone13pro Kafka Profile PASS — `docs/acceptance/cap18-18.5-notes.md`):**
 4. **End-cap and drift-reject failures forbid borrow.** When preview is in the
    end-cap zone, or when Dart rejects a returned frame under item 7 (Option B),
    `forbidBorrow` is true: §2.1 borrow must not fill the bubble with a prior
-   bucket JPEG (prevents re-legalizing “frames before the Douyin tail” and
+   bucket JPEG (prevents re-legalizing “frames before the Video-App-B tail” and
    displaying misaligned frames after drift reject). Ordinary Host **nil** on
    mid-path still allows bounded §2.1 borrow.
 
@@ -4930,7 +4930,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     ban; it is not a template for later Caps.
   - Escape-hatch “stop and re-discuss” = message owner and wait before
     code; **project-wide** collaboration rule (mirrored in
-    `.cursor/rules/00-workflow-gates.mdc` Stop conditions).
+    the local agent rule `00-workflow-gates.mdc` Stop conditions).
   - **`setDisplayMagnification` has no throttle/debounce:** each armed
     matrix publish crosses the platform channel on pointer moves. Kafka
     Profile smoke (performance-floor device) showed no material hitch; if
@@ -7610,7 +7610,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   left-swipe coach. A boolean “consumed on show <1>” flag would drop
   later steps if the process is killed mid-chain.
 - Decision (what was chosen):
-  1. **D1 — Three tips, scoped.** `<1>` TikTok-style vertical up/down
+  1. **D1 — Three tips, scoped.** `<1>` Video-App-B-style vertical up/down
      hint (centered). `<2>` Create Pool tip (anchored tooltip). `<3>`
      left-swipe add-to-WakeTok tip (Cap 19.6/19.7 logic; Cap 30 does
      not change its normal frequency or Settings toggles — only D6
@@ -8468,8 +8468,8 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     (2026-09-29)"; its Decision body is not edited.
   - ADR-050 D7 / ADR-065 D4: the Cap 24 capture-time path stays as the
     allowlisted exception until debt 486 is paid.
-  - `.cursor/rules/architecture-boundaries.mdc` (local agent rules;
-    `.cursor/` is gitignored): Ban list and Enforcement updated to match.
+  - `architecture-boundaries.mdc` (local agent rules;
+    the agent-rules directory is gitignored): Ban list and Enforcement updated to match.
 
 ## ADR-068: Cap 31.3 video handoff black frames — clear video slot, native letterbox cover, late remount poster
 

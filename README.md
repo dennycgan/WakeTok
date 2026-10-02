@@ -87,8 +87,8 @@ attach/release (that race SIGABRT’d the lock-screen feed probe).
 
 ## Engineering process
 
-I ship in phases with manual gates (`docs/STATE.md`); project rules in
-`.cursor/rules/` keep AI-assisted sessions inside phase scope.
+I ship in phases with manual gates (`docs/STATE.md`); local agent rules
+(gitignored) keep AI-assisted sessions inside phase scope.
 
 ---
 

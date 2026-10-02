@@ -47,9 +47,6 @@ app.*.map.json
 # Local git hooks (optional; enable with: git config core.hooksPath .githooks)
 .githooks/
 
-# Cursor local rules / agent config (not published)
-.cursor
-
 # Private local docs (not published to the remote repo)
 docs/WakeTok(App)_project_kickoff.md
 docs/GLOSSARY.en-zh.md
