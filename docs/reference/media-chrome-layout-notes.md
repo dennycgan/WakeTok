@@ -1045,6 +1045,13 @@ still down (ADR-071).
 | Hides | At once (no fade) on release, page leave, app inactive / paused / hidden, pointer cancel | No timeout: stays as long as the finger stays down |
 | VoiceOver | Line announced once on the hidden → shown edge (`SemanticsService.sendAnnouncement`) | "!" is `ExcludeSemantics`; the line stays in the semantics tree (merged into the page image node) |
 
+If the Layer 2 failed slot (the failure line for the reason — download,
+network or generic — with Retry) is also showing, both messages appear
+while the finger is held. They overlap in meaning, and Retry stays
+tappable (the "!" layer ignores pointers). Not designed for; accepted
+after owner device observation 2026-10-02. Do not hide either without a
+new decision.
+
 Auto-play failure shows nothing (no LIVE badge change, no text).
 
 The long-press gesture follows only the pointer that fired it; there is no
