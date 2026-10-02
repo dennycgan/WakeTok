@@ -20,8 +20,6 @@ import 'package:waketok/features/main_browse/cap19_gestures_settings_section.dar
 import 'package:waketok/features/main_browse/cap19_left_swipe_guide.dart';
 import 'package:waketok/features/main_browse/cap30_create_pool_tip.dart';
 import 'package:waketok/features/main_browse/cap30_vertical_hint_guide.dart';
-import 'package:waketok/features/main_browse/cap27_l1_stall_probe_settings.dart';
-import 'package:waketok/features/main_browse/cap28_live_probe_settings.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/order_control_half_sheet.dart';
 import 'package:waketok/features/main_browse/settings_layout.dart';
@@ -417,13 +415,6 @@ class _SettingsStubPane extends StatelessWidget {
               },
               child: Text(l10n.mainBrowseOpenLibrarySmokeDebug),
             ),
-          ],
-          // After library-smoke debug (tests find that key without scrolling).
-          if (!kReleaseMode) ...[
-            const SizedBox(height: kSettingsSectionGap),
-            const Cap27L1StallProbeSettingsSection(),
-            const SizedBox(height: kSettingsSectionGap),
-            const Cap28LiveProbeSettingsSection(),
           ],
         ],
       ),

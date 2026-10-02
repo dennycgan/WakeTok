@@ -46,7 +46,6 @@ import 'package:waketok/features/main_browse/cap19_left_swipe_drag.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_gesture.dart';
 import 'package:waketok/features/main_browse/cap19_left_swipe_session.dart';
 import 'package:waketok/features/main_browse/cap24_more_panel_open.dart';
-import 'package:waketok/features/main_browse/cap27_l1_stall_probe.dart';
 import 'package:waketok/features/main_browse/cap28_chrome_axis_probe.dart';
 import 'package:waketok/features/main_browse/cap28_live_probe.dart';
 import 'package:waketok/features/main_browse/order_control_panel_open.dart';
@@ -561,19 +560,6 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     _activeAssetId = assetId;
     _activeDisplayGeneration = gens.display;
     unawaited(
-      Cap27L1StallProbe.log('BEGIN_CURRENT_ACTIVATION', {
-        'source': source,
-        'activationSource': activationSource.name,
-        'assetId': assetId,
-        'displayGen': gens.display,
-        'metadataGen': gens.metadata,
-        'feedIndex': ref.read(mainBrowseFeedIndexProvider),
-        'roundEpoch':
-            ref.read(browseSessionProvider).asData?.value.roundEpoch,
-        'l2Ready': ref.read(browseL2ReadySessionProvider).containsKey(assetId),
-      }),
-    );
-    unawaited(
       Cap28LiveProbe.log('BEGIN_CURRENT_ACTIVATION', {
         'source': source,
         'activationSource': activationSource.name,
@@ -732,38 +718,10 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
     _advancingRound = true;
     _endlessPlaceholderArmed = false;
     final remountGen = ++_roundAdvanceGen;
-    final view = ref.read(browseSessionProvider).asData?.value;
-    final headId = view?.orderedAssetIds.isNotEmpty == true
-        ? view!.orderedAssetIds.first
-        : null;
-    unawaited(
-      Cap27L1StallProbe.log('ENDLESS_ADVANCE_UI_BEGIN', {
-        'remountGen': remountGen,
-        'roundEpoch': view?.roundEpoch,
-        'orderPolicy': view?.session.queue.configuration.orderPolicy.name,
-        'feedIndex': ref.read(mainBrowseFeedIndexProvider),
-        'activeAssetId': _activeAssetId,
-        'activeDisplayGen': _activeDisplayGeneration,
-        'headId': headId,
-        'l2ReadyHead': headId == null
-            ? null
-            : ref.read(browseL2ReadySessionProvider).containsKey(headId),
-      }),
-    );
     _clearCap19LeftSwipeBeforeFeedRemount();
     unawaited(ref.read(playbackCoordinatorProvider).onLeaveCurrent());
     ref.read(browseSessionProvider.notifier).advanceToNextRound();
     ref.read(mainBrowseFeedIndexProvider.notifier).setIndex(0);
-    unawaited(
-      Cap27L1StallProbe.log('ENDLESS_ADVANCE_SET_INDEX_0', {
-        'remountGen': remountGen,
-        'roundEpoch':
-            ref.read(browseSessionProvider).asData?.value.roundEpoch,
-        'feedIndex': ref.read(mainBrowseFeedIndexProvider),
-        'activeAssetId': _activeAssetId,
-        'activeDisplayGen': _activeDisplayGeneration,
-      }),
-    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || remountGen != _roundAdvanceGen) {
         return;
@@ -773,17 +731,6 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
         controller.jumpToPage(0);
       }
       _advancingRound = false;
-      unawaited(
-        Cap27L1StallProbe.log('ENDLESS_ADVANCE_JUMP0_DONE', {
-          'remountGen': remountGen,
-          'roundEpoch':
-              ref.read(browseSessionProvider).asData?.value.roundEpoch,
-          'feedIndex': ref.read(mainBrowseFeedIndexProvider),
-          'activeAssetId': _activeAssetId,
-          'activeDisplayGen': _activeDisplayGeneration,
-          'page': controller?.hasClients == true ? controller!.page : null,
-        }),
-      );
       unawaited(
         _showNewRoundToastAfterAdvance(
           l10n: l10n,
@@ -3042,22 +2989,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _liveReplayFailVisible = false;
     }
     if (!oldWidget.isCurrent && widget.isCurrent) {
-      unawaited(
-        Cap27L1StallProbe.log('BECOME_CURRENT', {
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': widget.assignedDisplayGeneration,
-          'loading': _loading,
-          'mediaKind': _media?.kind.name,
-          'surfaceReady': _surfaceReady,
-          'layer2InFlight': _layer2InFlight,
-          'preferHost': widget.preferHostOverSessionL2Ready,
-          'activationSource': widget.activationSource.name,
-          'l2ReadyToken': ref
-              .read(browseL2ReadySessionProvider)
-              .containsKey(widget.assetIdentifier),
-        }),
-      );
       _armLayer2DwellTimer();
       final gen = widget.assignedDisplayGeneration;
       // Cap 28 A′: completed-video settingsResume must not arm L2-reload
@@ -3091,24 +3022,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (leftCurrent) {
       final leftForSettings = ref.read(mainBrowseDestinationProvider) ==
           MainBrowseDestination.settings;
-      unawaited(
-        Cap27L1StallProbe.log('LEAVE_CURRENT', {
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': oldWidget.assignedDisplayGeneration,
-          'loading': _loading,
-          'mediaKind': _media?.kind.name,
-          'displayLayer': _media?.displayLayer?.name,
-          'coverPath': _media?.display?.localFilePath,
-          'stillCoverReady': _stillCoverReady,
-          'surfaceReady': _surfaceReady,
-          'layer2InFlight': _layer2InFlight,
-          'leftForSettings': leftForSettings,
-          'l2ReadyToken': ref
-              .read(browseL2ReadySessionProvider)
-              .containsKey(widget.assetIdentifier),
-        }),
-      );
       unawaited(
         Cap28LiveProbe.log('LEAVE_CURRENT', {
           'assetId': widget.assetIdentifier,
@@ -4225,17 +4138,8 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Layer 1 took longer than N). [dwell] defaults to production 300 ms;
   /// Cap 15.12 first-visit fast path passes [browseLocalFirstVisitDwellProvider].
   void _armLayer2DwellTimer({Duration? dwellDuration}) {
-    _cancelLayer2DwellTimer(reason: 'rearm');
+    _cancelLayer2DwellTimer();
     final Duration n = dwellDuration ?? ref.read(browseLayer2DwellProvider);
-    unawaited(
-      Cap27L1StallProbe.log('DWELL_ARM', {
-        'assetId': widget.assetIdentifier,
-        'feedIndex': widget.feedIndex,
-        'isCurrent': widget.isCurrent,
-        'ms': n.inMilliseconds,
-        'assignedGen': widget.assignedDisplayGeneration,
-      }),
-    );
     if (n <= Duration.zero) {
       _layer2DwellCompleter = Completer<void>()..complete();
       return;
@@ -4247,35 +4151,16 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       if (!done.isCompleted) {
         done.complete();
       }
-      unawaited(
-        Cap27L1StallProbe.log('DWELL_COMPLETE', {
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': widget.assignedDisplayGeneration,
-        }),
-      );
     });
   }
 
-  void _cancelLayer2DwellTimer({String reason = 'cancel'}) {
-    final had = _layer2DwellTimer != null || _layer2DwellCompleter != null;
+  void _cancelLayer2DwellTimer() {
     _layer2DwellTimer?.cancel();
     _layer2DwellTimer = null;
     final pending = _layer2DwellCompleter;
     _layer2DwellCompleter = null;
     if (pending != null && !pending.isCompleted) {
       pending.complete();
-    }
-    if (had) {
-      unawaited(
-        Cap27L1StallProbe.log('DWELL_CANCEL', {
-          'reason': reason,
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'isCurrent': widget.isCurrent,
-          'assignedGen': widget.assignedDisplayGeneration,
-        }),
-      );
     }
   }
 
@@ -4470,18 +4355,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
             _media?.display != null &&
             _media!.display!.assetIdentifier == widget.assetIdentifier;
         if (reuseLayer1) {
-          unawaited(
-            Cap27L1StallProbe.log('START_LOAD_EARLY_RETURN', {
-              'reason': 'gate_null_reuseLayer1',
-              'assetId': widget.assetIdentifier,
-              'feedIndex': widget.feedIndex,
-              'isCurrent': widget.isCurrent,
-              'assignedGen': assigned,
-              'hasGate': shared != null,
-              'mediaKind': _media?.kind.name,
-              'loading': _loading,
-            }),
-          );
           return;
         }
         final liveGeneration = _liveMotionGate.begin();
@@ -4501,17 +4374,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           }
         });
         _setLivePreparing(liveGeneration, false);
-        unawaited(
-          Cap27L1StallProbe.log('START_LOAD_EARLY_RETURN', {
-            'reason': 'gate_null_loading_wait',
-            'assetId': widget.assetIdentifier,
-            'feedIndex': widget.feedIndex,
-            'isCurrent': widget.isCurrent,
-            'assignedGen': assigned,
-            'hasGate': shared != null,
-            'l2ReadyToken': sessionTok != null,
-          }),
-        );
         return;
       }
       gate = shared;
@@ -4591,14 +4453,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           }
         } else if (hadSessionToken) {
           // Token present but cover missing / evicted — Host path follows.
-          unawaited(
-            Cap27L1StallProbe.log('L2_READY_MISS', {
-              'assetId': widget.assetIdentifier,
-              'feedIndex': widget.feedIndex,
-              'assignedGen': generation,
-              'reason': 'cover_missing_or_evicted',
-            }),
-          );
         }
       } else if (!forceFullAfterHostUnavailable &&
           preferHostOverSessionL2Ready) {
@@ -4609,17 +4463,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _forceStillCoverHardReload = true;
         _skipLayer1PaintForRemountHost = true;
         widget.onEpochRemountPreferHostConsumed?.call();
-        unawaited(
-          Cap27L1StallProbe.log('L2_READY_SKIP_BORN_CURRENT', {
-            'assetId': widget.assetIdentifier,
-            'feedIndex': widget.feedIndex,
-            'assignedGen': generation,
-            'reason': hadSessionToken
-                ? 'epoch_remount_prefer_host'
-                : 'epoch_remount_prefer_host_no_token',
-            'hadSessionToken': hadSessionToken,
-          }),
-        );
       }
 
       // Cover missing after Session token → a4 eviction revisit band.
@@ -5134,23 +4977,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       });
       return;
     }
-    unawaited(
-      Cap27L1StallProbe.log('LAYER2_APPLY', {
-        'assetId': widget.assetIdentifier,
-        'feedIndex': widget.feedIndex,
-        'kind': layer2.kind.name,
-        'assignedGen': generation,
-        'loading': _loading,
-        'priorDisplayLayer': _media?.displayLayer?.name,
-        'displayLayer': layer2.displayLayer?.name,
-        'coverPath': layer2.display?.localFilePath,
-        'stillCoverReady': _stillCoverReady,
-        'hardReloadPending': _forceStillCoverHardReload,
-        'l2ReadyToken': ref
-            .read(browseL2ReadySessionProvider)
-            .containsKey(widget.assetIdentifier),
-      }),
-    );
     if (layer2.kind == FeedPageMediaKind.failed) {
       // Revisit model: if Photos says not still-in-library, never leave the
       // page on Case A (generic + Retry + actionable). Coerce to Cap 21.6 B.
@@ -5350,20 +5176,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     required FeedMediaRequestGate gate,
     required int generation,
   }) async {
-    unawaited(
-      Cap27L1StallProbe.log('L2_READY_ENTER', {
-        'assetId': widget.assetIdentifier,
-        'feedIndex': widget.feedIndex,
-        'assignedGen': generation,
-        'kind': l2Ready.kind.name,
-        'hasCover': l2Ready.cover != null,
-        'coverPath': l2Ready.cover?.localFilePath,
-        'seedLayer': _media?.displayLayer?.name,
-        'liveMounted': _liveMotionMounted,
-        'isCurrent': widget.isCurrent,
-        'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
-      }),
-    );
     final isVideoFastPath = l2Ready.kind == FeedL2ReadyKind.video;
     if (isVideoFastPath) {
       _holdVideoSurfaceForL2ReloadIfNeeded(generation);
@@ -5394,20 +5206,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       // Clear→false only if this [generation] still owns inFlight (see
       // _abandonLayer2Attempt). canMountVideo still requires isCurrent, so
       // leave/off-current cannot mount; gate-stale leaves a newer arm intact.
-      unawaited(
-        Cap27L1StallProbe.log('L2_READY_ABANDON', {
-          'reason': 'l2-ready-teardown-early',
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': generation,
-          'kind': l2Ready.kind.name,
-          'mounted': mounted,
-          'gateCurrent': gate.isCurrent(generation),
-          'isCurrent': widget.isCurrent,
-          'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
-          'inFlightGen': _layer2InFlightGeneration,
-        }),
-      );
       _abandonLayer2Attempt(generation, reason: 'l2-ready-teardown-early');
       return false;
     }
@@ -5433,17 +5231,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           _onLivePreparingChanged(true);
         }
       });
-      unawaited(
-        Cap27L1StallProbe.log('L2_READY_APPLY', {
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': generation,
-          'kind': 'stillFull',
-          'displayLayer': FeedDisplayLayer.full.name,
-          'liveStill': liveStill,
-          'coverPath': l2Ready.cover!.localFilePath,
-        }),
-      );
       widget.onCurrentLayer2MediaReady?.call(widget.assetIdentifier);
       _publishHostUnavailableGate();
       _publishLayer2DisplayReady(true);
@@ -5453,16 +5240,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
 
     if (l2Ready.kind == FeedL2ReadyKind.stillFull && l2Ready.cover == null) {
       // Dead-end without fall-through: still token without cover.
-      unawaited(
-        Cap27L1StallProbe.log('L2_READY_ABANDON', {
-          'reason': 'still_full_null_cover',
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': generation,
-          'kind': l2Ready.kind.name,
-          'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
-        }),
-      );
       return false;
     }
 
@@ -5470,19 +5247,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       await _awaitLayer2Dwell(bypassDwell: true);
       if (!mounted || !gate.isCurrent(generation) || !widget.isCurrent) {
         // F2: post-dwell abandon — same ownership rule as F1.
-        unawaited(
-          Cap27L1StallProbe.log('L2_READY_ABANDON', {
-            'reason': 'l2-ready-dwell-early',
-            'assetId': widget.assetIdentifier,
-            'feedIndex': widget.feedIndex,
-            'assignedGen': generation,
-            'kind': l2Ready.kind.name,
-            'mounted': mounted,
-            'gateCurrent': gate.isCurrent(generation),
-            'isCurrent': widget.isCurrent,
-            'epochRemountPreferHost': _preferHostOverSessionL2ReadyOnce,
-          }),
-        );
         _abandonLayer2Attempt(generation, reason: 'l2-ready-dwell-early');
         return false;
       }
@@ -5502,16 +5266,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         playbackRepository: playbackRepo,
       );
       // Video L2-ready still goes through Host L2 + LAYER2_APPLY.
-      unawaited(
-        Cap27L1StallProbe.log('L2_READY_APPLY', {
-          'assetId': widget.assetIdentifier,
-          'feedIndex': widget.feedIndex,
-          'assignedGen': generation,
-          'kind': 'video',
-          'viaHostLayer2': true,
-          'layer2Kind': layer2?.kind.name,
-        }),
-      );
       await _applyLayer2Result(
         gate: gate,
         generation: generation,

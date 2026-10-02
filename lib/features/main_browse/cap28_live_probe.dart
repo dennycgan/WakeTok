@@ -45,11 +45,6 @@ class Cap28LiveProbe {
     return log('OWNER_MARK_RETURN_OK', extra);
   }
 
-  /// Mirror Cap 27 remount probe lines into [wtlive.log] so one pull has both.
-  static Future<void> teeCap27(String event, Map<String, Object?> fields) {
-    return log('C27_$event', fields);
-  }
-
   static Future<void> log(
     String event, [
     Map<String, Object?> fields = const {},

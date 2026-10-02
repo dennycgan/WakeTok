@@ -768,42 +768,6 @@
   "@mainBrowseOpenLibrarySmokeDebug": {
     "description": "kDebugMode-only button on Settings stub to open library_smoke"
   },
-  "cap27L1StallProbeSectionTitle": "L1-stall probe",
-  "@cap27L1StallProbeSectionTitle": {
-    "description": "Debug/Profile Settings section title for Cap27L1StallProbe (debt 478 soak)"
-  },
-  "cap27L1StallProbeBlurb": "Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.",
-  "@cap27L1StallProbeBlurb": {
-    "description": "Cap27L1StallProbe instructions; kept while debt 478 is Open"
-  },
-  "cap27L1StallProbeMarkStuck": "Mark stuck (L1 stall now)",
-  "@cap27L1StallProbeMarkStuck": {
-    "description": "Owner marks stuck snapshot into cap27_l1_stall_probe.log"
-  },
-  "cap27L1StallProbeMarkHealed": "Mark healed (after swipe back)",
-  "@cap27L1StallProbeMarkHealed": {
-    "description": "Owner marks heal snapshot into cap27_l1_stall_probe.log"
-  },
-  "cap28LiveProbeSectionTitle": "Cap 28 live probe",
-  "@cap28LiveProbeSectionTitle": {
-    "description": "Settings section title for Cap 28.1 wtlive.log soak controls"
-  },
-  "cap28LiveProbeBlurb": "Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.",
-  "@cap28LiveProbeBlurb": {
-    "description": "Explains Cap 28.1 probe file and owner mark buttons"
-  },
-  "cap28LiveProbeClear": "Clear wtlive.log",
-  "@cap28LiveProbeClear": {
-    "description": "Truncates Documents/wtlive.log for a fresh soak"
-  },
-  "cap28LiveProbeMarkBlack": "Mark black frame (this return)",
-  "@cap28LiveProbeMarkBlack": {
-    "description": "Owner marks a black-frame / bad handoff on Settings return"
-  },
-  "cap28LiveProbeMarkOk": "Mark return OK",
-  "@cap28LiveProbeMarkOk": {
-    "description": "Owner marks a clean Settings return (still sharp / video OK)"
-  },
   "mainBrowseVideoTapToPlay": "Play video",
   "@mainBrowseVideoTapToPlay": {
     "description": "Semantics / accessibility label when paused video can resume via tap"

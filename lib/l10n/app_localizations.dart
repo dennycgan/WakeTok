@@ -1146,60 +1146,6 @@ abstract class AppLocalizations {
   /// **'Library smoke (debug)'**
   String get mainBrowseOpenLibrarySmokeDebug;
 
-  /// Debug/Profile Settings section title for Cap27L1StallProbe (debt 478 soak)
-  ///
-  /// In en, this message translates to:
-  /// **'L1-stall probe'**
-  String get cap27L1StallProbeSectionTitle;
-
-  /// Cap27L1StallProbe instructions; kept while debt 478 is Open
-  ///
-  /// In en, this message translates to:
-  /// **'Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.'**
-  String get cap27L1StallProbeBlurb;
-
-  /// Owner marks stuck snapshot into cap27_l1_stall_probe.log
-  ///
-  /// In en, this message translates to:
-  /// **'Mark stuck (L1 stall now)'**
-  String get cap27L1StallProbeMarkStuck;
-
-  /// Owner marks heal snapshot into cap27_l1_stall_probe.log
-  ///
-  /// In en, this message translates to:
-  /// **'Mark healed (after swipe back)'**
-  String get cap27L1StallProbeMarkHealed;
-
-  /// Settings section title for Cap 28.1 wtlive.log soak controls
-  ///
-  /// In en, this message translates to:
-  /// **'Cap 28 live probe'**
-  String get cap28LiveProbeSectionTitle;
-
-  /// Explains Cap 28.1 probe file and owner mark buttons
-  ///
-  /// In en, this message translates to:
-  /// **'Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.'**
-  String get cap28LiveProbeBlurb;
-
-  /// Truncates Documents/wtlive.log for a fresh soak
-  ///
-  /// In en, this message translates to:
-  /// **'Clear wtlive.log'**
-  String get cap28LiveProbeClear;
-
-  /// Owner marks a black-frame / bad handoff on Settings return
-  ///
-  /// In en, this message translates to:
-  /// **'Mark black frame (this return)'**
-  String get cap28LiveProbeMarkBlack;
-
-  /// Owner marks a clean Settings return (still sharp / video OK)
-  ///
-  /// In en, this message translates to:
-  /// **'Mark return OK'**
-  String get cap28LiveProbeMarkOk;
-
   /// Semantics / accessibility label when paused video can resume via tap
   ///
   /// In en, this message translates to:

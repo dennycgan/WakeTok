@@ -19,7 +19,6 @@ import 'package:waketok/domain/session/order_policy.dart';
 import 'package:waketok/domain/session/remove_asset_from_session_queue.dart';
 import 'package:waketok/domain/session/repeat_policy.dart';
 import 'package:waketok/domain/session/session_configuration.dart';
-import 'package:waketok/features/main_browse/cap27_l1_stall_probe.dart';
 import 'package:waketok/domain/source/asset_source_availability.dart';
 import 'package:waketok/domain/source/persistence_policy.dart';
 import 'package:waketok/domain/source/resolve_pool.dart';
@@ -705,20 +704,6 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       return;
     }
 
-    final beforeEpoch = current.roundEpoch;
-    final headBefore = session.queue.orderedAssetIds.isEmpty
-        ? null
-        : session.queue.orderedAssetIds.first;
-    unawaited(
-      Cap27L1StallProbe.log('ADVANCE_TO_NEXT_ROUND_BEGIN', {
-        'roundEpoch': beforeEpoch,
-        'orderPolicy': config.orderPolicy.name,
-        'queueLen': session.queue.orderedAssetIds.length,
-        'headId': headBefore,
-        'currentIndex': session.currentIndex,
-      }),
-    );
-
     if (config.orderPolicy == OrderPolicy.shuffle) {
       final next = startNextShuffleRound(
         session: session,
@@ -730,16 +715,6 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
       _roundEpoch += 1;
       state = AsyncData(
         BrowseSessionView(session: next, roundEpoch: _roundEpoch),
-      );
-      unawaited(
-        Cap27L1StallProbe.log('ADVANCE_TO_NEXT_ROUND_END', {
-          'roundEpoch': _roundEpoch,
-          'orderPolicy': config.orderPolicy.name,
-          'headId': next.queue.orderedAssetIds.isEmpty
-              ? null
-              : next.queue.orderedAssetIds.first,
-          'path': 'shuffle',
-        }),
       );
       return;
     }
@@ -756,14 +731,6 @@ class BrowseSessionNotifier extends AsyncNotifier<BrowseSessionView> {
         ),
         roundEpoch: _roundEpoch,
       ),
-    );
-    unawaited(
-      Cap27L1StallProbe.log('ADVANCE_TO_NEXT_ROUND_END', {
-        'roundEpoch': _roundEpoch,
-        'orderPolicy': config.orderPolicy.name,
-        'headId': headBefore,
-        'path': 'same_list_to_0',
-      }),
     );
   }
 

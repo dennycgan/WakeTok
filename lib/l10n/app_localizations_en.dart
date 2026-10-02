@@ -599,35 +599,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
-  String get cap27L1StallProbeSectionTitle => 'L1-stall probe';
-
-  @override
-  String get cap27L1StallProbeBlurb =>
-      'Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.';
-
-  @override
-  String get cap27L1StallProbeMarkStuck => 'Mark stuck (L1 stall now)';
-
-  @override
-  String get cap27L1StallProbeMarkHealed => 'Mark healed (after swipe back)';
-
-  @override
-  String get cap28LiveProbeSectionTitle => 'Cap 28 live probe';
-
-  @override
-  String get cap28LiveProbeBlurb =>
-      'Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.';
-
-  @override
-  String get cap28LiveProbeClear => 'Clear wtlive.log';
-
-  @override
-  String get cap28LiveProbeMarkBlack => 'Mark black frame (this return)';
-
-  @override
-  String get cap28LiveProbeMarkOk => 'Mark return OK';
-
-  @override
   String get mainBrowseVideoTapToPlay => 'Play video';
 
   @override

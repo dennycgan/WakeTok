@@ -594,35 +594,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseOpenLibrarySmokeDebug => 'Library smoke (debug)';
 
   @override
-  String get cap27L1StallProbeSectionTitle => 'L1-stall probe';
-
-  @override
-  String get cap27L1StallProbeBlurb =>
-      'Debug/Profile only. Writes Documents/cap27_l1_stall_probe.log for debt 478 (non-deviceLocal / iCloud remount L1 stick). When stuck on Layer 1 after remount: tap Mark stuck, swipe away then back, tap Mark healed.';
-
-  @override
-  String get cap27L1StallProbeMarkStuck => 'Mark stuck (L1 stall now)';
-
-  @override
-  String get cap27L1StallProbeMarkHealed => 'Mark healed (after swipe back)';
-
-  @override
-  String get cap28LiveProbeSectionTitle => 'Cap 28 live probe';
-
-  @override
-  String get cap28LiveProbeBlurb =>
-      'Debug/Profile only. Writes Documents/wtlive.log for Settings leave/return keep diagnosis. Clear before a soak; Mark black / Mark OK after each return.';
-
-  @override
-  String get cap28LiveProbeClear => 'Clear wtlive.log';
-
-  @override
-  String get cap28LiveProbeMarkBlack => 'Mark black frame (this return)';
-
-  @override
-  String get cap28LiveProbeMarkOk => 'Mark return OK';
-
-  @override
   String get mainBrowseVideoTapToPlay => 'Play video';
 
   @override
@@ -1544,35 +1515,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseOpenLibrarySmokeDebug => '图库调试（debug）';
-
-  @override
-  String get cap27L1StallProbeSectionTitle => 'L1卡住探测';
-
-  @override
-  String get cap27L1StallProbeBlurb =>
-      '仅 Debug/Profile。写入 Documents/cap27_l1_stall_probe.log，用于 debt 478（非 deviceLocal / iCloud remount 软粘 L1）。remount 后卡在 Layer 1 时：点「标记卡住」→ 滑走再滑回 → 点「标记已恢复」。';
-
-  @override
-  String get cap27L1StallProbeMarkStuck => '标记卡住（当前 L1）';
-
-  @override
-  String get cap27L1StallProbeMarkHealed => '标记已恢复（滑回后）';
-
-  @override
-  String get cap28LiveProbeSectionTitle => 'Cap 28 实时探针';
-
-  @override
-  String get cap28LiveProbeBlurb =>
-      '仅 Debug/Profile。写入 Documents/wtlive.log，用于 Settings 往返 keep 诊断。浸泡前点清除；每次返回后点「标记黑帧」或「标记返回正常」。';
-
-  @override
-  String get cap28LiveProbeClear => '清除 wtlive.log';
-
-  @override
-  String get cap28LiveProbeMarkBlack => '标记黑帧（本次返回）';
-
-  @override
-  String get cap28LiveProbeMarkOk => '标记返回正常';
 
   @override
   String get mainBrowseVideoTapToPlay => '播放视频';
