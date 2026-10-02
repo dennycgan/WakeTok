@@ -186,7 +186,44 @@
       Cap 30 close boundary: debug / fix / non-behaviour polish only)
       <-- YOU ARE HERE
 - [ ] MVP v1 pre-submission hardening
-      (privacy policy final copy — after Cap 31 above lands;
+      (privacy policy final copy — after Cap 31 above lands; the
+      in-app privacy entry (none exists today) is the only `lib/`
+      product change: Settings bottom "About" section with one
+      "Privacy Policy" row and an external-link icon;
+      `kPrivacyPolicyUrl` in `lib/core/config/app_links.dart` holds the
+      real URL `https://dennycgan.github.io/waketok/privacy/` (no
+      placeholder — the URL ships in the binary);
+      `openPrivacyPolicyProvider` opens it with `launchUrl` in external
+      mode; two ARB keys (en + zh-Hans); one test file. Same hardening
+      commit adds `ITSAppUsesNonExemptEncryption` to Info.plist (owner
+      sets the value). Privacy and support pages on GitHub Pages (public
+      repo `dennycgan.github.io`); product-level policy, EN + zh-Hans on
+      one page; support page
+      `https://dennycgan.github.io/waketok/support/` is App Store
+      metadata only — no in-app row. Before submission: open the
+      privacy URL once in a private browser window not signed in to
+      GitHub and tap the row once on device. `PrivacyInfo.xcprivacy`:
+      at the end of this Cap the owner makes one TestFlight internal
+      upload of the real binary as a probe (`sqlite3.framework` calls
+      file-timestamp and disk-space APIs and ships no manifest); allow
+      one re-upload; in the same Cap, research the fix read-only
+      (upgrade the sqlite3-related packages, or add an app-level
+      manifest) — no code change. Empty and small library: test the
+      Release build on device once with Limited access and no photos
+      selected and once with a few selected; the simulator only
+      supplements (Flutter runs only debug builds on the iOS
+      simulator); never delete the real library; App Review notes say the app needs the photo
+      library, how to use it, and how Limited access behaves (the agent
+      drafts, the owner enters them). Privacy policy fact list (for the
+      later draft): iOS downloads originals from iCloud through PhotoKit
+      (done by Apple; WakeTok sends no data); writes to the photo
+      library are Favorites, add to an existing album, and creating the
+      WakeTok album; delete goes through the system confirmation into
+      Recently Deleted; stills are shared without location, videos keep
+      their original metadata including capture location (debt 484) —
+      never write "location is removed on share"; no account, no
+      networking or analytics libraries; local SQLite and preference
+      storage;
       permission string finalize; portrait-only already locked —
       ADR-028 + Info.plist + SystemChrome +
       test/architecture/presentation_defaults_test.dart — no product
@@ -435,15 +472,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       (phase)); 31.5 closed (`0c921fa` + `a00b86a`; B1 deleted, B2–B4
       kept); 31.6 closed (`356d95a` + `b5bfadd`; history list not
       handled)
-- Next step: draft the 31.7 device acceptance matrix for owner approval
-      (Cap 30.7 pattern) — Release builds on i17 and Kafka; one row per
-      Cap 31 phase: 31.1 Settings hierarchy / info bubbles, 31.2a–c Live
-      album cases / still render / remount chrome, 31.3 video handoff
-      black frame, 31.4 bucket items, 31.4a long-press replay failure
-      feedback, 31.5 Settings without probe sections; plus full
-      `flutter test` (architecture + localization guards); then Cap
-      close-out: STATE `[x]`, PHASE_HISTORY snapshot, Known debt status
-      review
+- Next step: 31.7 light Release smoke (one full pass each on i17 and
+      Kafka; zh-Hans check on Kafka), full `flutter test`, then Cap 31
+      close-out
 - Related decisions: ADR-071 Accepted (31.4a long-press replay
       failure "!" and line); Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); ADR-062 Accepted
