@@ -360,7 +360,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       — work `ee47970` + `7450e94` + `e0c434c`; ADR-071 Accepted;
       debt **436** Closed; debt **488** Accepted (phase); notes
       `docs/acceptance/cap31-31.4a-notes.md`
-- [ ] 31.5 Probe / debug cleanup (pre-v1)
+- [x] 31.5 Probe / debug cleanup (pre-v1)
       (**Inventory layers A–D**, owner 2026-09-27 chat — not
       “Settings-only vs whole-repo”.)
       **In scope this phase:**
@@ -368,7 +368,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       live probe sections (`!kReleaseMode` mounts in Settings
       `ListView`); product Settings chrome only.
       (2) **D1** — gate `ScrubPreviewProbe` (and its Host call sites)
-      so **Flutter/App Store Release is silent**; keep Debug+Profile
+      + Release-only filter for the `WT18.5` Dart debugPrint lines in
+      main() so **Flutter/App Store Release is silent**; keep Debug+Profile
       emission if still needed for soaks. **Do not** implement the
       Release gate as bare `#if DEBUG` alone (Profile iOS usually has
       `DEBUG` false — that would also kill Profile Console). Prefer a
@@ -380,20 +381,23 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       **Explicit start gate:** before any 31.5 code, confirm 31.2 /
       31.3 no longer need A1/A2 buttons or B1/B2 Documents logging;
       do not assume “later phase number ⇒ safe.”
-      **Decide at start (not by default):** **B2–B4** implementations +
-      Browse/authority call sites + Chrome-axis Host. Once the A2
-      Settings section is removed, B2 (`wtlive.log`) still appends in
-      every Debug/Profile build but loses its only Clear / Mark
-      controls; the debt **478** probe (B1) is already set for
-      deletion. Before any 31.5 code, show the owner the B2–B4 list; do
-      not assume keep or delete.
+      **B1 deleted, B2–B4 kept (owner 2026-10-02):** debt **478** already
+      decided B1's deletion. B2 (`wtlive.log`), the Cap 28 chrome-axis
+      probe + Browse Host (B3), and the Cap 29 access-scope probe (B4)
+      are passive recorders that work without a Settings entry and are
+      Release no-ops (checked on a Release build). Deleting B2/B3 would
+      touch about 14 more Browse feed call sites; B4 sits in the
+      V1-verified Limited access authority path — not worth touching
+      for a no-op. B2 loses `teeCap27` with B1.
       **Out of scope / deferred:**
       — **A3+C** library_smoke Debug entry + smoke ARB: keep per debt
       **417** (post-v1 Settings / localisation Cap).
-      — **D2** (`#if DEBUG` native test helpers) / **D3** (Dart
+      — **D2** (`#if DEBUG` native test helpers) / **D3** (other Dart
       `debugPrint`): not required this phase.
       **Do not** delete product `library_smoke/*_providers` composition
       seams under the smoke folder name.
+      — work `0c921fa` + `a00b86a`; B1 deleted, B2–B4 kept; notes
+      `docs/acceptance/cap31-31.5-notes.md`
 - [ ] 31.6 Competitor-codename full-repo scan
       (**after** 31.1–31.5 complete — scan near-final tree, not mid-Cap;
       ARB / comments / code strings / docs; Release-visible first)
@@ -416,7 +420,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       B-layer probe teardown decision if still Open)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): 31.5 — probe / debug cleanup (pre-v1)
+- Goal (one line): 31.6 — competitor-codename full-repo scan
 - Sub-steps done: 31.2 closed (31.2a `b8b7b9b` / ADR-063; 31.2b-2
       `bd6a870` / ADR-064; 31.2b-1 `7d3d450` / ADR-065); 31.2c closed
       (`08aa987` / ADR-066; debts **480** / **485** Closed); 31.3
@@ -424,9 +428,16 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       31.4 closed (`02b26f6` … `9d54313` / ADR-062, ADR-067, ADR-069,
       ADR-070; Known debt review done); 31.4a closed (`ee47970` …
       `e0c434c` / ADR-071; debt **436** Closed, **488** Accepted
-      (phase))
-- Next step: before any 31.5 code, pass the start gate (confirm
-      31.2 / 31.3 no longer need the A1/A2 buttons or B1/B2 logging)
+      (phase)); 31.5 closed (`0c921fa` + `a00b86a`; B1 deleted, B2–B4
+      kept)
+- Next step: run the 31.6 scan per its Phase Roadmap scope — tracked
+      text files (`git ls-files`), whole-word case-insensitive English
+      terms from the local term list `docs/private/competitor-codenames.md`
+      ("31.6 scan term list"); output a read-only hit list (path + line
+      + context), no edit before owner approval per hit; commit messages
+      and historical file contents on every branch / tag that would
+      become public (at least `main` and `spike/poc`) go in a separate
+      read-only list (no history rewrite)
 - Related decisions: ADR-071 Accepted (31.4a long-press replay
       failure "!" and line); Cap 31 D1–D5 (chat); 31.5 inventory A–D locked
       (chat); ADR-061 Accepted (title token split); ADR-062 Accepted
@@ -899,7 +910,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 475 | Monitoring | Main Browse Screen / Cap 26.5a | Cap 26.5a | Intermittent UI hitch + Action Column three icons briefly dim on **single-finger hold** of a **Live Off** still (no LIVE badge; `mediaKind != livePhoto`) in a Live-collection Temp Pool | Unstable; trigger unknown. **Ruled out:** Cap 26 long-press replay (`shouldArm`/`shouldMount` false → Listener not mounted); Cap 19/20 single-finger hold writing `mediaCoverVisible`/`actionable`. **Related (fixed separately, not this row):** Live **On** long-press + micro-vertical peek could dim Action Column via off-current `_syncMediaCoverVisibleGate` writing `false` into the shared cover provider — fixed by current-only publish (see W-26.4c-10). **Open for this row:** Live Off hitch / dim without that path. **Next soak cue:** whole-UI freeze vs icons-only dim while feed still scrolls. Do **not** “fix” by expanding Live-motion Action Column mute. Related: debt **471**, **476**. | Opportunistic note if seen again (device, build, preceding gesture / item type); Cap discussion only if a clean repro appears | ADR-052 D6/D11; ADR-054 cover-visible; debt **471**; debt **476** |
 | 476 | Accepted (phase) | Main Browse Screen / Live cover gates | Cap 26.6 | Live motion ↔ shell provider hygiene gaps (latent; not the neighbour-wipe root cause) | Three residual desync risks found while probing Action Column dim (debt **475** class / Live On micro-peek): (1) `BrowseMagnificationNotifier.onLiveMotionMountedChanged` publishes `mainBrowseCurrentLiveMotionMountedProvider` via **microtask**, so page `_liveMotionMounted` and the shell provider can disagree for a frame; (2) several `MediaFeedPage` paths set `_liveMotionMounted = false` **without** calling `onLiveMotionMountedChanged(false)` (provider can stay stale true); (3) `_unloadLiveMotionSurface` does not call `_syncMediaCoverVisibleGate` — cover recovery relies on a later current-page rebuild / build-alignment. None proven as a standalone product repro after the off-current sync fix; keep until a Cap revisits Live/shell gate ownership. | Reopen only on a reproducible Live cover / chrome gate bug, or when a Cap reworks Live / shell gate ownership | ADR-054; ADR-052; debt **475** |
 | 477 | Closed | Main Browse Screen / Cap 27.4 | Cap 27.4 | `roundEpoch` remount head stuck on Layer 1 (Confirm / Endless `same_list_to_0` / order→shuffle, incl. never-visited shuffle head) | **Scope: device-local remount only; Browse-current remount paths only** (Confirm / Endless / in-Browse order change). Root: remount skipped Session L2-ready then All-tab still painted soft L1; Cap 26.4a keep-ready + gapless stuck the soft frame after Host `LAYER2_APPLY` (probe: SKIP+APPLY while owner still saw L1; heal via swipe Session L2-ready). Fix in `893c296`: one-shot prefer-Host (no `hadSessionToken` gate), omit Cap 22.5 L1 seed + All-tab soft preview on remount Host L2, hard-reload cover on APPLY. Kafka+i17 soak PASS; `OWNER_MARK_STUCK`=0. **Does not** cover non-`deviceLocal` / iCloud remount — see debt **478**. **Did not** cover Settings / auth / other non-Browse-current remount limbs at Cap 27.4 close — that separate arming-window gap was later found and closed as debt **479** (`8d6d7cc`); do not read this Closed row as full off-Browse coverage. | Closed by Cap 27.4 | ADR-055; Cap 15.10/15.12/22.5/26.4a; debt **468** / **478** / **479** |
-| 478 | Accepted (phase) | Main Browse Screen / Cap 27.4 | Cap 27.4 | Non-`deviceLocal` (incl. iCloud) `roundEpoch` remount head may still stick soft Layer 1 | **Mechanism risk (not a confirmed iCloud product repro).** Cap 27.4 skip-L1-paint applies only on the device-local fast path; full L1→L2 still paints soft preview first. `_forceStillCoverHardReload` may be consumed on L1 `_trackStillCoverPath`, so `LAYER2_APPLY` can re-enter Cap 26.4a keep-ready + gapless soft stick. Parked until iCloud-only / non-local remount assets can soak a fix. Does not reopen debt **477**. **Probe:** Debug/Profile Settings → **L1-stall probe** (`Cap27L1StallProbeSettingsSection` / `cap27_l1_stall_probe.dart`; log `Documents/cap27_l1_stall_probe.log`); Cap 31.5 deletes the Settings entry and the implementation (owner, Cap 31.4 debt review); recover from git history if reopened. | Reopen only on a reproduced soft-L1 stick on a non-local remount head | Cap 15.12/26.4a; debt **477**; ADR-055; `cap27_l1_stall_probe*.dart` |
+| 478 | Accepted (phase) | Main Browse Screen / Cap 27.4 | Cap 27.4 | Non-`deviceLocal` (incl. iCloud) `roundEpoch` remount head may still stick soft Layer 1 | **Mechanism risk (not a confirmed iCloud product repro).** Cap 27.4 skip-L1-paint applies only on the device-local fast path; full L1→L2 still paints soft preview first. `_forceStillCoverHardReload` may be consumed on L1 `_trackStillCoverPath`, so `LAYER2_APPLY` can re-enter Cap 26.4a keep-ready + gapless soft stick. Parked until iCloud-only / non-local remount assets can soak a fix. Does not reopen debt **477**. **Probe:** Debug/Profile Settings → **L1-stall probe** (`Cap27L1StallProbeSettingsSection` / `cap27_l1_stall_probe.dart`; log `Documents/cap27_l1_stall_probe.log`); Cap 31.5 deleted the Settings entry and the implementation (`0c921fa`; owner, Cap 31.4 debt review); recover from git history if reopened. | Reopen only on a reproduced soft-L1 stick on a non-local remount head | Cap 15.12/26.4a; debt **477**; ADR-055; `cap27_l1_stall_probe*.dart` (deleted in `0c921fa`) |
 | 479 | Closed | Main Browse Screen / Cap 27.6 | Cap 27.6 | Settings leave/return (and similar non-Browse-current) `roundEpoch` remount head stuck on Layer 1; newestFirst easiest | **Related 477 (stays Closed).** Cap 27.4 prefer-Host closed Browse-current remount stick; Settings / auth limbs were **not** in that soak. Root: prefer-Host armed only under `isCurrent`, and a post-frame clear dropped pending while Browse was off — remount finished off-current never armed Cap 27.4 Host path. Fix in `8d6d7cc`: sticky `_epochRemountPreferHostPending` until consume + become-current re-arm. i17 soak PASS (three orders × immediate/dwell return; Confirm/Endless unaffected). Widget: W-27.6-479. Does not reopen **477**; does not close **478**. **Cap 28 follow-up:** Settings leave remount limb **dissolved by Cap 28 keep** (no `restartSession` on Browse→Settings). Sticky prefer-Host for remaining off-Browse→Browse remount (access-scope dirty on Settings → consume on return) covered by Cap 28.7 `W-28.7-479-sticky` (`5f4977c`); mechanism retained (ADR-058 D7). | Closed by Cap 27.6 (`8d6d7cc`) | ADR-055; Cap 27.4; Cap 28.4/28.5/28.7; debt **477** / **478**; `vertical_media_feed.dart` |
 | 480 | Closed | Main Browse Screen / Cap 28.3 | Cap 28.3 | Confirm / Endless (and other `roundEpoch` remount) dual visible handoff: soft-L1 present → one-frame black between L1 and L2; soft-L1 absent → one-frame Loading item | **Settings limb closed by Cap 28 keep** (28.1/28.2: remount + prefer-Host + hardReload). Remount paths: Cap 27.4 prefer-Host skips Session L2-ready, forces Host L2, and on APPLY hard-reloads cover (clear keep-ready / bump Image key). **Closed by Cap 31.2c (`08aa987`):** (B) on the remount hard-reload still APPLY the L2 cover mounts normally while a Loading shell overlay (`IgnorePointer`) stays on top until frame-ready / decode-broken; Live motion prepare is deferred until reveal; Cap 26.4b forced spinner excluded during the hold — the black / all-dim decode gap and the spinner peek are gone. (C) a born-current page with a Session L2-ready token is tagged Cap 17.3 a4 in `initState`, so the first frame no longer paints ADR-031 miss chrome (corner gold + "Loading item"). The earlier precache candidate was infeasible (`ResizeImage` cache size depends on layout box × DPR). **Coverless remount-head video (Cap 27.4 skips L1; no poster): no change** — Action Column enables at `_surfaceReady` per ADR-054 D2/D3, and "…" / Album / Share all run by asset id (i17 log: 13 coverless remount heads, 0 enabled-before-ready); the black is missing L1 or the video's own content. Widget: W-31.2c-B1/B2/B3. i17 + Kafka Release PASS. Prefer-Host mechanism (**477** / **479**) unchanged; non-`deviceLocal` stick stays debt **478**. | Closed by Cap 31.2c (`08aa987`) | Cap 27.4/27.6; debt **477** / **478** / **479**; Cap 28.1/28.2 notes; ADR-054; ADR-058 |
 | 481 | Accepted (phase) | Main Browse Screen / Cap 28.4 | Cap 28.4 | Settings resume may show one poster/cover frame on video (play or pause) | **Symptom:** Browse→Settings→Browse on a completed video can flash one frame of the asset poster/cover before L2 PV is visually back — same whether the item was playing or paused. **Mechanism (Q-PV = B):** soft leave detaches the native Platform View; resume remounts PV. Cap 28.4 A′ keeps chrome gates (no Action Column staircase); the frame is the cover painted while `_surfaceReady` is briefly false (and/or Cap 15.11b poster-hold when that latch arms) — a deliberate anti-black hold, not the Cap 28 chrome cascade. **Intentional trade-off:** Q-PV = A (keep PV mounted under Settings) could remove the frame but risks off-screen PV bleed/touch steal, holding the 1+1 player slot, and power cost — rejected for this Cap. **Not a reopen of 429:** cousin symptom (poster vs L2), different mechanism (Settings PV detach/remount vs prior path). **Candidates:** (1) Q-PV = A + Host ready-for-display short-circuit; (2) latch a leave-time frame as the resume hold instead of the static poster (cost/feasibility unverified). Re-evaluate with Caps that redesign video surface lifecycle while Browse is non-visible (Background Audio / Auto-play track). Owner device check 2026-10-02: still reproduces on Settings resume, both playing and paused; accepted. | Re-evaluate with Background Audio / Auto-play surface-lifecycle Caps | ADR-058; ADR-006; ADR-032; cousin of closed **429** (do not reopen 429) |
