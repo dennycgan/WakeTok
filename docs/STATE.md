@@ -184,86 +184,66 @@
       Kafka PASS; notes `docs/acceptance/cap31-31.7-notes.md`;
       PHASE_HISTORY)
 - [ ] MVP v1 pre-submission hardening
-      (privacy policy final copy — after Cap 31 above lands; the
-      in-app privacy entry (none exists today) is the only `lib/`
-      product change: Settings bottom "About" section with one
-      "Privacy Policy" row and an external-link icon;
-      `kPrivacyPolicyUrl` in `lib/core/config/app_links.dart` holds the
-      real URL `https://dennycgan.github.io/waketok-site/privacy/` (no
-      placeholder — the URL ships in the binary);
-      `openPrivacyPolicyProvider` opens it with `launchUrl` in external
-      mode; two ARB keys (en + zh-Hans); one test file. Same hardening
-      commit adds `ITSAppUsesNonExemptEncryption` to Info.plist (owner
-      sets the value). Privacy and support pages on GitHub Pages in a
-      separate public repo `waketok-site` (privacy + support pages only;
-      the `dennycgan.github.io` user site stays the portfolio);
-      product-level policy, EN + zh-Hans on one page; pages use relative
-      links only; support page
-      `https://dennycgan.github.io/waketok-site/support/` is App Store
-      metadata only — no in-app row. No custom domain during review:
-      after approval the owner binds the domain to `waketok-site` (the
-      github.io URLs then redirect), and a later version moves the app
-      constant and store metadata to the final domain; contact is a
-      dedicated mailbox until the domain mailbox exists. Page drafts
-      (EN + zh-Hans) wait in the local `docs/private/waketok-site-draft/`;
-      the owner does the final review of both pages (EN first, then
-      zh-Hans against the final EN), fills the effective date and
-      publishes them to `waketok-site` before the on-device check of
-      the in-app row. Before submission: search both published pages
-      for `[TBD]` and `TODO` (none may remain), open the privacy URL
-      once in a private browser window not signed in to GitHub and tap
-      the row once on device. `PrivacyInfo.xcprivacy`:
-      at the end of this Cap the owner makes one TestFlight internal
-      upload of the real binary as a probe (`sqlite3.framework` calls
-      file-timestamp and disk-space APIs and ships no manifest); allow
-      one re-upload; in the same Cap, research the fix read-only
-      (upgrade the sqlite3-related packages, or add an app-level
-      manifest) — no code change. Empty and small library: Limited
-      access with no photos selected is confirmed possible on an iOS 26
-      device (Cap 31.7 notes); test the Release build on device that way
-      once with none and once with a few selected; the simulator only
-      supplements (Flutter runs only debug builds on the iOS
-      simulator); never delete the real library. Full access with an
-      empty library (code read, V1 code unchanged): Browse shows the
-      loading panel through the empty-resolve retries, then the same
-      "No items in this source." panel with no guidance; the Host has
-      no photo-library change observer, so whether that panel refreshes
-      after photos are added is unverified — check it. App Review
-      notes (the agent drafts, the owner enters them): the app needs
-      photos in the library and how to use it; what an empty library
-      shows and what to do; with Limited access and none selected the
-      empty panel is expected, and items can be added via Settings >
-      Photo Library Access > Manage selection; attach a 2–3 minute
-      screen recording of the app in use (owner records). Privacy
-      policy fact list (for the later draft): iOS downloads originals
-      from iCloud through PhotoKit (done by Apple; WakeTok sends no
-      data); writes to the photo
-      library are Favorites, add to an existing album, and creating the
-      WakeTok album; delete goes through the system confirmation into
-      Recently Deleted; stills are shared without location, videos keep
-      their original metadata including capture location (debt 484) —
-      never write "location is removed on share"; no account, no
-      networking or analytics libraries; local SQLite and preference
-      storage;
-      permission string finalize; portrait-only already locked —
-      ADR-028 + Info.plist + SystemChrome +
-      test/architecture/presentation_defaults_test.dart — no product
-      work, verify only; small-screen device pass; iOS 18 simulator
-      smoke (debt 416); share location wording check (debt 484); App Store
-      Subtitle (deferred from MVP positioning lock) / description /
-      screenshots / keywords; empty-state Action Column dim widget-test
-      coverage — near-zero cost, attach to whichever Cap above is
-      convenient)
+      (Cap 32. Before submission — blocking, linear: steps 1–3 here,
+      4–5 Cap 33, 6–8 Cap 34; v1 ships English only for the store
+      page and the privacy and support pages)
+      1. Agent prepares everything: in-app privacy entry (Settings
+         bottom "About" section, one "Privacy Policy" row with an
+         external-link icon; `kPrivacyPolicyUrl` in
+         `lib/core/config/app_links.dart` holds
+         `https://dennycgan.github.io/waketok-site/privacy/`;
+         `openPrivacyPolicyProvider` opens it with `launchUrl` in
+         external mode; two ARB keys (en + zh-Hans); one test file) and
+         `ITSAppUsesNonExemptEncryption` in Info.plist (agent proposes
+         the value, owner decides) — code stays uncommitted in the
+         working tree; private submission files under `docs/private/`
+         (wording incl. the debt 484 check); PrivacyInfo backup patch
+         (not applied); ADR-072 draft. Owner reads it all once.
+      2. Owner publishes `waketok-site` (push with the noreply
+         identity, otherwise GH007), opens the privacy and support
+         URLs in a private browser window and searches both pages for
+         `[TBD]` and `TODO` (none may remain).
+      3. Local Release build on i17; owner taps the privacy row. Owner
+         also checks once: Limited access with none selected shows the
+         empty panel; select a few in iOS Settings, fully close
+         WakeTok and reopen, check they appear; back to Full access.
+         Pass, then OK commit, OK push; the pushed commit is archived.
+      Cap 32 / 33 docs commits (incl. ADR-072) go in the processing or
+      review waits, off the critical path.
       <-- YOU ARE HERE
 - [ ] TestFlight internal testing and release-candidate validation
-      (MVP v1 track; owner executes distribution; the agent prepares
-      build and metadata)
+      (Cap 33; MVP v1 track; owner executes distribution; the agent
+      prepares build and metadata)
+      4. Owner uploads to TestFlight; after processing, waits 30 minutes
+         for a missing API declaration email and fills the ASC forms
+         meanwhile. On that email: apply the PrivacyInfo backup patch
+         (tests, diff, owner OK commit and push, owner signs off the
+         privacy manifest), build number +1, re-upload.
+      5. TestFlight build quick check. Limited access with only 10–20
+         photos fit to publish plus a few videos: 4–5 screenshots and
+         the 2–3 minute review recording (no simulator); back to Full
+         access afterwards; resize to 1320x2868 JPEG.
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
-      (MVP v1 track first Review; owner executes submission; the agent
-      prepares assets only; privacy policy wording must match the App
-      Privacy answers (Data Not Collected); before submitting, open the
-      privacy and support URLs once more in a private browser window)
+      (Cap 34; MVP v1 track first Review; owner executes submission;
+      the agent prepares assets only; privacy policy wording must match
+      the App Privacy answers (Data Not Collected); before submitting,
+      open the privacy and support URLs once more in a private browser
+      window)
+      6. Upload assets and copy, select the build, submit.
+      7. During review: the in-review list below. On rejection, reply
+         in Resolution Center, or build number +1 and back to step 4.
+      8. Automatic release after approval; open the store page in a
+         private browser window; Cap close-out docs commit.
+      In review (non-blocking): iOS 18 simulator smoke (debt 416);
+      README skeleton; repository Private → Public checklist (debt
+      419); zh-Hans privacy and support pages; v1.0.1 (zh-Hans store
+      page, captioned screenshots, custom domain — no custom domain
+      before approval; the UI has zh-Hans
+      but the bundle declares no localisations, so the store language
+      list shows English only — relates to ADR-062, needs a new ADR);
+      small-screen check; empty-panel refresh check; empty-state
+      Action Column dim widget test; EU trader status assessment.
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
 > Big picture: same L1; V1 = L1+L2a+floor (L3 = tidy-as-you-swipe);
@@ -334,22 +314,15 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: MVP v1 pre-submission hardening
-Capability Roadmap closed for Cap 31 (Pre-v1 bug fix and UI polish
-sweep; snapshot in docs/PHASE_HISTORY.md). Hardening phases await
-owner scope / kickoff review — scope lives on its Capability Roadmap
-line; no numbered phases yet.
+Active capability: MVP v1 pre-submission hardening (Cap 32)
+- [ ] 32.1 Agent prepares everything; owner single review (step 1)
+- [ ] 32.2 Owner publishes `waketok-site` (step 2)
+- [ ] 32.3 Release device check on i17, then code commit and push (step 3)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): MVP v1 pre-submission hardening — phases awaiting
-      owner scope
-- Sub-steps done: none (Cap 31 closed; Limited access with no photos
-      selected already observed on Release `3482826` — see
-      `docs/acceptance/cap31-31.7-notes.md` Findings)
-- Next step: owner approves the hardening phases from its Capability
-      Roadmap line (in-app privacy entry, export compliance key, page
-      review and publish, PrivacyInfo probe, empty / small library,
-      remaining verify items)
+- Goal (one line): Cap 32 — MVP v1 pre-submission hardening (steps 1–3)
+- Sub-steps done: none
+- Next step: 32.1 — Agent prepares everything (step 1)
 - Related decisions: ADR-062 Accepted (system-only language, English
       permission prompt); ADR-064 Accepted (still share without
       location; video unchanged — debt **484**); ADR-070 Accepted
@@ -742,7 +715,7 @@ line; no numbered phases yet.
 | 413 | Open | POC-03 |  | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
 | 414 | Open | POC-09 |  | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | 415 | Open | POC-09 |  | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
-| 416 | Open | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only. No iOS 18 device; the runtime is installable on the dev Mac. Runner Swift compiles against 18.0 with no `#available` branches, so unguarded newer APIs would fail the build; behaviour / layout on iOS 18 and plugin native code stay unverified | MVP v1 pre-submission hardening (iOS 18 simulator smoke: launch, Photos permission, Browse, Settings, Light/Dark) | ADR-007 |
+| 416 | Open | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only. No iOS 18 device; the runtime is installable on the dev Mac. Runner Swift compiles against 18.0 with no `#available` branches, so unguarded newer APIs would fail the build; behaviour / layout on iOS 18 and plugin native code stay unverified | Cap 34 in-review list, non-blocking (iOS 18 simulator smoke: launch, Photos permission, Browse, Settings, Light/Dark) | ADR-007 |
 | 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred. **Also (logged Cap 21.5 follow-up):** `app_zh_Hans.arb` debug / probe strings under `source*` / `playbackProbe*` / `cap19*Probe*` still carry Latin product/API tokens (Photos, Videos, Pool, Limited, unauthorized, estimatedCount, PHAsset, bootstrap, L-BOOT, …). Visible only under `kDebugMode` / library_smoke — not Release product risk; systematic ZH cleanup deferred to Settings and localisation completion (same Inventory lane). Cap 21.5 follow-up only aligned `playbackProbeLoadImage` / `playbackProbeLoadVideo` with `libraryRowPhotos` / `libraryRowVideos` wording. | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | 418 | Closed | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload. **Closed (Cap 31.4):** iPhone slots and the 1024 marketing icon carry the WakeTok design (`5645bb1`); v1 is iPhone-only and the five iPad-only placeholder icons are removed (`9d54313`); owner device check passed 2026-10-02 (iPhone 17, iPhone 13 Pro, Release) | Closed by Cap 31.4 | ADR-070 |
 | 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); the agent reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7), including the 31.6 commit-history hit list (done; see `cap31-31.6-notes.md` and the local `docs/private/cap31-31.6-history-hits.md`) | — |
