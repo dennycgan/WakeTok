@@ -46,6 +46,10 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
   bool _holdingAfterFire = false;
   Timer? _holdTimer;
 
+  /// Pointer of the latest down; after fire, only it ends the hold
+  /// (ADR-052 Cap 26.5a: same pointer session until up/cancel).
+  int? _pointer;
+
   @override
   void didUpdateWidget(Cap26LiveLongPressGesture oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -89,7 +93,11 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
     if (!widget.enabled) {
       return;
     }
+    if (_holdingAfterFire) {
+      return;
+    }
     _reset();
+    _pointer = event.pointer;
     _tracking = true;
     _pointerStart = event.position;
     _lastDelta = Offset.zero;
@@ -126,7 +134,9 @@ class _Cap26LiveLongPressGestureState extends State<Cap26LiveLongPressGesture> {
 
   void _onUpOrCancel(PointerEvent event) {
     if (_holdingAfterFire) {
-      _emitReleaseAndReset();
+      if (event.pointer == _pointer) {
+        _emitReleaseAndReset();
+      }
       return;
     }
     _reset();
