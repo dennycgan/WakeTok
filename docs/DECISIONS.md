@@ -8693,3 +8693,66 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - ADR-051 D10: iPhone-only Share acceptance; the minimal iPad popover
     anchor in the Swift share code stays, inert.
   - Debt 418 closed by this change.
+
+## ADR-071: Live long-press replay failure shows a center "!" and one neutral line while held
+
+- Status: **Accepted** (2026-10-02)
+- Commit/PR anchor: ee47970
+- Plain summary (owner reads this):
+  When a Live Photo long-press replay fails, a center "!" with one line
+  under it ("Could not play this Live Photo") shows while the finger
+  stays down, and VoiceOver hears it once. Releasing hides it at once.
+  Auto-play failure still shows nothing.
+- Context / what problem forced this:
+  - Offline, a Live Photo whose motion is only in iCloud failed the
+    Cap 26 long-press replay (Path S) and returned to the still with no
+    feedback (owner observation, iPhone 13 Pro, 2026-10-02): the user
+    acted and got no answer.
+  - The "silent" in ADR-052 / ADR-037 means no prepare chrome during the
+    re-request; neither says a failure must stay silent.
+- Decision (what was chosen):
+  1. Show the "!" when Path S fails (any async error code except
+     `operationCancelled`, or a sync request error) and the failure
+     arrives while the finger that fired the long-press is still down.
+     If the finger is already up, nothing shows. Under the "!" one
+     dedicated line, `mainBrowseLiveReplayFailed` ("Could not play this
+     Live Photo"), states the result only, never a cause. On the hidden
+     → shown edge the line is announced once to VoiceOver; it is not
+     repeated while the "!" stays up.
+  2. Hide at once, with no fade, on release, page leave, page dispose,
+     app inactive / paused / hidden, or pointer cancel. No timeout and
+     no display-duration constant: it stays as long as the finger stays
+     down.
+  3. Auto-play failure stays silent: no LIVE badge change, no text.
+- Rejected alternatives (why not):
+  - Text naming a network cause — the failure code cannot tell causes
+    apart (ADR-019 item 7 merges every network-allowed, non-cancel
+    failure into one code).
+  - Reusing `mainBrowseFeedDownloadFailed` — it names a cause
+    ("download") and the whole item, while the still is shown; changing
+    its text would also change the Layer 2 failure slot. A neutral
+    dedicated line was chosen instead.
+  - A timed "!" (about 1 s) — the hold is the natural duration; a timer
+    would hide it while the finger is still down.
+- Consequences / constraints accepted:
+  - The long-press gesture follows only the pointer that fired it;
+    there is no timeout fallback.
+  - The Share icon still dims briefly during the failed attempt (Share
+    is disabled while the Live motion layer is mounted); not changed.
+  - No Console log capture for the failure.
+  - Owner device check 1 passed 2026-10-02 (iPhone 13 Pro, Release) on
+    the build whose line ended with a period; afterwards only the
+    trailing punctuation was removed from both locales. Owner device
+    check 2 passed 2026-10-02 (iPhone 13 Pro, Release) on the final
+    code (`e0c434c`).
+  - A long-press right after the network comes back, with the motion
+    still in iCloud, gives no download cue and release cancels the
+    download; logged as debt 488.
+- Relationship:
+  - ADR-052: supplements Decision 3 (Path S failure result) and
+    Decision 6 (feedback).
+  - ADR-019 D6 / D7 and the Cap 9.5 static fallback are unchanged.
+  - Debt 436 closed by this change.
+  - Follow-up work commits: `7450e94` (the long-press gesture follows
+    only the pointer that fired it) and `e0c434c` (the "!" safety
+    timeout removed).

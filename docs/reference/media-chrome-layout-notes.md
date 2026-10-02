@@ -323,6 +323,9 @@ control type, not copy the nearest number.
 | `kResetPillHorizontalPad` | 10 |
 | `kResetPillVerticalPad` | 7 |
 | `kResetIconLabelGap` | 5 |
+| `kLiveReplayFailIconSize` | 32 (§17) |
+| `kLiveReplayFailIconLabelGap` | 8 (§17) |
+| `kLiveReplayFailLabelMaxWidth` | 240 (§17) |
 
 ### Theme tokens
 
@@ -1020,6 +1023,32 @@ denied / restricted → blocked, passing `access` in; limited / full →
 Browse, where Settings reads the provider) and refreshes on resume. Before
 changing auth state logic, check every reader
 (`rg photosAuthorizationProvider lib`), not just these three screens.
+
+---
+
+## 17. Live long-press replay failure "!" (Cap 31.4a)
+
+A center "!" with one neutral line under it, on the Live still when a
+Cap 26 long-press replay fails to load while the finger that fired it is
+still down (ADR-071).
+
+| Parameter | Value | Symbol / notes |
+|-----------|-------|----------------|
+| Glyph | `Icons.error_outline` | Key `mainBrowseFeedLiveReplayFail_<assetId>` (whole overlay) |
+| Size | **32** | `kLiveReplayFailIconSize` (= `kActionColumnIconSize`) |
+| Color | `onMedia` + `onMediaLabelShadows` | Same recipe as on-media labels |
+| Position | "!" at the exact center of the media Stack | Trailing child; `IgnorePointer`; equal `Spacer` / `Expanded` so the line does not lift the "!" |
+| Line | l10n `mainBrowseLiveReplayFailed` ("Could not play this Live Photo", no trailing period) | Result only, never a cause; dedicated key, not `mainBrowseFeedDownloadFailed` |
+| Line style | `labelOnMedia` + `onMediaLabelShadows` | Centered, max **2** lines, ellipsis |
+| Line gap / width | **8** below the "!" / max **240** | `kLiveReplayFailIconLabelGap` / `kLiveReplayFailLabelMaxWidth` |
+| Shows | Path S failure (any code except cancel) or sync request error, finger down | Finger already up → nothing; "!" and line appear and hide together |
+| Hides | At once (no fade) on release, page leave, app inactive / paused / hidden, pointer cancel | No timeout: stays as long as the finger stays down |
+| VoiceOver | Line announced once on the hidden → shown edge (`SemanticsService.sendAnnouncement`) | "!" is `ExcludeSemantics`; the line stays in the semantics tree (merged into the page image node) |
+
+Auto-play failure shows nothing (no LIVE badge change, no text).
+
+The long-press gesture follows only the pointer that fired it; there is no
+timeout fallback.
 
 ---
 
