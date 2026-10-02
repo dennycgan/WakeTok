@@ -920,6 +920,14 @@ void main() {
           reason: 'no timed fade while the finger stays down',
         );
         expect(find.text(failText), findsOneWidget);
+
+        await tester.pump(const Duration(seconds: 10));
+        expect(
+          find.byKey(failKey),
+          findsOneWidget,
+          reason: 'no timeout: still shown past 10 s while held',
+        );
+        expect(find.text(failText), findsOneWidget);
       },
     );
 
@@ -981,9 +989,9 @@ void main() {
           findsOneWidget,
         );
 
-        // A second replay failure while the "!" is still up (e.g. a
-        // second-finger re-fire, ADR-071 Consequences) must not announce
-        // again.
+        // No real path fails twice in one hold (the gesture follows only
+        // the firing pointer); the seam forces a second Path S failure to
+        // lock "announce once per appearance".
         final page = _pageState(tester, 'live-1');
         await page.debugUserLongPressReplay();
         await _pumpAsyncWork(tester);

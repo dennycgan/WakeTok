@@ -2566,7 +2566,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Cap 31.4a / ADR-071: center "!" — replay failed while the finger that
   /// fired long-press is still down. Hidden on release; no timed fade.
   bool _liveReplayFailVisible = false;
-  Timer? _liveReplayFailSafetyTimer;
 
   /// Cap 9.5 Q4=A: motion **prepare** spinner (generation-gated writes).
   ///
@@ -3040,8 +3039,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
     if (leftCurrent) {
       // build() follows didUpdateWidget — no setState.
-      _liveReplayFailSafetyTimer?.cancel();
-      _liveReplayFailSafetyTimer = null;
       _liveReplayFailVisible = false;
     }
     if (!oldWidget.isCurrent && widget.isCurrent) {
@@ -3376,7 +3373,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @override
   void dispose() {
     _cancelLiveEndedWatchdog();
-    _liveReplayFailSafetyTimer?.cancel();
     _readyForDisplaySub?.cancel();
     _readyForDisplaySub = null;
     _holdPosterTimeout?.cancel();
@@ -3673,9 +3669,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!mounted || !widget.isCurrent || !_userHoldReplayActive) {
       return;
     }
-    _liveReplayFailSafetyTimer?.cancel();
-    _liveReplayFailSafetyTimer =
-        Timer(kLiveReplayFailSafetyTimeout, _hideLiveReplayFail);
     if (!_liveReplayFailVisible) {
       setState(() => _liveReplayFailVisible = true);
       // Announce only on the hidden → shown edge (once per appearance).
@@ -3690,8 +3683,6 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   }
 
   void _hideLiveReplayFail() {
-    _liveReplayFailSafetyTimer?.cancel();
-    _liveReplayFailSafetyTimer = null;
     if (_liveReplayFailVisible && mounted) {
       setState(() => _liveReplayFailVisible = false);
     }
