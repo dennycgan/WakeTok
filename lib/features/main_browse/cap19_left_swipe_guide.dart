@@ -13,7 +13,7 @@ import 'package:waketok/features/main_browse/cap30_first_launch_guide_wiring.dar
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/l10n/app_localizations.dart';
 
-/// PicTok-class one-shot left-swipe coach mark (Cap 19.6).
+/// Photo-App-A-class one-shot left-swipe coach mark (Cap 19.6).
 const Duration kCap19LeftSwipeGuideDuration = Duration(milliseconds: 2500);
 
 class Cap19LeftSwipeGuideHost extends ConsumerStatefulWidget {

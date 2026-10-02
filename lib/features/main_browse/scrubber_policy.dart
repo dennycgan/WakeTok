@@ -422,7 +422,7 @@ bool scrubPreviewActualAcceptable({
 /// Bubble image bytes: current bucket JPEG, else bounded borrow from prior bucket.
 ///
 /// [forbidBorrow] is true in the end-cap zone (in-flight or nil): borrowing the
-/// prior second would re-legalize the "frames before the Douyin tail" bug.
+/// prior second would re-legalize the "frames before the Video-App-B tail" bug.
 Uint8List? scrubPreviewDisplayBytes({
   required Uint8List? currentBucketBytes,
   required Uint8List? borrowSourceBytes,
