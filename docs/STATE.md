@@ -206,9 +206,15 @@
       after approval the owner binds the domain to `waketok-site` (the
       github.io URLs then redirect), and a later version moves the app
       constant and store metadata to the final domain; contact is a
-      dedicated mailbox until the domain mailbox exists. Before
-      submission: open the privacy URL once in a private browser window
-      not signed in to GitHub and tap the row once on device. `PrivacyInfo.xcprivacy`:
+      dedicated mailbox until the domain mailbox exists. Page drafts
+      (EN + zh-Hans) wait in the local `docs/private/waketok-site-draft/`;
+      the owner does the final review of both pages (EN first, then
+      zh-Hans against the final EN), fills the effective date and
+      publishes them to `waketok-site` before the on-device check of
+      the in-app row. Before submission: search both published pages
+      for `[TBD]` and `TODO` (none may remain), open the privacy URL
+      once in a private browser window not signed in to GitHub and tap
+      the row once on device. `PrivacyInfo.xcprivacy`:
       at the end of this Cap the owner makes one TestFlight internal
       upload of the real binary as a probe (`sqlite3.framework` calls
       file-timestamp and disk-space APIs and ships no manifest); allow
@@ -245,7 +251,9 @@
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
       (MVP v1 track first Review; owner executes submission; the agent
-      prepares assets only)
+      prepares assets only; privacy policy wording must match the App
+      Privacy answers (Data Not Collected); before submitting, open the
+      privacy and support URLs once more in a private browser window)
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
 > Big picture: same L1; V1 = L1+L2a+floor (L3 = tidy-as-you-swipe);
