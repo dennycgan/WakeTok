@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,6 +36,15 @@ import 'package:waketok/platform/photo_library_gateway.dart';
 import 'package:waketok/platform/playback_gateway.dart';
 
 Future<void> main() async {
+  if (kReleaseMode) {
+    final releaseDebugPrint = debugPrint;
+    debugPrint = (String? message, {int? wrapWidth}) {
+      if (message != null && message.startsWith('WT18.5')) {
+        return;
+      }
+      releaseDebugPrint(message, wrapWidth: wrapWidth);
+    };
+  }
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
