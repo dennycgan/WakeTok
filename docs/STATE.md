@@ -191,18 +191,24 @@
       product change: Settings bottom "About" section with one
       "Privacy Policy" row and an external-link icon;
       `kPrivacyPolicyUrl` in `lib/core/config/app_links.dart` holds the
-      real URL `https://dennycgan.github.io/waketok/privacy/` (no
+      real URL `https://dennycgan.github.io/waketok-site/privacy/` (no
       placeholder — the URL ships in the binary);
       `openPrivacyPolicyProvider` opens it with `launchUrl` in external
       mode; two ARB keys (en + zh-Hans); one test file. Same hardening
       commit adds `ITSAppUsesNonExemptEncryption` to Info.plist (owner
-      sets the value). Privacy and support pages on GitHub Pages (public
-      repo `dennycgan.github.io`); product-level policy, EN + zh-Hans on
-      one page; support page
-      `https://dennycgan.github.io/waketok/support/` is App Store
-      metadata only — no in-app row. Before submission: open the
-      privacy URL once in a private browser window not signed in to
-      GitHub and tap the row once on device. `PrivacyInfo.xcprivacy`:
+      sets the value). Privacy and support pages on GitHub Pages in a
+      separate public repo `waketok-site` (privacy + support pages only;
+      the `dennycgan.github.io` user site stays the portfolio);
+      product-level policy, EN + zh-Hans on one page; pages use relative
+      links only; support page
+      `https://dennycgan.github.io/waketok-site/support/` is App Store
+      metadata only — no in-app row. No custom domain during review:
+      after approval the owner binds the domain to `waketok-site` (the
+      github.io URLs then redirect), and a later version moves the app
+      constant and store metadata to the final domain; contact is a
+      dedicated mailbox until the domain mailbox exists. Before
+      submission: open the privacy URL once in a private browser window
+      not signed in to GitHub and tap the row once on device. `PrivacyInfo.xcprivacy`:
       at the end of this Cap the owner makes one TestFlight internal
       upload of the real binary as a probe (`sqlite3.framework` calls
       file-timestamp and disk-space APIs and ships no manifest); allow
