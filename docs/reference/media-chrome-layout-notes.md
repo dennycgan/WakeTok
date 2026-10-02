@@ -1009,8 +1009,9 @@ request-page-only details (bullet dots, gap between points) stay in
 **Not linked:** the Settings Photos access section
 (`photos_access_settings_section.dart`). Manage Selection (filled,
 Limited only) and Open Settings (outlined) use theme default button
-styles; the dark-mode maroon filled-button text is recorded in
-`docs/acceptance/cap31-31.4-notes.md`.
+styles. In Dark, Manage Selection uses the theme's default accent pair,
+with the black text set by ADR-069; the permission pages always use the
+Light pair.
 
 **Auth state:** all three screens share one source,
 `photosAuthorizationProvider` (`photos_authorization_notifier.dart`).

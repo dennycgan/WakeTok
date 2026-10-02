@@ -8649,3 +8649,47 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     line gains "Cap 7.8 note `onPrimary` sentence superseded by ADR-069
     (2026-10-01)"; its body is not edited. Accent hex values unchanged.
   - ADR-061: shared token change; affected surfaces listed above.
+
+## ADR-070: Ship v1 as iPhone-only (`TARGETED_DEVICE_FAMILY = 1`)
+
+- Status: **Accepted** (2026-10-02)
+- Commit/PR anchor: 9d54313
+- Plain summary (owner reads this):
+  WakeTok v1 is an iPhone app. iPad users can still install it; iPad
+  runs it in iPhone compatibility mode and shows the iPhone icon. The
+  leftover Flutter placeholder icons for iPad are deleted.
+- Context / what problem forced this:
+  - The Runner target shipped as iPhone + iPad by Flutter default
+    (`TARGETED_DEVICE_FAMILY = "1,2"`), while iPad was never an MVP
+    acceptance target (ADR-051 D10).
+  - The five iPad-only icon slots still held the Flutter placeholder
+    (`5645bb1` replaced only the iPhone and marketing slots), and a
+    universal listing needs iPad screenshots and iPad acceptance.
+  - Unverified (no source checked): iPad support may not be removable
+    after the first release.
+- Decision (what was chosen):
+  1. `TARGETED_DEVICE_FAMILY = 1` for all Runner configurations (Debug,
+     Release, Profile), before the first TestFlight upload.
+  2. Remove the nine `ipad` entries from `AppIcon` Contents.json and
+     delete the five iPad-only PNGs (20x20@1x, 40x40@1x, 76x76@1x,
+     76x76@2x, 83.5x83.5@2x). Four `ipad` entries shared iPhone PNGs;
+     those files stay.
+- Rejected alternatives (why not):
+  - Keep universal and add iPad icons, screenshots and acceptance —
+    work for a non-target device.
+  - Change the device family only — actool still packs `ipad` icon
+    entries into an iPhone-only build (the built `Info.plist` declared
+    the Flutter-logo icon under `CFBundleIcons~ipad`).
+- Consequences / constraints accepted:
+  - The five iPad icon files and their Contents.json entries are
+    deleted; iPad compatibility mode uses the iPhone icon.
+  - The `~ipad` orientation key in `Info.plist` and the Swift `.pad`
+    share popover branch stay and are inert.
+  - Supporting iPad later needs a new ADR, iPad icons, and an iPad
+    acceptance pass.
+  - Owner device check passed 2026-10-02 (iPhone 17, iPhone 13 Pro,
+    Release): icon, launch, Browse, Share.
+- Relationship:
+  - ADR-051 D10: iPhone-only Share acceptance; the minimal iPad popover
+    anchor in the Swift share code stays, inert.
+  - Debt 418 closed by this change.
