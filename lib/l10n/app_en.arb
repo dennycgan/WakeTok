@@ -716,15 +716,15 @@
   "@mainBrowseFeedRetry": {
     "description": "Retry button for feed resolve or page media errors"
   },
-  "mainBrowseFeedMediaFailed": "Could not display this item.",
+  "mainBrowseFeedMediaFailed": "Could not display this item",
   "@mainBrowseFeedMediaFailed": {
     "description": "Feed page generic display/playable failure"
   },
-  "mainBrowseFeedNetworkFailed": "Could not load. Allow wireless data, then retry.",
+  "mainBrowseFeedNetworkFailed": "Could not load. Allow wireless data, then retry",
   "@mainBrowseFeedNetworkFailed": {
     "description": "Layer 2 failed before transfer began (cellular/wireless-data prompt or no network)"
   },
-  "mainBrowseFeedUnavailable": "This item is unavailable.",
+  "mainBrowseFeedUnavailable": "This item is unavailable",
   "@mainBrowseFeedUnavailable": {
     "description": "Feed Layer-2/page fail when Host returns assetUnavailable (Cap 21.6 debt 444); no Retry"
   },
@@ -744,7 +744,7 @@
   "@mainBrowseFeedLiveLoading": {
     "description": "Semantics for the single Live still spinner covering Layer 2 and motion prepare (Cap 14.6b)"
   },
-  "mainBrowseFeedDownloadFailed": "Could not download this item.",
+  "mainBrowseFeedDownloadFailed": "Could not download this item",
   "@mainBrowseFeedDownloadFailed": {
     "description": "Layer 2 failed while Layer 1 preview is still shown"
   },

@@ -558,14 +558,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedRetry => 'Retry';
 
   @override
-  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
+  String get mainBrowseFeedMediaFailed => 'Could not display this item';
 
   @override
   String get mainBrowseFeedNetworkFailed =>
-      'Could not load. Allow wireless data, then retry.';
+      'Could not load. Allow wireless data, then retry';
 
   @override
-  String get mainBrowseFeedUnavailable => 'This item is unavailable.';
+  String get mainBrowseFeedUnavailable => 'This item is unavailable';
 
   @override
   String get mainBrowseFeedLayer1Loading => 'Loading item';
@@ -580,7 +580,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedLiveLoading => 'Loading Live Photo';
 
   @override
-  String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
+  String get mainBrowseFeedDownloadFailed => 'Could not download this item';
 
   @override
   String get mainBrowseLiveReplayFailed => 'Could not play this Live Photo';

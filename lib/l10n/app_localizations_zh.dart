@@ -553,14 +553,14 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedRetry => 'Retry';
 
   @override
-  String get mainBrowseFeedMediaFailed => 'Could not display this item.';
+  String get mainBrowseFeedMediaFailed => 'Could not display this item';
 
   @override
   String get mainBrowseFeedNetworkFailed =>
-      'Could not load. Allow wireless data, then retry.';
+      'Could not load. Allow wireless data, then retry';
 
   @override
-  String get mainBrowseFeedUnavailable => 'This item is unavailable.';
+  String get mainBrowseFeedUnavailable => 'This item is unavailable';
 
   @override
   String get mainBrowseFeedLayer1Loading => 'Loading item';
@@ -575,7 +575,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedLiveLoading => 'Loading Live Photo';
 
   @override
-  String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
+  String get mainBrowseFeedDownloadFailed => 'Could not download this item';
 
   @override
   String get mainBrowseLiveReplayFailed => 'Could not play this Live Photo';
@@ -1507,13 +1507,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseFeedRetry => '重试';
 
   @override
-  String get mainBrowseFeedMediaFailed => '无法显示此项目。';
+  String get mainBrowseFeedMediaFailed => '无法显示此项目';
 
   @override
-  String get mainBrowseFeedNetworkFailed => '无法加载。请允许无线数据后重试。';
+  String get mainBrowseFeedNetworkFailed => '无法加载。请允许无线数据后重试';
 
   @override
-  String get mainBrowseFeedUnavailable => '此项目不可用。';
+  String get mainBrowseFeedUnavailable => '此项目不可用';
 
   @override
   String get mainBrowseFeedLayer1Loading => '正在加载此项';
@@ -1528,7 +1528,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get mainBrowseFeedLiveLoading => '正在加载实况照片';
 
   @override
-  String get mainBrowseFeedDownloadFailed => '无法下载此项目。';
+  String get mainBrowseFeedDownloadFailed => '无法下载此项目';
 
   @override
   String get mainBrowseLiveReplayFailed => '无法播放此实况照片';

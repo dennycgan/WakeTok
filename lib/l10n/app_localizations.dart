@@ -1071,19 +1071,19 @@ abstract class AppLocalizations {
   /// Feed page generic display/playable failure
   ///
   /// In en, this message translates to:
-  /// **'Could not display this item.'**
+  /// **'Could not display this item'**
   String get mainBrowseFeedMediaFailed;
 
   /// Layer 2 failed before transfer began (cellular/wireless-data prompt or no network)
   ///
   /// In en, this message translates to:
-  /// **'Could not load. Allow wireless data, then retry.'**
+  /// **'Could not load. Allow wireless data, then retry'**
   String get mainBrowseFeedNetworkFailed;
 
   /// Feed Layer-2/page fail when Host returns assetUnavailable (Cap 21.6 debt 444); no Retry
   ///
   /// In en, this message translates to:
-  /// **'This item is unavailable.'**
+  /// **'This item is unavailable'**
   String get mainBrowseFeedUnavailable;
 
   /// Visible center copy + immediate VoiceOver on Layer 1 miss; center copy has a source-switch-only 150ms delay (ADR-039)
@@ -1113,7 +1113,7 @@ abstract class AppLocalizations {
   /// Layer 2 failed while Layer 1 preview is still shown
   ///
   /// In en, this message translates to:
-  /// **'Could not download this item.'**
+  /// **'Could not download this item'**
   String get mainBrowseFeedDownloadFailed;
 
   /// Cap 31.4a: line under the center "!" while the finger stays down after a Live long-press replay fails; also announced once to VoiceOver. Only for the long-press replay failure, not the Layer 2 download failure (mainBrowseFeedDownloadFailed). States the result only, never a cause.

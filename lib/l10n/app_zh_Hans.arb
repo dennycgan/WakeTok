@@ -165,14 +165,14 @@
   "mainBrowseFeedEmpty": "此来源没有内容。",
   "mainBrowseFeedResolveFailed": "无法加载此来源。",
   "mainBrowseFeedRetry": "重试",
-  "mainBrowseFeedMediaFailed": "无法显示此项目。",
-  "mainBrowseFeedNetworkFailed": "无法加载。请允许无线数据后重试。",
-  "mainBrowseFeedUnavailable": "此项目不可用。",
+  "mainBrowseFeedMediaFailed": "无法显示此项目",
+  "mainBrowseFeedNetworkFailed": "无法加载。请允许无线数据后重试",
+  "mainBrowseFeedUnavailable": "此项目不可用",
   "mainBrowseFeedLayer1Loading": "正在加载此项",
   "mainBrowseFeedLayer2Reassure": "仍在加载",
   "mainBrowseFeedLayer3Loading": "正在加载完整画质",
   "mainBrowseFeedLiveLoading": "正在加载实况照片",
-  "mainBrowseFeedDownloadFailed": "无法下载此项目。",
+  "mainBrowseFeedDownloadFailed": "无法下载此项目",
   "mainBrowseLiveReplayFailed": "无法播放此实况照片",
   "@mainBrowseLiveReplayFailed": {
     "description": "Cap 31.4a: Live long-press replay failure only (not the Layer 2 download failure); states the result only, never a cause."
