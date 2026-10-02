@@ -147,6 +147,7 @@
     "mainBrowseFeedLayer3Loading",
     "mainBrowseFeedLiveLoading",
     "mainBrowseFeedDownloadFailed",
+    "mainBrowseLiveReplayFailed",
     "mainBrowseLiveBadge",
     "mainBrowseMagnificationReset",
     "mainBrowseStubSettingsBody",

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waketok/app/browse/browse_live_motion_watchdog.dart';
+import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/live_photo/live_photo_repository.dart';
 import 'package:waketok/domain/playback/playback_models.dart';
@@ -12,6 +13,7 @@ import 'package:waketok/features/main_browse/cap26_live_long_press_arbitration.d
 import 'package:waketok/features/main_browse/cap26_live_long_press_gesture.dart';
 import 'package:waketok/features/main_browse/main_browse_providers.dart';
 import 'package:waketok/features/main_browse/vertical_media_feed.dart';
+import 'package:waketok/l10n/app_localizations.dart';
 
 import '../../library_smoke/fake_asset_source_repository.dart';
 import '../../library_smoke/fake_live_photo_repository.dart';
@@ -861,6 +863,140 @@ void main() {
         await _pumpAsyncWork(tester);
         expect(page.debugUserHoldReplayActive, isFalse);
         expect(page.debugLiveMotionMounted, isFalse);
+      },
+    );
+  });
+
+  group('Cap 31.4a long-press replay failure "!"', () {
+    const failKey = Key('mainBrowseFeedLiveReplayFail_live-1');
+    const failed = LivePhotoFailedEvent(
+      assetIdentifier: 'live-1',
+      error: AppError.iCloudDownloadFailed,
+    );
+    late String failText;
+
+    setUpAll(() async {
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      failText = l10n.mainBrowseLiveReplayFailed;
+    });
+
+    Future<MediaFeedPageState> holdAndStartPathS(
+      WidgetTester tester,
+      FakeLivePhotoRepository live,
+    ) async {
+      final page = await _settleToStaticKeyFrame(
+        tester,
+        live,
+        clearRetained: true,
+      );
+      page.debugUserHoldReplayActive = true;
+      await page.debugUserLongPressReplay();
+      await _pumpAsyncWork(tester);
+      expect(page.debugLiveSilentReplayInFlight, isTrue);
+      expect(find.byKey(failKey), findsNothing);
+      return page;
+    }
+
+    testWidgets(
+      'T-31.4a-1 failure while finger down shows "!" and keeps it',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: false);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        final page = await holdAndStartPathS(tester, live);
+
+        live.failedController.add(failed);
+        await _pumpAsyncWork(tester);
+
+        expect(page.debugLiveMotionMounted, isFalse);
+        expect(page.debugUserHoldReplayActive, isTrue);
+        expect(find.byKey(failKey), findsOneWidget);
+        expect(find.text(failText), findsOneWidget);
+
+        await tester.pump(const Duration(seconds: 3));
+        expect(
+          find.byKey(failKey),
+          findsOneWidget,
+          reason: 'no timed fade while the finger stays down',
+        );
+        expect(find.text(failText), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'T-31.4a-2 release hides "!" immediately',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: false);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        final page = await holdAndStartPathS(tester, live);
+
+        live.failedController.add(failed);
+        await _pumpAsyncWork(tester);
+        expect(find.byKey(failKey), findsOneWidget);
+        expect(find.text(failText), findsOneWidget);
+
+        unawaited(page.debugUserLongPressReleaseStop());
+        await tester.pump();
+        expect(find.byKey(failKey), findsNothing);
+        expect(find.text(failText), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'T-31.4a-3 failure after finger is up shows nothing',
+      (tester) async {
+        final live = FakeLivePhotoRepository(autoReady: false);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        final page = await holdAndStartPathS(tester, live);
+
+        // Finger up while Path S is still in flight (release teardown not
+        // yet run): the failure listener is live, only the hold gate stops it.
+        page.debugUserHoldReplayActive = false;
+
+        live.failedController.add(failed);
+        await _pumpAsyncWork(tester);
+        expect(page.debugLiveSilentReplayInFlight, isFalse);
+        expect(find.byKey(failKey), findsNothing);
+        expect(find.text(failText), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'T-31.4a-4 VoiceOver: line is in semantics and announced once per hold',
+      (tester) async {
+        final semantics = tester.ensureSemantics();
+        final live = FakeLivePhotoRepository(autoReady: false);
+        final display = FakeMediaDisplayRepository();
+        await _seedLiveHarness(tester, live: live, display: display);
+        await holdAndStartPathS(tester, live);
+        tester.takeAnnouncements();
+
+        live.failedController.add(failed);
+        await _pumpAsyncWork(tester);
+        // Merged into the page image node's label (e.g. "LIVE\n<line>").
+        expect(
+          find.bySemanticsLabel(RegExp(RegExp.escape(failText))),
+          findsOneWidget,
+        );
+
+        // A second replay failure while the "!" is still up (e.g. a
+        // second-finger re-fire, ADR-071 Consequences) must not announce
+        // again.
+        final page = _pageState(tester, 'live-1');
+        await page.debugUserLongPressReplay();
+        await _pumpAsyncWork(tester);
+        expect(page.debugLiveSilentReplayInFlight, isTrue);
+        live.failedController.add(failed);
+        await _pumpAsyncWork(tester);
+        expect(page.debugLiveSilentReplayInFlight, isFalse);
+        expect(find.byKey(failKey), findsOneWidget);
+
+        final announcements = tester.takeAnnouncements();
+        expect(announcements, hasLength(1));
+        expect(announcements.single.message, failText);
+        semantics.dispose();
       },
     );
   });

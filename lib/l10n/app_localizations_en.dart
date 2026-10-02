@@ -583,6 +583,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
 
   @override
+  String get mainBrowseLiveReplayFailed => 'Could not play this Live Photo';
+
+  @override
   String get mainBrowseLiveBadge => 'LIVE';
 
   @override

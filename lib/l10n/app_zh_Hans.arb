@@ -173,6 +173,10 @@
   "mainBrowseFeedLayer3Loading": "正在加载完整画质",
   "mainBrowseFeedLiveLoading": "正在加载实况照片",
   "mainBrowseFeedDownloadFailed": "无法下载此项目。",
+  "mainBrowseLiveReplayFailed": "无法播放此实况照片",
+  "@mainBrowseLiveReplayFailed": {
+    "description": "Cap 31.4a: Live long-press replay failure only (not the Layer 2 download failure); states the result only, never a cause."
+  },
   "mainBrowseLiveBadge": "LIVE",
   "mainBrowseMagnificationReset": "还原",
   "mainBrowseStubSettingsBody": "设置 — 将在后续能力提供。",

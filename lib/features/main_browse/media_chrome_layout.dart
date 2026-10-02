@@ -154,6 +154,20 @@ const double kLiveBadgeDotLabelGap = 6;
 /// LIVE status dot diameter.
 const double kLiveBadgeDotSize = 6;
 
+/// Cap 31.4a center "!" on a failed Live long-press replay (= action icon).
+const double kLiveReplayFailIconSize = 32;
+
+/// Cap 31.4a gap from the "!" to the failure line below it.
+const double kLiveReplayFailIconLabelGap = 8;
+
+/// Cap 31.4a failure line max width (two lines max).
+const double kLiveReplayFailLabelMaxWidth = 240;
+
+/// Cap 31.4a fallback hide for the "!" — not the main hide (release is).
+/// Needed because a second finger landing during the hold resets the Cap 26
+/// long-press gesture without sending release, so release may never come.
+const Duration kLiveReplayFailSafetyTimeout = Duration(seconds: 10);
+
 // --- Reset ------------------------------------------------------------------
 
 /// Minimum Reset hit edge (iOS HIG). Visual pill may be shorter; hit expands.

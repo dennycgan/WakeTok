@@ -578,6 +578,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get mainBrowseFeedDownloadFailed => 'Could not download this item.';
 
   @override
+  String get mainBrowseLiveReplayFailed => 'Could not play this Live Photo';
+
+  @override
   String get mainBrowseLiveBadge => 'LIVE';
 
   @override
@@ -1526,6 +1529,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get mainBrowseFeedDownloadFailed => '无法下载此项目。';
+
+  @override
+  String get mainBrowseLiveReplayFailed => '无法播放此实况照片';
 
   @override
   String get mainBrowseLiveBadge => 'LIVE';

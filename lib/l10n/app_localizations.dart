@@ -1116,6 +1116,12 @@ abstract class AppLocalizations {
   /// **'Could not download this item.'**
   String get mainBrowseFeedDownloadFailed;
 
+  /// Cap 31.4a: line under the center "!" while the finger stays down after a Live long-press replay fails; also announced once to VoiceOver. Only for the long-press replay failure, not the Layer 2 download failure (mainBrowseFeedDownloadFailed). States the result only, never a cause.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not play this Live Photo'**
+  String get mainBrowseLiveReplayFailed;
+
   /// Corner badge when display mediaKind is livePhoto (static mark only)
   ///
   /// In en, this message translates to:

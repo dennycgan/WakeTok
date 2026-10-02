@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
+import 'package:waketok/core/errors/app_error.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/domain/library/asset_availability.dart';
@@ -2561,6 +2563,11 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   /// Keeps Cap 26 Listener mounted after `_liveMotionMounted` / Path S.
   bool _userHoldReplayActive = false;
 
+  /// Cap 31.4a / ADR-071: center "!" — replay failed while the finger that
+  /// fired long-press is still down. Hidden on release; no timed fade.
+  bool _liveReplayFailVisible = false;
+  Timer? _liveReplayFailSafetyTimer;
+
   /// Cap 9.5 Q4=A: motion **prepare** spinner (generation-gated writes).
   ///
   /// Means "Live motion resource acquire in flight" only — **not** playback.
@@ -2888,6 +2895,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (state == AppLifecycleState.inactive ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
+      _hideLiveReplayFail();
       unawaited(_interruptLiveMotionForAppLifecycle());
       return;
     }
@@ -3030,6 +3038,12 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
       _preferHostOverSessionL2ReadyOnce = true;
     }
     final leftCurrent = oldWidget.isCurrent && !widget.isCurrent;
+    if (leftCurrent) {
+      // build() follows didUpdateWidget — no setState.
+      _liveReplayFailSafetyTimer?.cancel();
+      _liveReplayFailSafetyTimer = null;
+      _liveReplayFailVisible = false;
+    }
     if (!oldWidget.isCurrent && widget.isCurrent) {
       unawaited(
         Cap27L1StallProbe.log('BECOME_CURRENT', {
@@ -3362,6 +3376,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
   @override
   void dispose() {
     _cancelLiveEndedWatchdog();
+    _liveReplayFailSafetyTimer?.cancel();
     _readyForDisplaySub?.cancel();
     _readyForDisplaySub = null;
     _holdPosterTimeout?.cancel();
@@ -3652,6 +3667,36 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     await _silentReRequestLiveForUserReplay();
   }
 
+  /// Cap 31.4a / ADR-071: show the "!" only while the long-press finger is
+  /// still down on the current page. Finger already up → nothing.
+  void _showLiveReplayFail() {
+    if (!mounted || !widget.isCurrent || !_userHoldReplayActive) {
+      return;
+    }
+    _liveReplayFailSafetyTimer?.cancel();
+    _liveReplayFailSafetyTimer =
+        Timer(kLiveReplayFailSafetyTimeout, _hideLiveReplayFail);
+    if (!_liveReplayFailVisible) {
+      setState(() => _liveReplayFailVisible = true);
+      // Announce only on the hidden → shown edge (once per appearance).
+      unawaited(
+        SemanticsService.sendAnnouncement(
+          View.of(context),
+          AppLocalizations.of(context)!.mainBrowseLiveReplayFailed,
+          Directionality.of(context),
+        ),
+      );
+    }
+  }
+
+  void _hideLiveReplayFail() {
+    _liveReplayFailSafetyTimer?.cancel();
+    _liveReplayFailSafetyTimer = null;
+    if (_liveReplayFailVisible && mounted) {
+      setState(() => _liveReplayFailVisible = false);
+    }
+  }
+
   /// Cap 26.5a / ADR-052 Decision 3 — release-to-stop (Photos press-hold).
   ///
   /// Path S in-flight: immediate cancel (do not wait for ready). Path R /
@@ -3662,6 +3707,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
     if (!mounted) {
       return;
     }
+    _hideLiveReplayFail();
     final wasHolding = _userHoldReplayActive;
     if (wasHolding) {
       _userHoldReplayActive = false;
@@ -3823,6 +3869,9 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
         _liveSilentReplayInFlight = false;
         _liveHostPhotoRetained = false;
         unawaited(_unloadLiveMotionSurface());
+        if (event.error != AppError.operationCancelled) {
+          _showLiveReplayFail();
+        }
       });
       _liveEndedSub = live.playbackEndedEvents.listen((event) {
         if (!_liveMotionGate.isCurrent(generation)) {
@@ -3874,6 +3923,7 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
           ref
               .read(browseMagnificationProvider.notifier)
               .onLiveMotionMountedChanged(false);
+          _showLiveReplayFail();
         }
       }
     });
@@ -6314,6 +6364,50 @@ class MediaFeedPageState extends ConsumerState<MediaFeedPage>
               key: const Key('mainBrowseFeedRemountRevealHold'),
               l10n: l10n,
               tokens: tokens,
+            ),
+          ),
+        // Cap 31.4a / ADR-071: trailing for the same Element-stability reason.
+        // Equal Spacer / Expanded keep the "!" at the exact center; the line
+        // hangs below it.
+        if (_liveReplayFailVisible && playbackTapIsCurrent)
+          IgnorePointer(
+            key: Key('mainBrowseFeedLiveReplayFail_${widget.assetIdentifier}'),
+            child: Column(
+              children: [
+                const Spacer(),
+                ExcludeSemantics(
+                  child: Icon(
+                    Icons.error_outline,
+                    size: kLiveReplayFailIconSize,
+                    color: tokens.onMedia,
+                    shadows: tokens.onMediaLabelShadows,
+                  ),
+                ),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        top: kLiveReplayFailIconLabelGap,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          maxWidth: kLiveReplayFailLabelMaxWidth,
+                        ),
+                        child: Text(
+                          l10n.mainBrowseLiveReplayFailed,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: tokens.labelOnMedia.copyWith(
+                            shadows: tokens.onMediaLabelShadows,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
       ],
