@@ -1305,6 +1305,83 @@ final class DisplayStillRenderTests: XCTestCase {
   func testNonImageDataFails() {
     XCTAssertNil(DisplayStillRender.jpeg(from: Data([0, 1, 2]), maxPixelSize: 32, quality: 0.9))
   }
+
+  /// 16×16 GIF with two frames of different colours.
+  private func animatedGif() throws -> Data {
+    let output = NSMutableData()
+    let destination = try XCTUnwrap(
+      CGImageDestinationCreateWithData(output, UTType.gif.identifier as CFString, 2, nil)
+    )
+    for red in [CGFloat(1), CGFloat(0)] {
+      let context = try XCTUnwrap(
+        CGContext(
+          data: nil, width: 16, height: 16, bitsPerComponent: 8, bytesPerRow: 0,
+          space: CGColorSpaceCreateDeviceRGB(),
+          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        )
+      )
+      context.setFillColor(red: red, green: 0, blue: 1 - red, alpha: 1)
+      context.fill(CGRect(x: 0, y: 0, width: 16, height: 16))
+      let frame: [CFString: Any] = [
+        kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 0.1]
+      ]
+      CGImageDestinationAddImage(
+        destination, try XCTUnwrap(context.makeImage()), frame as CFDictionary
+      )
+    }
+    XCTAssertTrue(CGImageDestinationFinalize(destination))
+    let data = output as Data
+    XCTAssertEqual(try frameCount(of: data), 2)
+    return data
+  }
+
+  private func frameCount(of data: Data) throws -> Int {
+    CGImageSourceGetCount(try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil)))
+  }
+
+  /// The JPEG render always outputs a single frame; animated stills keep
+  /// their frames only through the keepOriginal branch of layer2Data (ADR-073).
+  func testJpegRenderKeepsOnlyTheFirstFrame() throws {
+    let output = try XCTUnwrap(
+      DisplayStillRender.jpeg(from: try animatedGif(), maxPixelSize: 32, quality: 0.9)
+    )
+    _ = try properties(of: output)
+    XCTAssertEqual(try frameCount(of: output), 1)
+  }
+
+  func testAnimatedStillKeepsOriginalFrames() throws {
+    let gif = try animatedGif()
+    let output = try XCTUnwrap(
+      DisplayStillRender.layer2Data(
+        from: gif, keepOriginal: true, maxPixelSize: 32, quality: 0.9
+      )
+    )
+    XCTAssertEqual(output, gif)
+    XCTAssertEqual(try frameCount(of: output), 2)
+  }
+
+  func testOtherStillsStillRenderJpeg() throws {
+    let output = try XCTUnwrap(
+      DisplayStillRender.layer2Data(
+        from: try original(), keepOriginal: false, maxPixelSize: 32, quality: 0.9
+      )
+    )
+    let properties = try properties(of: output)
+    XCTAssertEqual(properties[kCGImagePropertyPixelWidth] as? Int, 24)
+    XCTAssertEqual(properties[kCGImagePropertyPixelHeight] as? Int, 32)
+  }
+
+  func testKeepsOriginalOnlyForAnimatedImages() {
+    XCTAssertTrue(DisplayStillRender.keepsOriginal(kind: .image, playbackStyle: .imageAnimated))
+    XCTAssertFalse(DisplayStillRender.keepsOriginal(kind: .image, playbackStyle: .image))
+    XCTAssertFalse(
+      DisplayStillRender.keepsOriginal(kind: .livePhoto, playbackStyle: .imageAnimated)
+    )
+    XCTAssertFalse(DisplayStillRender.keepsOriginal(kind: .livePhoto, playbackStyle: .livePhoto))
+    XCTAssertFalse(
+      DisplayStillRender.keepsOriginal(kind: .livePhoto, playbackStyle: .videoLooping)
+    )
+  }
 }
 
 final class DisplayCaptureTimeTests: XCTestCase {

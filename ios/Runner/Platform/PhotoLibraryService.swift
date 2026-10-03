@@ -926,6 +926,10 @@ final class PhotoLibraryService: PhotoLibraryApi {
       // with a one-step bilinear MPS scale, which aliases fine detail into moiré).
       let target = DisplayStillTarget.screenFitted(asset)
       let maxPixelSize = Int(max(target.width, target.height))
+      let keepOriginal = DisplayStillRender.keepsOriginal(
+        kind: kind,
+        playbackStyle: asset.playbackStyle
+      )
       let requestId = PHImageManager.default().requestImageDataAndOrientation(
         for: asset,
         options: options
@@ -938,6 +942,7 @@ final class PhotoLibraryService: PhotoLibraryApi {
           pixelWidth: Int64(asset.pixelWidth),
           pixelHeight: Int64(asset.pixelHeight),
           maxPixelSize: maxPixelSize,
+          keepOriginal: keepOriginal,
           data: data,
           info: info
         )
@@ -1381,6 +1386,7 @@ final class PhotoLibraryService: PhotoLibraryApi {
     pixelWidth: Int64,
     pixelHeight: Int64,
     maxPixelSize: Int,
+    keepOriginal: Bool,
     data original: Data?,
     info: [AnyHashable: Any]?
   ) {
@@ -1401,8 +1407,9 @@ final class PhotoLibraryService: PhotoLibraryApi {
       displayWriteQueue.async { [weak self] in
         guard let self else { return }
         guard
-          let data = DisplayStillRender.jpeg(
+          let data = DisplayStillRender.layer2Data(
             from: original,
+            keepOriginal: keepOriginal,
             maxPixelSize: maxPixelSize,
             quality: Self.displayJpegQuality
           )
@@ -2798,6 +2805,23 @@ enum DisplayStillTarget {
 // MARK: - Display still render (Cap 31.2b-1 / ADR-065)
 
 enum DisplayStillRender {
+  /// Animated stills (ADR-053 condition: GIF and kin, never Live) keep their
+  /// original bytes so Flutter plays every frame; the JPEG keeps one (ADR-073).
+  static func keepsOriginal(kind: MediaKind, playbackStyle: PHAsset.PlaybackStyle) -> Bool {
+    kind == .image && playbackStyle == .imageAnimated
+  }
+
+  /// Layer 2 temp bytes: [original] as-is when [keepOriginal], else [jpeg].
+  static func layer2Data(
+    from original: Data,
+    keepOriginal: Bool,
+    maxPixelSize: Int,
+    quality: CGFloat
+  ) -> Data? {
+    if keepOriginal { return original }
+    return jpeg(from: original, maxPixelSize: maxPixelSize, quality: quality)
+  }
+
   /// Upright JPEG of [original] whose longer side is at most [maxPixelSize],
   /// downsampled by ImageIO, with the original's capture time. Nil when
   /// [original] is not a decodable image.
