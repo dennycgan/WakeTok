@@ -11,7 +11,7 @@ Local-first. No account. Nothing uploaded to WakeTok.
 WakeTok is an iPhone app for browsing your own Photos library full screen,
 one item at a time, by swiping up and down. You choose what to browse and how
 it is ordered: use the built-in All, Photos or Videos sources, or combine
-sources of your own.
+albums into a Pool of your own.
 
 Photo libraries keep growing, while older items are rarely seen again.
 
@@ -24,9 +24,9 @@ Pigeon contracts.
 
 - Swipe up and down through photos, videos and Live Photos full screen,
   across your whole library or only the sources you choose.
-- Build and save Pools by combining the built-in All, Photos and Videos
-  sources with user albums or supported smart albums. A Pool remembers its
-  sources, not individual items.
+- Build and save Pools from your own albums and supported system albums,
+  then browse them together. A Pool remembers its sources, not individual
+  items.
 - Choose Shuffle, Newest or Oldest. When one pass finishes, Shuffle creates a
   new order; Newest and Oldest start again from the beginning.
 - Swipe left to add an item to the WakeTok album in Photos as a bookmark for
