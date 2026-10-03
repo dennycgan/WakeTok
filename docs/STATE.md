@@ -250,7 +250,10 @@
       page, captioned screenshots, custom domain — no custom domain
       before approval; the UI has zh-Hans
       but the bundle declares no localisations, so the store language
-      list shows English only — relates to ADR-062, needs a new ADR);
+      list shows English only — relates to ADR-062, needs a new ADR;
+      "Open-source licences" row in Settings About opening
+      `showLicensePage` — new en / zh-Hans copy; changes the closed
+      Cap 32 Settings page);
       small-screen check; empty-panel refresh check; empty-state
       Action Column dim widget test; EU trader status assessment.
 
