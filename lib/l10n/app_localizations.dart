@@ -1680,6 +1680,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t share. Try again.'**
   String get cap25ShareFailed;
+
+  /// Cap 32 Settings About section title (SettingsSectionHeader adds the colon)
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsAboutSectionTitle;
+
+  /// Cap 32 Settings About row; opens the privacy policy web page in the system browser
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get settingsPrivacyPolicyRow;
 }
 
 class _AppLocalizationsDelegate

@@ -1182,5 +1182,13 @@
   "cap25ShareFailed": "Couldn't share. Try again.",
   "@cap25ShareFailed": {
     "description": "Cap 25 Share Host present/prepare failure toast (Cap 19 toast style; ADR-051 D4/D5)"
+  },
+  "settingsAboutSectionTitle": "About",
+  "@settingsAboutSectionTitle": {
+    "description": "Cap 32 Settings About section title (SettingsSectionHeader adds the colon)"
+  },
+  "settingsPrivacyPolicyRow": "Privacy Policy",
+  "@settingsPrivacyPolicyRow": {
+    "description": "Cap 32 Settings About row; opens the privacy policy web page in the system browser"
   }
 }

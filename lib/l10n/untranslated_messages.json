@@ -237,6 +237,8 @@
     "cap24SoftDeleteSheetExactMinuteLibrary",
     "cap24SoftDeleteFailed",
     "cap25ShareEntryIconSemantics",
-    "cap25ShareFailed"
+    "cap25ShareFailed",
+    "settingsAboutSectionTitle",
+    "settingsPrivacyPolicyRow"
   ]
 }

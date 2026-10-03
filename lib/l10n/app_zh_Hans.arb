@@ -266,5 +266,7 @@
   "cap24SoftDeleteSheetExactMinuteLibrary": "{year}-{month}-{day} {hour}:{minute}",
   "cap24SoftDeleteFailed": "无法删除，请重试。",
   "cap25ShareEntryIconSemantics": "分享",
-  "cap25ShareFailed": "无法分享，请重试。"
+  "cap25ShareFailed": "无法分享，请重试。",
+  "settingsAboutSectionTitle": "关于",
+  "settingsPrivacyPolicyRow": "隐私政策"
 }

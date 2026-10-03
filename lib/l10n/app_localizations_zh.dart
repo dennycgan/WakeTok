@@ -943,6 +943,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cap25ShareFailed => 'Couldn\'t share. Try again.';
+
+  @override
+  String get settingsAboutSectionTitle => 'About';
+
+  @override
+  String get settingsPrivacyPolicyRow => 'Privacy Policy';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1829,4 +1835,10 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cap25ShareFailed => '无法分享，请重试。';
+
+  @override
+  String get settingsAboutSectionTitle => '关于';
+
+  @override
+  String get settingsPrivacyPolicyRow => '隐私政策';
 }

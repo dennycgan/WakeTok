@@ -8,6 +8,7 @@ import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
 import 'package:waketok/features/authorization/photos_access_settings_section.dart';
 import 'package:waketok/features/library_smoke/library_totals_shell_page.dart';
+import 'package:waketok/features/main_browse/about_settings_section.dart';
 import 'package:waketok/features/main_browse/bottom_tab_layout.dart';
 import 'package:waketok/features/main_browse/browse_card_stack_icon.dart';
 import 'package:waketok/features/main_browse/browse_top_chrome.dart';
@@ -400,6 +401,8 @@ class _SettingsStubPane extends StatelessWidget {
           const BrowseDisplaySettingsSection(),
           const SizedBox(height: kSettingsSectionGap),
           const BrowseNotificationsSettingsSection(),
+          const SizedBox(height: kSettingsSectionGap),
+          const AboutSettingsSection(),
           // After Photos Access (Cap 29): debug smoke may sit below the
           // fold — tests use dragUntilVisible. Release omits the control.
           if (kDebugMode) ...[

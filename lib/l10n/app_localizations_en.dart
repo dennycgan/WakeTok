@@ -948,4 +948,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cap25ShareFailed => 'Couldn\'t share. Try again.';
+
+  @override
+  String get settingsAboutSectionTitle => 'About';
+
+  @override
+  String get settingsPrivacyPolicyRow => 'Privacy Policy';
 }
