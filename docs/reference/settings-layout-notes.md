@@ -108,7 +108,7 @@ on-media size). Settings must use chrome helpers above.
 | `kSettingsTitleInfoGap` | **2** | Title glyphs → info `i` (hug) |
 | `kSettingsInfoLayoutWidth` | **22** | Non-inline `i` slots only |
 | `kSettingsInfoHit` | **44** | Min tap target (overflow) |
-| `kSettingsInfoIconSize` | **18** | `Icons.info_outline` glyph / WidgetSpan box |
+| `kSettingsInfoIconSize` | **18** | `Icons.info_outline` glyph / WidgetSpan box; the external-link icon uses it too |
 | `kSettingsChromeTitleFontSize` | **14** | Shared section + row size |
 | `kSettingsStatusBodyOpacity` | **0.55** | Probe / helper muted body only (not Photos Access) |
 
@@ -175,6 +175,41 @@ as list subtitles.
 regardless of title length. (A trailing-`Flexible` layout is *not*
 identical: short titles can look “close” while long titles shove `i`
 to the column edge.)
+
+### Inline trailing glyph — measured standard (Cap 32)
+
+Applies to the info `i` and to any glyph that follows a Settings label.
+
+| Property | Info `i` | External link (About) |
+|---|---|---|
+| Glyph | `Icons.info_outline` | `Icons.open_in_new` |
+| Box | `kSettingsInfoIconSize` (18) square | same |
+| Colour | `tokens.onSurface` @ 0.55 | same |
+| Placement | `WidgetSpan`, `PlaceholderAlignment.middle`, after the title `TextSpan` | same |
+| Gap: last title glyph → glyph box | `kSettingsTitleInfoGap` (2) | 2 × `kSettingsTitleInfoGap` (4) |
+| Ink inset inside the box (left) | ≈ 1.5 | ≈ 2.25 |
+| Visible gap | ≈ 3.5 | ≈ 6.25 |
+| Tap target | the `i` alone, `OverflowBox` → `kSettingsInfoHit` (44) | the whole row (`InkWell`, min height 44) |
+
+- **Rule for new inline glyphs:** an explanatory info `i` uses
+  `kSettingsTitleInfoGap`; a link glyph that leaves the app uses twice
+  that.
+- **Measured as:** right edge of the last title glyph
+  (`RenderParagraph.getBoxesForSelection` over the title) to the left edge
+  of the 18 box. Cap 32: 2.000 on all four info rows and 4.000 on the
+  About link row, en and zh-Hans.
+- **Ink inset** is font data (MaterialIcons glyph bounds at 18); no optical
+  compensation — the visible gap differs by glyph.
+- **Text scale:** `WidgetSpan` children scale with the text, so the box and
+  the gap scale too (gap = constant × text scale).
+- **Wrapping:** the glyph follows the last glyph of the last line; if that
+  line has no room, the glyph moves alone to the next line.
+- **Why the link gap is wider:** the link row uses twice the info gap: on
+  device (Cap 32) 2 read too tight beside the external-link glyph.
+- **Where the link gap lives:** a private constant in
+  `about_settings_section.dart` (`kSettingsTitleInfoGap * 2`). Promote it
+  to a shared constant in `settings_layout.dart` when a second link row
+  appears.
 
 **Bubble behaviour** (shared with Cap 24 via `anchored_info_bubble.dart`):
 

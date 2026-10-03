@@ -332,7 +332,8 @@ Active capability: MVP v1 pre-submission hardening (Cap 32)
       (step 3) — device check passed on iPhone 17 and iPhone 13 Pro;
       work `eadb127` (animated-still fix), `3cac032` (privacy link,
       export key), `72cb4f4` (sqlite3 privacy manifest), pushed;
-      archive pending
+      `18cea42` (Privacy Policy link icon next to its label, owner
+      device check on iPhone 13 Pro), pushed; archive pending
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 32 — MVP v1 pre-submission hardening (steps 1–3)
