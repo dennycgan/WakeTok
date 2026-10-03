@@ -17,7 +17,7 @@
   Internal keyword: local-first vertical rediscovery
   (= on your device · swipe · your library). Engineering term
   `vertical feed` OK in code/ADR/STATE; external copy prefers
-  `vertical scroll` / plain “what it does” (see MVP track).
+  `vertical scrolling app` / plain “what it does” (see MVP track).
 - Flutter project name: `waketok`; device display name: WakeTok
 - Bundle ID: `com.dennycgan.waketok`
   - Explicit App ID registration in Certificates, Identifiers & Profiles: owner-only
@@ -134,9 +134,9 @@
       saveToCameraRoll exclude; PHASE_HISTORY)
 > **MVP v1 submission track** — minimal closed loop for first App Review.
 > Slogan (detail page / web first line only — not App Store Subtitle):
-> "Wake what you saved — A local-first vertical scroll for rediscovering
-> your own photo and video library." App Store Subtitle: deferred to
-> pre-submission metadata (plain “what it does” in a few seconds; not
+> "Wake what you saved — A local-first vertical scrolling app for
+> rediscovering your own photo and video library." App Store Subtitle:
+> deferred to pre-submission metadata (plain “what it does” in a few seconds; not
 > slogan rhetoric).
 > V1 stack: L1 form (own-library full-screen vertical swipe / rediscover)
 > > L2a (choose what: Create/Saved pools; how ordered: bottom Order —
@@ -146,7 +146,8 @@
 > state; slogan alone does not carry it). External: avoid bare
 > `vertical feed`, `manage`, control-name piles. L2b (clips / background
 > lock-screen / context restore) = post-v1 only — not v1 messaging.
-> V1 sells L1 + L2a + floor; L3 = tidy-as-you-swipe. After First-launch
+> V1 sells L1 + L2a + floor; L3 = organise, share or delete as you go.
+> After First-launch
 > vertical-swipe guidance Cap: no new product behaviour for v1 — debug /
 > fix / non-behaviour polish + metadata only. Clips / dedicated Auto-play
 > = post-v1 track below.
@@ -258,7 +259,8 @@
       Action Column dim widget test; EU trader status assessment.
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
-> Big picture: same L1; V1 = L1+L2a+floor (L3 = tidy-as-you-swipe);
+> Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
+> delete as you go);
 > this track deepens L2b (clips / background·lock-screen / context, …)
 > — not a new product shape (not clip-editor / podcast). Distinct
 > TestFlight / App Store Caps below are a second release event (Clip /
