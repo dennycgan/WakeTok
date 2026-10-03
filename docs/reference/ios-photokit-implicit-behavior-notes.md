@@ -129,6 +129,7 @@ the linked Cap is active.
 | `PHImageManager` opportunistic double callback / cancel | Multiple resultHandler invocations; cancel best-effort | Browse load / iCloud path ADRs |
 | `PHLivePhotoView` / UiKitView vs Flutter `Transform` | Platform View may not follow Flutter magnification transforms | Known debt **470**; ADR-043 |
 | `PHLivePhotoView` natural-end callback not guaranteed | `didEndPlaybackWith` is the only public end signal, but it did not arrive after natural end for one asset | §3.1 below; ADR-063 |
+| Animated stills animate only from original bytes | `playbackStyle == .imageAnimated` decides whether the Layer 2 temp keeps a multi-frame file; Flutter, not a player, advances frames | §3.2 below; ADR-073 |
 
 ### 3.1 `PHLivePhotoView` natural-end callback missing (Cap 31.2)
 
@@ -174,6 +175,65 @@ the linked Cap is active.
 - **Cross-ref:** ADR-063; `docs/acceptance/cap31-31.2-notes.md`. No
   debt row (Cap 31.2 triage mapped it to a new path, not debt 470 /
   471).
+
+### 3.2 Animated images: the Layer 2 temp file decides whether they animate (Cap 32, ADR-073)
+
+- **Phenomenon:** WakeTok has no player for animated stills. A GIF
+  animates only because the Layer 2 temp file keeps the original
+  multi-frame bytes and Flutter's image stream decodes and advances the
+  frames. When the Host re-encodes the still as a single-frame JPEG
+  (`DisplayStillRender.jpeg`, ADR-065, `7d3d450`), only frame 0 survives.
+  ADR-073 keeps the original bytes when
+  `kind == .image && playbackStyle == .imageAnimated` (the ADR-053
+  condition; Live never qualifies).
+- **Evidence class:**
+  - **Device** — the regression and the fix only. Owner: a GIF saved
+    from another app animated at Cap 26.3 (recollection), was frozen
+    before ADR-073, and animates after it (Cap 32 acceptance, GIFs saved
+    from other apps (sizes not controlled), on iPhone 17, iOS 26.6.2
+    (23G90), and iPhone 13 Pro, iOS 26.6 (23G71)). Other animated
+    formats and the largest GIFs: not specifically tested.
+  - **Unit test (RunnerTests, simulator)** — `DisplayStillRender.jpeg`
+    outputs one frame for a two-frame GIF
+    (`testJpegRenderKeepsOnlyTheFirstFrame`); the keep-original branch
+    keeps both (`testAnimatedStillKeepsOriginalFrames`). `7d3d450` is
+    identified by code reading plus this test, not by a device bisect.
+  - **Code reading, not device-tested** — everything below (Flutter
+    3.41.9).
+- **Revisit (code reading):** Flutter keys the image by
+  `ResizeImage(FileImage(path))` (path plus decode size). A
+  `MultiFrameImageStreamCompleter` advances frames while it has
+  listeners; losing the last listener only cancels the next-frame timer,
+  and a new listener resumes from the codec's next frame. `ImageCache`
+  holds a keepAlive handle, so the stream survives without listeners.
+  `PageView` (`allowImplicitScrolling`) keeps the ±1 pages mounted, so a
+  one-page swipe never stops it (it keeps animating off screen). If the
+  page unmounts but the temp file survives (`DisplayTempFileStore` keeps
+  two), the `BrowseL2ReadySession` fast path reuses the same path, hits
+  the image cache, and playback continues from where it stopped. If the
+  file was evicted, the Host writes a new file name, Flutter treats it
+  as a new image, and it restarts from frame 0. Session boundaries,
+  forced Host reloads and an image cache flush under memory pressure
+  also restart it.
+- **Finite-loop GIFs (code reading):** a GIF can carry a finite loop
+  count (`NETSCAPE2.0` extension; no extension means play once by
+  convention; `Codec.repetitionCount` 0 = once, -1 = forever). After
+  the last repeat the completer releases the codec and the image stays
+  on its last frame until Flutter decodes it again (new file name, or
+  the cached stream is dropped). Most GIFs in the wild loop forever.
+  Not checked on any asset.
+- **Other animated formats (code reading):** the engine registers GIF
+  and WebP multi-frame decoders; animated HEIC and APNG may decode as
+  one frame. Multi-frame images ignore the decode target size
+  (`ImageDescriptor.instantiateCodec` uses the multi-frame codec without
+  it), so each frame decodes at full size. Not checked.
+- **If an animated image does not move, check in this order:** (1) is the
+  temp file the original bytes — check the leading bytes (`GIF8`), not
+  the name (temp files always end in `.jpg`); (2) does the keep-original
+  condition hold for this asset (`playbackStyle`); (3) is the page under
+  a disabled `TickerMode` (none in `lib/` today); (4) image cache /
+  memory pressure.
+- **Cross-ref:** ADR-043 Decision 12; ADR-053; ADR-065; ADR-073.
 
 ---
 

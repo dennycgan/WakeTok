@@ -8213,7 +8213,7 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 
 ## ADR-065: Cap 31.2b-1 Screen-sized still rendering on the Host (Layer 2 and Live key still)
 
-- Status: **Accepted** (2026-09-29)
+- Status: **Accepted** (2026-09-29); Decision 3 narrowly superseded by ADR-073 (2026-10-03)
 - Commit/PR anchor: 7d3d450
 - Plain summary (owner reads this):
   Some photos taken of a computer screen showed a strong grid pattern
@@ -8756,3 +8756,158 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
   - Follow-up work commits: `7450e94` (the long-press gesture follows
     only the pointer that fired it) and `e0c434c` (the "!" safety
     timeout removed).
+
+## ADR-072: Settings Privacy Policy link opens externally; pages on waketok-site; export compliance key is false
+
+- Status: **Accepted** (2026-10-03)
+- Commit/PR anchor: 3cac032
+- Plain summary (owner reads this):
+  Settings > About > Privacy Policy opens the privacy page in Safari.
+  The page lives in a separate public repo (`waketok-site`) on GitHub
+  Pages, and its address is built into the app. The app also tells
+  App Store Connect it uses no non-exempt encryption, so uploads do not
+  ask the export question.
+- Context / what problem forced this:
+  - App Review needs a privacy policy link inside the app and in App
+    Store Connect; v1 had none.
+  - Without an Info.plist answer, every upload asks the export
+    compliance question.
+- Decision (what was chosen):
+  1. One About section at the bottom of Settings with one link row
+     (external-link icon, link semantics). Copy lives in both ARB files
+     (ADR-012).
+  2. `kPrivacyPolicyUrl` in `lib/core/config/app_links.dart`
+     (`https://dennycgan.github.io/waketok-site/privacy/`), opened by
+     the overridable `openPrivacyPolicyProvider` with url_launcher in
+     external mode.
+  3. The pages (privacy, support) live in the separate public repo
+     `waketok-site`, English only, with relative links. A custom domain
+     only after owner approval, bound to `waketok-site` so the
+     github.io addresses redirect.
+  4. `ITSAppUsesNonExemptEncryption = false` in Info.plist: WakeTok
+     uses no encryption beyond what iOS itself provides (the link opens
+     Safari; iCloud downloads go through PhotoKit).
+- Rejected alternatives (why not):
+  - In-app web view — more code and review surface for one static page.
+  - A placeholder URL — a dead link in a shipped build.
+  - Hosting at the GitHub user-site root — a later custom domain would
+    move the owner's portfolio with it.
+  - Answering export compliance in App Store Connect per build — a
+    manual step on every upload.
+- Consequences:
+  - Changing the URL needs a new build; a later custom domain relies on
+    GitHub's redirect from the github.io address.
+  - The support page is store metadata only; there is no in-app row.
+  - Adding networking or cryptography later must re-check the export
+    key.
+  - Device check (Cap 32 step 3, Release): the owner tapped the Privacy
+    Policy row on both iPhone 17 and iPhone 13 Pro and the page opened
+    on each.
+- Relationship: ADR-012 (localisation); full privacy / about screens
+  stay in the post-v1 Settings Cap (`settings-layout-notes.md`).
+
+## ADR-073: Animated stills keep their original bytes in the Layer 2 temp file
+
+- Status: **Accepted** (2026-10-03)
+- Commit/PR anchor: eadb127
+- Plain summary (owner reads this):
+  GIFs saved from other apps had shown only their first frame since the
+  screen-sized still render (ADR-065). For images Photos marks as
+  animated, the app now keeps the original file, and they move again.
+  Every other photo is unchanged.
+- Context / what problem forced this:
+  - ADR-065 Decision 3 re-encodes every Layer 2 still as one
+    screen-sized JPEG; the encoder keeps only frame 0, so animated
+    images froze (a category the Cap 31.7 smoke did not cover; ADR-065
+    landed in 31.2b-1).
+  - Owner saw it on device in Cap 32.
+- Decision (what was chosen):
+  1. Keep-original condition = ADR-053's animated condition:
+     `kind == .image && playbackStyle == .imageAnimated`
+     (`DisplayStillRender.keepsOriginal`). Live never qualifies (Loop
+     and Bounce are Live).
+  2. For those assets `DisplayStillRender.layer2Data` returns the
+     original bytes unchanged, written to the same temp store. Fetch,
+     dimensions and failure mapping are unchanged. Host only; no Pigeon
+     or Dart change.
+- Rejected alternatives (why not):
+  - Detecting by file type — ADR-053 already rejected it; it misses
+    animated formats other than GIF.
+  - Detecting by frame count — content-based, can disagree with Photos'
+    own label.
+  - Rendering a screen-sized multi-frame file on the Host — more code
+    and per-frame re-encode cost for no visible gain.
+- Consequences:
+  - Animated stills return to full-size decode: multi-frame images
+    ignore the decode target size, so a large GIF costs more memory
+    than the ADR-065 still (accepted; the GIFs tried on device were not
+    chosen by size).
+  - Revisit behaviour (code reading, Flutter 3.41.9): Flutter's image
+    stream plays the GIF; WakeTok has no player for it. On revisit it
+    continues from where it stopped if the temp file still exists, and
+    restarts from frame 0 if the file was evicted. A finite-loop GIF
+    stays on its last frame while the same file is reused. Details:
+    `docs/reference/ios-photokit-implicit-behavior-notes.md` §3.2.
+  - Tests (RunnerTests, simulator; not part of the flutter test gate):
+    `testJpegRenderKeepsOnlyTheFirstFrame`,
+    `testAnimatedStillKeepsOriginalFrames`,
+    `testOtherStillsStillRenderJpeg`,
+    `testKeepsOriginalOnlyForAnimatedImages`.
+  - Device acceptance: Cap 32 step 3 on iPhone 17 (iOS 26.6.2) and
+    iPhone 13 Pro (iOS 26.6) with GIFs saved from other apps (sizes not
+    controlled); other animated formats and the largest GIFs were not
+    specifically tested.
+- Relationship: narrows ADR-065 Decision 3 to non-animated stills; reuses
+  the ADR-053 condition; ADR-043 Decision 12 unchanged.
+
+## ADR-074: A Runner build phase embeds a privacy manifest in sqlite3.framework
+
+- Status: **Accepted** (2026-10-03)
+- Commit/PR anchor: 72cb4f4
+- Plain summary (owner reads this):
+  The database library inside WakeTok calls file-information functions
+  that Apple asks apps to explain. The library does not carry that
+  explanation itself, so a build step copies a small privacy file into
+  it and re-signs it. It ships in build 1 instead of waiting for an
+  Apple warning email.
+- Context / what problem forced this:
+  - `sqlite3.framework` (Flutter native assets, package:sqlite3) calls
+    `stat` / `fstat` / `lstat` (file timestamp) and `statfs` /
+    `fstatfs` (disk space) — found with `nm -u` on the Release build.
+  - Apple requires the manifest inside the bundle that contains the
+    calling binary; the framework ships without one, which leads to an
+    ITMS-91053 email after upload.
+- Decision (what was chosen):
+  1. `ios/Runner/PrivacyManifests/sqlite3/PrivacyInfo.xcprivacy`:
+     FileTimestamp C617.1, DiskSpace E174.1, no tracking, no collected
+     data. Not a target resource.
+  2. Run Script phase "Embed sqlite3 Privacy Manifest", last in Runner
+     (after Thin Binary, which embeds the framework): copies the file
+     into `Frameworks/sqlite3.framework/` and re-signs the framework
+     with the build identity when signing is on.
+  3. Ships in build 1 (owner choice, 2026-10-03).
+- Rejected alternatives (why not):
+  - App-level manifest only — Apple's rule is per bundle that contains
+    the binary; the app's manifest does not cover the framework.
+  - Upgrading the package — no version was verified to embed a
+    manifest, and an upgrade would change the database code after the
+    device check.
+  - Waiting for the ITMS email — costs an extra upload round during
+    submission.
+- Consequences:
+  - E174.1 is the closest approved reason, not an exact one: SQLite
+    reads file-system details for locking, not to check free space.
+  - Owner reviewed and signed off the manifest content on 2026-10-03,
+    after the Cap 32 step 3 device check and before the commit.
+  - Verified: the unsigned Release build contains the file; the signed
+    installs on iPhone 17 and iPhone 13 Pro open Saved pools (the
+    re-signed framework loads). After archive the owner runs
+    `codesign --verify --deep --strict` and the file check.
+  - Phase order is fragile; listed in STATE "Do NOT touch".
+  - Remove the phase and the file when either: a sqlite3 upgrade ships
+    its own manifest inside the framework (check the built framework
+    without this phase), or WakeTok stops embedding sqlite3.framework
+    (database replaced). On any sqlite3 upgrade, re-run `nm -u` to
+    confirm the API categories still match.
+- Relationship: release-handoff (privacy manifest sign-off is
+  owner-only).

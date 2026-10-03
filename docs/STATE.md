@@ -197,28 +197,37 @@
          `ITSAppUsesNonExemptEncryption` in Info.plist (agent proposes
          the value, owner decides) — code stays uncommitted in the
          working tree; private submission files under `docs/private/`
-         (wording incl. the debt 484 check); PrivacyInfo backup patch
-         (not applied); ADR-072 draft. Owner reads it all once.
+         (wording incl. the debt 484 check); PrivacyInfo patch for
+         `sqlite3.framework` (owner chose to ship it in build 1,
+         ADR-074); ADR-072 draft. Owner reads it all once.
       2. Owner publishes `waketok-site` (push with the noreply
          identity, otherwise GH007), opens the privacy and support
          URLs in a private browser window and searches both pages for
          `[TBD]` and `TODO` (none may remain).
-      3. Local Release build on i17; owner taps the privacy row. Owner
-         also checks once: Limited access with none selected shows the
-         empty panel; select a few in iOS Settings, fully close
-         WakeTok and reopen, check they appear; back to Full access.
-         Pass, then OK commit, OK push; the pushed commit is archived.
-      Cap 32 / 33 docs commits (incl. ADR-072) go in the processing or
-      review waits, off the critical path.
+      3. Signed Release build on i17 with all changes uncommitted in
+         the working tree. Five checks, any failure fails the step:
+         installs; launches; the privacy row opens the page; Saved
+         pools opens with Full access; Limited access (none selected
+         shows the empty panel; select a few in iOS Settings, fully
+         close WakeTok and reopen, they appear; back to Full access).
+         Owner signs off the sqlite3 privacy manifest. Pass, then three
+         separate commits in this order — animated-still fix
+         (ADR-073), privacy link and export key (ADR-072), sqlite3
+         privacy manifest (ADR-074) — OK push; the pushed HEAD is
+         archived.
+      The Cap 32 docs commit (ADR-072…ADR-074) lands before the
+      archive; Cap 33 docs commits go in the processing or review
+      waits, off the critical path.
       <-- YOU ARE HERE
 - [ ] TestFlight internal testing and release-candidate validation
       (Cap 33; MVP v1 track; owner executes distribution; the agent
       prepares build and metadata)
       4. Owner uploads to TestFlight; after processing, waits 30 minutes
-         for a missing API declaration email and fills the ASC forms
-         meanwhile. On that email: apply the PrivacyInfo backup patch
-         (tests, diff, owner OK commit and push, owner signs off the
-         privacy manifest), build number +1, re-upload.
+         for an ITMS email and fills the ASC forms meanwhile. The
+         sqlite3 privacy manifest already ships in build 1 (ADR-074).
+         On any ITMS email: tell the agent first; a fix goes through
+         tests, diff, owner OK commit and push, then build number +1
+         and re-upload.
       5. TestFlight build quick check. Limited access with only 10–20
          photos fit to publish plus a few videos: 4–5 screenshots and
          the 2–3 minute review recording (no simulator); back to Full
@@ -286,7 +295,9 @@
       slide-down lock; Cap 18 froze edge-hold slots only)
 - [ ] Settings and localisation completion
       (remaining English / zh-Hans copy sweep; privacy / storage /
-      about screens; Light/Dark layout verification — verify against
+      about screens — the Privacy Policy link row already ships in v1
+      (Cap 32, ADR-072), the full screens stay here; Light/Dark layout
+      verification — verify against
       Cap 31 Settings hierarchy/weight layout, not the pre-31 layout;
       Limited Access manage entry already completed in the Debt 421 Cap above)
 - [ ] Final real-device performance, memory,
@@ -315,15 +326,24 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: MVP v1 pre-submission hardening (Cap 32)
-- [ ] 32.1 Agent prepares everything; owner single review (step 1)
-- [ ] 32.2 Owner publishes `waketok-site` (step 2)
-- [ ] 32.3 Release device check on i17, then code commit and push (step 3)
+- [x] 32.1 Agent prepares everything; owner single review (step 1)
+- [x] 32.2 Owner publishes `waketok-site` (step 2)
+- [~] 32.3 Release device check on i17, then code commits and push
+      (step 3) — device check passed on iPhone 17 and iPhone 13 Pro;
+      work `eadb127` (animated-still fix), `3cac032` (privacy link,
+      export key), `72cb4f4` (sqlite3 privacy manifest), pushed;
+      archive pending
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 32 — MVP v1 pre-submission hardening (steps 1–3)
-- Sub-steps done: none
-- Next step: 32.1 — Agent prepares everything (step 1)
-- Related decisions: ADR-062 Accepted (system-only language, English
+- Sub-steps done: 32.1, 32.2; 32.3 device check, commits and push
+- Next step: 32.3 — owner archives the pushed HEAD in Xcode (build 1;
+      `codesign --verify --deep --strict` and the sqlite3 manifest
+      check after archive)
+- Related decisions: ADR-072 Accepted (Privacy Policy link, export
+      key); ADR-073 Accepted (animated stills keep original bytes in
+      the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
+      build phase); ADR-062 Accepted (system-only language, English
       permission prompt); ADR-064 Accepted (still share without
       location; video unchanged — debt **484**); ADR-070 Accepted
       (iPhone-only v1); ADR-028 (portrait-only); ADR-007 (iOS 18.0
@@ -696,6 +716,10 @@ Active capability: MVP v1 pre-submission hardening (Cap 32)
   in `PhotoLibraryService.swift`) — Cap 24 exact capture minute parses its
   EXIF/TIFF tags (debt 486); the original fetch also keeps Tier 4 file size
   local (ADR-018 / ADR-065)
+- Runner build phase "Embed sqlite3 Privacy Manifest" in
+  `project.pbxproj` — must stay after Thin Binary (which embeds the
+  native-asset `sqlite3.framework`); it copies the manifest into the
+  framework and re-signs it (ADR-074)
 - (grows as fragile areas appear)
 
 ## Known debt / intentionally deferred

@@ -9,7 +9,8 @@
 > anchored info bubbles.  
 > **Not** bottom-tab chrome (always dark — ADR-016 / shell). Settings *pane*
 > follows system Appearance (`ThemeMode.system`).  
-> **Not** privacy / about screens (post-v1 Settings Cap).  
+> **Not** privacy / about screens (post-v1 Settings Cap). The Cap 32 About
+> section is one external link row (Privacy Policy, ADR-072), not a screen.  
 > **Code anchors:**  
 > - `lib/features/main_browse/settings_layout.dart`  
 > - `lib/features/main_browse/anchored_info_bubble.dart`  
@@ -17,6 +18,7 @@
 > - `lib/features/main_browse/browse_notifications_settings_section.dart`  
 > - `lib/features/main_browse/browse_display_settings_section.dart`  
 > - `lib/features/authorization/photos_access_settings_section.dart`  
+> - `lib/features/main_browse/about_settings_section.dart`  
 > - Cap 24 half-sheet reuses the bubble API:
 >   `cap24_more_half_sheet.dart` → `showAnchoredInfoBubble`
 
