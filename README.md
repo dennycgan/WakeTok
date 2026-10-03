@@ -47,7 +47,7 @@ Pigeon contracts.
 | Native media | Swift, PhotoKit and AVFoundation |
 | Video surface | Flutter `UiKitView` with `AVPlayerLayer` |
 | Typed platform contracts | Pigeon-generated Dart and Swift APIs |
-| Local data | Drift, SQLite and SharedPreferences |
+| Local data | Drift on SQLite; SharedPreferences |
 | Localisation | Flutter `gen_l10n` with English and Simplified Chinese resources |
 | Verification | Flutter unit, widget and architecture tests; Swift XCTest in `RunnerTests` |
 
@@ -111,33 +111,17 @@ generated Pigeon APIs stay behind platform gateways.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    app["lib/app/**<br/>composition root"]
-    features["lib/features/**<br/>widgets and presentation"]
-    domain["lib/domain/**<br/>models, sessions and interfaces"]
-    data["lib/data/**<br/>local repository implementations"]
-    platform["lib/platform/**<br/>platform gateway implementations"]
+| Layer | Path | Role |
+|---|---|---|
+| Composition | `lib/app/` | Binds domain interfaces to their implementations and provides them to features |
+| Features | `lib/features/` | Widgets and presentation |
+| Domain | `lib/domain/` | Models, sessions and interfaces |
+| Data | `lib/data/` | Saved Pools in Drift on SQLite; preferences in SharedPreferences |
+| Platform | `lib/platform/` | Dart gateways to native media services through Pigeon |
+| Native media | `ios/Runner/Platform/` | Swift services on PhotoKit and AVFoundation |
 
-    drift["Drift / SQLite"]
-    dartgen["lib/platform/generated/**<br/>generated Pigeon Dart APIs"]
-    swiftgen["ios/Runner/Platform/Generated/**<br/>generated Pigeon Swift APIs"]
-    swift["ios/Runner/Platform/**<br/>Swift media services"]
-    apple["PhotoKit / AVFoundation"]
-
-    app --> features
-    app --> data
-    app --> platform
-    features --> domain
-    data --> domain
-    platform --> domain
-
-    data --> drift
-    platform --> dartgen
-    dartgen -. typed Pigeon channel .-> swiftgen
-    swift --> swiftgen
-    swift --> apple
-```
+Features use domain interfaces provided by the composition root; the data and
+platform layers implement them.
 
 ---
 
