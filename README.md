@@ -1,3 +1,5 @@
+<img src="docs/images/readme-app-icon.png" alt="WakeTok app icon" width="96">
+
 # WakeTok
 
 **Wake what you saved.**
