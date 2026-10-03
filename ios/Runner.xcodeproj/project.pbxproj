@@ -253,6 +253,7 @@
 				9705A1C41CF9048500538489 /* Embed Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				B357529BE64192D6700E9780 /* [CP] Embed Pods Frameworks */,
+				C32A00012E8F000100C32A01 /* Embed sqlite3 Privacy Manifest */,
 			);
 			buildRules = (
 			);
@@ -324,6 +325,21 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		C32A00012E8F000100C32A01 /* Embed sqlite3 Privacy Manifest */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Embed sqlite3 Privacy Manifest";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "FW=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/sqlite3.framework\"\nif [ ! -d \"$FW\" ]; then\n  echo \"sqlite3.framework not embedded; no privacy manifest to add\"\n  exit 0\nfi\ncp \"${SRCROOT}/Runner/PrivacyManifests/sqlite3/PrivacyInfo.xcprivacy\" \"$FW/PrivacyInfo.xcprivacy\"\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${CODE_SIGNING_REQUIRED:-YES}\" != \"NO\" ]; then\n  codesign --force --verbose --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" -- \"$FW\"\nfi\n";
+		};
 		3B06AD1E1E4923F5004D2608 /* Thin Binary */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
