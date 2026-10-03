@@ -1,108 +1,229 @@
 # WakeTok
 
-**A local-first vertical feed for rediscovering your own photo and video library.**
+**Wake what you saved.**
 
-WakeTok is a local-first media Rediscovery Player, currently shipping for iOS.
-The system Photos app is an archive and editor; it is not built for endless,
-session-oriented rediscovery. WakeTok keeps media on-device (on iOS: PhotoKit /
-iCloud as the system provides it), with Flutter for UI and Swift owning
-playback and library I/O across a typed Pigeon boundary.
+A local-first vertical scrolling app for rediscovering your own photo and video library.
 
----
+Local-first. No account. Nothing uploaded to WakeTok.
 
-## Tech Stack
+WakeTok is an iPhone app for browsing your own Photos library full screen,
+one item at a time, by swiping up and down. You choose what to browse and how
+it is ordered: use the built-in All, Photos or Videos sources, or combine
+sources of your own.
 
-The stack is conventional Flutter-on-iOS. The interesting choices are at the
-Flutter/Swift boundary: typed Pigeon Host/Flutter contracts, an exhaustive
-wire `ErrorCode` ↔ Dart `AppError` map, and an app-scoped native player whose
-lifetime is not tied to a Flutter route. Flutter was retained after POC-04 in
-part to preserve a cross-platform UI option for a future Android version
-(ADR-001); the Android media layer would need its own gate.
+Photo libraries keep growing, while older items are rarely seen again.
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| UI | **Flutter / Dart** | Cross-platform UI option later; POC-04 Conditional Pass kept Flutter for the feed shell after measuring everyday scroll feel on device. |
-| Native media (iOS) | **Swift + PhotoKit + AVFoundation** | Library access, authorization, and `AVPlayer` lifetime cannot live inside Flutter widgets if lock-screen audio and background advance must continue. |
-| Bridge | **Pigeon (`PhotoLibraryApi` / `PlaybackApi`)** | Generated, typed Host/Flutter contracts; wire `ErrorCode` stays 1:1 with Dart `AppError` (ADR-008). |
-| Video surface (iOS) | **UiKitView + `AVPlayerLayer` (Platform View)** | Production default after POC-04; Flutter Texture escape measured worse hitch and was rejected (ADR-001). |
-| UI state | **Riverpod** | Composition-root `ProviderScope`; domain stays Riverpod-free (ADR-010). |
-| Backend | **None** | No developer media server, custom auth, or remote DB; Photos / iCloud remain system-owned. |
+Built with Flutter and Swift, with PhotoKit and AVFoundation behind typed
+Pigeon contracts.
 
 ---
 
-## Core engineering challenge: Flutter feed performance on a real device
+## What WakeTok does
 
-The product needs a vertical feed over the user’s own library.
-The hard question was whether **Flutter UI + native iOS video** could meet a
-measurable hitch budget on **iPhone 13 Pro** before any production domain layer.
-
-**POC-04 (architecture gate — one of a numbered series of proof-of-concept
-spikes on the internal roadmap; each answers a concrete “does this architecture
-actually work?” question before production coding).** The spike used Platform
-View (`UiKitView` + `AVPlayerLayer`), a bounded 1+1 player pool, and image temp
-files. Instruments Animation Hitches originally targeted **< 5 ms/s**
-(milliseconds of frame-time hitching accumulated per second of scrolling —
-lower is smoother). Everyday hand scrolling on PV landed around
-**13–19 ms/s** and felt acceptable; the written bar was **recalibrated to
-< 25 ms/s with no Severe Hang** (Instruments’ classification for multi-frame
-stalls worse than an ordinary hitch) so the gate matched product-acceptable
-feel rather than an over-strict lab number (ADR-001). First-frame
-(warming-assisted) **p90 ≈ 93 ms** passed a < 500 ms bar.
-
-**Texture escape — rejected.** A Conditional path pushed frames through
-`AVPlayerItemVideoOutput` → Flutter Texture. Hand hitch was **worse** than PV
-(~33 / 64 ms/s). Texture was kept only as spike evidence, not the production
-default.
-
-**Conditional Pass + debt.** Normal hand scrolling on PV cleared the adjusted
-bar; some runs and a programmatic Hitch Probe still showed **Severe Hang**.
-That hang is accepted **known debt** for the production Main Browse / feed
-capability — it did not overturn keeping Flutter + PV.
-
-**ADR-006 — Platform View is a detachable surface.** Building on POC-04/POC-03
-evidence, production **PlaybackApi** is an **app-scoped Swift** service:
-Flutter sends plan/sync intent; it does not own `AVPlayer` lifetime. On
-background, the layer **detaches** while audio continues; native
-**AVQueuePlayer lookahead** advances the video-only plan. On foreground,
-Dart `jumpToPage` then **adopts the existing player in place** (no
-stop/recreate), under a **restore guard** so adopt cannot race a second
-attach/release (that race SIGABRT’d the lock-screen feed probe).
+- Swipe up and down through photos, videos and Live Photos full screen,
+  across your whole library or only the sources you choose.
+- Build and save Pools by combining the built-in All, Photos and Videos
+  sources with user albums or supported smart albums. A Pool remembers its
+  sources, not individual items.
+- Choose Shuffle, Newest or Oldest. When one pass finishes, Shuffle creates a
+  new order; Newest and Oldest start again from the beginning.
+- Swipe left to add an item to the WakeTok album in Photos as a bookmark for
+  later.
+- While browsing, add an item to or remove it from Favourites, add it to
+  another album, move it to Recently Deleted, or share it through the system
+  share sheet.
+- Pinch to zoom photos, animated images and a Live Photo's still frame; tap or
+  scrub through videos; and long-press to replay a Live Photo.
+- See a relative date, an approximate calendar date, a Live Photo or Animated
+  label where applicable, and file size when available.
 
 ---
 
-## Implementation status
+## Tech stack
 
-| Status | Capability |
-|--------|------------|
-| ✅ | **Project Bootstrap** — Flutter iOS scaffold, docs skeleton, `pigeon/` placeholder |
-| ✅ | **POC-04** — Confirmed Flutter UI + native iOS video can deliver acceptable everyday vertical-feed scrolling on a real iPhone (ADR-001) |
-| ✅ | **POC-03** — Lock-screen continuous playback gate; native queue / Now Playing substrate (ADR-002) |
-| ✅ | **POC-09** — Current Photos representation export gate (ADR-003 / ADR-004) |
-| ✅ | **App Foundation** — gen_l10n, `Result`/`AppError`, production Pigeon baseline (ADR-006–008) |
-| ✅ | **iOS Photos permission & library catalog** — auth UI, totals shell, `libraryTotals` / `fetchLibraryPage` (ADR-009–012) |
-| 🔧 | **All / Photos / Videos source resolution** — next capability (phases TBD) |
-| ⏳ | **Later roadmap** — Main Browse / feed, session domain, clip export, settings, hardening, release — see `docs/STATE.md` |
-
----
-
-## Engineering process
-
-I ship in phases with manual gates (`docs/STATE.md`); local agent rules
-(gitignored) keep AI-assisted sessions inside phase scope.
+| Layer | Choice |
+|---|---|
+| UI and state | Flutter, Dart and Riverpod |
+| Native media | Swift, PhotoKit and AVFoundation |
+| Video surface | Flutter `UiKitView` with `AVPlayerLayer` |
+| Typed platform contracts | Pigeon-generated Dart and Swift APIs |
+| Local data | Drift, SQLite and SharedPreferences |
+| Localisation | Flutter `gen_l10n` with English and Simplified Chinese resources |
+| Verification | Flutter unit, widget and architecture tests; Swift XCTest in `RunnerTests` |
 
 ---
 
-## Further reading
+## Engineering highlights
 
-- **`docs/STATE.md`** — Current engineering snapshot, capability roadmap, and active phase pointer.
-- **`docs/DECISIONS.md`** — Append-only ADR log (architecture gates, playback ownership, boundaries, localisation guards).
+### Native media behind a typed boundary
 
-Private portfolio project — contact me for access or demo.
+Dart owns product and session rules; Swift owns PhotoKit and AVFoundation I/O.
+Pigeon generates typed APIs on both sides and maps native failures into the
+Dart error model. The native player is app-scoped rather than owned by a
+Flutter route, while the Platform View attaches the current video surface.
+
+### Platform View selected on device
+
+Both Platform View and a Texture alternative were profiled on an iPhone 13
+Pro. The Texture path did not improve scrolling and produced worse recorded
+hitch results, so I kept `UiKitView` with `AVPlayerLayer` as the production
+video surface.
+
+### Cancellable iCloud loading
+
+WakeTok uses a local preview first when one is available. It waits until the
+current item has settled before starting an iCloud-backed request for
+higher-quality media, and cancels in-flight work when the user leaves. Loading
+remains visible while the user can continue browsing.
+
+This policy came from a measured failure. Before WakeTok cancelled work when
+the user left an item, an instrumented, roughly 75-second skip-heavy Videos run
+on an iPhone 13 Pro with iCloud Photos' Optimize iPhone Storage enabled
+increased used storage by about 7 GB, although only the first and last iCloud
+videos were allowed to play. After these loading changes, separate
+no-Instruments checks recorded growth of 0.18 GB for Videos and 0.02 GB for
+All, both explainable by watched items. *(ADR-029, ADR-031)* The measurement
+records are kept in the project's docs.
+
+### Gesture arbitration
+
+The browsing surface coordinates vertical paging, horizontal bookmark swipes,
+pinch to zoom, video taps and scrubbing, and Live Photo long presses. Explicit
+rules decide which gesture wins when several could apply to the same
+interaction.
+
+### Stable source and session rules
+
+A Pool remembers an ordered combination of sources. Opening it resolves the
+current items, counts each Photos asset once even when several sources include
+it, and builds a stable browsing order. That order does not silently change in
+the middle of a session; a new session resolves the sources again.
+
+### Enforced architecture boundaries
+
+The composition root wires feature code to domain interfaces, local
+persistence and platform gateways. Architecture tests enforce the dependency
+boundaries: feature code cannot import persistence or platform
+implementations, domain code remains independent of Flutter and Riverpod, and
+generated Pigeon APIs stay behind platform gateways.
 
 ---
 
-## License
+## Architecture
 
-No open-source license has been granted at this stage.
-This repository is currently private; when made public, source will be
-visible for portfolio and technical review purposes only.
+```mermaid
+flowchart TD
+    app["lib/app/**<br/>composition root"]
+    features["lib/features/**<br/>widgets and presentation"]
+    domain["lib/domain/**<br/>models, sessions and interfaces"]
+    data["lib/data/**<br/>local repository implementations"]
+    platform["lib/platform/**<br/>platform gateway implementations"]
+
+    drift["Drift / SQLite"]
+    dartgen["lib/platform/generated/**<br/>generated Pigeon Dart APIs"]
+    swiftgen["ios/Runner/Platform/Generated/**<br/>generated Pigeon Swift APIs"]
+    swift["ios/Runner/Platform/**<br/>Swift media services"]
+    apple["PhotoKit / AVFoundation"]
+
+    app --> features
+    app --> data
+    app --> platform
+    features --> domain
+    data --> domain
+    platform --> domain
+
+    data --> drift
+    platform --> dartgen
+    dartgen -. typed Pigeon channel .-> swiftgen
+    swift --> swiftgen
+    swift --> apple
+```
+
+---
+
+## Platform and Photos access
+
+WakeTok v1 supports iPhone and has a minimum deployment target of iOS 18.0.
+The [`android/`](android/) directory contains a Flutter-generated scaffold;
+there is no supported Android build.
+
+With Limited Photos access, WakeTok shows only the items you select. Full
+access is required to create or open Pools, add items to or remove them from
+Favourites, and choose another album. The fixed WakeTok album bookmark remains
+available with Limited access.
+
+The current iPhone version supports the complete workflow described above.
+WakeTok is maintained and will continue to gain features.
+
+---
+
+## Build and run
+
+The commands below were verified with Flutter 3.41.9 stable, Dart 3.11.5,
+Xcode 26.3 and CocoaPods 1.16.2. The minimum deployment target is iOS 18.0.
+Generated localisation, Pigeon and Drift sources are checked into the
+repository.
+
+```bash
+flutter pub get
+flutter build ios --simulator --debug
+flutter test
+```
+
+The simulator build prepares the iOS workspace and installs Pods before the
+standalone Swift test command. `flutter test` runs the Dart and Flutter unit,
+widget and architecture tests. Swift `RunnerTests` run separately through
+Xcode:
+
+```bash
+xcodebuild test \
+  -workspace ios/Runner.xcworkspace \
+  -scheme Runner \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>'
+```
+
+Run on an installed simulator:
+
+```bash
+flutter devices
+flutter run -d <device-id>
+```
+
+Before running on a physical iPhone, open `ios/Runner.xcworkspace`, select your
+own Development Team, and replace the repository's Bundle Identifier with a
+unique value.
+
+Regenerate checked-in sources only after changing their corresponding inputs:
+
+```bash
+flutter gen-l10n
+dart run pigeon --input pigeon/waketok_platform_apis.dart
+dart run build_runner build --delete-conflicting-outputs
+```
+
+The Debug app has been launched on an iPhone simulator. Release builds have
+also been acceptance-tested on physical iPhone 13 Pro and iPhone 17 devices.
+
+---
+
+## Architecture decisions
+
+The append-only [`docs/DECISIONS.md`](docs/DECISIONS.md) records the product
+and architecture decisions behind the implementation, including media
+ownership, source and session semantics, iCloud loading, gesture arbitration,
+persistence and platform boundaries.
+
+---
+
+## Copyright
+
+Source published for review. All rights reserved.
+
+The WakeTok name and icon are not licensed for reuse.
+
+Third-party dependencies remain subject to their respective licences.
+
+## Contact
+
+For questions or feedback, email
+[dennygan.nz@gmail.com](mailto:dennygan.nz@gmail.com).
