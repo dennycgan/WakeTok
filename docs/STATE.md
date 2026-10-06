@@ -290,6 +290,16 @@
       verification — verify against
       Cap 31 Settings hierarchy/weight layout, not the pre-31 layout;
       Limited Access manage entry already completed in the Debt 421 Cap above)
+- [ ] Monetisation planning and EU availability decision
+      (placeholder; decision only, no code. Decide whether to
+      monetise at all and how — an in-feed ad experiment (V3 at the
+      earliest; dropped if the downsides outweigh the gains) or an
+      in-app purchase (one-time unlock or tip; no account needed).
+      Re-assess the DSA trader status and decide EU availability in
+      the same pass (see Cap 33.1). Any monetisation reopens App
+      Privacy (Data Not Collected), ATT, the privacy policy, the age
+      rating, ADR-072 and the store listing copy; an implementation,
+      if chosen, gets its own Cap)
 - [ ] Final real-device performance, memory,
       accessibility, privacy, and error-state hardening
       (full-product / post-Clips pass; distinct from MVP v1 hardening)
