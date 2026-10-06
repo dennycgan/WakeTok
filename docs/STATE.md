@@ -222,7 +222,10 @@
       the App Privacy answers (Data Not Collected); before submitting,
       open the privacy and support URLs once more in a private browser
       window)
-      6. Upload assets and copy, select the build, submit.
+      6. Declare "not a trader" (DSA) at account level in ASC
+         (Business → Agreements → Compliance; required before
+         submitting, see 33.1), then upload assets and copy, select
+         the build, submit.
       7. During review: the in-review list below. On rejection, reply
          in Resolution Center, or build number +1 and back to step 4.
       8. Automatic release after approval; open the store page in a
@@ -238,7 +241,7 @@
       `showLicensePage` — new en / zh-Hans copy; changes the closed
       Cap 32 Settings page);
       small-screen check; empty-panel refresh check; empty-state
-      Action Column dim widget test; EU trader status assessment.
+      Action Column dim widget test.
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
 > Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
@@ -314,20 +317,41 @@
 ## Phase Roadmap (active capability only)
 Active capability: TestFlight internal testing and release-candidate
 validation (Cap 33)
-- [~] 33.1 Upload to TestFlight, ITMS email window, ASC forms (step 4)
+- [x] 33.1 Upload to TestFlight, ITMS email window, ASC forms (step 4)
       — build 1.0.0 (1) from archive `1ae7f42` uploaded 2026-10-06;
-      processing complete, no Missing Compliance; 30-minute ITMS
-      window and ASC forms pending
+      processing complete, no Missing Compliance; no ITMS email in the
+      30-minute window; ASC App Information, App Privacy, Pricing and
+      Availability, and the version-page fields not deferred to Cap 34
+      saved. Available in 147 countries or regions: all except China
+      mainland and the 27 EU member states; new App Store regions are
+      not added automatically. DSA trader status (owner
+      self-assessment, 2026-10-06): not a trader — no revenue, no ads
+      or in-app purchases, no GST/VAT registration or business entity;
+      WakeTok is a personal portfolio project, not run as a business;
+      Apple's guidance also treats a developer not distributing in the
+      EU as not acting as a trader. ASC asks for the status at
+      submission even without the EU, so the account-level "not a
+      trader" declaration is a Cap 34 step 6 action. The EU stays
+      excluded in v1 with no specific concern: adding it back has no
+      technical blocker and needs no new build, but the monetisation
+      path (any form may change the trader status) is not settled in
+      v1, so the EU decision moves to V2 together with monetisation
+      planning. Re-assess the trader status before adding the EU
+      (including whether a portfolio project counts as related to the
+      owner's profession), before any monetisation, and on any GST/VAT
+      registration or business entity. Not offered on Apple silicon
+      Mac or Apple Vision Pro (owner decision; iPhone-only v1,
+      ADR-070; can be turned on later without a new build)
 - [ ] 33.2 TestFlight build quick check and review recording on i17
       (step 5)
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 33 — TestFlight internal testing and
       release-candidate validation (steps 4–5)
-- Sub-steps done: none; 33.1 build 1.0.0 (1) uploaded and processed
-- Next step: 33.1 — owner waits 30 minutes after processing for an
-      ITMS email and fills the ASC forms; on any ITMS email, tell the
-      agent first
+- Sub-steps done: 33.1 (upload, ITMS window, ASC forms)
+- Next step: 33.2 — owner installs build 1.0.0 (1) from TestFlight on
+      i17, runs the five checks, then records the 2–3 minute review
+      recording in Limited access; back to Full access afterwards
 - Related decisions: ADR-072 Accepted (Privacy Policy link, export
       key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
