@@ -190,44 +190,34 @@
       original bytes; sqlite3 privacy manifest; `waketok-site` privacy
       and support pages; device check i17 + iPhone 13 Pro; archive
       `1ae7f42`, build 1.0.0 (1); PHASE_HISTORY)
-- [~] TestFlight internal testing and release-candidate validation
-      (Cap 33; MVP v1 track; steps 4–5 of the linear v1 submission
-      sequence — 1–3 Cap 32, 6–8 Cap 34; v1 ships English only for the
-      store page and the privacy and support pages; owner executes
-      distribution; the agent prepares build and metadata; Cap 33 docs
-      commits go in the processing or review waits, off the critical
-      path)
-      4. Owner uploads to TestFlight; after processing, waits 30 minutes
-         for an ITMS email and fills the ASC forms meanwhile. The
-         sqlite3 privacy manifest already ships in build 1 (ADR-074).
-         On any ITMS email: tell the agent first; a fix goes through
-         tests, diff, owner OK commit and push, then build number +1
-         and re-upload.
-      5. TestFlight build quick check on i17 — the five Cap 32 step-3
-         checks on the TestFlight build: installs; launches; the
-         privacy row opens the page; Saved pools opens with Full
-         access; Limited access (none selected shows the empty panel;
-         select a few in iOS Settings, fully close WakeTok and reopen,
-         they appear). Stay in Limited access with only 10–20 photos
-         fit to publish plus a few videos and record the 2–3 minute
-         review recording on i17; back to Full access afterwards.
-         Store screenshots are prepared (final set not yet confirmed;
-         iPhone 17 Pro Max Simulator, native 1320x2868 JPEG; sources in
-         the private submission folder).
-      <-- YOU ARE HERE
-- [ ] App Store metadata, screenshots, privacy disclosures,
+- [x] TestFlight internal testing and release-candidate validation
+      (Cap 33; build 1.0.0 (1) from archive `1ae7f42` on TestFlight, no
+      ITMS email; ASC forms saved; 147 regions — China mainland and the
+      EU excluded; DSA self-assessment "not a trader", EU decision moved
+      to V2 with monetisation planning (reasons: PHASE_HISTORY Cap
+      33.1); no Apple silicon Mac or Vision Pro; five checks and the
+      review recording (Full access) on i17; no code change;
+      PHASE_HISTORY)
+- [~] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
-      (Cap 34; MVP v1 track first Review; owner executes submission;
-      the agent prepares assets only; privacy policy wording must match
-      the App Privacy answers (Data Not Collected); before submitting,
-      open the privacy and support URLs once more in a private browser
-      window)
+      (Cap 34; MVP v1 track first Review; steps 6–8 of the linear v1
+      submission sequence — 1–3 Cap 32, 4–5 Cap 33; v1 ships English
+      only for the store page and the privacy and support pages; owner
+      executes submission; the agent prepares assets only; privacy
+      policy wording must match the App Privacy answers (Data Not
+      Collected); before submitting, open the privacy and support URLs
+      once more in a private browser window)
       6. Declare "not a trader" (DSA) at account level in ASC
          (Business → Agreements → Compliance; required before
          submitting, see 33.1), then upload assets and copy, select
-         the build, submit.
+         the build, submit. Store screenshots are prepared (final set
+         not yet confirmed; iPhone 17 Pro Max Simulator, native
+         1320x2868 JPEG; sources in the private submission folder);
+         the review recording is ready (private).
       7. During review: the in-review list below. On rejection, reply
-         in Resolution Center, or build number +1 and back to step 4.
+         in Resolution Center, or fix (tests, diff, owner OK commit and
+         push), build number +1, re-upload and re-run the five
+         TestFlight checks (PHASE_HISTORY Cap 33.2).
       8. Automatic release after approval; open the store page in a
          private browser window; Cap close-out docs commit.
       In review (non-blocking): iOS 18 simulator smoke (debt 416);
@@ -242,6 +232,7 @@
       Cap 32 Settings page);
       small-screen check; empty-panel refresh check; empty-state
       Action Column dim widget test.
+      <-- YOU ARE HERE
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
 > Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
@@ -325,43 +316,29 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: TestFlight internal testing and release-candidate
-validation (Cap 33)
-- [x] 33.1 Upload to TestFlight, ITMS email window, ASC forms (step 4)
-      — build 1.0.0 (1) from archive `1ae7f42` uploaded 2026-10-06;
-      processing complete, no Missing Compliance; no ITMS email in the
-      30-minute window; ASC App Information, App Privacy, Pricing and
-      Availability, and the version-page fields not deferred to Cap 34
-      saved. Available in 147 countries or regions: all except China
-      mainland and the 27 EU member states; new App Store regions are
-      not added automatically. DSA trader status (owner
-      self-assessment, 2026-10-06): not a trader — no revenue, no ads
-      or in-app purchases, no GST/VAT registration or business entity;
-      WakeTok is a personal portfolio project, not run as a business;
-      Apple's guidance also treats a developer not distributing in the
-      EU as not acting as a trader. ASC asks for the status at
-      submission even without the EU, so the account-level "not a
-      trader" declaration is a Cap 34 step 6 action. The EU stays
-      excluded in v1 with no specific concern: adding it back has no
-      technical blocker and needs no new build, but the monetisation
-      path (any form may change the trader status) is not settled in
-      v1, so the EU decision moves to V2 together with monetisation
-      planning. Re-assess the trader status before adding the EU
-      (including whether a portfolio project counts as related to the
-      owner's profession), before any monetisation, and on any GST/VAT
-      registration or business entity. Not offered on Apple silicon
-      Mac or Apple Vision Pro (owner decision; iPhone-only v1,
-      ADR-070; can be turned on later without a new build)
-- [ ] 33.2 TestFlight build quick check and review recording on i17
-      (step 5)
+Active capability: App Store metadata, screenshots, privacy
+disclosures, submission, and release verification (Cap 34)
+- [ ] 34.1 Declare "not a trader", upload assets and copy, select the
+      build, submit (step 6) — account-level DSA declaration first;
+      final screenshot set, listing copy, review notes and the review
+      recording (size fallback in the private checklist); build
+      1.0.0 (1)
+- [ ] 34.2 Review period (step 7) — the in-review list; on rejection,
+      reply in Resolution Center, or fix (tests, diff, owner OK commit
+      and push), build number +1, re-upload and re-run the five
+      TestFlight checks (PHASE_HISTORY Cap 33.2)
+- [ ] 34.3 Release and close-out (step 8) — automatic release after
+      approval; open the store page in a private browser window; Cap 34
+      close-out docs commit
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 33 — TestFlight internal testing and
-      release-candidate validation (steps 4–5)
-- Sub-steps done: 33.1 (upload, ITMS window, ASC forms)
-- Next step: 33.2 — owner installs build 1.0.0 (1) from TestFlight on
-      i17, runs the five checks, then records the 2–3 minute review
-      recording in Limited access; back to Full access afterwards
+- Goal (one line): Cap 34 — App Store submission and release
+      verification (steps 6–8)
+- Sub-steps done: none
+- Next step: 34.1 — confirm the final screenshot set; owner declares
+      "not a trader" at account level, then uploads the screenshots and
+      copy, selects build 1.0.0 (1), adds the review notes and the
+      recording, and submits
 - Related decisions: ADR-072 Accepted (Privacy Policy link, export
       key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest

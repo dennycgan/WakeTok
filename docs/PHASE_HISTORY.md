@@ -1723,3 +1723,59 @@ Known debt during Cap 32 (mechanical diff of the STATE Known debt
 table, Cap 31 close `f01cc08` → Cap 32 close): no rows added or closed;
 **416** Picks it up moved to the Cap 34 in-review list; **484** Picks it
 up records the Cap 32.1 check.
+
+## TestFlight internal testing and release-candidate validation (Cap 33) — completed 2026-10-07
+
+Contract: steps 4–5 of the linear v1 submission sequence (1–3 Cap 32,
+6–8 Cap 34): upload build 1.0.0 (1) to TestFlight, the ITMS email
+window, the ASC forms that do not wait for Cap 34, a quick check of the
+TestFlight build and the review recording. Owner executes distribution
+and ASC; no code change.
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+
+- [x] 33.1 Upload to TestFlight, ITMS email window, ASC forms (step 4)
+      (build 1.0.0 (1) from archive `1ae7f42` uploaded 2026-10-06;
+      processing complete, no Missing Compliance; no ITMS email in the
+      30-minute window; ASC App Information, App Privacy, Pricing and
+      Availability, and the version-page fields not deferred to Cap 34
+      saved. Available in 147 countries or regions: all except China
+      mainland and the 27 EU member states; new App Store regions are
+      not added automatically. DSA trader status (owner
+      self-assessment, 2026-10-06): not a trader — no revenue, no ads
+      or in-app purchases, no GST/VAT registration or business entity;
+      WakeTok is a personal portfolio project, not run as a business;
+      Apple's guidance also treats a developer not distributing in the
+      EU as not acting as a trader. ASC asks for the status at
+      submission even without the EU, so the account-level "not a
+      trader" declaration is a Cap 34 step 6 action. The EU stays
+      excluded in v1 with no specific concern: adding it back has no
+      technical blocker and needs no new build, but the monetisation
+      path (any form may change the trader status) is not settled in
+      v1, so the EU decision moves to V2 together with monetisation
+      planning. Re-assess the trader status before adding the EU
+      (including whether a portfolio project counts as related to the
+      owner's profession), before any monetisation, and on any GST/VAT
+      registration or business entity. Not offered on Apple silicon
+      Mac or Apple Vision Pro (owner decision; iPhone-only v1,
+      ADR-070; can be turned on later without a new build))
+      — no work commit; docs `61a4616`
+- [x] 33.2 TestFlight build quick check and review recording on i17
+      (step 5)
+      (TestFlight build 1.0.0 (1) installed over the earlier Release
+      install on i17; five checks passed: installs; launches; the
+      privacy row opens the page in Safari; Saved pools opens with Full
+      access; Limited access shows the empty panel with none selected
+      and the selected items after a full close and reopen. The review
+      recording was made in Full access instead of the planned Limited
+      access (owner decision: the library has nothing that must stay
+      private, and only Full access can show pools, Favourites and the
+      WakeTok album): fresh TestFlight install, 2:19, silent, every
+      step normal; kept privately for the Cap 34 attachment)
+      — no work commit
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: none new; ADR-070 (iPhone-only v1) behind the Mac and
+Vision Pro choice.
+Known debt during Cap 33 (mechanical diff of the STATE Known debt
+table, Cap 32 close `64f0260` → Cap 33 close): no rows added or closed.
