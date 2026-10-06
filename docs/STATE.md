@@ -207,13 +207,13 @@
       policy wording must match the App Privacy answers (Data Not
       Collected); before submitting, open the privacy and support URLs
       once more in a private browser window)
-      6. Declare "not a trader" (DSA) at account level in ASC
-         (Business → Agreements → Compliance; required before
-         submitting, see 33.1), then upload assets and copy, select
-         the build, submit. Store screenshots are prepared (final set
-         not yet confirmed; iPhone 17 Pro Max Simulator, native
-         1320x2868 JPEG; sources in the private submission folder);
-         the review recording is ready (private).
+      6. Done 2026-10-07 (34.1): "not a trader" (DSA) declared at
+         account level in ASC (Business → Agreements → Compliance);
+         six captioned screenshots uploaded — 1206x2622 in the
+         required Dynamic Island medium display slot, 1320x2868 in
+         the optional large display slot (sources in the private
+         submission folder); listing copy, review notes and the
+         review recording added; build 1.0.0 (1) selected; submitted.
       7. During review: the in-review list below. On rejection, reply
          in Resolution Center, or fix (tests, diff, owner OK commit and
          push), build number +1, re-upload and re-run the five
@@ -223,8 +223,8 @@
       In review (non-blocking): iOS 18 simulator smoke (debt 416);
       README skeleton; repository Private → Public checklist (debt
       419); zh-Hans privacy and support pages; v1.0.1 (zh-Hans store
-      page, captioned screenshots, custom domain — no custom domain
-      before approval; the UI has zh-Hans
+      page and zh-Hans screenshot captions, custom domain — no
+      custom domain before approval; the UI has zh-Hans
       but the bundle declares no localisations, so the store language
       list shows English only — relates to ADR-062, needs a new ADR;
       "Open-source licences" row in Settings About opening
@@ -318,11 +318,12 @@
 ## Phase Roadmap (active capability only)
 Active capability: App Store metadata, screenshots, privacy
 disclosures, submission, and release verification (Cap 34)
-- [ ] 34.1 Declare "not a trader", upload assets and copy, select the
-      build, submit (step 6) — account-level DSA declaration first;
-      final screenshot set, listing copy, review notes and the review
-      recording (size fallback in the private checklist); build
-      1.0.0 (1)
+- [x] 34.1 Declare "not a trader", upload assets and copy, select the
+      build, submit (step 6) — submitted 2026-10-07; account-level DSA
+      declaration; captioned screenshots in two sizes (Apple requires
+      only the Dynamic Island medium display), listing copy, review
+      notes and the review recording (318 MB, accepted as uploaded);
+      build 1.0.0 (1); no work commit
 - [ ] 34.2 Review period (step 7) — the in-review list; on rejection,
       reply in Resolution Center, or fix (tests, diff, owner OK commit
       and push), build number +1, re-upload and re-run the five
@@ -334,11 +335,10 @@ disclosures, submission, and release verification (Cap 34)
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 34 — App Store submission and release
       verification (steps 6–8)
-- Sub-steps done: none
-- Next step: 34.1 — confirm the final screenshot set; owner declares
-      "not a trader" at account level, then uploads the screenshots and
-      copy, selects build 1.0.0 (1), adds the review notes and the
-      recording, and submits
+- Sub-steps done: 34.1 (submitted for review 2026-10-07)
+- Next step: 34.2 — wait for the App Review result (ASC says up to
+      48 hours; email on completion); work the in-review list
+      meanwhile; on rejection, reply in Resolution Center or fix
 - Related decisions: ADR-072 Accepted (Privacy Policy link, export
       key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
