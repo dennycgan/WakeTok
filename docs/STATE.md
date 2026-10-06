@@ -184,55 +184,37 @@
       competitor-codename scan; light Release smoke `3482826` i17 +
       Kafka PASS; notes `docs/acceptance/cap31-31.7-notes.md`;
       PHASE_HISTORY)
-- [ ] MVP v1 pre-submission hardening
-      (Cap 32. Before submission — blocking, linear: steps 1–3 here,
-      4–5 Cap 33, 6–8 Cap 34; v1 ships English only for the store
-      page and the privacy and support pages)
-      1. Agent prepares everything: in-app privacy entry (Settings
-         bottom "About" section, one "Privacy Policy" row with an
-         external-link icon; `kPrivacyPolicyUrl` in
-         `lib/core/config/app_links.dart` holds
-         `https://dennycgan.github.io/waketok-site/privacy/`;
-         `openPrivacyPolicyProvider` opens it with `launchUrl` in
-         external mode; two ARB keys (en + zh-Hans); one test file) and
-         `ITSAppUsesNonExemptEncryption` in Info.plist (agent proposes
-         the value, owner decides) — code stays uncommitted in the
-         working tree; private submission files under `docs/private/`
-         (wording incl. the debt 484 check); PrivacyInfo patch for
-         `sqlite3.framework` (owner chose to ship it in build 1,
-         ADR-074); ADR-072 draft. Owner reads it all once.
-      2. Owner publishes `waketok-site` (push with the noreply
-         identity, otherwise GH007), opens the privacy and support
-         URLs in a private browser window and searches both pages for
-         `[TBD]` and `TODO` (none may remain).
-      3. Signed Release build on i17 with all changes uncommitted in
-         the working tree. Five checks, any failure fails the step:
-         installs; launches; the privacy row opens the page; Saved
-         pools opens with Full access; Limited access (none selected
-         shows the empty panel; select a few in iOS Settings, fully
-         close WakeTok and reopen, they appear; back to Full access).
-         Owner signs off the sqlite3 privacy manifest. Pass, then three
-         separate commits in this order — animated-still fix
-         (ADR-073), privacy link and export key (ADR-072), sqlite3
-         privacy manifest (ADR-074) — OK push; the pushed HEAD is
-         archived.
-      The Cap 32 docs commit (ADR-072…ADR-074) lands before the
-      archive; Cap 33 docs commits go in the processing or review
-      waits, off the critical path.
-      <-- YOU ARE HERE
-- [ ] TestFlight internal testing and release-candidate validation
-      (Cap 33; MVP v1 track; owner executes distribution; the agent
-      prepares build and metadata)
+- [x] MVP v1 pre-submission hardening
+      (Cap 32 / ADR-072…ADR-074 Accepted; Settings About Privacy Policy
+      row + `ITSAppUsesNonExemptEncryption` false; animated stills keep
+      original bytes; sqlite3 privacy manifest; `waketok-site` privacy
+      and support pages; device check i17 + iPhone 13 Pro; archive
+      `1ae7f42`, build 1.0.0 (1); PHASE_HISTORY)
+- [~] TestFlight internal testing and release-candidate validation
+      (Cap 33; MVP v1 track; steps 4–5 of the linear v1 submission
+      sequence — 1–3 Cap 32, 6–8 Cap 34; v1 ships English only for the
+      store page and the privacy and support pages; owner executes
+      distribution; the agent prepares build and metadata; Cap 33 docs
+      commits go in the processing or review waits, off the critical
+      path)
       4. Owner uploads to TestFlight; after processing, waits 30 minutes
          for an ITMS email and fills the ASC forms meanwhile. The
          sqlite3 privacy manifest already ships in build 1 (ADR-074).
          On any ITMS email: tell the agent first; a fix goes through
          tests, diff, owner OK commit and push, then build number +1
          and re-upload.
-      5. TestFlight build quick check. Limited access with only 10–20
-         photos fit to publish plus a few videos: 4–5 screenshots and
-         the 2–3 minute review recording (no simulator); back to Full
-         access afterwards; resize to 1320x2868 JPEG.
+      5. TestFlight build quick check on i17 — the five Cap 32 step-3
+         checks on the TestFlight build: installs; launches; the
+         privacy row opens the page; Saved pools opens with Full
+         access; Limited access (none selected shows the empty panel;
+         select a few in iOS Settings, fully close WakeTok and reopen,
+         they appear). Stay in Limited access with only 10–20 photos
+         fit to publish plus a few videos and record the 2–3 minute
+         review recording on i17; back to Full access afterwards.
+         Store screenshots are prepared (final set not yet confirmed;
+         iPhone 17 Pro Max Simulator, native 1320x2868 JPEG; sources in
+         the private submission folder).
+      <-- YOU ARE HERE
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
       (Cap 34; MVP v1 track first Review; owner executes submission;
@@ -330,22 +312,22 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: MVP v1 pre-submission hardening (Cap 32)
-- [x] 32.1 Agent prepares everything; owner single review (step 1)
-- [x] 32.2 Owner publishes `waketok-site` (step 2)
-- [~] 32.3 Release device check on i17, then code commits and push
-      (step 3) — device check passed on iPhone 17 and iPhone 13 Pro;
-      work `eadb127` (animated-still fix), `3cac032` (privacy link,
-      export key), `72cb4f4` (sqlite3 privacy manifest), pushed;
-      `18cea42` (Privacy Policy link icon next to its label, owner
-      device check on iPhone 13 Pro), pushed; archive pending
+Active capability: TestFlight internal testing and release-candidate
+validation (Cap 33)
+- [~] 33.1 Upload to TestFlight, ITMS email window, ASC forms (step 4)
+      — build 1.0.0 (1) from archive `1ae7f42` uploaded 2026-10-06;
+      processing complete, no Missing Compliance; 30-minute ITMS
+      window and ASC forms pending
+- [ ] 33.2 TestFlight build quick check and review recording on i17
+      (step 5)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 32 — MVP v1 pre-submission hardening (steps 1–3)
-- Sub-steps done: 32.1, 32.2; 32.3 device check, commits and push
-- Next step: 32.3 — owner archives the pushed HEAD in Xcode (build 1;
-      `codesign --verify --deep --strict` and the sqlite3 manifest
-      check after archive)
+- Goal (one line): Cap 33 — TestFlight internal testing and
+      release-candidate validation (steps 4–5)
+- Sub-steps done: none; 33.1 build 1.0.0 (1) uploaded and processed
+- Next step: 33.1 — owner waits 30 minutes after processing for an
+      ITMS email and fills the ASC forms; on any ITMS email, tell the
+      agent first
 - Related decisions: ADR-072 Accepted (Privacy Policy link, export
       key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
@@ -824,7 +806,7 @@ Active capability: MVP v1 pre-submission hardening (Cap 32)
 | 481 | Accepted (phase) | Main Browse Screen / Cap 28.4 | Cap 28.4 | Settings resume may show one poster/cover frame on video (play or pause) | **Symptom:** Browse→Settings→Browse on a completed video can flash one frame of the asset poster/cover before L2 PV is visually back — same whether the item was playing or paused. **Mechanism (Q-PV = B):** soft leave detaches the native Platform View; resume remounts PV. Cap 28.4 A′ keeps chrome gates (no Action Column staircase); the frame is the cover painted while `_surfaceReady` is briefly false (and/or Cap 15.11b poster-hold when that latch arms) — a deliberate anti-black hold, not the Cap 28 chrome cascade. **Intentional trade-off:** Q-PV = A (keep PV mounted under Settings) could remove the frame but risks off-screen PV bleed/touch steal, holding the 1+1 player slot, and power cost — rejected for this Cap. **Not a reopen of 429:** cousin symptom (poster vs L2), different mechanism (Settings PV detach/remount vs prior path). **Candidates:** (1) Q-PV = A + Host ready-for-display short-circuit; (2) latch a leave-time frame as the resume hold instead of the static poster (cost/feasibility unverified). Re-evaluate with Caps that redesign video surface lifecycle while Browse is non-visible (Background Audio / Auto-play track). Owner device check 2026-10-02: still reproduces on Settings resume, both playing and paused; accepted. | Re-evaluate with Background Audio / Auto-play surface-lifecycle Caps | ADR-058; ADR-006; ADR-032; cousin of closed **429** (do not reopen 429) |
 | 482 | Accepted (phase) | App Foundation / Cap 31.1 | Cap 31.1 | Sheet titles and sheet button labels (plus two guide titles) still borrow `titleMedium` = `titleChrome`; no dedicated text-style roles yet | **Deferred, not rejected.** ADR-061 evaluated splitting sheet titles and sheet button labels into their own tokens and deferred it (touches 6+ feature files; needs a new device acceptance); Cap 31.1 shipped only the `titlePage` split. Still coupled (canonical list: `media-chrome-layout-notes.md` §14): sheet titles — Cap 19.4 actions sheet, Cap 27.4 order sheet; sheet button labels — Cap 24.3 Delete, Cap 26.5 Add to Album; guide titles — Cap 19.6 left-swipe guide (Cap 30 `<3>`), Cap 30.3 vertical coach (`<1>`) — guide titles were not evaluated by ADR-061, decide their scope when this row is picked up. **Risk:** any `titleChrome` retune moves all six; Delete heavier than Add to Album (Cap 26.5 owner lock, guard `W-26.5-8`) holds only while `titleChrome` weight stays above Add to Album's local weight override. Out of scope: the permission request / blocked pages have no AppBar since Cap 31.4 (`7d47ef3`), so ADR-061 Decision 4 has no remaining consumer. | Reopen when `titleChrome` needs a retune or a sheet title / sheet button label needs its own style | ADR-061 |
 | 483 | Accepted (phase) | iOS Photos permission | Cap 31.4 | On a zh system the Photos permission prompt shows the purpose string in English | ADR-062 deliberately waived this for v1 | Reopening needs a new ADR plus device verification | ADR-062 |
-| 484 | Accepted (phase) | Share / Cap 31.2b | Cap 31.2b | Video share hands over the original Photos file, which keeps its capture location; stills are shared with location removed (ADR-064) | Cap 31.2b device check: a camera-recorded `.MOV` shared from WakeTok arrived on Mac with latitude/longitude (`mdls`). Video share was out of 31.2b scope; behaviour is unchanged since Cap 25 | MVP v1 pre-submission hardening (check the privacy policy and App Store text do not claim location is removed on share, or say it applies to still photos only); reopen after v1 only if the owner wants parity between stills and video | ADR-051, ADR-064 |
+| 484 | Accepted (phase) | Share / Cap 31.2b | Cap 31.2b | Video share hands over the original Photos file, which keeps its capture location; stills are shared with location removed (ADR-064) | Cap 31.2b device check: a camera-recorded `.MOV` shared from WakeTok arrived on Mac with latitude/longitude (`mdls`). Video share was out of 31.2b scope; behaviour is unchanged since Cap 25 | Checked in Cap 32.1: the privacy and support pages say stills are shared without location and videos may keep it; the App Store text makes no location claim. Reopen after v1 only if the owner wants parity between stills and video | ADR-051, ADR-064 |
 | 485 | Closed | Main Browse Screen / Cap 31.2c | Cap 31.2c | `roundEpoch` remount head: shell gates (`MediaCoverVisible`, `Layer2DisplayReady`, `LiveMotionMounted`) keep the previous tree's values for the new tree's first frame — Action Column paints enabled, then dims, then re-enables | Pre-existing (reproduced 100 % on `77e3f10` and `7d3d450`, still and Live pools; i17 Profile chrome-axis logs). ADR-054 D2 publishes only from the current `MediaFeedPage` post-frame, so nothing cleared the shell between the old tree's dispose and the new page's first publish. **Closed by Cap 31.2c (`08aa987`):** `VerticalMediaFeed` listens to `roundEpoch` and writes `false` to the three gates before the new tree's first frame (false-only second writer, ADR-066). Widget: W-31.2c-A1. i17 + Kafka Release PASS. Live ↔ shell hygiene gaps stay debt **476** (untouched). | Closed by Cap 31.2c (`08aa987`) | ADR-066; ADR-054; debt **476** |
 | 486 | Accepted (phase) | Main Browse Screen / Cap 24 half-sheet | Cap 31.3 | Cap 24 exact capture minute reads EXIF/TIFF tags out of the Layer 2 display temp (cross-language implicit contract) | `loadCap24MinuteLandmark` reads the Session L2-ready still temp and parses `DateTimeOriginal` / TIFF `DateTime` with a JPEG-only Dart parser; Host keeps the tags there only via `DisplayCaptureTime.merging` (ADR-065 D4). Any change to the temp producer (format, encoder, render path) silently falls back to Instant `~` — happened once in 31.2b-1, caught only by device check. Guards: RunnerTests on `DisplayStillRender` only (not in the `flutter test` gate; no CI, debt **449**); no Dart parser test; no Host→Dart contract test. **Decouple candidate:** return capture wall-clock from `requestPresentationFileSize` (it already fetches the original bytes; no extra PhotoKit round trip), then drop the L2 lookup, the Dart parser and `DisplayCaptureTime.merging`. Needs a Pigeon field + new ADR + Cap 24 device acceptance. Side benefits: exact time also when the temp was evicted or no L2-ready token exists (as long as the original is local — iCloud-only originals still fall back to `~`); HEIC / PNG originals that carry the tags are read by ImageIO directly, without re-encoding to JPEG; later changes to the Layer 2 temp producer no longer need a Cap 24 capture-time re-check (the original fetch still matters for Tier 4 file size). File size is **not** read from the temp; its dependence on the original being local (L2 original fetch) is ADR-018 by design and stays. **Guard: already added** — `test/architecture/file_content_read_test.dart` bans `dart:io` file-content reads in `lib/features/**` / `lib/app/**`; `cap24_minute_landmark.dart` is its only allowlist entry (fails once no read is left — remove the entry when this debt is paid); see ADR-067 (ADR-009 supplement). | Pick up, or re-verify the Cap 24 minute row on device, before any change to the Layer 2 still temp producer | ADR-050 D7; ADR-065 D4; ADR-018; ADR-067 |
 | 487 | Accepted (phase) | Main Browse Screen / Cap 31.3 | Cap 31.3 | Video head landed after a pool switch, order change or Endless new round: on its first swipe away, the peek still shows black once if the leave comes within tens of milliseconds of the remount (late poster not back yet); assets with no local thumbnail likewise (same class as debt **400**) | Not fixed: removing it needs a Cap 27.4 change that touches the `W-27.4b` guard, and album pools would still not be covered | Reopen if someone hits it, or fold into a later Cap 27.4 clean-up | ADR-068; `f451166` |

@@ -1665,3 +1665,61 @@ table, Cap 30 close `9bf9a36` → Cap 31 close):
   **428**, **432**, **452**, **456a**, **457**, **476**, **478**,
   **481**.
 - Accepted (permanent) in Cap 31: **405**, **471**.
+
+
+## MVP v1 pre-submission hardening (Cap 32) — completed 2026-10-06
+
+Contract: steps 1–3 of the linear v1 submission sequence (4–5 Cap 33,
+6–8 Cap 34): in-app Privacy Policy entry and export-compliance key,
+private submission files, sqlite3 privacy manifest, published privacy
+and support pages, Release device check, code commits and push, archive
+of the pushed HEAD. No new product behaviour beyond the Privacy Policy
+row.
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+
+- [x] 32.1 Agent prepares everything; owner single review (step 1)
+      (Settings About "Privacy Policy" row opening `kPrivacyPolicyUrl`
+      in external mode; `ITSAppUsesNonExemptEncryption` false; private
+      submission files incl. the debt 484 wording check; sqlite3 privacy
+      manifest patch; ADR-072 draft)
+      — no work commit of its own; the code landed in 32.3
+- [x] 32.2 Owner publishes `waketok-site` (step 2)
+      (privacy and support pages live; private-window check, no `[TBD]`
+      or `TODO`)
+      — work `waketok-site` `3687716` + `32bdc14` + `130c28b`
+      (separate repo)
+- [x] 32.3 Release device check, code commits and push, archive (step 3)
+      (five checks passed on i17 and iPhone 13 Pro; owner signed off the
+      sqlite3 privacy manifest; pushed HEAD `1ae7f42` archived in Xcode
+      on 2026-10-06 as build 1.0.0 (1); version, build, export key,
+      bundle ID, `codesign --verify --deep --strict`, the sqlite3
+      `PrivacyInfo.xcprivacy` and every embedded framework's signature
+      (Apple Development, team `4Q8L7G42S5`) checked; uploaded the same
+      day)
+      — work `eadb127` (animated-still fix, ADR-073) + `3cac032`
+      (privacy link, export key, ADR-072) + `72cb4f4` (sqlite3 privacy
+      manifest, ADR-074) + `18cea42` (privacy row icon); docs `6bac055`
+      + `a093651`; after `18cea42` only docs, README and the pubspec
+      description changed (`7654120`, `0c84b03`)
+
+Archive note (32.3): a `flutter build ios --release --no-codesign` run,
+used to switch back from the screenshot entry point, left ad-hoc signed
+native-asset frameworks in `build/native_assets/ios/`. A later signed
+build reused them and the device refused `objective_c.framework`
+("invalid signature"); `codesign --verify --deep --strict` on the Mac
+still reports ad-hoc as valid. Fix: `flutter clean`, then a signed
+`flutter build ios --release`; no code change. The archive check now
+also lists the signature of every framework under `Frameworks/` (no
+`Signature=adhoc`). The upload warned that the archive has no dSYM for
+`objective_c.framework` and `sqlite3.framework` (Flutter native assets
+ship none); crashes inside those two frameworks stay unsymbolicated.
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: ADR-072 … ADR-074 Accepted (2026-10-03) (072 Privacy
+Policy link and export key; 073 animated stills keep original bytes in
+the Layer 2 temp; 074 sqlite3 privacy manifest build phase).
+Known debt during Cap 32 (mechanical diff of the STATE Known debt
+table, Cap 31 close `f01cc08` → Cap 32 close): no rows added or closed;
+**416** Picks it up moved to the Cap 34 in-review list; **484** Picks it
+up records the Cap 32.1 check.
