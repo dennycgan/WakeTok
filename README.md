@@ -8,6 +8,8 @@ A local-first vertical scrolling app for rediscovering your own photo and video 
 
 Local-first. No account. Nothing uploaded to WakeTok.
 
+<img src="docs/images/readme-screenshots.jpg" alt="WakeTok App Store screenshots: browsing, a years-old photo, building a Pool, browse order, organise and add to album">
+
 WakeTok is an iPhone app for browsing your own Photos library full screen,
 one item at a time, by swiping up and down. You choose what to browse and how
 it is ordered: use the built-in All, Photos or Videos sources, or combine
