@@ -219,25 +219,29 @@
          push), build number +1, re-upload and re-run the five
          TestFlight checks (PHASE_HISTORY Cap 33.2).
       8. Automatic release after approval; open the store page in a
-         private browser window; Cap close-out docs commit.
-      In review (non-blocking): README App Store link after approval
-      (README rewritten in 5d4e36d); repository Private → Public
-      checklist (debt 419); zh-Hans privacy and support pages; v1.0.1
-      (zh-Hans store page and zh-Hans screenshot captions, custom
-      domain — no custom domain before approval; permission-page
-      button label wraps to two left-aligned lines on the 375 pt
-      iPhone SE — centre it, let the button grow, narrow the side
-      padding, in `permission_page_style.dart`; the UI has zh-Hans
-      but the bundle declares no localisations, so the store language
-      list shows English only — relates to ADR-062, needs a new ADR;
+         private browser window; add the App Store link to the README
+         (README rewritten in 5d4e36d); Cap close-out docs commit.
+      In review (non-blocking): empty-panel refresh check; empty-state
+      Action Column dim widget test. Done 2026-10-07: iOS 18 simulator
+      smoke (debt 416) and small-screen check, on one iPhone SE (3rd
+      generation) iOS 18.0 simulator; one finding, moved to the v1.0.1
+      update below.
+      <-- YOU ARE HERE
+- [ ] v1.0.1 update
+      (after v1.0.0 is live — a new build cannot be submitted before;
+      design first per item; zh-Hans store page and zh-Hans screenshot
+      captions; zh-Hans privacy and support pages; custom domain — no
+      custom domain before v1.0.0 approval; the UI has zh-Hans but the
+      bundle declares no localisations, so the store language list
+      shows English only — relates to ADR-062, needs a new ADR;
       "Open-source licences" row in Settings About opening
       `showLicensePage` — new en / zh-Hans copy; changes the closed
-      Cap 32 Settings page);
-      empty-panel refresh check; empty-state Action Column dim widget
-      test. Done 2026-10-07: iOS 18 simulator smoke (debt 416) and
-      small-screen check, on one iPhone SE (3rd generation) iOS 18.0
-      simulator; one finding, moved to v1.0.1 above.
-      <-- YOU ARE HERE
+      Cap 32 Settings page; permission-page button label wraps to two
+      left-aligned lines on the 375 pt iPhone SE — centre it, let the
+      button grow, narrow the side padding, in
+      `permission_page_style.dart`; changes the closed Cap 31.4
+      permission page style. Not tied to the build, any time:
+      repository Private → Public checklist (debt 419))
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
 > Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
@@ -334,8 +338,8 @@ disclosures, submission, and release verification (Cap 34)
       and push), build number +1, re-upload and re-run the five
       TestFlight checks (PHASE_HISTORY Cap 33.2)
 - [ ] 34.3 Release and close-out (step 8) — automatic release after
-      approval; open the store page in a private browser window; Cap 34
-      close-out docs commit
+      approval; open the store page in a private browser window; add
+      the App Store link to the README; Cap 34 close-out docs commit
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 34 — App Store submission and release
