@@ -220,18 +220,23 @@
          TestFlight checks (PHASE_HISTORY Cap 33.2).
       8. Automatic release after approval; open the store page in a
          private browser window; Cap close-out docs commit.
-      In review (non-blocking): iOS 18 simulator smoke (debt 416);
-      README skeleton; repository Private → Public checklist (debt
-      419); zh-Hans privacy and support pages; v1.0.1 (zh-Hans store
-      page and zh-Hans screenshot captions, custom domain — no
-      custom domain before approval; the UI has zh-Hans
+      In review (non-blocking): README App Store link after approval
+      (README rewritten in 5d4e36d); repository Private → Public
+      checklist (debt 419); zh-Hans privacy and support pages; v1.0.1
+      (zh-Hans store page and zh-Hans screenshot captions, custom
+      domain — no custom domain before approval; permission-page
+      button label wraps to two left-aligned lines on the 375 pt
+      iPhone SE — centre it, let the button grow, narrow the side
+      padding, in `permission_page_style.dart`; the UI has zh-Hans
       but the bundle declares no localisations, so the store language
       list shows English only — relates to ADR-062, needs a new ADR;
       "Open-source licences" row in Settings About opening
       `showLicensePage` — new en / zh-Hans copy; changes the closed
       Cap 32 Settings page);
-      small-screen check; empty-panel refresh check; empty-state
-      Action Column dim widget test.
+      empty-panel refresh check; empty-state Action Column dim widget
+      test. Done 2026-10-07: iOS 18 simulator smoke (debt 416) and
+      small-screen check, on one iPhone SE (3rd generation) iOS 18.0
+      simulator; one finding, moved to v1.0.1 above.
       <-- YOU ARE HERE
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
@@ -738,7 +743,7 @@ disclosures, submission, and release verification (Cap 34)
 | 413 | Open | POC-03 |  | iCloud Asset download interrupt during background audio | P2=A: out of POC-03 scope | Production Background Audio | ADR-002 |
 | 414 | Open | POC-09 |  | Slow-motion frame-rate / audio-pitch beyond duration gate | 9.3 passed duration only | Physical Clip Export Core | ADR-004 |
 | 415 | Open | POC-09 |  | Multi-audio-track selection UX | 9.4 default track only | POC-07 | ADR-004 |
-| 416 | Open | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only. No iOS 18 device; the runtime is installable on the dev Mac. Runner Swift compiles against 18.0 with no `#available` branches, so unguarded newer APIs would fail the build; behaviour / layout on iOS 18 and plugin native code stay unverified | Cap 34 in-review list, non-blocking (iOS 18 simulator smoke: launch, Photos permission, Browse, Settings, Light/Dark) | ADR-007 |
+| 416 | Closed | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only. No iOS 18 device; the runtime is installable on the dev Mac. Runner Swift compiles against 18.0 with no `#available` branches, so unguarded newer APIs would fail the build; behaviour / layout on iOS 18 and plugin native code stay unverified. **Closed (Cap 34.2):** owner smoke 2026-10-07 on an iPhone SE (3rd generation) iOS 18.0 simulator, English (UK), debug build: launch, Photos permission (Full Access; then Limited with nothing selected → empty panel and Manage selection), Browse, Settings and Light/Dark passed; no runtime exception or layout overflow in the log. One small-screen finding (permission-page button label) goes to v1.0.1. The `native_assets` "SdkRoot" build message also appears on iOS 26.3, so it is not iOS 18 specific. A Release build on iOS 18 stays unverified (no device) | Closed by Cap 34.2 | ADR-007 |
 | 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred. **Also (logged Cap 21.5 follow-up):** `app_zh_Hans.arb` debug / probe strings under `source*` / `playbackProbe*` / `cap19*Probe*` still carry Latin product/API tokens (Photos, Videos, Pool, Limited, unauthorized, estimatedCount, PHAsset, bootstrap, L-BOOT, …). Visible only under `kDebugMode` / library_smoke — not Release product risk; systematic ZH cleanup deferred to Settings and localisation completion (same Inventory lane). Cap 21.5 follow-up only aligned `playbackProbeLoadImage` / `playbackProbeLoadVideo` with `libraryRowPhotos` / `libraryRowVideos` wording. | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | 418 | Closed | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload. **Closed (Cap 31.4):** iPhone slots and the 1024 marketing icon carry the WakeTok design (`5645bb1`); v1 is iPhone-only and the five iPad-only placeholder icons are removed (`9d54313`); owner device check passed 2026-10-02 (iPhone 17, iPhone 13 Pro, Release) | Closed by Cap 31.4 | ADR-070 |
 | 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); the agent reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7), including the 31.6 commit-history hit list (done; see `cap31-31.6-notes.md` and the local `docs/private/cap31-31.6-history-hits.md`) | — |
