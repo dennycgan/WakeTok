@@ -1779,3 +1779,59 @@ Related ADR: none new; ADR-070 (iPhone-only v1) behind the Mac and
 Vision Pro choice.
 Known debt during Cap 33 (mechanical diff of the STATE Known debt
 table, Cap 32 close `64f0260` → Cap 33 close): no rows added or closed.
+
+## App Store metadata, screenshots, privacy disclosures, submission, and release verification (Cap 34) — completed 2026-10-09
+
+Contract: steps 6–8 of the linear v1 submission sequence (1–3 Cap 32,
+4–5 Cap 33): declare the DSA status, upload the store assets and copy,
+submit build 1.0.0 (1), handle App Review, verify the release and add
+the App Store link to the README. v1 ships English only for the store
+page and the privacy and support pages. Owner executes submission; the
+agent prepares assets only; no code change.
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+
+- [x] 34.1 Declare "not a trader", upload assets and copy, select the
+      build, submit (step 6)
+      (submitted 2026-10-07; account-level "not a trader" declaration;
+      six captioned screenshots — 1206x2622 in the required Dynamic
+      Island medium display slot, 1320x2868 in the optional large
+      display slot; listing copy, review notes and the review
+      recording (accepted as uploaded); build 1.0.0 (1). The
+      screenshots were simulator debug captures made with licensed
+      demo media; the hero image was a composite. The on-device
+      TestFlight capture planned in Cap 33 step 5 was not used, and
+      the Cap 33 snapshot does not say so. The required
+      pre-submission private-window check of the privacy and support
+      URLs was not recorded; both pages were rechecked signed-out
+      after submission on 2026-10-07 and loaded with no `[TBD]` or
+      `TODO`)
+      — no work commit
+- [x] 34.2 Review period (step 7)
+      (App Review returned one Guideline 2.1 information request on
+      2026-10-07. The owner updated i17 to iOS 27.0.1, reinstalled
+      build 1.0.0 (1) from TestFlight and re-ran the TestFlight
+      checks, attached a new physical-device recording that starts
+      from the Home Screen, repeated the six answers in Review Notes
+      and the Resolution Center reply, and resubmitted the same binary
+      on 2026-10-08; no new build. In-review items: iOS 18 simulator
+      smoke and small-screen check on one iPhone SE (3rd generation)
+      iOS 18.0 simulator (debt **416** Closed); one finding moved to
+      the v1.0.1 update. The empty-state Action Column dim widget test
+      already existed (`T-19.8-entry`, `W-25.3-2`, `W-24.3-2`,
+      `W-26.4b-3`). The Full-access empty state was verified ("No
+      items in this source."); refresh after adding photos remained
+      unverified at close-out)
+      — no work commit
+- [x] 34.3 Release and close-out (step 8)
+      (approved; automatic release; store page live by 2026-10-09 —
+      opened by the owner in the App Store app and a browser, and by a
+      signed-out request from the development Mac; App Store link
+      added to the README)
+      — no work commit
+
+Docs close-out (STATE + PHASE_HISTORY + README link): (this commit)
+
+Related ADR: none new.
+Known debt during Cap 34 (mechanical diff of the STATE Known debt
+table, Cap 33 close `21a92b5` → Cap 34 close): debt **416** Closed
+(`3004137`); no rows added.

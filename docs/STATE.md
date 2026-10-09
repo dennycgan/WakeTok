@@ -198,35 +198,13 @@
       33.1); no Apple silicon Mac or Vision Pro; five checks and the
       review recording (Full access) on i17; no code change;
       PHASE_HISTORY)
-- [~] App Store metadata, screenshots, privacy disclosures,
+- [x] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
-      (Cap 34; MVP v1 track first Review; steps 6–8 of the linear v1
-      submission sequence — 1–3 Cap 32, 4–5 Cap 33; v1 ships English
-      only for the store page and the privacy and support pages; owner
-      executes submission; the agent prepares assets only; privacy
-      policy wording must match the App Privacy answers (Data Not
-      Collected); before submitting, open the privacy and support URLs
-      once more in a private browser window)
-      6. Done 2026-10-07 (34.1): "not a trader" (DSA) declared at
-         account level in ASC (Business → Agreements → Compliance);
-         six captioned screenshots uploaded — 1206x2622 in the
-         required Dynamic Island medium display slot, 1320x2868 in
-         the optional large display slot (sources in the private
-         submission folder); listing copy, review notes and the
-         review recording added; build 1.0.0 (1) selected; submitted.
-      7. During review: the in-review list below. On rejection, reply
-         in Resolution Center, or fix (tests, diff, owner OK commit and
-         push), build number +1, re-upload and re-run the five
-         TestFlight checks (PHASE_HISTORY Cap 33.2).
-      8. Automatic release after approval; open the store page in a
-         private browser window; add the App Store link to the README
-         (README rewritten in 5d4e36d); Cap close-out docs commit.
-      In review (non-blocking): empty-panel refresh check; empty-state
-      Action Column dim widget test. Done 2026-10-07: iOS 18 simulator
-      smoke (debt 416) and small-screen check, on one iPhone SE (3rd
-      generation) iOS 18.0 simulator; one finding, moved to the v1.0.1
-      update below.
-      <-- YOU ARE HERE
+      (Cap 34; build 1.0.0 (1) submitted 2026-10-07; one Guideline 2.1
+      information request answered with a new physical-device
+      recording and the same binary resubmitted 2026-10-08; approved
+      and live on the App Store by 2026-10-09; English-only store page;
+      README App Store link; no code change; PHASE_HISTORY)
 - [ ] v1.0.1 update
       (after v1.0.0 is live — a new build cannot be submitted before;
       design first per item; zh-Hans store page and zh-Hans screenshot
@@ -242,6 +220,7 @@
       `permission_page_style.dart`; changes the closed Cap 31.4
       permission page style. Not tied to the build, any time:
       repository Private → Public checklist (debt 419))
+      <-- YOU ARE HERE
 
 > **Post–v1 / Clips v2 track** — not in first Review scope.
 > Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
@@ -325,29 +304,17 @@
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
 ## Phase Roadmap (active capability only)
-Active capability: App Store metadata, screenshots, privacy
-disclosures, submission, and release verification (Cap 34)
-- [x] 34.1 Declare "not a trader", upload assets and copy, select the
-      build, submit (step 6) — submitted 2026-10-07; account-level DSA
-      declaration; captioned screenshots in two sizes (Apple requires
-      only the Dynamic Island medium display), listing copy, review
-      notes and the review recording (318 MB, accepted as uploaded);
-      build 1.0.0 (1); no work commit
-- [ ] 34.2 Review period (step 7) — the in-review list; on rejection,
-      reply in Resolution Center, or fix (tests, diff, owner OK commit
-      and push), build number +1, re-upload and re-run the five
-      TestFlight checks (PHASE_HISTORY Cap 33.2)
-- [ ] 34.3 Release and close-out (step 8) — automatic release after
-      approval; open the store page in a private browser window; add
-      the App Store link to the README; Cap 34 close-out docs commit
+Active capability: v1.0.1 update — phases awaiting owner scope.
+Cap 34 closed 2026-10-09 (PHASE_HISTORY). No numbered phases until the
+owner approves them.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 34 — App Store submission and release
-      verification (steps 6–8)
-- Sub-steps done: 34.1 (submitted for review 2026-10-07)
-- Next step: 34.2 — wait for the App Review result (ASC says up to
-      48 hours; email on completion); work the in-review list
-      meanwhile; on rejection, reply in Resolution Center or fix
+- Goal (one line): next Capability Roadmap item — scope awaiting owner
+      approval
+- Sub-steps done: none (Cap 34 closed 2026-10-09; v1.0.0 is live on
+      the App Store)
+- Next step: owner approves the next capability's phases before any
+      work starts
 - Related decisions: ADR-072 Accepted (Privacy Policy link, export
       key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
