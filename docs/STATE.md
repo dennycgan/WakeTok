@@ -70,10 +70,10 @@
 - [ ] Final real-device performance, memory,
       accessibility, privacy, and error-state hardening
 - [ ] TestFlight internal testing and release-candidate validation
-      (owner executes distribution; Cursor prepares build and metadata)
+      (owner executes distribution; the agent prepares build and metadata)
 - [ ] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
-      (owner executes submission; Cursor prepares assets only)
+      (owner executes submission; the agent prepares assets only)
 
 > Each line is a capability, not a sub-step. Completed capabilities stay one line
 > (phase snapshots -> docs/PHASE_HISTORY.md). Only the ACTIVE capability is
