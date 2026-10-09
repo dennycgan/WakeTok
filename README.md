@@ -143,7 +143,19 @@ Favourites, and choose another album. The fixed WakeTok album bookmark remains
 available with Limited access.
 
 The current iPhone version supports the complete workflow described above.
-WakeTok is maintained and will continue to gain features.
+
+---
+
+## Roadmap
+
+- WakeTok is under active development; version 1.0.0 is available on the App Store.
+- This repository publishes source for review under **all rights reserved**; it is not an open-source release.
+- A focused **v1.0.1** update is planned: Third-party licences page, iPhone SE permission-button layout and single-item vertical-feed rubber-band scrolling.
+- **V2 for iOS** follows as an ordered candidate set; its scope may change.
+- An **Android port of V2 as shipped on iOS** is planned after V2.
+- **V2.1 for iOS** follows with location information and Hide as candidates.
+- **V3 and later** items are an unsequenced candidate backlog, not commitments.
+- See [`docs/STATE.md`](docs/STATE.md) for capability-level status. Last reviewed: 2026-10-09; no release date or schedule promise is implied.
 
 ---
 

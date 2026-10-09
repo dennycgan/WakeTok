@@ -29,12 +29,11 @@
 - Floor: local-first, no account, no upload — no backend, no custom auth,
   no remote database, no developer-owned media server (kickoff Tech Stack)
 - Repository visibility: Private (see Known debt for public eligibility + pre-flight scan)
-- Repository history: rewritten **2026-09-04** to purge `docs/GLOSSARY.en-zh.md`
-  from all git history (privacy). Commit SHAs before that rewrite are obsolete;
-  docs anchors were batch-remapped via filter-repo commit-map. Local offline
-  backup of pre-purge history: `WakeTok-pre-purge-backup-20260904.git` (owner
-  machine only; not in this repo). Re-verify Host pinch hit-test notes after
-  Flutter SDK upgrades (Scrollable `DragScrollActivity.shouldIgnorePointer`).
+- Repository history: rewritten **2026-09-04** to remove the local-only
+  glossary from all git history. Commit SHAs before that rewrite are obsolete;
+  docs anchors were batch-remapped via the filter-repo commit map.
+- Re-verify Host pinch hit-test notes after Flutter SDK upgrades
+  (Scrollable `DragScrollActivity.shouldIgnorePointer`).
   Same fragility family first observable symptom: debt **458**.
 - Browse brief action feedback: use Cap 19 `showCap19BrowseToast` (top
   overlay under source chrome). Do **not** use Material bottom `SnackBar`
@@ -49,6 +48,10 @@
   Centered `AlertDialog` (naming / capacity / Info / delete) is orthogonal.
 
 ## Capability Roadmap (project-level; top-to-bottom = execution order; YOU ARE HERE)
+> Last reviewed: 2026-10-09. This is a planning snapshot, not a release-date
+> or schedule commitment. Candidate scope may change. Listed in intended
+> order; the owner may reorder when a capability opens.
+
 - [x] Project Bootstrap (flutter create scaffold, pigeon/ placeholder, docs skeleton, root commit)
 - [x] POC-04: Flutter Media Feed Architecture Gate (must pass before production domain/data/feature implementation)
 - [x] POC-03: Lock-screen continuous playback gate (must pass before production domain/data/feature implementation)
@@ -145,7 +148,7 @@
 > Floor: local-first, no account, no upload (privacy/description must
 > state; slogan alone does not carry it). External: avoid bare
 > `vertical feed`, `manage`, control-name piles. L2b (clips / background
-> lock-screen / context restore) = post-v1 only — not v1 messaging.
+> lock-screen / SessionCheckpoint recovery) = post-v1 only — not v1 messaging.
 > V1 sells L1 + L2a + floor; L3 = organise, share or delete as you go.
 > After First-launch
 > vertical-swipe guidance Cap: no new product behaviour for v1 — debug /
@@ -193,11 +196,11 @@
 - [x] TestFlight internal testing and release-candidate validation
       (Cap 33; build 1.0.0 (1) from archive `1ae7f42` on TestFlight, no
       ITMS email; ASC forms saved; 147 regions — China mainland and the
-      EU excluded; DSA self-assessment "not a trader", EU decision moved
-      to V2 with monetisation planning (reasons: PHASE_HISTORY Cap
-      33.1); no Apple silicon Mac or Vision Pro; five checks and the
-      review recording (Full access) on i17; no code change;
-      PHASE_HISTORY)
+      EU excluded; DSA status declared "not a trader" for v1; re-assess
+      before adding EU availability, introducing monetisation, or after
+      a relevant business-status change; no Apple silicon Mac or Vision
+      Pro; five checks and the review recording (Full access) on i17; no
+      code change; PHASE_HISTORY)
 - [x] App Store metadata, screenshots, privacy disclosures,
       submission, and release verification
       (Cap 34; build 1.0.0 (1) submitted 2026-10-07; one Guideline 2.1
@@ -205,91 +208,61 @@
       recording and the same binary resubmitted 2026-10-08; approved
       and live on the App Store by 2026-10-09; English-only store page;
       README App Store link; no code change; PHASE_HISTORY)
-- [ ] v1.0.1 update
-      (after v1.0.0 is live — a new build cannot be submitted before;
-      design first per item; zh-Hans store page and zh-Hans screenshot
-      captions; zh-Hans privacy and support pages; custom domain — no
-      custom domain before v1.0.0 approval; the UI has zh-Hans but the
-      bundle declares no localisations, so the store language list
-      shows English only — relates to ADR-062, needs a new ADR;
-      "Open-source licences" row in Settings About opening
-      `showLicensePage` — new en / zh-Hans copy; changes the closed
-      Cap 32 Settings page; permission-page button label wraps to two
-      left-aligned lines on the 375 pt iPhone SE — centre it, let the
-      button grow, narrow the side padding, in
-      `permission_page_style.dart`; changes the closed Cap 31.4
-      permission page style. Not tied to the build, any time:
-      repository Private → Public checklist (debt 419))
+- [ ] Publish the repository as source-available, all rights reserved
+      (after v1.0.0 is live and the owner completes the pre-public
+      checks; this is not an open-source release)
       <-- YOU ARE HERE
-
-> **Post–v1 / Clips v2 track** — not in first Review scope.
-> Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
-> delete as you go);
-> this track deepens L2b (clips / background·lock-screen / context, …)
-> — not a new product shape (not clip-editor / podcast). Distinct
-> TestFlight / App Store Caps below are a second release event (Clip /
-> background privacy disclosures etc.), not a merge of the v1 track.
-
-- [ ] Auto-play Presets and Mode Eligibility Rule
-      (Layer 2/3 only: autoplay on/off + autoplay-internal ordering
-      e.g. single-asset replay; bottom-nav Auto destination nature is
-      already decided in "Auto bottom-nav slot redefinition" above —
-      this Cap owns eligibility rules and Layer 2/3 settings only.
-      Those settings are **not** a second line on the bottom Order
-      slot — Order stays Layer 1 only. UI is a later media-area
-      indicator; see layout notes §11.4.7 item 4 and re-evaluate when
-      this Cap is scoped.
-      Paired with Clips v2; leave-Browse keep already satisfied by Cap 28
-      (v1))
-- [ ] Auto-play One-item Lookahead Fetch, Waiting for Media, and
-      iCloud Fallback
-      (renamed so "iCloud Fallback" is Auto-play / ADR-O, not Cap 14)
-- [ ] Background Audio, lock-screen playback, system media controls
-- [ ] SessionCheckpoint and Session Recovery
-      (Queue, current Media Item, playback position,
-      Waiting for Media, and process-termination contract)
-- [ ] Physical Clip Export Core
-      (fixed 120-second segments, POC-06 and POC-07,
-      persistent Export Job / Segment state machine,
-      cancellation and recoverable partial success;
-      includes ClipExportApi Pigeon contract design,
-      deferred from App Foundation)
-- [ ] Photos import, backing Album, Clip Descriptor,
-      and Generated Clip Source
-- [ ] Clip export progress/result UI,
-      failed-segment retry, cancellation, and resume UX
-- [ ] Mute, Fit / Fill / 9:16 Crop, 2x gesture
-      (Share already shipped Cap 25; tap-to-pause/resume Cap 18; MVP 2x
-      = left or right edge hold temporary 2x, release → 1x; no
-      slide-down lock; Cap 18 froze edge-hold slots only)
-- [ ] Settings and localisation completion
-      (remaining English / zh-Hans copy sweep; privacy / storage /
-      about screens — the Privacy Policy link row already ships in v1
-      (Cap 32, ADR-072), the full screens stay here; Light/Dark layout
-      verification — verify against
-      Cap 31 Settings hierarchy/weight layout, not the pre-31 layout;
-      Limited Access manage entry already completed in the Debt 421 Cap above)
-- [ ] Monetisation planning and EU availability decision
-      (placeholder; decision only, no code. Decide whether to
-      monetise at all and how — an in-feed ad experiment (V3 at the
-      earliest; dropped if the downsides outweigh the gains) or an
-      in-app purchase (one-time unlock or tip; no account needed).
-      Re-assess the DSA trader status and decide EU availability in
-      the same pass (see Cap 33.1). Any monetisation reopens App
-      Privacy (Data Not Collected), ATT, the privacy policy, the age
-      rating, ADR-072 and the store listing copy; an implementation,
-      if chosen, gets its own Cap)
-- [ ] Final real-device performance, memory,
-      accessibility, privacy, and error-state hardening
-      (full-product / post-Clips pass; distinct from MVP v1 hardening)
-- [ ] TestFlight internal testing and release-candidate validation
-      (post–v1 / Clips track; owner executes distribution; the agent
-      prepares build and metadata)
-- [ ] App Store metadata, screenshots, privacy disclosures,
-      submission, and release verification
-      (post–v1 full-product Review — Clip / background privacy
-      disclosures etc.; owner executes submission; the agent prepares
-      assets only)
+- [ ] v1.0.1 — Third-party licences page
+      (planned after v1.0.0 is live; Settings About opens
+      `showLicensePage`; new en / zh-Hans copy; changes the closed Cap
+      32 Settings page. See Platform gate.)
+- [ ] v1.0.1 — iPhone SE permission-button layout
+      (centre the wrapped label, let the button grow, and narrow the
+      side padding in `permission_page_style.dart`; changes the closed
+      Cap 31.4 permission-page style)
+- [ ] v1.0.1 — single-item vertical-feed rubber-band scrolling
+      (restore iOS rubber-band feedback when the active queue contains
+      one item)
+- [ ] V2 — album search in Add to Album and Build a Pool (candidate)
+- [ ] V2 — Open the current item in the All / Oldest-first timeline
+      (candidate; from the current item's "…" half-sheet, switch to
+      the built-in All source, apply Oldest first, land on the same
+      item in the complete timeline, and continue vertical browsing.
+      Oldest first remains the process-wide preference until the user
+      changes it. The normal path must locate the item; if an external
+      library change makes it unavailable during the transition, keep
+      the original source and order and show a top Browse toast.)
+- [ ] V2 — immersive landscape browsing (candidate)
+- [ ] V2 — theme choice: System, Light or Dark (candidate)
+- [ ] V2 — system per-app language selection (candidate)
+      (include bundle localisation declarations, the zh-Hans store
+      page and screenshot captions, zh-Hans privacy and support pages,
+      and localised system permission strings; requires a new ADR
+      revisiting ADR-062. Undecided: whether the in-app privacy link
+      opens the zh-Hans page when the app runs in zh-Hans.)
+- [ ] V2 — simplified app icon (optional candidate)
+- [ ] V2 — custom-domain migration for privacy and support pages
+      (optional candidate; includes a new app build to update the
+      in-app privacy link in `app_links.dart`; update the App Store
+      Connect privacy policy and support URLs and the README links in
+      the same pass, checking at that time which App Store Connect
+      fields need a new app version. ADR-072's statement that
+      the legacy github.io URLs redirect after cut-over was not
+      confirmed in current GitHub documentation; test both live legacy
+      URLs before changing any published URL.)
+- [ ] Android — port V2 as shipped on iOS
+      (planned after V2; distribution TBD: GitHub APK or Google Play.
+      Open Android-specific STATE and decision records when work
+      starts, after owner-approved rule changes define authority,
+      decision numbering, and conflict handling for shared domain
+      behaviour.)
+- [ ] V2.1 — location information for the current item
+      (candidate; resumes debt **401**)
+- [ ] V2.1 — Hide the current item in Photos
+      (candidate; requires a new ADR narrowly overturning only the Hide
+      limb of debt **469**; permanent purge remains forbidden)
+- [ ] V3 and later
+      (candidate umbrella; details in the unsequenced backlog below)
 
 > Each line is a capability, not a sub-step. Completed capabilities stay one line
 > (phase snapshots -> docs/PHASE_HISTORY.md). Only the ACTIVE capability is
@@ -303,8 +276,96 @@
 >   that consumes their result.
 > Top-to-bottom = current execution order. Reorder if priorities change; never leave it unordered.
 
+## Platform gate (outside the release sequence)
+- [ ] Xcode 27 / iPhone Duo readiness
+      (required before any upload or submission from April 2027 (as of
+      2026-10-08: Apple, 2026-09-09: uploads from April 2027 must use
+      the iOS 27 SDK; Apple, 2026-10-05: submissions from April 2027
+      must include iPhone Duo screenshots). Until this gate is
+      complete, releases, including v1.0.1, build with Xcode 26.3
+      (iOS 26.2 SDK) and are uploaded and submitted before April
+      2027. Re-check Apple's current requirements (news, App
+      Store Connect release notes, screenshot specifications) before
+      design starts. Apple's Tech Talk says the inner display does not
+      honour supported interface orientations; verify that behaviour
+      in the iPhone Duo simulator before treating it as settled for
+      WakeTok. If the lock is not honoured, layouts must handle
+      landscape and regular size classes. This gate is not tied to
+      v1.0.1; if v1.0.1 slips past April 2027, complete this gate before
+      v1.0.1.)
+
+## V3 and later / Clips candidate backlog (unsequenced)
+> Not in first Review scope.
+> Big picture: same L1; V1 = L1+L2a+floor (L3 = organise, share or
+> delete as you go);
+> this track deepens L2b (clips / background·lock-screen /
+> SessionCheckpoint recovery, …)
+> — not a new product shape (not clip-editor / podcast). Distinct
+> TestFlight / App Store items below are a separate release event (Clip /
+> background privacy disclosures etc.), not a merge of the v1 track.
+
+- Type filter within a pool or source (candidate)
+- Auto-play Presets and Mode Eligibility Rule
+  (Layer 2/3 only: autoplay on/off + autoplay-internal ordering
+  e.g. single-asset replay; bottom-nav Auto destination nature is
+  already decided in "Auto bottom-nav slot redefinition" above —
+  this Cap owns eligibility rules and Layer 2/3 settings only.
+  Those settings are **not** a second line on the bottom Order
+  slot — Order stays Layer 1 only. UI is a later media-area
+  indicator; see layout notes §11.4.7 item 4 and re-evaluate when
+  this Cap is scoped.
+  Paired with Clips v2; leave-Browse keep already satisfied by Cap 28
+  (v1))
+- Auto-play One-item Lookahead Fetch, Waiting for Media, and
+  iCloud Fallback
+  (renamed so "iCloud Fallback" is Auto-play / ADR-O, not Cap 14)
+- Background Audio, lock-screen playback, system media controls
+- SessionCheckpoint and Session Recovery
+  (Queue, current Media Item, playback position,
+  Waiting for Media, and process-termination contract)
+- Physical Clip Export Core
+  (fixed 120-second segments, POC-06 and POC-07,
+  persistent Export Job / Segment state machine,
+  cancellation and recoverable partial success;
+  includes ClipExportApi Pigeon contract design,
+  deferred from App Foundation)
+- Photos import, backing Album, Clip Descriptor,
+  and Generated Clip Source
+- Clip export progress/result UI,
+  failed-segment retry, cancellation, and resume UX
+- Mute, Fit / Fill / 9:16 Crop, 2x gesture
+  (Share already shipped Cap 25; tap-to-pause/resume Cap 18; MVP 2x
+  = left or right edge hold temporary 2x, release → 1x; no
+  slide-down lock; Cap 18 froze edge-hold slots only)
+- Settings and localisation completion
+  (remaining English / zh-Hans copy sweep; privacy / storage /
+  about screens — the Privacy Policy link row already ships in v1
+  (Cap 32, ADR-072), the full screens stay here; Light/Dark layout
+  verification — verify against
+  Cap 31 Settings hierarchy/weight layout, not the pre-31 layout;
+  Limited Access manage entry already completed in the Debt 421 Cap above)
+- Monetisation planning and EU availability decision
+  (placeholder; decision only, no code. Decide whether to
+  monetise at all. Re-assess the DSA trader status and decide EU availability in
+  the same pass (see Cap 33.1). Any monetisation reopens App
+  Privacy (Data Not Collected), ATT, the privacy policy, the age
+  rating, ADR-072 and the store listing copy; an implementation,
+  if chosen, gets its own Cap)
+- Final real-device performance, memory,
+  accessibility, privacy, and error-state hardening
+  (full-product / post-Clips pass; distinct from MVP v1 hardening)
+- TestFlight internal testing and release-candidate validation
+  (post–v1 / Clips track; owner executes distribution; the agent
+  prepares build and metadata)
+- App Store metadata, screenshots, privacy disclosures,
+  submission, and release verification
+  (post–v1 full-product Review — Clip / background privacy
+  disclosures etc.; owner executes submission; the agent prepares
+  assets only)
+
 ## Phase Roadmap (active capability only)
-Active capability: v1.0.1 update — phases awaiting owner scope.
+Active capability: Publish the repository as source-available,
+all rights reserved — phases awaiting owner scope.
 Cap 34 closed 2026-10-09 (PHASE_HISTORY). No numbered phases until the
 owner approves them.
 
@@ -677,7 +738,7 @@ owner approves them.
   FAIL tables frozen; closer is ADR-030 §5):
   docs/acceptance/cap13-13.6-measurement-reeval-protocol.md
 - Competitor products in committed docs: `Photo-App-A` / `Video-App-B`
-  only; local map `docs/private/competitor-codenames.md` (gitignored)
+  only; the real-name map stays local-only and gitignored
 - POC spike code & evidence: branch `spike/poc` — read-only archive;
   never merge; never delete
 - (grows as code lands)
@@ -717,7 +778,7 @@ owner approves them.
 | 416 | Closed | App Foundation |  | iOS 18 simulator smoke (no 18.x runtime installed) | Floor is 18.0 (ADR-007); day-to-day verify on 26.x only. No iOS 18 device; the runtime is installable on the dev Mac. Runner Swift compiles against 18.0 with no `#available` branches, so unguarded newer APIs would fail the build; behaviour / layout on iOS 18 and plugin native code stay unverified. **Closed (Cap 34.2):** owner smoke 2026-10-07 on an iPhone SE (3rd generation) iOS 18.0 simulator, English (UK), debug build: launch, Photos permission (Full Access; then Limited with nothing selected → empty panel and Manage selection), Browse, Settings and Light/Dark passed; no runtime exception or layout overflow in the log. One small-screen finding (permission-page button label) goes to v1.0.1. The `native_assets` "SdkRoot" build message also appears on iOS 26.3, so it is not iOS 18 specific. A Release build on iOS 18 stays unverified (no device) | Closed by Cap 34.2 | ADR-007 |
 | 417 | Open | App Foundation |  | Localization Inventory auto-generation/report tooling (kickoff ADR-U §7–8 summary artifact) | Hardcoded-copy scan + ARB key parity closed by ADR-012; Inventory report generator still deferred. **Also (logged Cap 21.5 follow-up):** `app_zh_Hans.arb` debug / probe strings under `source*` / `playbackProbe*` / `cap19*Probe*` still carry Latin product/API tokens (Photos, Videos, Pool, Limited, unauthorized, estimatedCount, PHAsset, bootstrap, L-BOOT, …). Visible only under `kDebugMode` / library_smoke — not Release product risk; systematic ZH cleanup deferred to Settings and localisation completion (same Inventory lane). Cap 21.5 follow-up only aligned `playbackProbeLoadImage` / `playbackProbeLoadVideo` with `libraryRowPhotos` / `libraryRowVideos` wording. | Settings and localisation completion | — (kickoff ADR-U) / ADR-012 |
 | 418 | Closed | App Foundation |  | App icon asset set | Owner parallel track; required before first TestFlight build upload. **Closed (Cap 31.4):** iPhone slots and the 1024 marketing icon carry the WakeTok design (`5645bb1`); v1 is iPhone-only and the five iPad-only placeholder icons are removed (`9d54313`); owner device check passed 2026-10-02 (iPhone 17, iPhone 13 Pro, Release) | Closed by Cap 31.4 | ADR-070 |
-| 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. Before Private→Public, owner must complete the pre-public privacy/sensitive-history scan checklist (local release-handoff); the agent reminds only and must not run the scan. | Owner pre-public scan (any time after Cap 7), including the 31.6 commit-history hit list (done; see `cap31-31.6-notes.md` and the local `docs/private/cap31-31.6-history-hits.md`) | — |
+| 419 | Open | Portfolio |  | Repository visibility: Private → Public (eligibility: first demoable vertical slice — Main Browse feed scrolls real Photos library content on device) | Cap 7 closed — eligibility met. A gitleaks full-history scan and the owner-only historical non-text review remain required before publication. Per the gitleaks v8.30.1 source (`sources/git.go`), its git scan checks added patch lines only; commit-message text and non-archive binary files are not scanned. A separate regex screen of the 627 commit messages present when `main` was at `5557a2b` found 0 matches; repeat that screen for messages added since. Keep the gitleaks, commit-message and owner non-text results as distinct evidence; do not merge them into a single pass conclusion. | Pre-public repository checks after the current three-commit docs sequence; the owner runs the historical non-text checklist. The Cap 31.6 current-file and commit-history hit-list reviews are recorded in `cap31-31.6-notes.md` | — |
 | 420 | Closed | iOS Photos permission |  | NSPhotoLibraryUsageDescription was PLACEHOLDER copy; replaced with owner-approved English wording (zh prompt gap: 483) | Final permission wording is owner-only (release-handoff) | Closed by Cap 31.4 (`7d47ef3`; owner device PASS on iPhone 13 Pro + iPhone 17) | ADR-062 |
 | 421 | Closed | iOS Photos permission |  | Limited Access product chrome unmounted from Main Browse (`01a7611`) | Banner sat above IndexedStack (all four tabs) and the shell Column had no SafeArea (notch clipped it). **Removed the product mount, not the feature.** **Closed by Cap 29** (ADR-059): Settings Photos Access — Manage → `presentLimitedLibraryPicker` (every dismiss dirty via Cap 28.5 authority); Open Settings never notifies; Full status ± Open Settings; no Browse launch remind (v1). ADR-059 D10: access-scope consume clears Snapshot cache + feed index 0 before `restartSession` so Manage round-trips are product-visible. Kickoff ADR-K §3 in-app entry met for Limited manage + system path to Full. Debug `library_smoke` Limited banner remains `kDebugMode` only. | Closed by Cap 29 | kickoff ADR-K; ADR-058 D4; ADR-059 |
 | 422 | Accepted (phase) | iOS Photos permission |  | List-time availability via undocumented PHAssetResource KVC `locallyAvailable` | No public isLocallyAvailable on PHAsset/PHAssetResource in the iOS SDK. Host uses KVC in `mapAvailability`. **Cap 15.12 / 15.15 (ADR-033):** become-current may call `getAssetAvailabilities` (on-demand; resolve returns empty availabilities). Same KVC helper for probed ids only. **Further expansion** of KVC beyond this gate still needs explicit owner re-board. | Re-evaluate only if App Review or TestFlight external beta review flags it | ADR-033 |
@@ -738,7 +799,7 @@ owner approves them.
 | 431 | Closed | Main Browse Screen |  | All / Photos / Videos quick tab switch flashes one frame center Layer1Loading (`mainBrowseFeedLayer1Loading`) | **Closed by 17.9** (`f1ffadf` / ADR-039): source-switch-only 150 ms delay hides **visible** center copy on first current page after tab change; corner spinner + VoiceOver `mainBrowseFeedLayer1Loading` semantics stay immediate. Vertical swipe / cold start unchanged. Kafka Profile owner acceptance PASS (4-step). | Closed by Cap 17.9 (ADR-039) | ADR-039 |
 | 432 | Accepted (phase) | Main Browse Screen |  | Origin switch (All / Photos / Videos tabs, saved / ephemeral pools) may flash one frame feed-shell `mainBrowseFeedLoading` | **Optional polish (retained).** Tab change starts a new Consumption Session (`browseSessionProvider` reload); cached snapshots typically ≤1–2 frames of shell loading. Semantically distinct from page Layer1 copy (17.9 closed rows above). Owner rejected blank-hold polish (empty feed color reads as bug/stutter). Alternatives (`skipLoadingOnReload`, cache-hit synchronous session swap, delayed whole-screen library chrome) unevaluated. **Accepted (Cap 31.4):** since ADR-057 every Origin change calls `restartSession()`, which sets a fresh `AsyncLoading()` with no previous value, so `skipLoadingOnReload` does not apply; the frame reads as a normal load. | Reopen only if the loading frame on tab / pool switch is reported as disruptive; a fix would keep the old feed until the new session is ready (touches the ADR-057 restart path) | ADR-023 D8 / ADR-039 / ADR-057 |
 | 400 | Accepted (permanent) | Main Browse Screen |  | iCloud / optimized-storage **video**: no Layer 1 poster — full-page black + spinner until Layer 2 plays; ±1 peek often stays black | **15.6 partial (`9eef9db`):** Host box **512×512** (was 1080). Raises **Limited** local-hit odds when a derivative near the box exists (Session B: 13×512-edge ok). **Does not** explain Full never-black: Protocol B same 16 ids under Full → 16/16 ok all **~120**, 0 miss — **inferred** Full opportunistic fallback to a fixed small thumb tier; Limited searches by `targetSize` without that fallback (`cap15-15.6-notes.md`). Limited residual miss (3/16 in B) can still lack any deliverable local image under Limited while Full has ~120 — PhotoKit authorization behavior under ADR-025 local-only; Host cannot invent pixels. Unvalidated trial: `deliveryMode = .fastFormat`. Product miss UI = separate discussion. Original Limited 6-video set (2026-08-18) still applies as early evidence. **Cap 17.4 (`c3aa2dc`):** coverless wait **visibility** improved (centered copy + corner spinner); **residual black accepted** (ADR-034 Decision 3). **Cap 17.8 close-out:** row remains on the table as accepted residual (permanent) — Host cannot invent pixels; no further fix or upgrade scheduled; not Cap 17 unfinished work. | Unassigned | ADR-025 / ADR-006 / ADR-031 / ADR-034 |
-| 433 | Closed | Media Info Overlay |  | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Closed by Cap 17.7** (`d9db8c7` / ADR-038): product goal changed from minute-level Photos wall-clock match to **honest approximate** presentation — row 2 `~ Y-M-D` and row 1 coarse short bands from `creationDate` local calendar only; ±1 calendar day vs Photos at import/timezone edges **accepted** (not a bug to chase in Overlay). Rows share honesty stance but are **not** guaranteed numerically consistent with each other or with Photos for cross-check. Minute-level Host/EXIF attempt reverted (`2c0a090`); archive `docs/private/cap17-7-minute-wall-clock-archive/`. Device smoke PASS iPhone13pro Kafka. Cap 19 long-press info may revisit with disclaimer. | Closed by Cap 17.7 | ADR-038; Cap 8 Overlay / ADR-014 family |
+| 433 | Closed | Media Info Overlay |  | Capture time shown in Overlay (exact datetime + relative “X years Y months ago”) does not match iOS Photos for the same asset | **Closed by Cap 17.7** (`d9db8c7` / ADR-038): product goal changed from minute-level Photos wall-clock match to **honest approximate** presentation — row 2 `~ Y-M-D` and row 1 coarse short bands from `creationDate` local calendar only; ±1 calendar day vs Photos at import/timezone edges **accepted** (not a bug to chase in Overlay). Rows share honesty stance but are **not** guaranteed numerically consistent with each other or with Photos for cross-check. Minute-level Host/EXIF attempt reverted (`2c0a090`); its diagnostic archive remains local-only. Device smoke PASS iPhone13pro Kafka. Cap 19 long-press info may revisit with disclaimer. | Closed by Cap 17.7 | ADR-038; Cap 8 Overlay / ADR-014 family |
 | 434 | Closed | Main Browse Screen |  | Lock then unlock on Manual Browse while a video is current: same index/frame, paused, no tap-to-play — swipe is the only escape | ADR-006 Cap 7.3: background detach + pause; foreground re-adopts the layer. **Closed by Cap 18.4** (`0df9ceb` / ADR-040 Decision 4 supplement + Decision 12): lifecycle leave is mechanical pause only (preserves intent); foreground resume auto-plays when intent preserved (respect mute). User tap-pause before interrupt stays paused with center affordance + tap resume. Supersedes the Cap 18.1 draft that required foreground stay paused until tap. No lock-aware special-case code. | Closed by Cap 18.4 (ADR-040) | ADR-006 / ADR-040 |
 | 403a | Accepted (phase) | Main Browse Screen |  | Asset-source iCloud load feels much slower than Photo-App-A / iOS Photos | **Suspect clues (verify later — not closed root causes; not Cap 15.11 scope).** Owner subjective + Cap 15.11 **session** log on Kafka (`/tmp/waketok_1511b_stale_idx.log`, 2026-08-23): many items stayed blurry / non-playing while Photo-App-A in the same window eventually loaded; log skew `load-finished err=ok` ≈168 vs `operationCancelled` ≈417, **0** `iCloudDownloadFailed`. Suspect aggressive leave/remount/supersede cancel + single-flight prepare vs competitor / Photos keep-or-parallel download — **deep-dive WakeTok iCloud network + cancel policy** when scheduled; no attribution without further evidence. Debt **428** covers wasted prepare (separate row; evidence leans legitimate leave-cancel). **Accepted (Cap 31.4):** subjective, with no objective standard. ADR-034 D3 promises no parity with Photo-App-A / iOS Photos; slower background completion is the intended cost of leave-cancel + dwell (ADR-029, ADR-034 D4), which Cap 13.6 showed necessary (uncancelled fetches filled the device). | Reopen only on measurable evidence (same iCloud items clearly slower in WakeTok than in Photos) or user reports | ADR-025 / ADR-029 / ADR-034 / ADR-035 / ADR-036 |
 | 403b-progress | Accepted (phase) | Main Browse Screen |  | Long iCloud Layer 2 has no progress/stall productization | Item-level `_FeedCornerChrome` spinner gives **no progress signal** during long iCloud Layer 2 (throughput, bytes, ETA). Cap **17.5b** delivered corner reassure + Retry definition (work `527baeb`); progress/stall productization was a direction only and is **not** planned for MVP. 17.5b Retry/reassure limb closed. | Unassigned | ADR-025 / ADR-029 / ADR-034 / ADR-035 / ADR-036 |
