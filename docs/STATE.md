@@ -32,6 +32,12 @@
 - Repository history: rewritten **2026-09-04** to remove the local-only
   glossary from all git history. Commit SHAs before that rewrite are obsolete;
   docs anchors were batch-remapped via the filter-repo commit map.
+- Owner-approved public-presentation exception (**2026-10-09**):
+  selected completed PHASE_HISTORY wording was minimally rewritten before
+  repository publication to remove personal and commercial context,
+  private-library assertions, and unnecessary local-backup details.
+  Technical evidence was retained. Git history was not rewritten;
+  technical outcomes, phase status, and commit anchors were preserved.
 - Re-verify Host pinch hit-test notes after Flutter SDK upgrades
   (Scrollable `DragScrollActivity.shouldIgnorePointer`).
   Same fragility family first observable symptom: debt **458**.

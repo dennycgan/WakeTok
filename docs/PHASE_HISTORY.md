@@ -1054,15 +1054,13 @@ this close-out.
 
 - **GLOSSARY history purge (privacy; Cap 20.2 window, 2026-09-04) —
   not a 20.1 deliverable.** Distinct from the 20.1 §18 term add.
-  Trigger: remove personal / privacy-sensitive content that had lived
-  in published `docs/GLOSSARY.en-zh.md`. Method: `git filter-repo`
-  rewrite of **`main` and `spike/poc`**. Impact: nearly all historical
-  commit SHAs changed; docs anchors batch-remapped (`93e34eb` on main,
-  `292511c` on poc notes); pre-purge SHAs obsolete. Offline backup
-  (owner machine only): `WakeTok-pre-purge-backup-20260904.git`. After
-  purge the file stays **local-only / gitignored** (not published).
-  Heaviest repo operation in Cap 20 — do not collapse into the 20.1
-  phase line.
+  Trigger: remove a previously published glossary from history. Method:
+  `git filter-repo` rewrite of **`main` and `spike/poc`**. Impact:
+  nearly all historical commit SHAs changed; docs anchors
+  batch-remapped (`93e34eb` on main, `292511c` on poc notes);
+  pre-purge SHAs obsolete. After the purge the glossary stays
+  **local-only / gitignored**. Heaviest repo operation in Cap 20 — do
+  not collapse into the 20.1 phase line.
 - `3d29823` — still L1↔L2 black-flash / debt **450** Closed
 - `282009e` — video shrink C + release spike A (Decision 13 inner)
 - `81904e1` — media chrome layout (shared browse; **not** ADR-043)
@@ -1740,24 +1738,17 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Availability, and the version-page fields not deferred to Cap 34
       saved. Available in 147 countries or regions: all except China
       mainland and the 27 EU member states; new App Store regions are
-      not added automatically. DSA trader status (owner
-      self-assessment, 2026-10-06): not a trader — no revenue, no ads
-      or in-app purchases, no GST/VAT registration or business entity;
-      WakeTok is a personal portfolio project, not run as a business;
-      Apple's guidance also treats a developer not distributing in the
-      EU as not acting as a trader. ASC asks for the status at
-      submission even without the EU, so the account-level "not a
-      trader" declaration is a Cap 34 step 6 action. The EU stays
-      excluded in v1 with no specific concern: adding it back has no
-      technical blocker and needs no new build, but the monetisation
-      path (any form may change the trader status) is not settled in
-      v1, so the EU decision moves to V2 together with monetisation
-      planning. Re-assess the trader status before adding the EU
-      (including whether a portfolio project counts as related to the
-      owner's profession), before any monetisation, and on any GST/VAT
-      registration or business entity. Not offered on Apple silicon
-      Mac or Apple Vision Pro (owner decision; iPhone-only v1,
-      ADR-070; can be turned on later without a new build))
+      not added automatically. DSA status (owner self-assessment,
+      2026-10-06): "not a trader" — the app is free with no ads or
+      in-app purchases, and Apple's guidance treats a developer not
+      distributing in the EU as not acting as a trader. ASC asks for
+      the status at submission even without the EU, so the
+      account-level declaration is a Cap 34 step 6 action. The EU
+      stays excluded in v1. Re-assess before adding EU availability,
+      introducing monetisation, or after a relevant business-status
+      change. Not offered on Apple silicon Mac or Apple Vision Pro
+      (owner decision; iPhone-only v1, ADR-070; can be turned on later
+      without a new build))
       — no work commit; docs `61a4616`
 - [x] 33.2 TestFlight build quick check and review recording on i17
       (step 5)
@@ -1767,10 +1758,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       access; Limited access shows the empty panel with none selected
       and the selected items after a full close and reopen. The review
       recording was made in Full access instead of the planned Limited
-      access (owner decision: the library has nothing that must stay
-      private, and only Full access can show pools, Favourites and the
-      WakeTok album): fresh TestFlight install, 2:19, silent, every
-      step normal; kept privately for the Cap 34 attachment)
+      access (owner decision: only Full access can show pools,
+      Favourites and the WakeTok album): fresh TestFlight install,
+      2:19, silent, every step normal; kept privately for the Cap 34
+      attachment)
       — no work commit
 
 Docs close-out (STATE + PHASE_HISTORY): (this commit)
