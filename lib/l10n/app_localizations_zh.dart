@@ -949,6 +949,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get settingsPrivacyPolicyRow => 'Privacy Policy';
+
+  @override
+  String get settingsThirdPartyLicensesRow => 'Third-party licences';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1841,4 +1844,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get settingsPrivacyPolicyRow => '隐私政策';
+
+  @override
+  String get settingsThirdPartyLicensesRow => '第三方许可';
 }

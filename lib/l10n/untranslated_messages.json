@@ -239,6 +239,7 @@
     "cap25ShareEntryIconSemantics",
     "cap25ShareFailed",
     "settingsAboutSectionTitle",
-    "settingsPrivacyPolicyRow"
+    "settingsPrivacyPolicyRow",
+    "settingsThirdPartyLicensesRow"
   ]
 }

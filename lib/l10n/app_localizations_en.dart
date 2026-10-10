@@ -954,4 +954,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsPrivacyPolicyRow => 'Privacy Policy';
+
+  @override
+  String get settingsThirdPartyLicensesRow => 'Third-party licences';
 }

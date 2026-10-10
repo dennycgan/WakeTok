@@ -1692,6 +1692,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy Policy'**
   String get settingsPrivacyPolicyRow;
+
+  /// Cap 35.1 Settings About row; opens the in-app third-party licences page (Flutter LicensePage)
+  ///
+  /// In en, this message translates to:
+  /// **'Third-party licences'**
+  String get settingsThirdPartyLicensesRow;
 }
 
 class _AppLocalizationsDelegate

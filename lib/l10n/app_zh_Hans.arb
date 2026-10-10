@@ -268,5 +268,6 @@
   "cap25ShareEntryIconSemantics": "分享",
   "cap25ShareFailed": "无法分享，请重试。",
   "settingsAboutSectionTitle": "关于",
-  "settingsPrivacyPolicyRow": "隐私政策"
+  "settingsPrivacyPolicyRow": "隐私政策",
+  "settingsThirdPartyLicensesRow": "第三方许可"
 }

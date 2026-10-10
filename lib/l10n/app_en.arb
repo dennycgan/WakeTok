@@ -1190,5 +1190,9 @@
   "settingsPrivacyPolicyRow": "Privacy Policy",
   "@settingsPrivacyPolicyRow": {
     "description": "Cap 32 Settings About row; opens the privacy policy web page in the system browser"
+  },
+  "settingsThirdPartyLicensesRow": "Third-party licences",
+  "@settingsThirdPartyLicensesRow": {
+    "description": "Cap 35.1 Settings About row; opens the in-app third-party licences page (Flutter LicensePage)"
   }
 }

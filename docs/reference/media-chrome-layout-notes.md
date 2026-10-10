@@ -945,10 +945,14 @@ at once. The Settings page heading does **not** use it (`titlePage`, see
 
 ### 14.2 Same token, not via `titleMedium`
 
-None today. `AppBarTheme.titleTextStyle` = `titleChrome` (**20 / w600**)
-has no product reader since the permission blocked page dropped its AppBar
-(Cap 31.4); a new AppBar that keeps the default title style must be added
-here.
+`AppBarTheme.titleTextStyle` = `titleChrome` (**20 / w600**). Readers:
+
+| Surface | Code | Result today |
+|---------|------|--------------|
+| Cap 35.1 third-party licence page: list title (`Licences`, or the zh-Hans Material title) and package detail title (package name) | Flutter `LicensePage`, pushed from `about_settings_section.dart` | **20 / w600** |
+
+The permission blocked page dropped its AppBar in Cap 31.4. A new AppBar
+that keeps the default title style must be added here.
 
 ### 14.3 Checked and **not** linked
 
@@ -980,6 +984,7 @@ after Build Pool its light icons stuck onto the Light Settings pane.
 | Browse pane (incl. half-sheets, dialogs, Cap 30 coaches on top) | shell `AnnotatedRegion` (`mainBrowseStatusBarStyle`, `main_browse_shell_page.dart`) | light, both Appearances |
 | Settings pane | same shell region, from ambient `Theme.brightness` | follow Appearance |
 | Build Pool (pushed, forced dark) | its AppBar (dark theme) | light |
+| Third-party licence page (pushed from Settings About, app theme; list and package detail) | Flutter `LicensePage` AppBar, from its `tokens.surface` background | follow Appearance |
 | Permission request | baseline (no AppBar) | follow Appearance |
 | Permission blocked | baseline (no AppBar) | follow Appearance |
 | Permission gate loading / error | baseline (no AppBar) | follow Appearance |

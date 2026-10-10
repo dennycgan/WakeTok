@@ -9,8 +9,10 @@
 > anchored info bubbles.  
 > **Not** bottom-tab chrome (always dark — ADR-016 / shell). Settings *pane*
 > follows system Appearance (`ThemeMode.system`).  
-> **Not** privacy / about screens (post-v1 Settings Cap). The Cap 32 About
-> section is one external link row (Privacy Policy, ADR-072), not a screen.  
+> **Not** privacy / about screens (post-v1 Settings Cap). The About section
+> has two rows: the external Privacy Policy link (Cap 32, ADR-072) and
+> Third-party licences, which pushes Flutter's `LicensePage` (Cap 35.1);
+> neither is a WakeTok-built screen.  
 > **Code anchors:**  
 > - `lib/features/main_browse/settings_layout.dart`  
 > - `lib/features/main_browse/anchored_info_bubble.dart`  
@@ -180,26 +182,31 @@ to the column edge.)
 
 Applies to the info `i` and to any glyph that follows a Settings label.
 
-| Property | Info `i` | External link (About) |
-|---|---|---|
-| Glyph | `Icons.info_outline` | `Icons.open_in_new` |
-| Box | `kSettingsInfoIconSize` (18) square | same |
-| Colour | `tokens.onSurface` @ 0.55 | same |
-| Placement | `WidgetSpan`, `PlaceholderAlignment.middle`, after the title `TextSpan` | same |
-| Gap: last title glyph → glyph box | `kSettingsTitleInfoGap` (2) | 2 × `kSettingsTitleInfoGap` (4) |
-| Ink inset inside the box (left) | ≈ 1.5 | ≈ 2.25 |
-| Visible gap | ≈ 3.5 | ≈ 6.25 |
-| Tap target | the `i` alone, `OverflowBox` → `kSettingsInfoHit` (44) | the whole row (`InkWell`, min height 44) |
+| Property | Info `i` | External link (About) | In-app chevron (About) |
+|---|---|---|---|
+| Glyph | `Icons.info_outline` | `Icons.open_in_new` | `Icons.arrow_forward_ios` |
+| Box | `kSettingsInfoIconSize` (18) square | same | same |
+| Colour | `tokens.onSurface` @ 0.55 | same | same |
+| Placement | `WidgetSpan`, `PlaceholderAlignment.middle`, after the title `TextSpan` | same | same |
+| Gap: last title glyph → glyph box | `kSettingsTitleInfoGap` (2) | 2 × `kSettingsTitleInfoGap` (4) | `kSettingsTitleInfoGap` (2) |
+| Ink inset inside the box (left) | ≈ 1.5 | ≈ 2.25 | ≈ 4.68 |
+| Visible gap | ≈ 3.5 | ≈ 6.25 | ≈ 6.68 |
+| Tap target | the `i` alone, `OverflowBox` → `kSettingsInfoHit` (44) | the whole row (`InkWell`, min height 44) | same as external link |
+| Semantics | — | the row is one link node | the row is one button node |
 
-- **Rule for new inline glyphs:** an explanatory info `i` uses
-  `kSettingsTitleInfoGap`; a link glyph that leaves the app uses twice
-  that.
+- **Rule for new inline glyphs:** an explanatory info `i` and a glyph that
+  opens an in-app page use `kSettingsTitleInfoGap`; a link glyph that
+  leaves the app uses twice that.
 - **Measured as:** right edge of the last title glyph
   (`RenderParagraph.getBoxesForSelection` over the title) to the left edge
   of the 18 box. Cap 32: 2.000 on all four info rows and 4.000 on the
-  About link row, en and zh-Hans.
+  About link row, en and zh-Hans. Cap 35.1: 2.000 × text scale on the
+  licences row (`W-35.1-4`…`7`).
 - **Ink inset** is font data (MaterialIcons glyph bounds at 18); no optical
-  compensation — the visible gap differs by glyph.
+  compensation — the visible gap differs by glyph. Glyph x-bounds in
+  `MaterialIcons-Regular.otf` (Flutter 3.41.9, 512 units per em, advance
+  512): `info_outline` 43, `open_in_new` 64, `arrow_forward_ios` 133;
+  inset = bound × 18 / 512.
 - **Text scale:** `WidgetSpan` children scale with the text, so the box and
   the gap scale too (gap = constant × text scale).
 - **Wrapping:** the glyph follows the last glyph of the last line; if that
