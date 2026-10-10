@@ -1826,3 +1826,36 @@ Related ADR: none new.
 Known debt during Cap 34 (mechanical diff of the STATE Known debt
 table, Cap 33 close `21a92b5` → Cap 34 close): debt **416** Closed
 (`3004137`); no rows added.
+
+## Publish the repository as source-available, all rights reserved — completed 2026-10-10
+
+Contract: publish the repository for review under all rights reserved
+(not an open-source release) after v1.0.0 is live and the owner
+completes the pre-public checks. The owner changes repository
+visibility; no code change. No numbered phases were approved for this
+capability; the list below records the work as it happened.
+
+- 2026-10-09 — post-v1 roadmap published in STATE and README
+      — `0bc7406`
+- 2026-10-09 — personal and commercial context trimmed from completed
+      PHASE_HISTORY entries (owner-approved exception; STATE Project
+      facts) — `c812f0f`
+- 2026-10-09 — `spike/poc` current-file wording fix — `7ce5fe3`
+      (`spike/poc`)
+- 2026-10-10 — pre-public check results recorded in debt **419**
+      — `097c255`
+- 2026-10-10 — obsolete acceptance and reference notes removed
+      — `e08077f`
+- 2026-10-10 — final pre-public rescan (gitleaks v8.30.1 and the
+      commit-message regex screen; results in debt **419**)
+      — no commit
+- 2026-10-10 — repository visibility changed to Public by the owner
+      — no commit
+
+Docs close-out (STATE + PHASE_HISTORY): (this commit)
+
+Related ADR: none new.
+Known debt during this capability (mechanical diff of the STATE Known
+debt table, Cap 34 close `d16749f` → this close-out): debt **419**
+Closed (this commit); debt **433** wording updated (`0bc7406`, still
+Closed); no rows added.
