@@ -1015,8 +1015,13 @@ Each page carries the same scroll shell (`CustomScrollView`, not
 primary, with `SliverFillRemaining(hasScrollBody: false)`) and the same
 centred CTA label (Cap 35.2); change them in both pages together.
 `primary: false` keeps a page that fits static (no drag or bounce);
-W-35.2-5a guards it. Only request-page-only details (bullet dots, gap
-between points) stay in `permission_request_page.dart`.
+W-35.2-5a guards it. Both pages draw the app name with
+`appNameFitted` (Cap 35.2b): a one-line `Text` scaled down to the page
+width at large text sizes. Do not wrap it in `FittedBox` or
+`LayoutBuilder`: the scroll shell asks for intrinsic heights. The page
+width it assumes uses `kPermissionPagePadding`; W-35.2b-1 guards it.
+Only request-page-only details (bullet dots, gap between points) stay
+in `permission_request_page.dart`.
 
 **Not linked:** the Settings Photos access section
 (`photos_access_settings_section.dart`). Manage Selection (filled,
