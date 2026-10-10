@@ -8911,3 +8911,116 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     confirm the API categories still match.
 - Relationship: release-handoff (privacy manifest sign-off is
   owner-only).
+
+## ADR-075: Settings About gains an in-app third-party licences page
+
+- Status: **Accepted** (2026-10-10)
+- Commit/PR anchor: 3a368e5 (licences row and page), a22ad9a (Material
+  Icons notice)
+- Plain summary (owner reads this):
+  Settings > About now has a second row, "Third-party licences", that
+  opens Flutter's built-in licence page inside the app. In English the
+  page says "Licences". The list comes from Flutter's generated notices;
+  an audit of the shipped app found one gap, the Material Icons font,
+  so the app adds that notice itself.
+- Context / what problem forced this:
+  - The app ships third-party code and fonts whose licences ask for
+    their notices to be shown; v1.0.0 had no in-app place for them.
+  - ADR-072 D1 allowed one About row only.
+  - Audit of the Release build (Flutter 3.41.9, 2026-10-10) of what
+    actually ships:
+    - Flutter's generated notices (`NOTICES.Z`, 1637 entries, 195
+      names) cover every Dart package in the dependency graph
+      (including dev and other-platform packages), the Flutter engine
+      and Dart SDK third-party code, the plugin native code
+      (shared_preferences_foundation, url_launcher_ios, objective_c),
+      sqlite3 (the SQLite public-domain notice), and the CupertinoIcons
+      font (cupertino_icons, MIT).
+    - Native layer: the embedded frameworks are App, Flutter,
+      objective_c, shared_preferences_foundation, sqlite3 and
+      url_launcher_ios; CocoaPods lists only Flutter and the two
+      plugins; there are no Swift packages.
+    - Assets: the shaders (`ink_sparkle.frag`, `stretch_effect.frag`)
+      are Flutter SDK files under the `flutter` entry; the launch image
+      is the blank template; the app icon is owner-designed.
+    - Gap: the Material Icons font (`MaterialIcons-Regular.otf`,
+      tree-shaken to the used glyphs in Release) has no entry. The
+      licence file Flutter ships with the font
+      (`MaterialIcons_LICENSE.txt` in the SDK's `material_fonts`
+      artifact) is the CC BY 4.0 legal code, with no licensor named;
+      the font's name table reads "Copyright 2019 Google LLC. All
+      Rights Reserved."; the upstream google/material-design-icons
+      repository is licensed Apache-2.0.
+- Decision (what was chosen):
+  1. About has two rows: Privacy Policy (unchanged, external link) and
+     Third-party licences (in-app; inline `Icons.arrow_forward_ios`
+     glyph after the title, in the same 18 box and colour as the
+     external-link glyph, gap `kSettingsTitleInfoGap`; button
+     semantics). Its ink at 18 (about 8.8 x 15.0) is closer in visual
+     weight to `Icons.open_in_new` (13.5 x 13.5) than
+     `Icons.chevron_right` (about 5.6 x 9.0) is, but the two glyphs are
+     not the same size. Copy in both ARB files (ADR-012). Amends
+     ADR-072 D1.
+  2. The row pushes Flutter's `LicensePage` with `applicationName` =
+     the app title. The header shows the app name only: no version,
+     icon or legalese line.
+  3. For English, the route alone is wrapped in a
+     `Localizations.override` to en_GB so the title and counts read
+     "Licences" / "licence"; zh-Hans is unchanged. App locale
+     resolution stays en / zh-Hans (ADR-062).
+  4. The page keeps the default AppBar title style (`titleChrome`);
+     no token or theme binding changes (ADR-061).
+  5. The list is Flutter's `LicenseRegistry` as is, not filtered.
+  6. The Material Icons notice is registered by hand:
+     `registerThirdPartyLicenses()` (`lib/app/third_party_licenses.dart`),
+     called once from `main()` after binding initialisation, adds one
+     `Material Icons` entry following CC BY 4.0 (the licence attached to
+     the distributed file; its requirements also cover Apache-2.0
+     attribution): the supplied copyright line verbatim, credit to
+     Google, the licence name with a link to the legal code, a pointer
+     to its warranty disclaimer, and a note that the app ships a subset
+     with only the icons it uses.
+- Rejected alternatives (why not):
+  - `showLicensePage` — no hook for the route-local locale override.
+  - A custom licence page — re-implements LicenseRegistry parsing.
+  - An app-wide en_GB locale — changes every Material string and the
+    ADR-062 resolution.
+  - A licences web page — a second list to maintain by hand.
+  - Showing the version — needs a new plugin or a hard-coded string.
+  - A route-local AppBar title style — it also reaches the package
+    detail titles (probe: 24 / w700 on both), where long package names
+    wrap.
+  - A header note (`applicationLegalese`) — the global `bodySmall`
+    binding is the on-media white token, so the note is invisible in
+    Light; fixing it needs a route-local style override, and the owner
+    chose no note.
+  - Filtering the list to shipped components — risks dropping a
+    required notice.
+  - `Icons.chevron_right` — on device it looked much smaller than the
+    external-link glyph (ink about 5.6 x 9.0 vs 13.5 x 13.5 at 18).
+  - An Apache-2.0 notice for Material Icons — not the licence attached
+    to the file the app ships.
+  - Embedding the full CC BY 4.0 text — section 3(a)(1)(C) allows a
+    link to the licence.
+- Consequences:
+  - The list is wider than the shipped app (dev and other-platform
+    packages); accepted as Flutter's behaviour.
+  - "Powered by Flutter" is a hard-coded English literal in Flutter's
+    `about.dart` and shows in every locale; accepted.
+  - The Material Icons entry is manual. On a Flutter upgrade, re-check:
+    if the generated notices gain a Material Icons entry, remove the
+    manual one; if the bundled font licence changes, update the text;
+    if `uses-material-design` is turned off, remove the entry. The
+    subset statement describes Release builds (debug builds ship the
+    full font).
+  - New `AppBarTheme.titleTextStyle` reader
+    (media-chrome-layout-notes §14.2); the status bar follows the
+    page's AppBar (§15); glyph metrics in settings-layout-notes §3.
+  - Tests: W-35.1-1..11 (row, glyph, semantics, spacing, en_GB and
+    zh-Hans pages, status bar); T-35.1-MI-1..3 (entry text, page
+    listing, `main()` wiring).
+  - Device check: Release on iPhone 13 Pro (iOS 26.6), Light and Dark,
+    en and zh-Hans, for both commits; iPhone 17 was not checked.
+- Relationship: amends ADR-072 D1 (ADR-072 text and Status unchanged);
+  ADR-012, ADR-062, ADR-061 (no token or binding change), ADR-009
+  (registration at the composition root).

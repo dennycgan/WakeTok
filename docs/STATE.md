@@ -375,13 +375,20 @@ code phase is a work commit plus a docs commit. The owner uploads,
 submits and releases; the agent prepares builds and notes only.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
-- [ ] 35.1 Third-party licences page
+- [x] 35.1 Third-party licences page
       (Settings About gains a "Third-party licences" row that opens
       Flutter's `LicensePage`, pushed by the app with a route-local
-      en_GB override so the title reads "Licences"; inline
-      `Icons.chevron_right` glyph next to the title, button semantics;
-      new en / zh-Hans copy; ADR-075 draft — ADR-072 D1 says one link
-      row)
+      en_GB override so the title reads "Licences"; header shows the
+      app name only; inline `Icons.arrow_forward_ios` glyph next to the
+      title, button semantics; new en / zh-Hans copy. Audit of the
+      Release bundle: Dart packages, Flutter engine, plugin native code
+      (CocoaPods only, no Swift packages), sqlite3 and the CupertinoIcons
+      font are covered by Flutter's generated notices; the Material
+      Icons font is not, so its CC BY 4.0 notice is registered at the
+      composition root; app icon is owner-designed. Device check on
+      iPhone 13 Pro, Release, Light and Dark, en and zh-Hans; ADR-075
+      amends ADR-072 D1)
+      — work `3a368e5` + `a22ad9a`
 - [ ] 35.2 iPhone SE permission-button layout
       (centre the wrapped label, let the button grow, narrow the side
       padding in `permission_page_style.dart`. Acceptance: first compare
@@ -424,10 +431,11 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Goal (one line): Cap 35 — ship v1.0.1 (licences page, SE permission
       button, single-item rubber band)
 - Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
-      App Store)
-- Next step: 35.1 Third-party licences page
-- Related decisions: ADR-072 Accepted (Privacy Policy link, export
-      key); ADR-073 Accepted (animated stills keep original bytes in
+      App Store); 35.1 done (ADR-075)
+- Next step: 35.2 iPhone SE permission-button layout
+- Related decisions: ADR-075 Accepted (in-app third-party licences
+      page, Material Icons notice); ADR-072 Accepted (Privacy Policy
+      link, export key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
       build phase); ADR-062 Accepted (system-only language, English
       permission prompt); ADR-064 Accepted (still share without
