@@ -218,18 +218,12 @@
       (public 2026-10-10 after the pre-public checks; not an
       open-source release; debt **419** Closed; no code change;
       PHASE_HISTORY)
-- [ ] v1.0.1 — Third-party licences page
-      (planned after v1.0.0 is live; Settings About opens
-      `showLicensePage`; new en / zh-Hans copy; changes the closed Cap
-      32 Settings page. See Platform gate.)
+- [ ] v1.0.1 update (Cap 35): third-party licences page, iPhone SE
+      permission-button layout, single-item vertical-feed rubber-band
+      scrolling; build 1.0.1 (2). Changes the closed Cap 32 Settings
+      page and the closed Cap 31.4 permission-page style. See Platform
+      gate.
       <-- YOU ARE HERE
-- [ ] v1.0.1 — iPhone SE permission-button layout
-      (centre the wrapped label, let the button grow, and narrow the
-      side padding in `permission_page_style.dart`; changes the closed
-      Cap 31.4 permission-page style)
-- [ ] v1.0.1 — single-item vertical-feed rubber-band scrolling
-      (restore iOS rubber-band feedback when the active queue contains
-      one item)
 - [ ] V2 — album search in Add to Album and Build a Pool (candidate)
 - [ ] V2 — Open the current item in the All / Oldest-first timeline
       (candidate; from the current item's "…" half-sheet, switch to
@@ -375,18 +369,63 @@
   assets only)
 
 ## Phase Roadmap (active capability only)
-Active capability: v1.0.1 — Third-party licences page — phases
-awaiting owner scope.
-Repository publication closed 2026-10-10 (PHASE_HISTORY). No numbered
-phases until the owner approves them.
+Active capability: v1.0.1 update (Cap 35).
+Contract: three small fixes ship as v1.0.1, build 1.0.1 (2); each
+code phase is a work commit plus a docs commit. The owner uploads,
+submits and releases; the agent prepares builds and notes only.
+Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
+
+- [ ] 35.1 Third-party licences page
+      (Settings About gains a "Third-party licences" row that opens
+      Flutter's `LicensePage`, pushed by the app with a route-local
+      en_GB override so the title reads "Licences"; inline
+      `Icons.chevron_right` glyph next to the title, button semantics;
+      new en / zh-Hans copy; ADR-075 draft — ADR-072 D1 says one link
+      row)
+- [ ] 35.2 iPhone SE permission-button layout
+      (centre the wrapped label, let the button grow, narrow the side
+      padding in `permission_page_style.dart`. Acceptance: first compare
+      the Photos-access-blocked page on Kafka (last recorded iOS 26.6;
+      record the version at check time) and an iPhone 13 Pro simulator
+      (iOS 26.3), both at the default text size; then check the iPhone
+      SE (3rd generation) simulator on iOS 26.3 and iOS 18.0. Evidence
+      limit: a match shows only that the one-line "Open Settings" button
+      on that page renders the same on that simulator and that device at
+      390pt; it does not cover how the English permission-request label
+      wraps at its line-break threshold, and it does not prove the 375pt
+      SE layout. The iOS 18.0 SE check has no device comparison at all,
+      so it is weaker evidence than the iOS 26.3 check. This is the best
+      evidence available without an SE device, not an equivalence
+      proof; re-assess it if an SE-specific issue appears)
+- [ ] 35.3 Single-item vertical-feed rubber-band scrolling
+      (`AlwaysScrollableScrollPhysics` when the feed is not locked by
+      magnification; ADR-076 draft; debt 458 note with owner OK.
+      Device acceptance on a one-item queue for a still, a video and a
+      Live Photo: (a) the rubber band springs back to the same item and
+      does not trigger an endless-round advance; (b) while magnified, a
+      vertical drag does not move the feed; (c) Cap 30 `<1>` on a fresh
+      install with one item: (c1) the rubber band does not end `<1>`
+      early; (c2) `<1>` ends on its 2 s timer and `<2>` follows; (c3)
+      the guide neither stalls nor skips a step. The probe covered the
+      physics layer only. First check whether Xcode 26.3 can install on
+      i17 (iOS 27): if it can, run (a)–(c) on i17; if not, run (a)(b)
+      on Kafka, pre-check (c) on a simulator as an early signal only,
+      not as acceptance, and record in the 35.3 close-out that the
+      device check of (c) is deferred to 35.4)
+- [ ] 35.4 Release candidate and TestFlight
+      (`pubspec.yaml` 1.0.1+2; archive; owner checks the used version
+      and build numbers in App Store Connect Activity and uploads; RC
+      checks on the TestFlight build. If 35.3 (c) was deferred, run it
+      on i17 from a fresh TestFlight install)
+- [ ] 35.5 Submission, App Review, release verification and close-out
+      (owner submits and releases; PHASE_HISTORY snapshot)
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): next Capability Roadmap item — scope awaiting owner
-      approval
-- Sub-steps done: none (repository public 2026-10-10; v1.0.0 is live
-      on the App Store)
-- Next step: owner approves the next capability's phases before any
-      work starts
+- Goal (one line): Cap 35 — ship v1.0.1 (licences page, SE permission
+      button, single-item rubber band)
+- Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
+      App Store)
+- Next step: 35.1 Third-party licences page
 - Related decisions: ADR-072 Accepted (Privacy Policy link, export
       key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
