@@ -8,6 +8,7 @@ import 'package:waketok/app/cap19_left_swipe_providers.dart';
 import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
+import 'package:waketok/app/third_party_licenses.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
 import 'package:waketok/core/theme/status_bar_style.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
@@ -46,6 +47,7 @@ Future<void> main() async {
     };
   }
   WidgetsFlutterBinding.ensureInitialized();
+  registerThirdPartyLicenses();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
