@@ -223,7 +223,9 @@ Source published for review. All rights reserved.
 
 The WakeTok name and icon are not licensed for reuse.
 
-Third-party dependencies remain subject to their respective licences.
+Third-party components remain subject to their respective licences.
+
+See [LICENSE](LICENSE).
 
 ## Contact
 

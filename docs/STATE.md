@@ -425,7 +425,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       checks on the TestFlight build. If 35.3 (c) was deferred, run it
       on i17 from a fresh TestFlight install)
 - [ ] 35.5 Submission, App Review, release verification and close-out
-      (owner submits and releases; PHASE_HISTORY snapshot)
+      (owner submits and releases; after v1.0.1 is live, update README:
+      the first Roadmap line says version 1.0.1 is available on the App
+      Store, the planned-v1.0.1 line is removed, and the Last reviewed
+      date is updated; PHASE_HISTORY snapshot)
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 35 — ship v1.0.1 (licences page, SE permission
