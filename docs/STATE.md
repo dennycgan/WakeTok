@@ -221,7 +221,7 @@
 - [ ] v1.0.1 update (Cap 35): third-party licences page, iPhone SE
       permission-button layout, single-item vertical-feed rubber-band
       scrolling; build 1.0.1 (2). Changes the closed Cap 32 Settings
-      page and the closed Cap 31.4 permission-page style. See Platform
+      page and the closed Cap 31.4 permission pages. See Platform
       gate.
       <-- YOU ARE HERE
 - [ ] V2 — album search in Add to Album and Build a Pool (candidate)
@@ -389,21 +389,27 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       iPhone 13 Pro, Release, Light and Dark, en and zh-Hans; ADR-075
       amends ADR-072 D1)
       — work `3a368e5` + `a22ad9a`
-- [ ] 35.2 iPhone SE permission-button layout
-      (centre the wrapped label, let the button grow, narrow the side
-      padding in `permission_page_style.dart`. Acceptance: first compare
-      the Photos-access-blocked page on Kafka (last recorded iOS 26.6;
-      record the version at check time) and an iPhone 13 Pro simulator
-      (iOS 26.3), both at the default text size; then check the iPhone
-      SE (3rd generation) simulator on iOS 26.3 and iOS 18.0. Evidence
-      limit: a match shows only that the one-line "Open Settings" button
-      on that page renders the same on that simulator and that device at
-      390pt; it does not cover how the English permission-request label
-      wraps at its line-break threshold, and it does not prove the 375pt
-      SE layout. The iOS 18.0 SE check has no device comparison at all,
-      so it is weaker evidence than the iOS 26.3 check. This is the best
-      evidence available without an SE device, not an equivalence
-      proof; re-assess it if an SE-specific issue appears)
+- [x] 35.2 iPhone SE permission-button layout
+      (button padding 16 horizontal / 12 vertical in
+      `permission_page_style.dart`, so the English request label fits
+      one line on a 375 pt SE at the default text size; a wrapped label
+      is centred (`textAlign` on the label in both pages) and the
+      button grows. Both permission pages scroll when content is taller
+      than the screen (they overflowed at accessibility text sizes);
+      the scroll view is not primary, so a page that fits stays static
+      with no drag or bounce. W-35.2-1 to W-35.2-5. Simulators: iPhone
+      SE (3rd generation) iOS 26.3 (en and zh-Hans, default to the
+      largest accessibility size) and iOS 18.0 (en); iPhone 13 Pro iOS
+      26.3 regression unchanged apart from sub-pixel label
+      anti-aliasing; iPhone 16 iOS 18.0 request page clears the Dynamic
+      Island at large text. Overflow checked with a debugger attached
+      (before: 63 px; after: none); label centring measured on
+      screenshots, within 1–2 physical pixels. Device: Kafka iOS 26.6,
+      Release, English, request and blocked pages: one-line centred
+      label, no drag or bounce. Evidence limit: the 375 pt layout is
+      proven on simulators only (no SE device), and the iOS 18.0 checks
+      have no device comparison)
+      — work `62ef098`
 - [ ] 35.3 Single-item vertical-feed rubber-band scrolling
       (`AlwaysScrollableScrollPhysics` when the feed is not locked by
       magnification; ADR-076 draft; debt 458 note with owner OK.
@@ -434,8 +440,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Goal (one line): Cap 35 — ship v1.0.1 (licences page, SE permission
       button, single-item rubber band)
 - Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
-      App Store); 35.1 done (ADR-075)
-- Next step: 35.2 iPhone SE permission-button layout
+      App Store); 35.1 done (ADR-075); 35.2 done (`62ef098`)
+- Next step: 35.3 Single-item vertical-feed rubber-band scrolling
 - Related decisions: ADR-075 Accepted (in-app third-party licences
       page, Material Icons notice); ADR-072 Accepted (Privacy Policy
       link, export key); ADR-073 Accepted (animated stills keep original bytes in

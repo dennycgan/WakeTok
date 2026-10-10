@@ -1006,13 +1006,17 @@ permission blocked page (`permission_blocked_page.dart`, denied and
 restricted) are two states of one flow and share one style: the constants
 and `PermissionPageStyle.of(context)` in `permission_page_style.dart`
 (padding, the three text sizes, per-locale body and button sizes, gaps,
-button height, button fill and text colors — light-mode set in both
-Appearances).
+button height and padding, button fill and text colors — light-mode set
+in both Appearances).
 
-**Rule:** change layout, text sizes, spacing, or the button for these
-pages only in `permission_page_style.dart`, never in one page alone. Only
-request-page-only details (bullet dots, gap between points) stay in
-`permission_request_page.dart`.
+**Rule:** change text sizes, spacing, or the button style for these
+pages only in `permission_page_style.dart`, never in one page alone.
+Each page carries the same scroll shell (`CustomScrollView`, not
+primary, with `SliverFillRemaining(hasScrollBody: false)`) and the same
+centred CTA label (Cap 35.2); change them in both pages together.
+`primary: false` keeps a page that fits static (no drag or bounce);
+W-35.2-5a guards it. Only request-page-only details (bullet dots, gap
+between points) stay in `permission_request_page.dart`.
 
 **Not linked:** the Settings Photos access section
 (`photos_access_settings_section.dart`). Manage Selection (filled,
