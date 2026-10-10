@@ -219,10 +219,10 @@
       open-source release; debt **419** Closed; no code change;
       PHASE_HISTORY)
 - [ ] v1.0.1 update (Cap 35): third-party licences page, iPhone SE
-      permission-button layout, single-item vertical-feed rubber-band
-      scrolling; build 1.0.1 (2). Changes the closed Cap 32 Settings
-      page and the closed Cap 31.4 permission pages. See Platform
-      gate.
+      permission-button layout, permission-page app name at large text
+      sizes, single-item vertical-feed rubber-band scrolling; build
+      1.0.1 (2). Changes the closed Cap 32 Settings page and the closed
+      Cap 31.4 permission pages. See Platform gate.
       <-- YOU ARE HERE
 - [ ] V2 — album search in Add to Album and Build a Pool (candidate)
 - [ ] V2 — Open the current item in the All / Oldest-first timeline
@@ -370,7 +370,7 @@
 
 ## Phase Roadmap (active capability only)
 Active capability: v1.0.1 update (Cap 35).
-Contract: three small fixes ship as v1.0.1, build 1.0.1 (2); each
+Contract: four small fixes ship as v1.0.1, build 1.0.1 (2); each
 code phase is a work commit plus a docs commit. The owner uploads,
 submits and releases; the agent prepares builds and notes only.
 Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
@@ -410,6 +410,20 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       proven on simulators only (no SE device), and the iOS 18.0 checks
       have no device comparison)
       — work `62ef098`
+- [ ] 35.2b App name word break at accessibility text sizes
+      (on both permission pages the one-word app name splits mid-word
+      once its width exceeds the page width: from the second
+      accessibility size on a 375 pt SE, from the third on 390–430 pt
+      iPhones. Fix: the app name scales down to fit one line
+      (`FittedBox`, `BoxFit.scaleDown`, start-aligned, minimum width =
+      page width so nothing changes when it fits); same change in both
+      pages (section 16). VoiceOver keeps one "WakeTok" label whose
+      frame follows the drawn text. Acceptance: widget tests; iPhone SE
+      (3rd generation) iOS 26.3 simulator, en and zh-Hans, accessibility
+      sizes; iPhone 13 Pro simulator pixel comparison at the default
+      size; licences page header at the largest size; Kafka at an
+      accessibility size on the blocked page, including a VoiceOver
+      check of the app name)
 - [ ] 35.3 Single-item vertical-feed rubber-band scrolling
       (`AlwaysScrollableScrollPhysics` when the feed is not locked by
       magnification; ADR-076 draft; debt 458 note with owner OK.
@@ -438,10 +452,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 
 ## Now working on (describe ONLY the in-progress item)
 - Goal (one line): Cap 35 — ship v1.0.1 (licences page, SE permission
-      button, single-item rubber band)
+      button, app name word break, single-item rubber band)
 - Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
       App Store); 35.1 done (ADR-075); 35.2 done (`62ef098`)
-- Next step: 35.3 Single-item vertical-feed rubber-band scrolling
+- Next step: 35.2b App name word break at accessibility text sizes
 - Related decisions: ADR-075 Accepted (in-app third-party licences
       page, Material Icons notice); ADR-072 Accepted (Privacy Policy
       link, export key); ADR-073 Accepted (animated stills keep original bytes in
