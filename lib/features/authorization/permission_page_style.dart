@@ -26,6 +26,12 @@ const double kPermissionHeadlineToBodyGap = 20;
 const double kPermissionTextToButtonGap = 36;
 const double kPermissionButtonHeight = 60;
 
+/// Narrower than the Material default (24) so the EN request label fits one
+/// line on a 375 pt wide iPhone (SE) at default text size. A wrapped label
+/// keeps the vertical padding above and below as the button grows.
+const double kPermissionButtonPaddingH = 16;
+const double kPermissionButtonPaddingV = 12;
+
 /// EN already fills most of the button width at this size; ZH is larger so
 /// the short label does not leave the button looking empty.
 const double kPermissionButtonFontSizeEn = 20;
@@ -66,6 +72,10 @@ class PermissionPageStyle {
       ),
       button: FilledButton.styleFrom(
         minimumSize: const Size.fromHeight(kPermissionButtonHeight),
+        padding: const EdgeInsets.symmetric(
+          horizontal: kPermissionButtonPaddingH,
+          vertical: kPermissionButtonPaddingV,
+        ),
         backgroundColor: buttonTokens.accent,
         foregroundColor: buttonTokens.onAccent,
         textStyle: theme.textTheme.labelLarge!.copyWith(

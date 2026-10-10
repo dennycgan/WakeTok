@@ -24,25 +24,38 @@ class PermissionBlockedPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: tokens.background,
       body: SafeArea(
-        child: Padding(
-          padding: kPermissionPagePadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              Text(l10n.appTitle, style: style.appName),
-              const SizedBox(height: kPermissionAppNameToHeadlineGap),
-              Text(title, style: style.headline),
-              const SizedBox(height: kPermissionHeadlineToBodyGap),
-              Text(l10n.permissionBlockedBody, style: style.body),
-              const SizedBox(height: kPermissionTextToButtonGap),
-              FilledButton(
-                style: style.button,
-                onPressed: () => ref.read(openAppSettingsProvider)(),
-                child: Text(l10n.permissionOpenSettings),
+        // Not primary: when the content fits, the page must not drag or
+        // bounce; it scrolls only when large text makes it overflow.
+        child: CustomScrollView(
+          primary: false,
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: kPermissionPagePadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Spacer(),
+                    Text(l10n.appTitle, style: style.appName),
+                    const SizedBox(height: kPermissionAppNameToHeadlineGap),
+                    Text(title, style: style.headline),
+                    const SizedBox(height: kPermissionHeadlineToBodyGap),
+                    Text(l10n.permissionBlockedBody, style: style.body),
+                    const SizedBox(height: kPermissionTextToButtonGap),
+                    FilledButton(
+                      style: style.button,
+                      onPressed: () => ref.read(openAppSettingsProvider)(),
+                      child: Text(
+                        l10n.permissionOpenSettings,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

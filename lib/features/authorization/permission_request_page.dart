@@ -26,47 +26,60 @@ class PermissionRequestPage extends ConsumerWidget {
     return Scaffold(
       backgroundColor: tokens.background,
       body: SafeArea(
-        child: Padding(
-          padding: kPermissionPagePadding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              Text(l10n.appTitle, style: style.appName),
-              const SizedBox(height: kPermissionAppNameToHeadlineGap),
-              Text(l10n.permissionRequestTitle, style: style.headline),
-              const SizedBox(height: kPermissionHeadlineToBodyGap),
-              if (rediscover.isNotEmpty) ...[
-                _BulletPoint(
-                  text: rediscover,
-                  style: style.body,
-                  color: tokens.onSurface,
+        // Not primary: when the content fits, the page must not drag or
+        // bounce; it scrolls only when large text makes it overflow.
+        child: CustomScrollView(
+          primary: false,
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: kPermissionPagePadding,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Spacer(),
+                    Text(l10n.appTitle, style: style.appName),
+                    const SizedBox(height: kPermissionAppNameToHeadlineGap),
+                    Text(l10n.permissionRequestTitle, style: style.headline),
+                    const SizedBox(height: kPermissionHeadlineToBodyGap),
+                    if (rediscover.isNotEmpty) ...[
+                      _BulletPoint(
+                        text: rediscover,
+                        style: style.body,
+                        color: tokens.onSurface,
+                      ),
+                      const SizedBox(height: _kPointGap),
+                    ],
+                    _BulletPoint(
+                      text: l10n.permissionRequestPointNoAccount,
+                      style: style.body,
+                      color: tokens.onSurface,
+                    ),
+                    const SizedBox(height: _kPointGap),
+                    _BulletPoint(
+                      text: l10n.permissionRequestPointChooseOrder,
+                      style: style.body,
+                      color: tokens.onSurface,
+                    ),
+                    const SizedBox(height: kPermissionTextToButtonGap),
+                    FilledButton(
+                      style: style.button,
+                      onPressed: busy
+                          ? null
+                          : () => ref
+                                .read(photosAuthorizationProvider.notifier)
+                                .requestAccess(),
+                      child: Text(
+                        l10n.permissionRequestContinue,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: _kPointGap),
-              ],
-              _BulletPoint(
-                text: l10n.permissionRequestPointNoAccount,
-                style: style.body,
-                color: tokens.onSurface,
               ),
-              const SizedBox(height: _kPointGap),
-              _BulletPoint(
-                text: l10n.permissionRequestPointChooseOrder,
-                style: style.body,
-                color: tokens.onSurface,
-              ),
-              const SizedBox(height: kPermissionTextToButtonGap),
-              FilledButton(
-                style: style.button,
-                onPressed: busy
-                    ? null
-                    : () => ref
-                        .read(photosAuthorizationProvider.notifier)
-                        .requestAccess(),
-                child: Text(l10n.permissionRequestContinue),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
