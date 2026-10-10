@@ -37,7 +37,12 @@ class PermissionBlockedPage extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Spacer(),
-                    Text(l10n.appTitle, style: style.appName),
+                    Text(
+                      l10n.appTitle,
+                      style: style.appNameFitted(context, l10n.appTitle),
+                      textScaler: TextScaler.noScaling,
+                      softWrap: false,
+                    ),
                     const SizedBox(height: kPermissionAppNameToHeadlineGap),
                     Text(title, style: style.headline),
                     const SizedBox(height: kPermissionHeadlineToBodyGap),

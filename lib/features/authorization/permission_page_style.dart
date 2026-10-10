@@ -91,4 +91,36 @@ class PermissionPageStyle {
   final TextStyle headline;
   final TextStyle body;
   final ButtonStyle button;
+
+  /// [appName] at the current text size, scaled down when [name] is wider
+  /// than the page so the one-word name never splits mid-word. Text size is
+  /// already applied: use it with [TextScaler.noScaling] and
+  /// `softWrap: false`. [context] must sit outside the page's [SafeArea].
+  TextStyle appNameFitted(BuildContext context, String name) {
+    var style = DefaultTextStyle.of(context).style.merge(appName);
+    if (MediaQuery.boldTextOf(context)) {
+      style = style.merge(const TextStyle(fontWeight: FontWeight.bold));
+    }
+    style = style.copyWith(
+      fontSize: MediaQuery.textScalerOf(context).scale(style.fontSize!),
+    );
+    final pageWidth = MediaQuery.sizeOf(context).width -
+        MediaQuery.paddingOf(context).horizontal -
+        kPermissionPagePadding.horizontal;
+    final painter = TextPainter(
+      text: TextSpan(text: name, style: style),
+      textDirection: Directionality.of(context),
+      locale: Localizations.localeOf(context),
+      maxLines: 1,
+    )..layout();
+    final width = painter.maxIntrinsicWidth;
+    painter.dispose();
+    if (width <= pageWidth) return style;
+    final fit = pageWidth / width;
+    final letterSpacing = style.letterSpacing;
+    return style.copyWith(
+      fontSize: style.fontSize! * fit,
+      letterSpacing: letterSpacing == null ? null : letterSpacing * fit,
+    );
+  }
 }
