@@ -256,7 +256,11 @@
       fields need a new app version. ADR-072's statement that
       the legacy github.io URLs redirect after cut-over was not
       confirmed in current GitHub documentation; test both live legacy
-      URLs before changing any published URL.)
+      URLs before changing any published URL. Domain `waketok.app`
+      registered at Porkbun on 2026-10-10 to reserve the name only
+      (expires 2027-10-10, auto-renew on, WHOIS privacy on); no
+      published URL uses it yet; migration timing undecided (V2 or
+      V3).)
 - [ ] Android — port V2 as shipped on iOS
       (planned after V2; distribution TBD: GitHub APK or Google Play.
       Open Android-specific STATE and decision records when work
