@@ -1,5 +1,7 @@
 # WakeTok — Engineering State
 
+> **Archived snapshot (2026-07-30):** frozen at the start of App Foundation. The current state lives in `docs/STATE.md` on `main`.
+
 > Current engineering state. Read this FIRST before starting work in a new chat.
 > Maintenance: facts only, no history. Update = rewrite the relevant line.
 > NEVER append paragraphs here.
