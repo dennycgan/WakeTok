@@ -9,6 +9,7 @@ import 'package:waketok/app/cap30_first_launch_guide_providers.dart';
 import 'package:waketok/app/new_round_toast_providers.dart';
 import 'package:waketok/app/saved_pool_providers.dart';
 import 'package:waketok/app/waketok_album_providers.dart';
+import 'package:waketok/core/theme/app_text_baseline.dart';
 import 'package:waketok/core/theme/status_bar_style.dart';
 import 'package:waketok/core/theme/waketok_theme.dart';
 import 'package:waketok/domain/authorization/photos_access.dart';
@@ -134,6 +135,12 @@ Widget permissionUiHarness({
   /// paths can still race with All resolve. Opt in only from
   /// resolve-count contracts (e.g. [main_browse_feed_test]).
   bool disableBrowseAllPrefetch = false,
+
+  /// Cap 35.2c: when true, use the production [appRootBuilder] (text at the
+  /// default size, Bold Text off). **Default false** — tests that set the
+  /// system text scale or Bold Text to exercise the Cap 35.2 / 35.2b
+  /// text-size code keep seeing those settings.
+  bool appTextBaseline = false,
 }) {
   final libraryCatalog = catalog ?? FakeLibraryCatalogRepository();
   final sources = assetSources ?? FakeAssetSourceRepository();
@@ -210,7 +217,7 @@ Widget permissionUiHarness({
       theme: waketokTheme(Brightness.light),
       darkTheme: waketokTheme(Brightness.dark),
       themeMode: themeMode,
-      builder: statusBarBaselineBuilder,
+      builder: appTextBaseline ? appRootBuilder : statusBarBaselineBuilder,
       home: const PhotosAccessGate(),
     ),
   );
