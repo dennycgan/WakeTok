@@ -1097,14 +1097,17 @@ builder (for example a local `MediaQuery` that copies them back).
 Reopening either needs a new ADR that supersedes ADR-076.
 
 **Engine residual (debt 491):** with iOS Bold Text on, Latin letters
-and digits in the system font still draw heavier and slightly wider at
-the same size and position; Chinese glyphs are unchanged
-(flutter/flutter#162804). Widget tests cannot see it (the test font
-does not widen). Leave width slack for English labels in fixed-width
-rows. Known tightest cases on a 375 pt SE in English: the top bar gap
-between "Saved pools" and "Create Pool" narrows from about 5 pt to
-about 2 pt; the permission request page's first point and button label
-wrap to two lines (§16).
+and digits in the system font still draw about one weight step
+heavier, and wider, at the same size and position; Chinese glyphs are
+unchanged (flutter/flutter#162804). The engine resolves the system
+font once when the app process starts: turning Bold Text on or off
+while the app runs changes nothing until the app is force-quit and
+reopened. Widget tests cannot see it (the test font does not widen).
+Leave width slack for English labels in fixed-width rows. Known
+tightest cases on a 375 pt SE in English: the top bar gap between
+"Saved pools" and "Create Pool" narrows from about 5 pt to about 2 pt;
+the permission request page's first point and button label wrap to
+two lines (§16).
 
 **Tests:** the shared permission UI harness keeps
 `statusBarBaselineBuilder` unless `appTextBaseline: true`, so tests that
@@ -1115,7 +1118,9 @@ W-35.2c-1 (page, dialog, half sheet, overlay, text field) and W-35.2c-2
 
 **Checks:** a text-size check compares the largest accessibility size
 with the default size (pixel-identical outside the status bar and
-moving media), then adds Bold Text (no overflow or overlap).
+moving media), then adds Bold Text (no overflow or overlap). Force-quit
+and reopen the app after every Bold Text change; a check without the
+relaunch still shows the previous weight.
 
 ---
 

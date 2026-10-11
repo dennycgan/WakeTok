@@ -449,8 +449,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       `appRootBuilder` in `MaterialApp.builder` turns off text scaling
       and the framework Bold Text for every page, dialog, half sheet
       and overlay; no token or theme change; no change at the default
-      size. iOS Bold Text still draws Latin letters and digits heavier
-      and slightly wider at the same size and position (Flutter engine,
+      size. iOS Bold Text still draws Latin letters and digits about one
+      weight step heavier, and wider, at the same size and position; the
+      system font is fixed when the app process starts (Flutter engine,
       flutter/flutter#162804; debt **491**). The 35.2 and 35.2b code
       stays: `appNameFitted` is inactive at runtime; the 35.2 centred
       wrapped button label still applies when Bold Text wraps it. The
@@ -467,16 +468,18 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       differs only in playback time, progress and decode noise; with
       Bold Text no overflow or overlap (Chinese glyphs unchanged); at
       the default size pixel-identical to the previous build. Device:
-      Kafka (iPhone 13 Pro, iOS 26.6), Release, English, largest
-      accessibility size with Bold Text: permission page, first-launch
-      tips, Browse photo and video, top bar menus and a toast, half
-      sheets, a dialog, Settings, licences page and Build a Pool, no
-      overflow or overlap; Bold Text off, Browse and Settings looked the
-      same as at the default size. App Store Connect App Accessibility
-      has never been configured (owner checked 2026-10-11), so v1.0.1
-      withdraws no Larger Text claim. Evidence limit: zh-Hans was
-      checked on the simulator only; with Bold Text the 375 pt layout
-      was checked on the simulator only (Kafka is 390 pt))
+      Kafka (iPhone 13 Pro, iOS 26.6), Release, English, launched with
+      the largest accessibility size and Bold Text on: permission page,
+      first-launch tips, Browse photo and video, top bar menus and a
+      toast, half sheets, a dialog, Settings, licences page and Build a
+      Pool, no overflow or overlap. Bold Text off (owner re-check
+      2026-10-12): turned off while the app runs, the text stays bold;
+      after a force quit and reopen it is back to regular weight. App
+      Store Connect App Accessibility has never been configured (owner
+      checked 2026-10-11), so v1.0.1 withdraws no Larger Text claim.
+      Evidence limit: zh-Hans was checked on the simulator only; with
+      Bold Text the 375 pt layout was checked on the simulator only
+      (Kafka is 390 pt))
       — work `98c7e77`
 - [ ] 35.3 Single-item vertical-feed rubber-band scrolling
       (`AlwaysScrollableScrollPhysics` when the feed is not locked by
@@ -995,7 +998,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 488 | Accepted (phase) | Main Browse Screen / Cap 31.4a | Cap 31.4a | Live long-press right after the network comes back (auto-play had failed offline; still on the same page): the still stays static with no progress cue while the motion downloads from iCloud, and Share was seen dimmed after the long-press; it returned on release (observed). Releasing before the download finishes cancels it (code reading); holding through played it (observed). Leaving and coming back plays it via auto-prepare with the gold spinner (observed) | Path S is silent by ADR-052 D3 (inferred: Path S is normally used after the motion was loaded once); ADR-037 D4 keeps `_livePreparing` and the loading chrome for the prepare path, so a cue would add a new wait-chrome case, and keeping the download after release goes against ADR-052's immediate cancel on release. `requestLivePhoto` allows network access (`isNetworkAccessAllowed = true` since `8920120`; ADR-019 D6–D7); ADR-025 D6 (repeated in its D7 and in ADR-029 D2) still says Live motion stays local-only and is not superseded — a pre-existing wording/code mismatch this row does not resolve. Owner judged it an edge case not worth new UI (2026-10-02); behaviour unchanged. Candidate if ever fixed: show the existing gold corner spinner (beside LIVE) while the finger is held and Path S is in flight past a threshold, hidden on ready, on release, or on failure (the spinner hides and the "!" shows); drive it by its own hold-owned flag, not `_livePreparing`; set the threshold from device timing of a local Path S so a local long-press stays silent. Feasibility from code reading only | Re-evaluate if seen in normal use, or when Path S or the wait chrome is next changed; also decide whether to narrow the ADR-025 D6 / ADR-029 D2 wording (a new ADR; docs only) | ADR-019; ADR-025; ADR-037; ADR-052; ADR-071 |
 | 489 | Accepted (phase) | Main Browse Screen / Cap 17.5b | Cap 31.4a | Layer 2 failed slot flashes on a retry while offline: Retry on the failed slot, or the resume auto-retry, hides the slot at once, while the still's corner spinner is suppressed for the first 150 ms of the request; offline the request fails within that window, so the slot disappears and comes back. Switching the network by hand (Control Center, Airplane Mode) takes the app out of the foreground and back (inactive or paused, then resumed), which fires the resume auto-retry (ADR-036 D6); reproduced every time by the owner (iPhone 13 Pro), and by code reading it fires whenever the failure lands before the app is back in the foreground. A manual Retry while offline flashes the same way. Possibly also seen while swiping offline; not reproduced on iPhone 13 Pro after several tries (not verified) | Owner observed it on device (2026-10-02) and judged it of no practical impact, not worth changing the closed-Cap retry and wait chrome. Candidate if ever fixed: keep the failed slot during the resume auto-retry only, until the result returns or a threshold passes, then switch to the spinner (manual Retry unchanged; its change is the tap feedback); set the threshold from the offline failure time measured on device, not the 150 ms; do not remove the resume auto-retry (it would break debt **406**). Feasibility from code reading only | Re-evaluate if seen in normal use, or when the Layer 2 retry / wait chrome is next changed | ADR-034; ADR-036; ADR-037; debt **406** |
 | 490 | Closed | Main Browse Screen | Cap 35.2b | Browse chrome text follows the iOS Larger Text setting and breaks at accessibility sizes: top bar labels overlap, bottom bar labels clip at different sizes, date and loading text overlap (Action Column icons unaffected) | Every `Text` follows the system text size while the chrome geometry assumes the default size; present since v1.0.0 (a Cap 27.4 test already noted the shell overflowing at 2x text on SE). Found on device during the Cap 35.2b check (2026-10-11). Owner moved the fix into v1.0.1 on 2026-10-11 | Closed by Cap 35.2c | ADR-076 |
-| 491 | Accepted (phase) | App-wide | Cap 35.2c | With iOS Bold Text on, Latin letters and digits draw heavier and slightly wider at the same size and position; Chinese glyphs are unchanged. On a 375 pt SE in English the top bar gap between "Saved pools" and "Create Pool" narrows from about 5 pt to about 2 pt, and on the permission request page the first point and the button label wrap to two lines; no overflow or overlap found (SE simulator en and zh-Hans, Kafka English) | `MediaQuery.boldText` false removes only the framework bold; the iOS engine still takes the system font with Bold Text applied (flutter/flutter#162804, open, not fixed in Flutter 3.41.9). Bundling an app font would change the typeface on every screen. Owner accepted the residual on 2026-10-11 | Re-evaluate when flutter/flutter#162804 is fixed | ADR-076 |
+| 491 | Accepted (phase) | App-wide | Cap 35.2c | With iOS Bold Text on, Latin letters and digits draw about one weight step heavier, and wider, at the same size and position; Chinese glyphs are unchanged. The system font is fixed when the app process starts: turning Bold Text on or off while the app runs changes nothing until the app is force-quit and reopened (SE simulator pixel comparison and owner check on Kafka, 2026-10-12). On a 375 pt SE in English the top bar gap between "Saved pools" and "Create Pool" narrows from about 5 pt to about 2 pt, and on the permission request page the first point and the button label wrap to two lines; no overflow or overlap found (SE simulator en and zh-Hans, Kafka English) | `MediaQuery.boldText` false removes only the framework bold; the iOS engine still takes the system font with Bold Text applied (flutter/flutter#162804, open, not fixed in Flutter 3.41.9), resolves it once per process and does not reload it when Bold Text changes. Bundling an app font would change the typeface on every screen. Owner accepted the residual on 2026-10-11 | Re-evaluate when flutter/flutter#162804 is fixed | ADR-076 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an
