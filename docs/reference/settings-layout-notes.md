@@ -56,7 +56,9 @@ nav, Cap 30 guidance). Do not paint static section labels with accent.
 ### Title token roles (Cap 31.1)
 
 Two title tokens in `waketok_tokens.dart` (Light + Dark). Do not use one for
-the other's role.
+the other's role. All sizes in this file are at the app text baseline
+(default text size, Bold Text off; `media-chrome-layout-notes.md` **§18**,
+ADR-076); the system Text Size and Bold Text settings do not change them.
 
 | Token | Value | Bound to | Role |
 |-------|-------|----------|------|

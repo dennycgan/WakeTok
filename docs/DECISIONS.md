@@ -9024,3 +9024,76 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
 - Relationship: amends ADR-072 D1 (ADR-072 text and Status unchanged);
   ADR-012, ADR-062, ADR-061 (no token or binding change), ADR-009
   (registration at the composition root).
+
+## ADR-076: App text stays at the iOS default text size with Bold Text off
+
+- Status: **Accepted** (2026-10-11)
+- Commit/PR anchor: 98c7e77
+- Plain summary (owner reads this):
+  WakeTok text no longer follows the iPhone Text Size setting: every
+  screen draws text at the default size, so larger system text cannot
+  break the layout. Bold Text is turned off as far as Flutter allows;
+  with it on, iOS still draws English letters and digits a little
+  heavier, at the same size and position.
+- Context / what problem forced this:
+  - On the Cap 35.2b device check (2026-10-11), at the largest
+    accessibility text size the Browse top bar labels overlapped, the
+    bottom bar labels clipped at different sizes, and the date and
+    loading text overlapped (debt 490); present since v1.0.0.
+  - The app root passed the system text scale and Bold Text to every
+    `Text`, while the layout uses fixed point sizes. Icons never
+    scaled.
+  - No decision had set a text size baseline; only the Cap 35.2 and
+    35.2b permission pages handled large text.
+- Decision (what was chosen):
+  1. Baseline: the iOS default text size (Large, text scale 1.0) with
+     Bold Text off. All `WakeTokTokens` sizes and layout checks assume
+     it (media-chrome-layout-notes §18).
+  2. One `MediaQuery` override in `MaterialApp.builder`
+     (`appRootBuilder`, `lib/core/theme/app_text_baseline.dart`) sets
+     `TextScaler.noScaling` and `boldText: false` around the status
+     bar baseline. It covers every route, dialog, half sheet, overlay
+     and text field.
+  3. No token or theme binding change.
+  4. Code below the builder must not restore the system text scale or
+     Bold Text. Reopening either needs a new ADR that supersedes this
+     one.
+  5. Out of scope: system screens (Photos prompt and picker, share
+     sheet), Display Zoom, Smart Invert, colour filters.
+  6. App Store Connect App Accessibility has never been configured
+     (owner checked 2026-10-11). While this ADR stands, Larger Text is
+     not claimed there.
+  7. The Cap 35.2 and 35.2b code stays. The shared permission UI test
+     harness keeps the previous builder by default and opts in with
+     `appTextBaseline`, so their tests are unchanged.
+- Rejected alternatives (why not):
+  - Fix Browse only: dialogs, sheets and overlays outside the Browse
+    subtree each need their own override, and Settings still breaks
+    (the Settings title split mid-word at the largest size with Bold
+    Text on the SE simulator).
+  - Cap the scale (for example at 1.3): the layout still changes with
+    the setting.
+  - Let the layout grow with the text: redesigns fixed chrome of
+    closed Caps.
+  - Bundle an app font to escape iOS Bold Text: changes the typeface
+    on every screen.
+- Consequences:
+  - Users with larger or bold system text see the default size in
+    WakeTok; system Zoom and VoiceOver are unaffected.
+  - With iOS Bold Text on, Latin letters and digits still draw heavier
+    and slightly wider at the same size and position; Chinese glyphs
+    are unchanged (Flutter engine, flutter/flutter#162804). Accepted
+    by the owner; debt 491. Widget tests cannot see it.
+  - At the default size nothing changes (pixel-identical to the
+    previous build on the SE simulator, en and zh-Hans).
+  - Cap 35.2b `appNameFitted` is inactive at runtime. The Cap 35.2
+    centred wrapped button label still applies when Bold Text wraps
+    it on a 375 pt SE. The Cap 35.2 and 35.2b large-text results
+    describe text sizes the app no longer reaches; their device checks
+    at the default size stay valid and are not re-run.
+  - Debt 490 closed.
+  - Tests: W-35.2c-1, W-35.2c-2.
+  - Checks: SE simulator (iOS 26.3) en and zh-Hans; Kafka (iPhone 13
+    Pro, iOS 26.6) Release, English.
+- Relationship: ADR-061 (no token or binding change), ADR-009
+  (composition root), ADR-012 (no copy change).

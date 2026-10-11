@@ -437,31 +437,47 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       390 pt device only; on a 375 pt SE it is an estimate (fits with
       about 20 pt to spare))
       — work `2e5f566`
-- [ ] 35.2c App text ignores the iOS text size and Bold Text settings
-      (debt **490**; found 2026-10-11 during the 35.2b device check: at
-      the largest accessibility text size the Browse top bar labels
-      overlap, the bottom bar labels clip at different sizes, and the
-      date and loading text overlap; present since v1.0.0. Cause: every
-      `Text` follows the system text size and Bold Text while the
-      layout uses fixed point sizes. Baseline: the iOS default text
-      size (Large, text scale 1.0) with Bold Text off. Fix: one
-      `MediaQuery` override in `MaterialApp.builder` turns off text
-      scaling and Bold Text for every page, dialog, half sheet and
-      overlay; no token or theme change; no change at the default size.
-      The 35.2 and 35.2b text-size code stays as is and is inactive at
-      runtime; the shared permission UI test harness keeps the current
-      builder by default and gains an opt-in switch for the new one, so
-      no closed-Cap test changes. Out of scope: Display Zoom, Smart
-      Invert, colour filters and system screens (Photos prompt, share
-      sheet). ADR-076 draft; baseline recorded in
-      `media-chrome-layout-notes.md` section 18. Widget tests at the
-      largest accessibility size with Bold Text. Simulator: iPhone SE
-      (3rd generation) iOS 26.3, en and zh-Hans, largest accessibility
-      size with Bold Text against the default size on Browse, Settings
-      and a half sheet: pixel-identical apart from the system status
-      bar. Device: Kafka, same settings. App Store Connect App
-      Accessibility has never been configured (owner checked
-      2026-10-11), so v1.0.1 withdraws no Larger Text claim)
+- [x] 35.2c App text ignores the iOS text size and Bold Text settings
+      (debt **490**, closed; found 2026-10-11 during the 35.2b device
+      check: at the largest accessibility text size the Browse top bar
+      labels overlapped, the bottom bar labels clipped at different
+      sizes, and the date and loading text overlapped; present since
+      v1.0.0. Cause: every `Text` followed the system text size and
+      Bold Text while the layout uses fixed point sizes. Baseline: the
+      iOS default text size (Large, text scale 1.0) with Bold Text off
+      (ADR-076; `media-chrome-layout-notes.md` section 18). Fix:
+      `appRootBuilder` in `MaterialApp.builder` turns off text scaling
+      and the framework Bold Text for every page, dialog, half sheet
+      and overlay; no token or theme change; no change at the default
+      size. iOS Bold Text still draws Latin letters and digits heavier
+      and slightly wider at the same size and position (Flutter engine,
+      flutter/flutter#162804; debt **491**). The 35.2 and 35.2b code
+      stays: `appNameFitted` is inactive at runtime; the 35.2 centred
+      wrapped button label still applies when Bold Text wraps it. The
+      shared permission UI test harness keeps the previous builder
+      unless `appTextBaseline` is set, so no closed-Cap test changed.
+      Out of scope: Display Zoom, Smart Invert, colour filters and
+      system screens (Photos prompt and picker, share sheet).
+      W-35.2c-1, W-35.2c-2. Acceptance: at the largest accessibility
+      size pixel-identical to the default size; with Bold Text added no
+      overflow or overlap. Simulator: iPhone SE (3rd generation) iOS
+      26.3, en and zh-Hans, real photos and a video; Browse photo with
+      date text, the Order half sheet, the newest item and Settings
+      pixel-identical at the largest accessibility size; the video
+      differs only in playback time, progress and decode noise; with
+      Bold Text no overflow or overlap (Chinese glyphs unchanged); at
+      the default size pixel-identical to the previous build. Device:
+      Kafka (iPhone 13 Pro, iOS 26.6), Release, English, largest
+      accessibility size with Bold Text: permission page, first-launch
+      tips, Browse photo and video, top bar menus and a toast, half
+      sheets, a dialog, Settings, licences page and Build a Pool, no
+      overflow or overlap; Bold Text off, Browse and Settings looked the
+      same as at the default size. App Store Connect App Accessibility
+      has never been configured (owner checked 2026-10-11), so v1.0.1
+      withdraws no Larger Text claim. Evidence limit: zh-Hans was
+      checked on the simulator only; with Bold Text the 375 pt layout
+      was checked on the simulator only (Kafka is 390 pt))
+      — work `98c7e77`
 - [ ] 35.3 Single-item vertical-feed rubber-band scrolling
       (`AlwaysScrollableScrollPhysics` when the feed is not locked by
       magnification; ADR draft; debt 458 note with owner OK.
@@ -494,10 +510,10 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       rubber band)
 - Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
       App Store); 35.2c added 2026-10-11; 35.1 done (ADR-075); 35.2
-      done (`62ef098`); 35.2b done (`2e5f566`)
-- Next step: 35.2c App text ignores the iOS text size and Bold Text
-      settings
-- Related decisions: ADR-075 Accepted (in-app third-party licences
+      done (`62ef098`); 35.2b done (`2e5f566`); 35.2c done (ADR-076)
+- Next step: 35.3 Single-item vertical-feed rubber-band scrolling
+- Related decisions: ADR-076 Accepted (app text at the iOS default
+      text size, Bold Text off — debt **491**); ADR-075 Accepted (in-app third-party licences
       page, Material Icons notice); ADR-072 Accepted (Privacy Policy
       link, export key); ADR-073 Accepted (animated stills keep original bytes in
       the Layer 2 temp); ADR-074 Accepted (sqlite3 privacy manifest
@@ -978,7 +994,8 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 487 | Accepted (phase) | Main Browse Screen / Cap 31.3 | Cap 31.3 | Video head landed after a pool switch, order change or Endless new round: on its first swipe away, the peek still shows black once if the leave comes within tens of milliseconds of the remount (late poster not back yet); assets with no local thumbnail likewise (same class as debt **400**) | Not fixed: removing it needs a Cap 27.4 change that touches the `W-27.4b` guard, and album pools would still not be covered | Reopen if someone hits it, or fold into a later Cap 27.4 clean-up | ADR-068; `f451166` |
 | 488 | Accepted (phase) | Main Browse Screen / Cap 31.4a | Cap 31.4a | Live long-press right after the network comes back (auto-play had failed offline; still on the same page): the still stays static with no progress cue while the motion downloads from iCloud, and Share was seen dimmed after the long-press; it returned on release (observed). Releasing before the download finishes cancels it (code reading); holding through played it (observed). Leaving and coming back plays it via auto-prepare with the gold spinner (observed) | Path S is silent by ADR-052 D3 (inferred: Path S is normally used after the motion was loaded once); ADR-037 D4 keeps `_livePreparing` and the loading chrome for the prepare path, so a cue would add a new wait-chrome case, and keeping the download after release goes against ADR-052's immediate cancel on release. `requestLivePhoto` allows network access (`isNetworkAccessAllowed = true` since `8920120`; ADR-019 D6–D7); ADR-025 D6 (repeated in its D7 and in ADR-029 D2) still says Live motion stays local-only and is not superseded — a pre-existing wording/code mismatch this row does not resolve. Owner judged it an edge case not worth new UI (2026-10-02); behaviour unchanged. Candidate if ever fixed: show the existing gold corner spinner (beside LIVE) while the finger is held and Path S is in flight past a threshold, hidden on ready, on release, or on failure (the spinner hides and the "!" shows); drive it by its own hold-owned flag, not `_livePreparing`; set the threshold from device timing of a local Path S so a local long-press stays silent. Feasibility from code reading only | Re-evaluate if seen in normal use, or when Path S or the wait chrome is next changed; also decide whether to narrow the ADR-025 D6 / ADR-029 D2 wording (a new ADR; docs only) | ADR-019; ADR-025; ADR-037; ADR-052; ADR-071 |
 | 489 | Accepted (phase) | Main Browse Screen / Cap 17.5b | Cap 31.4a | Layer 2 failed slot flashes on a retry while offline: Retry on the failed slot, or the resume auto-retry, hides the slot at once, while the still's corner spinner is suppressed for the first 150 ms of the request; offline the request fails within that window, so the slot disappears and comes back. Switching the network by hand (Control Center, Airplane Mode) takes the app out of the foreground and back (inactive or paused, then resumed), which fires the resume auto-retry (ADR-036 D6); reproduced every time by the owner (iPhone 13 Pro), and by code reading it fires whenever the failure lands before the app is back in the foreground. A manual Retry while offline flashes the same way. Possibly also seen while swiping offline; not reproduced on iPhone 13 Pro after several tries (not verified) | Owner observed it on device (2026-10-02) and judged it of no practical impact, not worth changing the closed-Cap retry and wait chrome. Candidate if ever fixed: keep the failed slot during the resume auto-retry only, until the result returns or a threshold passes, then switch to the spinner (manual Retry unchanged; its change is the tap feedback); set the threshold from the offline failure time measured on device, not the 150 ms; do not remove the resume auto-retry (it would break debt **406**). Feasibility from code reading only | Re-evaluate if seen in normal use, or when the Layer 2 retry / wait chrome is next changed | ADR-034; ADR-036; ADR-037; debt **406** |
-| 490 | Open | Main Browse Screen | Cap 35.2b | Browse chrome text follows the iOS Larger Text setting and breaks at accessibility sizes: top bar labels overlap, bottom bar labels clip at different sizes, date and loading text overlap (Action Column icons unaffected) | Every `Text` follows the system text size while the chrome geometry assumes the default size; present since v1.0.0 (a Cap 27.4 test already noted the shell overflowing at 2x text on SE). Found on device during the Cap 35.2b check (2026-10-11). Owner moved the fix into v1.0.1 on 2026-10-11 | Cap 35.2c | — |
+| 490 | Closed | Main Browse Screen | Cap 35.2b | Browse chrome text follows the iOS Larger Text setting and breaks at accessibility sizes: top bar labels overlap, bottom bar labels clip at different sizes, date and loading text overlap (Action Column icons unaffected) | Every `Text` follows the system text size while the chrome geometry assumes the default size; present since v1.0.0 (a Cap 27.4 test already noted the shell overflowing at 2x text on SE). Found on device during the Cap 35.2b check (2026-10-11). Owner moved the fix into v1.0.1 on 2026-10-11 | Closed by Cap 35.2c | ADR-076 |
+| 491 | Accepted (phase) | App-wide | Cap 35.2c | With iOS Bold Text on, Latin letters and digits draw heavier and slightly wider at the same size and position; Chinese glyphs are unchanged. On a 375 pt SE in English the top bar gap between "Saved pools" and "Create Pool" narrows from about 5 pt to about 2 pt, and on the permission request page the first point and the button label wrap to two lines; no overflow or overlap found (SE simulator en and zh-Hans, Kafka English) | `MediaQuery.boldText` false removes only the framework bold; the iOS engine still takes the system font with Bold Text applied (flutter/flutter#162804, open, not fixed in Flutter 3.41.9). Bundling an app font would change the typeface on every screen. Owner accepted the residual on 2026-10-11 | Re-evaluate when flutter/flutter#162804 is fixed | ADR-076 |
 
 > Known debt ID **402 is permanently retired and must not be reused**:
 > historical append-only notes used “UX-1 (402)” for debt **436**, while an

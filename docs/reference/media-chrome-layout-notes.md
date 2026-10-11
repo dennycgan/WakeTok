@@ -1020,6 +1020,10 @@ W-35.2-5a guards it. Both pages draw the app name with
 width at large text sizes. Do not wrap it in `FittedBox` or
 `LayoutBuilder`: the scroll shell asks for intrinsic heights. The page
 width it assumes uses `kPermissionPagePadding`; W-35.2b-1 guards it.
+Since Cap 35.2c the app text never scales (§18): `appNameFitted` is
+inactive at runtime, while the centred wrapped button label still
+applies when iOS Bold Text wraps it on a 375 pt SE. Keep both; their
+tests set the system text size through the shared harness default.
 Only request-page-only details (bullet dots, gap between points) stay
 in `permission_request_page.dart`.
 
@@ -1070,6 +1074,48 @@ Auto-play failure shows nothing (no LIVE badge change, no text).
 
 The long-press gesture follows only the pointer that fired it; there is no
 timeout fallback.
+
+---
+
+## 18. Text size baseline (Cap 35.2c)
+
+All app text draws at the **iOS default text size (Large, text scale
+1.0) with Bold Text off**, whatever the system Text Size and Bold Text
+settings are (ADR-076). Every size in `WakeTokTokens`, every number in
+this file and in `settings-layout-notes.md`, and every layout check
+assume this baseline.
+
+| Item | Value |
+|------|-------|
+| Set by | `appRootBuilder` (`lib/core/theme/app_text_baseline.dart`) as `MaterialApp.builder`: a `MediaQuery` with `TextScaler.noScaling` and `boldText: false` around the status bar baseline (§15) |
+| Covers | Every route, dialog, half sheet, overlay (toast, top bar menus, peek card, coach tips) and text field; all sit below the builder |
+| Icons | Never scaled (Flutter `Icon` default) |
+| Not covered | System screens (Photos prompt and picker, share sheet), Display Zoom (changes the screen width), Smart Invert, colour filters |
+
+**Rule:** do not restore the system text scale or Bold Text below the
+builder (for example a local `MediaQuery` that copies them back).
+Reopening either needs a new ADR that supersedes ADR-076.
+
+**Engine residual (debt 491):** with iOS Bold Text on, Latin letters
+and digits in the system font still draw heavier and slightly wider at
+the same size and position; Chinese glyphs are unchanged
+(flutter/flutter#162804). Widget tests cannot see it (the test font
+does not widen). Leave width slack for English labels in fixed-width
+rows. Known tightest cases on a 375 pt SE in English: the top bar gap
+between "Saved pools" and "Create Pool" narrows from about 5 pt to
+about 2 pt; the permission request page's first point and button label
+wrap to two lines (§16).
+
+**Tests:** the shared permission UI harness keeps
+`statusBarBaselineBuilder` unless `appTextBaseline: true`, so tests that
+set the system text size or Bold Text still reach the §16 code; pass
+`appTextBaseline: true` to test the production builder. Guards:
+W-35.2c-1 (page, dialog, half sheet, overlay, text field) and W-35.2c-2
+(Browse shell on a 375 pt SE).
+
+**Checks:** a text-size check compares the largest accessibility size
+with the default size (pixel-identical outside the status bar and
+moving media), then adds Bold Text (no overflow or overlap).
 
 ---
 
