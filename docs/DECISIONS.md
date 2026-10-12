@@ -9097,3 +9097,70 @@ align (2026-09-01; work `0ef9ef2`; device i17 Green Profile PASS):**
     Pro, iOS 26.6) Release, English.
 - Relationship: ADR-061 (no token or binding change), ADR-009
   (composition root), ADR-012 (no copy change).
+
+## ADR-077: The feed accepts vertical drags at every queue length
+
+- Status: **Accepted** (2026-10-12)
+- Commit/PR anchor: c466f2d
+- Plain summary (owner reads this):
+  With only one item in Browse, the feed now follows an up or down drag
+  and springs back, like the ends of a longer feed. Paging with two or
+  more items is unchanged.
+- Context / what problem forced this:
+  - With one item in the queue (a one-item pool or Limited selection),
+    a vertical drag did not move the feed; present since v1.0.0
+    (Cap 35.3).
+  - One item gives one page (the endless-round placeholder page exists
+    only for two or more items). The feed passed `physics: null` when
+    not magnified, so the chain was the platform page, bouncing and
+    range-maintaining physics. None of them overrides
+    `shouldAcceptUserOffset`; the base returns false when pixels are 0
+    and the minimum and maximum scroll extents are equal, so the scroll
+    position could not drag and no vertical drag recognizer was
+    registered.
+  - Debt 458 (page-snap loss, Monitoring) says not to change PageView
+    physics without a reliable repro.
+- Decision (what was chosen):
+  1. When not magnified, the feed `PageView` uses
+     `AlwaysScrollableScrollPhysics` for every queue length. Composed
+     over the platform physics, it only makes `shouldAcceptUserOffset`
+     true; page snapping, iOS bounce and ballistics come from the same
+     chain as before.
+  2. The magnification lock still uses `NeverScrollableScrollPhysics`
+     (ADR-043).
+  3. One physics type for every queue length. `Scrollable` rebuilds its
+     `ScrollPosition` when the runtime type of any physics layer
+     changes. A soft delete from two items to one (ADR-050,
+     `removeAssetAndLand`) keeps the round epoch and therefore the
+     `PageView` key; it is the only queue length change under the same
+     key.
+  4. The settled state logic is unchanged. `PageController.page` clamps
+     overscroll, so during a single-item rubber band the feed stays
+     settled and the Action Column, meta and scrubber stay visible, as
+     on a multi-item first-item pull-down. A multi-item drag between
+     pages still hides them.
+- Rejected alternatives (why not):
+  - `AlwaysScrollableScrollPhysics` only for one item: a soft delete
+    from two items to one changes the physics type under the same key
+    and rebuilds the `ScrollPosition` mid-session.
+  - A fake second page for one item: endless-round and placeholder
+    logic would have to ignore it.
+  - A custom physics subclass: same effect as the framework class, more
+    code to re-verify after Flutter upgrades.
+  - Leave it: with one item the feed looks frozen.
+  - Hide chrome during the single-item rubber band: needs unclamped
+    pixels in the shared settled logic and would also change the
+    multi-item first-item pull-down of closed Caps.
+- Consequences:
+  - A one-item feed rubber-bands in both directions. There is no
+    endless-round advance and no page change, so video keeps playing
+    and Live does not replay.
+  - Two or more items: runtime behaviour unchanged (W-35.3-6). Debt 458
+    stays Monitoring; its Picks it up now records queue length.
+  - Cap 30 `<1>` still ends on a feed index change or its 2 s timer; a
+    rubber band does not end it early.
+  - Tests: W-35.3-1 to W-35.3-8 (iOS physics); five of them fail with
+    the previous physics.
+  - Checks: i17 (iPhone 17, iOS 27.0.1), Profile.
+- Relationship: ADR-043 (magnification lock unchanged), ADR-050 (soft
+  delete landing), debt 458.

@@ -481,26 +481,37 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       Bold Text the 375 pt layout was checked on the simulator only
       (Kafka is 390 pt))
       — work `98c7e77`
-- [ ] 35.3 Single-item vertical-feed rubber-band scrolling
-      (`AlwaysScrollableScrollPhysics` when the feed is not locked by
-      magnification; ADR draft; debt 458 note with owner OK.
-      Device acceptance on a one-item queue for a still, a video and a
-      Live Photo: (a) the rubber band springs back to the same item and
-      does not trigger an endless-round advance; (b) while magnified, a
-      vertical drag does not move the feed; (c) Cap 30 `<1>` on a fresh
-      install with one item: (c1) the rubber band does not end `<1>`
-      early; (c2) `<1>` ends on its 2 s timer and `<2>` follows; (c3)
-      the guide neither stalls nor skips a step. The probe covered the
-      physics layer only. First check whether Xcode 26.3 can install on
-      i17 (iOS 27): if it can, run (a)–(c) on i17; if not, run (a)(b)
-      on Kafka, pre-check (c) on a simulator as an early signal only,
-      not as acceptance, and record in the 35.3 close-out that the
-      device check of (c) is deferred to 35.4)
+- [x] 35.3 Single-item vertical-feed rubber-band scrolling
+      (with one item in the queue (a one-item pool or Limited
+      selection) a vertical drag did not move the feed: one page has
+      no scroll extent, so the default physics refused the drag;
+      present since v1.0.0. Fix: when not magnified, the feed
+      `PageView` uses `AlwaysScrollableScrollPhysics` for every queue
+      length (ADR-077); two or more items unchanged (page snap,
+      W-35.3-6); a soft delete from two items to one keeps the same
+      scroll position (W-35.3-8); magnification still locks the feed.
+      Chrome stays visible during the rubber band, as on a multi-item
+      first-item pull-down. Debt 458 note. W-35.3-1 to W-35.3-8.
+      Device: i17 (iPhone 17, iOS 27.0.1), Profile, installed with
+      Xcode 26.3. (a), (b) and the single-item gesture regressions on
+      both one-item setups: a one-photo Limited selection and a
+      one-item pool built with Build a Pool; (c) on a fresh install
+      with a one-photo Limited selection only (`<1>` shows once, on
+      the first ready Browse item, before any pool can exist).
+      (a) Still, video and Live spring back to the same item
+      in both directions, slow drag and fling, with no endless-round
+      advance; video keeps playing; Live does not replay. (b) A
+      magnified still or video does not move the feed. (c) The rubber
+      band does not end Cap 30 `<1>` early; `<1>` ends on its 2 s
+      timer, `<2>` follows, and the guide neither stalls nor skips a
+      step. Single-item gestures, multi-item paging, Limited add and
+      remove, and soft delete regressions passed. (c) was not deferred
+      to 35.4)
+      — work `c466f2d`
 - [ ] 35.4 Release candidate and TestFlight
       (`pubspec.yaml` 1.0.1+2; archive; owner checks the used version
       and build numbers in App Store Connect Activity and uploads; RC
-      checks on the TestFlight build. If 35.3 (c) was deferred, run it
-      on i17 from a fresh TestFlight install)
+      checks on the TestFlight build)
 - [ ] 35.5 Submission, App Review, release verification and close-out
       (owner submits and releases; after v1.0.1 is live, update README:
       the first Roadmap line says version 1.0.1 is available on the App
@@ -513,9 +524,12 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       rubber band)
 - Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
       App Store); 35.2c added 2026-10-11; 35.1 done (ADR-075); 35.2
-      done (`62ef098`); 35.2b done (`2e5f566`); 35.2c done (ADR-076)
-- Next step: 35.3 Single-item vertical-feed rubber-band scrolling
-- Related decisions: ADR-076 Accepted (app text at the iOS default
+      done (`62ef098`); 35.2b done (`2e5f566`); 35.2c done (ADR-076);
+      35.3 done (ADR-077)
+- Next step: 35.4 Release candidate and TestFlight
+- Related decisions: ADR-077 Accepted (one feed physics type for every
+      queue length, single-item rubber band);
+      ADR-076 Accepted (app text at the iOS default
       text size, Bold Text off — debt **491**); ADR-075 Accepted (in-app third-party licences
       page, Material Icons notice); ADR-072 Accepted (Privacy Policy
       link, export key); ADR-073 Accepted (animated stills keep original bytes in
@@ -965,7 +979,7 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 | 456a | Accepted (phase) | Main Browse Screen / Cap 19 | Cap 21.6 | L2-ready still path skips PHAsset liveness (ex-456 Part A) | **Split from bare 456 at Cap 23.1.** Session still L2-ready + on-disk temp → `FeedPageMedia.still(cover)` without `requestDisplayAsset`; external delete can keep showing the JPEG until temp eviction / origin change — Cap 21.6 feed copy never fires until Host is hit. Out of ADR-044 D3. Future: Host existence check / tighter L2-ready. Not Cap 23 (still-in-library mutation gate). | Reopen if users report it. Candidate fix: on become-current of an L2-ready still, reuse getAssetAvailabilities (ADR-033) and show assetUnavailable when missing; check feed hitch cost first. | ADR-044 D3; Cap 15.10; ADR-033 |
 | 456b | Closed | Main Browse Screen / Cap 19 | Cap 21.6 | Panel / mutation still-in-library gate (ex-456 Part B) | **Split from bare 456 at Cap 23.1.** Prefer proactive “asset still in Photos” checks **before** Favorites / Cap 19.5 Add-to-Album / left-swipe / future Share. Distinct from Cap 19.8 `mainBrowseCurrentAssetActionableProvider`; **AND** — do not merge axes. Predicate: `AssetAvailability != unavailable` (iCloudNotDownloaded remains still-in-library). Cap 21.6 Overlay hide + Cap 19 entry dim reuse feed `assetUnavailable` as interim — not this probe. Cap 23 / ADR-049 implements the gate. Half-sheet Delete / delete-original → debt **464**, not this row. **Closed by Cap 23.4** device matrix PASS (Kafka + i17 P-23-A…G); work `893c8fb`; notes `cap23-23.4-notes.md`. ADR-049 Accepted at Cap 23.5. | Closed by Cap 23.4 | ADR-049; ADR-042; ADR-033; ADR-044 D3; Cap 19.5 / 19.8 |
 | 457 | Accepted (phase) | Main Browse Screen | Cap 21.6 | Host `layer2Failure` collapses missing-PHAsset and pre-transfer L2 failure into the same `assetUnavailable` wire code | Cap 21.6 remaps that code to `FeedFailureReason.assetUnavailable` + hides manual Retry (ADR-044 D3 feed-display only). Pre-transfer / China-SKU wireless users therefore lose wireless-specific copy and the Retry button, but retain: (1) debt **406** lifecycle auto-retry on resume (`_retryFailedLayer2AfterResume` ignores reason); (2) swipe to another feed item and back — leave clears fail chrome, activation bumps display generation, `_startLoad` re-requests L2 because fail never minted an L2-ready token. Splitting the Host bucket needs a new Pigeon/Host capability outside D3. Mid-transfer fail remains `iCloudDownloadFailed` (download copy + Retry). | Reopen after v1 as a Host / Pigeon capability only if users report failures stuck without Retry | ADR-044 D3; debt **406** / **435**; Cap 21.6 |
-| 458 | Monitoring | Main Browse Screen / Cap 20 | Cap 22.4 | Vertical feed lost page-snap (continuous slow drag; adjacent peeks L1→L2); leave-Browse does not heal — force-quit healed hit 1, more drags healed hit 3 — seen around Live (22.4, 31.2) and once on **video** (Cap 25) | **Hit 1 — Cap 22.4 i17 Profile soak (`0ca1198`).** Offline Live play-once: pinch/other gestures had **no** magnification visual (Live Host `mode == none` as designed), then vertical paging became continuous strip drag (neighbor pages half-visible; peeks still advanced L1→L2) instead of snap page-change. **Not Cap 22.4 Saved chrome.** Leave Browse / return did **not** heal (IndexedStack keep-alive retains `PageController` / `ScrollPosition`); force-quit did. **Hit 2 — Cap 25 Decision 14 Profile on Kafka (iPhone 13 Pro), owner report.** Same page-snap loss once on a **video** while an iCloud-not-downloaded item was still L2-not-ready (Share correctly dimmed); owner was repeatedly tapping the dim Share hit target to confirm no response — not a normal Share path. Share dismiss was likely swipe-down (not 100% certain). Exact timing vs dim→bright edge unclear. Same fragility **family** as Project facts Host pinch / `DragScrollActivity.shouldIgnorePointer` (Platform View + outer pinch Listener + PageView). Do **not** change PageView physics without a reliable repro. **Relation to Bug#1** (video share sheet outside-tap / intermittent pause-toggle) **unconfirmed**; Bug#1 was fixed in Cap 25 (hit-test gate) and no longer gates the 458 chase. **Hit 3 — Cap 31.2 device testing of the Live fix (date, device, build and preceding gesture not recorded).** Page-snap was lost around a Live item; dragging down a few more times restored it, no force-quit needed (unlike hit 1). Not seen since. Hits 1 and 3 were on Live items during Live-focused testing; hit 2 was on a video — treat Live as a clue, not an attribution. | Opportunistic note if seen again (device, build, preceding gesture / item type). Primary: next Flutter SDK upgrade pinch/scroll re-verify. Cap discussion only if a clean repro appears. | ADR-043 / ADR-040 / ADR-019; Project facts pinch/`DragScrollActivity` note; Cap 25 D14 device; Bug#1 |
+| 458 | Monitoring | Main Browse Screen / Cap 20 | Cap 22.4 | Vertical feed lost page-snap (continuous slow drag; adjacent peeks L1→L2); leave-Browse does not heal — force-quit healed hit 1, more drags healed hit 3 — seen around Live (22.4, 31.2) and once on **video** (Cap 25) | **Hit 1 — Cap 22.4 i17 Profile soak (`0ca1198`).** Offline Live play-once: pinch/other gestures had **no** magnification visual (Live Host `mode == none` as designed), then vertical paging became continuous strip drag (neighbor pages half-visible; peeks still advanced L1→L2) instead of snap page-change. **Not Cap 22.4 Saved chrome.** Leave Browse / return did **not** heal (IndexedStack keep-alive retains `PageController` / `ScrollPosition`); force-quit did. **Hit 2 — Cap 25 Decision 14 Profile on Kafka (iPhone 13 Pro), owner report.** Same page-snap loss once on a **video** while an iCloud-not-downloaded item was still L2-not-ready (Share correctly dimmed); owner was repeatedly tapping the dim Share hit target to confirm no response — not a normal Share path. Share dismiss was likely swipe-down (not 100% certain). Exact timing vs dim→bright edge unclear. Same fragility **family** as Project facts Host pinch / `DragScrollActivity.shouldIgnorePointer` (Platform View + outer pinch Listener + PageView). Do **not** change PageView physics without a reliable repro. **Relation to Bug#1** (video share sheet outside-tap / intermittent pause-toggle) **unconfirmed**; Bug#1 was fixed in Cap 25 (hit-test gate) and no longer gates the 458 chase. **Hit 3 — Cap 31.2 device testing of the Live fix (date, device, build and preceding gesture not recorded).** Page-snap was lost around a Live item; dragging down a few more times restored it, no force-quit needed (unlike hit 1). Not seen since. Hits 1 and 3 were on Live items during Live-focused testing; hit 2 was on a video — treat Live as a clue, not an attribution. Cap 35.3 (owner OK): when not magnified, the feed PageView uses `AlwaysScrollableScrollPhysics` for every queue length (one expression), so a one-item queue accepts drags and rubber-bands. For two or more items runtime behaviour is unchanged: that layer only makes `shouldAcceptUserOffset` always true, and snapping, bounce and ballistics come from the same physics chain as before (W-35.3-6). | Opportunistic note if seen again (device, build, preceding gesture / item type, queue length). Primary: next Flutter SDK upgrade pinch/scroll re-verify. Cap discussion only if a clean repro appears. | ADR-043 / ADR-040 / ADR-019 / ADR-077; Project facts pinch/`DragScrollActivity` note; Cap 25 D14 device; Bug#1 |
 | 459 | Closed | Main Browse Screen | Cap 22.5 | Endless round remount H0: when H1 Layer-1 seed misses, &lt;150 ms may show silent `feedBackground` (no gold spinner) before L1/L2 | **Closed:** Cap 22.5b real-bridge / soft-commit / H1–H0 remount path **reverted** to scheme A (static placeholder). Mechanism no longer exists. | Closed by Cap 22.5 scheme A revert | Cap 22.5; `cap22-22.5-endless-round-bridge-notes.md` |
 | 460 | Closed | Main Browse Screen | Cap 22.5b | Soft-commit **landing==0** → post-frame+50ms epoch remount may chop a fling started inside that 50 ms window | **Closed:** soft-commit / deferred epoch remount **removed** with bridge revert (scheme A). | Closed by Cap 22.5 scheme A revert | Cap 22.5b; `cap22-22.5-endless-round-bridge-notes.md` |
 | 461 | Closed | Main Browse Screen | Cap 22.5b | Fling past prepared[0] **and** prepared[1] can still hit a later last-page wall | **Closed:** prepared bridge pages **removed** with bridge revert (scheme A). | Closed by Cap 22.5 scheme A revert | Cap 22.5b; `cap22-22.5-endless-round-bridge-notes.md` |
