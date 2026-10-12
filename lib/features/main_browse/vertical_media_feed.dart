@@ -1292,9 +1292,13 @@ class VerticalMediaFeedState extends ConsumerState<VerticalMediaFeed>
                   ),
                   controller: _pageController,
                   scrollDirection: Axis.vertical,
+                  // One page has no scroll extent, so without AlwaysScrollable
+                  // the feed refuses drags (no rubber band). Keep one physics
+                  // type for every queue length: a type change rebuilds the
+                  // ScrollPosition, and a soft delete (2 → 1) keeps this key.
                   physics: ref.watch(browseMagnificationProvider).locksVerticalPageView
                       ? const NeverScrollableScrollPhysics()
-                      : null,
+                      : const AlwaysScrollableScrollPhysics(),
                   // This SDK's PageView.builder has no cacheExtent; true sets
                   // Viewport cacheExtent to 1.0 viewport (±1 pages).
                   allowImplicitScrolling: true,
