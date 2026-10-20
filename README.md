@@ -231,3 +231,15 @@ See [LICENSE](LICENSE).
 
 For questions or feedback, email
 [dennygan.nz@gmail.com](mailto:dennygan.nz@gmail.com).
+
+---
+
+## How this project was built
+
+This is a solo project built with AI tools. I set the scope, made the final call on product and architecture decisions, and accepted or rejected each change.
+
+- **Cursor** (agent mode) wrote most of the code.
+- **Claude** reviewed the work as it progressed. I kept a Claude Project synced with this repository and related documents, so reviews were based on the current code and docs rather than pasted snippets.
+- **ChatGPT** was used occasionally for a second opinion on Claude's reviews.
+
+Product and architecture decisions are recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md).
