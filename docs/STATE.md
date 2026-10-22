@@ -508,10 +508,25 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
       remove, and soft delete regressions passed. (c) was not deferred
       to 35.4)
       — work `c466f2d`
-- [ ] 35.4 Release candidate and TestFlight
-      (`pubspec.yaml` 1.0.1+2; archive; owner checks the used version
-      and build numbers in App Store Connect Activity and uploads; RC
-      checks on the TestFlight build)
+- [x] 35.4 Release candidate and TestFlight
+      (`pubspec.yaml` bumped to 1.0.1+2 (work `94bf4d4`).
+      `flutter clean` removed the gitignored `Generated.xcconfig`;
+      the first Xcode Archive failed; `flutter pub get` (and
+      `pod install`) restored it with no committed code or dependency
+      change; Archive of HEAD `94bf4d4` then produced 1.0.1 (2).
+      Read-only archive checks passed: identity 1.0.1 / 2 /
+      `com.dennycgan.waketok`; export key false; `objective_c` and
+      `sqlite3` arm64 with iOS platform (not simulator);
+      `codesign --verify --deep --strict` OK; no adhoc framework
+      signatures; sqlite3 `PrivacyInfo.xcprivacy` present. Owner
+      uploaded to App Store Connect; the missing dSYM warnings for
+      those two native-asset frameworks are expected (same as Cap
+      32). Build status and metadata are under the TestFlight tab
+      (Apple no longer has a separate Activity tab): 1.0.1 (2) Ready
+      to Submit, internal group. TestFlight build overall check:
+      i17 (iPhone 17) passed; Kafka (iPhone 13 Pro) passed — opened
+      and used the build; not a per-item Decision 1 checklist)
+      — work `94bf4d4`
 - [ ] 35.5 Submission, App Review, release verification and close-out
       (owner submits and releases; after v1.0.1 is live, update README:
       the first Roadmap line says version 1.0.1 is available on the App
@@ -525,8 +540,9 @@ Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
 - Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
       App Store); 35.2c added 2026-10-11; 35.1 done (ADR-075); 35.2
       done (`62ef098`); 35.2b done (`2e5f566`); 35.2c done (ADR-076);
-      35.3 done (ADR-077)
-- Next step: 35.4 Release candidate and TestFlight
+      35.3 done (ADR-077); 35.4 done (`94bf4d4`)
+- Next step: 35.5 Submission, App Review, release verification and
+      close-out
 - Related decisions: ADR-077 Accepted (one feed physics type for every
       queue length, single-item rubber band);
       ADR-076 Accepted (app text at the iOS default
