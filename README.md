@@ -148,14 +148,13 @@ The current iPhone version supports the complete workflow described above.
 
 ## Roadmap
 
-- WakeTok is under active development; version 1.0.0 is available on the App Store.
+- WakeTok is under active development; version 1.0.1 is available on the App Store.
 - This repository publishes source for review under **all rights reserved**; it is not an open-source release.
-- A focused **v1.0.1** update is planned: Third-party licences page, iPhone SE permission-button layout and single-item vertical-feed rubber-band scrolling.
 - **V2 for iOS** follows as an ordered candidate set; its scope may change.
 - An **Android port of V2 as shipped on iOS** is planned after V2.
 - **V2.1 for iOS** follows with location information and Hide as candidates.
 - **V3 and later** items are an unsequenced candidate backlog, not commitments.
-- See [`docs/STATE.md`](docs/STATE.md) for capability-level status. Last reviewed: 2026-10-09; no release date or schedule promise is implied.
+- See [`docs/STATE.md`](docs/STATE.md) for capability-level status. Last reviewed: 2026-10-23; no release date or schedule promise is implied.
 
 ---
 
@@ -234,12 +233,11 @@ For questions or feedback, email
 
 ---
 
-## How this project was built
+## AI-assisted development
 
-This is a solo project built with AI tools. I set the scope, made the final call on product and architecture decisions, and accepted or rejected each change.
+This is a solo project based on my own ideas and goals. I wrote the initial project specification, defining the product vision, user scenarios, scope, functional boundaries, architecture, and technology stack.
 
-- **Cursor** (agent mode) wrote most of the code.
-- **Claude** reviewed the work as it progressed. I kept a Claude Project synced with this repository and related documents, so reviews were based on the current code and docs rather than pasted snippets.
-- **ChatGPT** was used occasionally for a second opinion on Claude's reviews.
+AI coding agents were closely involved throughout implementation, including in writing and revising code. I reviewed key parts of the code and retained responsibility for the final implementation.
 
-Product and architecture decisions are recorded in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+Key product and architecture decisions are documented in [`docs/DECISIONS.md`](docs/DECISIONS.md).
+

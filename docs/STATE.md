@@ -218,14 +218,13 @@
       (public 2026-10-10 after the pre-public checks; not an
       open-source release; debt **419** Closed; no code change;
       PHASE_HISTORY)
-- [ ] v1.0.1 update (Cap 35): third-party licences page, iPhone SE
-      permission-button layout, permission-page app name at large text
-      sizes, app text fixed at the default text size, single-item
-      vertical-feed rubber-band scrolling; build 1.0.1 (2). Changes the
-      closed Cap 32 Settings page, the closed Cap 31.4 permission pages
-      and text sizing on every screen. See Platform gate.
-      <-- YOU ARE HERE
+- [x] v1.0.1 update
+      (Cap 35 / ADR-075…ADR-077 Accepted; licences page; SE permission
+      button; app name word break; app text fixed at the default text
+      size; single-item rubber band; build 1.0.1 (2) live on the App
+      Store 2026-10-23; PHASE_HISTORY)
 - [ ] V2 — album search in Add to Album and Build a Pool (candidate)
+      <-- YOU ARE HERE
 - [ ] V2 — Open the current item in the All / Oldest-first timeline
       (candidate; from the current item's "…" half-sheet, switch to
       the built-in All source, apply Oldest first, land on the same
@@ -370,179 +369,19 @@
   assets only)
 
 ## Phase Roadmap (active capability only)
-Active capability: v1.0.1 update (Cap 35).
-Contract: five small fixes ship as v1.0.1, build 1.0.1 (2); each
-code phase is a work commit plus a docs commit. The owner uploads,
-submits and releases; the agent prepares builds and notes only.
-Legend: [x] done  [~] in progress  [ ] todo  (blocked) noted inline
-
-- [x] 35.1 Third-party licences page
-      (Settings About gains a "Third-party licences" row that opens
-      Flutter's `LicensePage`, pushed by the app with a route-local
-      en_GB override so the title reads "Licences"; header shows the
-      app name only; inline `Icons.arrow_forward_ios` glyph next to the
-      title, button semantics; new en / zh-Hans copy. Audit of the
-      Release bundle: Dart packages, Flutter engine, plugin native code
-      (CocoaPods only, no Swift packages), sqlite3 and the CupertinoIcons
-      font are covered by Flutter's generated notices; the Material
-      Icons font is not, so its CC BY 4.0 notice is registered at the
-      composition root; app icon is owner-designed. Device check on
-      iPhone 13 Pro, Release, Light and Dark, en and zh-Hans; ADR-075
-      amends ADR-072 D1)
-      — work `3a368e5` + `a22ad9a`
-- [x] 35.2 iPhone SE permission-button layout
-      (button padding 16 horizontal / 12 vertical in
-      `permission_page_style.dart`, so the English request label fits
-      one line on a 375 pt SE at the default text size; a wrapped label
-      is centred (`textAlign` on the label in both pages) and the
-      button grows. Both permission pages scroll when content is taller
-      than the screen (they overflowed at accessibility text sizes);
-      the scroll view is not primary, so a page that fits stays static
-      with no drag or bounce. W-35.2-1 to W-35.2-5. Simulators: iPhone
-      SE (3rd generation) iOS 26.3 (en and zh-Hans, default to the
-      largest accessibility size) and iOS 18.0 (en); iPhone 13 Pro iOS
-      26.3 regression unchanged apart from sub-pixel label
-      anti-aliasing; iPhone 16 iOS 18.0 request page clears the Dynamic
-      Island at large text. Overflow checked with a debugger attached
-      (before: 63 px; after: none); label centring measured on
-      screenshots, within 1–2 physical pixels. Device: Kafka iOS 26.6,
-      Release, English, request and blocked pages: one-line centred
-      label, no drag or bounce. Evidence limit: the 375 pt layout is
-      proven on simulators only (no SE device), and the iOS 18.0 checks
-      have no device comparison)
-      — work `62ef098`
-- [x] 35.2b App name word break at accessibility text sizes
-      (on both permission pages the one-word app name split mid-word
-      once wider than the page: from the second accessibility size on
-      a 375 pt SE, from the third on 390–430 pt iPhones. Fix:
-      `PermissionPageStyle.appNameFitted` measures the name at the
-      current text size (Bold Text included) and, when it is wider than
-      the page, scales its font size and letter spacing down to the
-      page width; the name stays a plain one-line `Text` and is
-      unchanged when it fits (section 16). The planned `FittedBox` with
-      `LayoutBuilder` was dropped with owner OK: the 35.2 scroll shell's
-      `SliverFillRemaining` asks for intrinsic heights, which
-      `LayoutBuilder` cannot answer and `FittedBox` reports at the
-      unscaled, wrapped size. VoiceOver reads one "WakeTok" element; its
-      frame is the one-line text box across the page width. W-35.2b-1
-      and W-35.2b-2. Simulators: iPhone SE (3rd generation) iOS 26.3,
-      en and zh-Hans, request page at every accessibility size and
-      blocked page at the largest: one line, ink inside the page edges;
-      iPhone 13 Pro iOS 26.3 at the default size, request and blocked
-      pages, en and zh-Hans: pixel-identical to before. Device: Kafka
-      iOS 26.6, Release, English, largest accessibility size with Bold
-      Text: request and blocked pages one line, VoiceOver reads the name
-      once with a one-line frame, licences page header one line.
-      Evidence limit: the licences page header was checked on the
-      390 pt device only; on a 375 pt SE it is an estimate (fits with
-      about 20 pt to spare))
-      — work `2e5f566`
-- [x] 35.2c App text ignores the iOS text size and Bold Text settings
-      (debt **490**, closed; found 2026-10-11 during the 35.2b device
-      check: at the largest accessibility text size the Browse top bar
-      labels overlapped, the bottom bar labels clipped at different
-      sizes, and the date and loading text overlapped; present since
-      v1.0.0. Cause: every `Text` followed the system text size and
-      Bold Text while the layout uses fixed point sizes. Baseline: the
-      iOS default text size (Large, text scale 1.0) with Bold Text off
-      (ADR-076; `media-chrome-layout-notes.md` section 18). Fix:
-      `appRootBuilder` in `MaterialApp.builder` turns off text scaling
-      and the framework Bold Text for every page, dialog, half sheet
-      and overlay; no token or theme change; no change at the default
-      size. iOS Bold Text still draws Latin letters and digits about one
-      weight step heavier, and wider, at the same size and position; the
-      system font is fixed when the app process starts (Flutter engine,
-      flutter/flutter#162804; debt **491**). The 35.2 and 35.2b code
-      stays: `appNameFitted` is inactive at runtime; the 35.2 centred
-      wrapped button label still applies when Bold Text wraps it. The
-      shared permission UI test harness keeps the previous builder
-      unless `appTextBaseline` is set, so no closed-Cap test changed.
-      Out of scope: Display Zoom, Smart Invert, colour filters and
-      system screens (Photos prompt and picker, share sheet).
-      W-35.2c-1, W-35.2c-2. Acceptance: at the largest accessibility
-      size pixel-identical to the default size; with Bold Text added no
-      overflow or overlap. Simulator: iPhone SE (3rd generation) iOS
-      26.3, en and zh-Hans, real photos and a video; Browse photo with
-      date text, the Order half sheet, the newest item and Settings
-      pixel-identical at the largest accessibility size; the video
-      differs only in playback time, progress and decode noise; with
-      Bold Text no overflow or overlap (Chinese glyphs unchanged); at
-      the default size pixel-identical to the previous build. Device:
-      Kafka (iPhone 13 Pro, iOS 26.6), Release, English, launched with
-      the largest accessibility size and Bold Text on: permission page,
-      first-launch tips, Browse photo and video, top bar menus and a
-      toast, half sheets, a dialog, Settings, licences page and Build a
-      Pool, no overflow or overlap. Bold Text off (owner re-check
-      2026-10-12): turned off while the app runs, the text stays bold;
-      after a force quit and reopen it is back to regular weight. App
-      Store Connect App Accessibility has never been configured (owner
-      checked 2026-10-11), so v1.0.1 withdraws no Larger Text claim.
-      Evidence limit: zh-Hans was checked on the simulator only; with
-      Bold Text the 375 pt layout was checked on the simulator only
-      (Kafka is 390 pt))
-      — work `98c7e77`
-- [x] 35.3 Single-item vertical-feed rubber-band scrolling
-      (with one item in the queue (a one-item pool or Limited
-      selection) a vertical drag did not move the feed: one page has
-      no scroll extent, so the default physics refused the drag;
-      present since v1.0.0. Fix: when not magnified, the feed
-      `PageView` uses `AlwaysScrollableScrollPhysics` for every queue
-      length (ADR-077); two or more items unchanged (page snap,
-      W-35.3-6); a soft delete from two items to one keeps the same
-      scroll position (W-35.3-8); magnification still locks the feed.
-      Chrome stays visible during the rubber band, as on a multi-item
-      first-item pull-down. Debt 458 note. W-35.3-1 to W-35.3-8.
-      Device: i17 (iPhone 17, iOS 27.0.1), Profile, installed with
-      Xcode 26.3. (a), (b) and the single-item gesture regressions on
-      both one-item setups: a one-photo Limited selection and a
-      one-item pool built with Build a Pool; (c) on a fresh install
-      with a one-photo Limited selection only (`<1>` shows once, on
-      the first ready Browse item, before any pool can exist).
-      (a) Still, video and Live spring back to the same item
-      in both directions, slow drag and fling, with no endless-round
-      advance; video keeps playing; Live does not replay. (b) A
-      magnified still or video does not move the feed. (c) The rubber
-      band does not end Cap 30 `<1>` early; `<1>` ends on its 2 s
-      timer, `<2>` follows, and the guide neither stalls nor skips a
-      step. Single-item gestures, multi-item paging, Limited add and
-      remove, and soft delete regressions passed. (c) was not deferred
-      to 35.4)
-      — work `c466f2d`
-- [x] 35.4 Release candidate and TestFlight
-      (`pubspec.yaml` bumped to 1.0.1+2 (work `94bf4d4`).
-      `flutter clean` removed the gitignored `Generated.xcconfig`;
-      the first Xcode Archive failed; `flutter pub get` (and
-      `pod install`) restored it with no committed code or dependency
-      change; Archive of HEAD `94bf4d4` then produced 1.0.1 (2).
-      Read-only archive checks passed: identity 1.0.1 / 2 /
-      `com.dennycgan.waketok`; export key false; `objective_c` and
-      `sqlite3` arm64 with iOS platform (not simulator);
-      `codesign --verify --deep --strict` OK; no adhoc framework
-      signatures; sqlite3 `PrivacyInfo.xcprivacy` present. Owner
-      uploaded to App Store Connect; the missing dSYM warnings for
-      those two native-asset frameworks are expected (same as Cap
-      32). Build status and metadata are under the TestFlight tab
-      (Apple no longer has a separate Activity tab): 1.0.1 (2) Ready
-      to Submit, internal group. TestFlight build overall check:
-      i17 (iPhone 17) passed; Kafka (iPhone 13 Pro) passed — opened
-      and used the build; not a per-item Decision 1 checklist)
-      — work `94bf4d4`
-- [ ] 35.5 Submission, App Review, release verification and close-out
-      (owner submits and releases; after v1.0.1 is live, update README:
-      the first Roadmap line says version 1.0.1 is available on the App
-      Store, the planned-v1.0.1 line is removed, and the Last reviewed
-      date is updated; PHASE_HISTORY snapshot)
+Capability Roadmap Cap 35 (v1.0.1 update) is closed. The next
+Capability Roadmap item is V2 — album search in Add to Album and
+Build a Pool (candidate). Numbered phases are awaiting owner scope /
+kickoff review; do not invent phases here.
 
 ## Now working on (describe ONLY the in-progress item)
-- Goal (one line): Cap 35 — ship v1.0.1 (licences page, SE permission
-      button, app name word break, fixed app text size, single-item
-      rubber band)
-- Sub-steps done: phases 35.1–35.5 approved (v1.0.0 is live on the
-      App Store); 35.2c added 2026-10-11; 35.1 done (ADR-075); 35.2
-      done (`62ef098`); 35.2b done (`2e5f566`); 35.2c done (ADR-076);
-      35.3 done (ADR-077); 35.4 done (`94bf4d4`)
-- Next step: 35.5 Submission, App Review, release verification and
-      close-out
+- Goal (one line): none — Cap 35 closed; next Capability Roadmap item
+      (V2 — album search in Add to Album and Build a Pool) awaits
+      owner kickoff
+- Sub-steps done: Cap 35 closed (v1.0.1 live; build 1.0.1 (2);
+      ADR-075…ADR-077 Accepted)
+- Next step: owner kickoff / scope for the next Capability Roadmap
+      item; do not invent numbered phases until then
 - Related decisions: ADR-077 Accepted (one feed physics type for every
       queue length, single-item rubber band);
       ADR-076 Accepted (app text at the iOS default
