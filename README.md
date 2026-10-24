@@ -88,7 +88,7 @@ on an iPhone 13 Pro with iCloud Photos' Optimize iPhone Storage enabled
 increased used storage by about 7 GB, although only the first and last iCloud
 videos were allowed to play. After these loading changes, separate
 no-Instruments checks recorded growth of 0.18 GB for Videos and 0.02 GB for
-All, both explainable by watched items. *(ADR-029, ADR-031)* The measurement
+All, both explainable by watched items. *(ADR-029, ADR-035)* The measurement
 records are kept in the project's docs.
 
 ### Gesture arbitration
