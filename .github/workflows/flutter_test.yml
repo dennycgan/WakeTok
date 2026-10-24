@@ -1,0 +1,56 @@
+# Debt 449: push CI for the Dart/Flutter suite.
+#
+# Flutter pin: 3.41.9 (stable), matching the owner machine verified by
+# `flutter --version` (Framework 00b0c91f06; Dart 3.11.5).
+# pubspec.yaml only constrains the Dart SDK (`sdk: ^3.11.5`); it does not
+# pin a Flutter version, so this workflow sets flutter-version explicitly
+# instead of flutter-version-file.
+#
+# Scope (449): full `flutter test` only. No flutter analyze, no iOS
+# xcodebuild / RunnerTests, no Android build.
+name: flutter_test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter_test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: flutter test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # drift / sqlite3 NativeDatabase needs the system SQLite library on Linux.
+      - name: Install libsqlite3-dev
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
+      - name: Set up Flutter 3.41.9
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.41.9"
+          cache: true
+
+      - name: Show Flutter / Dart versions
+        run: |
+          flutter --version
+          dart --version
+
+      - name: Resolve packages
+        run: flutter pub get
+
+      - name: Run full flutter test
+        run: flutter test
