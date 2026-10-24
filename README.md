@@ -173,7 +173,8 @@ flutter test
 
 The simulator build prepares the iOS workspace and installs Pods before the
 standalone Swift test command. `flutter test` runs the Dart and Flutter unit,
-widget and architecture tests. Swift `RunnerTests` run separately through
+widget and architecture tests. `flutter test` also runs on GitHub Actions for
+pushes and pull requests to `main`. Swift `RunnerTests` run separately through
 Xcode:
 
 ```bash
